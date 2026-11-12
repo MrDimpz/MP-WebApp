@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>The Missing Piece — TikTok Interactive &amp; Solo Games</title>
+    <meta name="description" content="Discover TikTok interactive games and solo games for creators. Play with your audience or make the moment your own, starting with the full Crossword experience." />
+    <meta property="og:title" content="The Missing Piece — TikTok Interactive &amp; Solo Games" />
+    <meta property="og:description" content="Discover TikTok interactive games and solo games for creators. Play with your audience or make the moment your own, starting with the full Crossword experience." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" />
+    <script>
+      // Suppress benign Vite WebSocket/HMR disconnect errors in sandbox iframe environment
+      window.addEventListener('unhandledrejection', function(event) {
+        if (
+          event &&
+          event.reason &&
+          (typeof event.reason.message === 'string' &&
+            (event.reason.message.includes('WebSocket closed without opened') ||
+             event.reason.message.includes('createWebSocketModuleRunnerTransport') ||
+             event.reason.message.includes('vite-hmr')))
+        ) {
+          event.preventDefault();
+        }
+      });
+      window.addEventListener('error', function(event) {
+        if (
+          event &&
+          ((event.message && (event.message.includes('WebSocket') || event.message.includes('createWebSocketModuleRunnerTransport'))) ||
+           (event.filename && event.filename.includes('@vite/client')))
+        ) {
+          event.preventDefault();
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
