@@ -43,6 +43,17 @@ export function SoloGameList() {
           20×20 &amp; 8×8 crosswords, 733+ visual rebus challenges, tactile daily word grids, and
           daily word association puzzles.
         </p>
+        <div className="mt-4">
+          <a
+            href="https://thegorillashack.co.uk/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-amber-200 underline underline-offset-4 transition-colors"
+          >
+            <span>Visit The Gorilla Shack for more fun and games</span>
+            <ArrowUpRight size={14} />
+          </a>
+        </div>
       </div>
 
       <div className="mb-10 rounded-2xl bg-gradient-to-r from-[#23063A] via-[#340A54] to-[#23063A] border-2 border-[#D4A437] p-4 sm:p-6 text-[#F5F3F7] shadow-[0_14px_34px_rgba(35,6,58,0.22)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

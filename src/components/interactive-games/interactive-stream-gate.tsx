@@ -35,12 +35,8 @@ export function InteractiveStreamGate({
   const { user: siteUser } = useUnifiedAuth();
   const profileScores = useInteractiveProfileScores(siteUser?.uid);
 
-  const [usernameInput, setUsernameInput] = useState(
-    () => activeStreamer?.username || siteUser?.linkedTikTokHandle || "",
-  );
-  const [streamKeyInput, setStreamKeyInput] = useState(
-    () => activeStreamer?.streamKey || "",
-  );
+  const [usernameInput, setUsernameInput] = useState('');
+  const [streamKeyInput, setStreamKeyInput] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -182,14 +178,6 @@ export function InteractiveStreamGate({
                 {profileScores.totalPoints.toLocaleString()} pts
               </span>
             )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowAdminModal(true)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#2b1f0d] hover:bg-[#3a2a12] border border-amber-400/50 text-amber-200 font-bold transition-colors cursor-pointer"
-          >
-            🔑 {isAdminAuthenticated ? "Admin Key Portal" : "Admin / Register Key"}
           </button>
         </div>
       </div>

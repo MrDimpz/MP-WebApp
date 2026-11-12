@@ -51,24 +51,13 @@ export function SiteHeader() {
           <Link to="/solo-games">
             Solo games <ArrowUpRight size={15} />
           </Link>
-          <button
-            type="button"
-            onClick={() => setAdminModalOpen(true)}
-            style={{
-              background: 'none',
-              border: 0,
-              padding: 0,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--ink)',
-              fontWeight: 500,
-              fontSize: '14px',
-              cursor: 'pointer',
-            }}
+          <a
+            href="https://thegorillashack.co.uk/"
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            Admin keys <KeyRound size={14} />
-          </button>
+            The Gorilla Shack <ArrowUpRight size={15} />
+          </a>
         </nav>
 
         <div className="header-actions">

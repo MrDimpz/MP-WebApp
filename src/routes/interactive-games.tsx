@@ -21,12 +21,8 @@ export function InteractiveGamesPage() {
   const { user: siteUser } = useUnifiedAuth();
   const profileScores = useInteractiveProfileScores(siteUser?.uid);
 
-  const [usernameInput, setUsernameInput] = useState(
-    () => activeStreamer?.username || siteUser?.linkedTikTokHandle || ''
-  );
-  const [streamKeyInput, setStreamKeyInput] = useState(
-    () => activeStreamer?.streamKey || ''
-  );
+  const [usernameInput, setUsernameInput] = useState('');
+  const [streamKeyInput, setStreamKeyInput] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
