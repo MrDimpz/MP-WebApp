@@ -1,0 +1,397 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <clipPath id="dsiClip">
+      <rect x="0" y="0" width="1200" height="720" rx="16" />
+    </clipPath>
+    <linearGradient id="dsiBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b0d47" />
+      <stop offset="50%" stop-color="#4a1259" />
+      <stop offset="100%" stop-color="#22072b" />
+    </linearGradient>
+    <linearGradient id="dsiGoldBtn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="dsiTimerBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fcd34d" />
+      <stop offset="50%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+    <filter id="dsiShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#09010d" flood-opacity="0.55" />
+    </filter>
+    <filter id="dsiBoardInset" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#09010d" flood-opacity="0.6" />
+    </filter>
+    <!-- Exposed Top Tile (#fbf6e8 with 3D #7c581e bottom lip) -->
+    <g id="dsiTileExposed">
+      <rect x="-26" y="-22" width="52" height="50" rx="10" fill="#7c581e" />
+      <rect x="-26" y="-26" width="52" height="49" rx="10" fill="#fbf6e8" stroke="#fcd34d" stroke-width="1.5" />
+    </g>
+    <!-- Covered Lower-Layer Tile (#bfa97a) -->
+    <g id="dsiTileCovered">
+      <rect x="-26" y="-22" width="52" height="50" rx="10" fill="#1e1124" fill-opacity="0.75" />
+      <rect x="-26" y="-26" width="52" height="49" rx="10" fill="#bfa97a" stroke="#9c8658" stroke-width="1.2" />
+    </g>
+    <!-- Deepest Layer 0 Covered Tile (#9e885c) -->
+    <g id="dsiTileDeep">
+      <rect x="-26" y="-22" width="52" height="50" rx="10" fill="#140818" fill-opacity="0.8" />
+      <rect x="-26" y="-26" width="52" height="49" rx="10" fill="#9e885c" stroke="#7d6a43" stroke-width="1" />
+    </g>
+  </defs>
+
+  <g clip-path="url(#dsiClip)">
+    <!-- Royal Purple Game Canvas Background (#4a1259) -->
+    <rect x="0" y="0" width="1200" height="720" fill="url(#dsiBg)" />
+
+    <!-- Subtle Watermark Pattern Dots -->
+    <g fill="#ffffff" fill-opacity="0.03">
+      <circle cx="90" cy="190" r="24" />
+      <circle cx="190" cy="310" r="24" />
+      <circle cx="90" cy="430" r="24" />
+      <circle cx="1050" cy="190" r="24" />
+      <circle cx="1130" cy="310" r="24" />
+      <circle cx="1050" cy="430" r="24" />
+    </g>
+
+    <!-- Unified Interactive Stream Gate Top Bar -->
+    <rect x="0" y="0" width="1200" height="38" fill="#0d101b" />
+    <line x1="0" y1="38" x2="1200" y2="38" stroke="#262c40" stroke-width="1" />
+    <rect x="16" y="7" width="62" height="24" rx="6" fill="#181d30" stroke="#2e3652" stroke-width="1" />
+    <text x="47" y="23" text-anchor="middle" fill="#e2e8f0" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">← Back</text>
+    <text x="92" y="23" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">The Missing Piece</text>
+    <text x="212" y="23" fill="#64748b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">·</text>
+    <text x="224" y="23" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">DeStack Interactive</text>
+
+    <rect x="818" y="7" width="166" height="24" rx="7" fill="#0c2e24" stroke="#10b981" stroke-opacity="0.5" stroke-width="1" />
+    <circle cx="832" cy="19" r="4" fill="#34d399" />
+    <text x="875" y="23" text-anchor="middle" fill="#a7f3d0" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="700">@mrdimpz</text>
+    <text x="948" y="23" text-anchor="middle" fill="#fda4af" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="700">Switch Key</text>
+
+    <rect x="994" y="7" width="190" height="24" rx="7" fill="#26143d" stroke="#a855f7" stroke-opacity="0.5" stroke-width="1" />
+    <text x="1089" y="23" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">👤 Dimpz (@mrdimpz) · 4,850 pts</text>
+
+    <!-- DeStack Interactive Header Bar -->
+    <rect x="0" y="38" width="1200" height="54" fill="#1a0624" stroke="#581c6b" stroke-opacity="0.6" stroke-width="1" />
+    <circle cx="38" cy="65" r="16" fill="#3b0d47" stroke="#fbbf24" stroke-width="2" />
+    <text x="38" y="70" text-anchor="middle" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="900">🧩</text>
+    <text x="62" y="62" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="17" font-weight="900">De<tspan fill="#fbbf24">Stack</tspan></text>
+    <text x="62" y="76" fill="#fcd34d" fill-opacity="0.85" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8" font-weight="700" letter-spacing="1.2">THE MISSING PIECE</text>
+
+    <!-- Center Header Links -->
+    <text x="330" y="69" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">Today's Puzzle</text>
+    <text x="440" y="69" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">📅 Archive ▾</text>
+    <text x="542" y="69" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">🏆 Scoreboards (4)</text>
+    <text x="678" y="69" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">📊 Statistics</text>
+
+    <!-- Right Header Buttons -->
+    <rect x="822" y="50" width="104" height="30" rx="9" fill="#2d0a3d" stroke="#fbbf24" stroke-opacity="0.55" stroke-width="1.2" />
+    <text x="874" y="69" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">👤 Account</text>
+
+    <rect x="936" y="50" width="132" height="30" rx="9" fill="#064e3b" stroke="#34d399" stroke-opacity="0.6" stroke-width="1.2" />
+    <circle cx="952" cy="65" r="4" fill="#34d399" />
+    <text x="1010" y="69" text-anchor="middle" fill="#a7f3d0" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">LIVE: @mrdimpz</text>
+
+    <rect x="1078" y="50" width="102" height="30" rx="9" fill="url(#dsiGoldBtn)" />
+    <text x="1129" y="69" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">Play Today</text>
+
+    <!-- =================================================================== -->
+    <!-- LEFT COLUMN (5 cols): DeStack Stackdown Board + 30/45/60s Timer Bar -->
+    <!-- =================================================================== -->
+    <g transform="translate(32, 104)">
+      <!-- Top Utility Strip: ← Menu | [4 Layers | 🔥 Hard (6 Layers)] | Total 0:42 ↻ -->
+      <text x="4" y="16" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">← Menu</text>
+
+      <rect x="96" y="0" width="218" height="24" rx="8" fill="#360b42" stroke="#7e22ce" stroke-width="1" />
+      <rect x="99" y="2.5" width="92" height="19" rx="6" fill="#fbbf24" />
+      <text x="145" y="15.5" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="800">4 Layers</text>
+      <text x="252" y="15.5" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="800">🔥 Hard (6 Layers)</text>
+
+      <text x="404" y="16" text-anchor="end" fill="#e9d5ff" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="700">Total 0:42</text>
+      <text x="426" y="16" text-anchor="end" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="700">↻</text>
+
+      <!-- INTERACTIVE WORD REVEAL CONTROL TIMER BAR (30s / 45s / 60s) -->
+      <g transform="translate(0, 30)" filter="url(#dsiShadow)">
+        <rect x="0" y="0" width="430" height="74" rx="16" fill="#310a3d" stroke="#fbbf24" stroke-opacity="0.5" stroke-width="1.5" />
+
+        <text x="14" y="24" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800" letter-spacing="0.6">⏱ TIMER:</text>
+        <!-- 30s / 45s / 60s Buttons -->
+        <rect x="78" y="9" width="40" height="22" rx="6" fill="#fbbf24" />
+        <text x="98" y="24" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="800">30s</text>
+
+        <rect x="124" y="9" width="40" height="22" rx="6" fill="#4a155c" />
+        <text x="144" y="24" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="700">45s</text>
+
+        <rect x="170" y="9" width="40" height="22" rx="6" fill="#4a155c" />
+        <text x="190" y="24" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="700">60s</text>
+
+        <!-- Right Readout + Pause + Reveal -->
+        <rect x="270" y="8" width="42" height="24" rx="7" fill="#180420" stroke="#fbbf24" stroke-opacity="0.45" stroke-width="1" />
+        <text x="291" y="24" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans Mono, monospace" font-size="12.5" font-weight="900">18s</text>
+
+        <rect x="318" y="8" width="26" height="24" rx="7" fill="#4a155c" />
+        <text x="331" y="24" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">⏸</text>
+
+        <rect x="350" y="8" width="68" height="24" rx="7" fill="url(#dsiGoldBtn)" />
+        <text x="384" y="24" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="900">⏩ Reveal</text>
+
+        <!-- Progress Track -->
+        <rect x="14" y="40" width="402" height="8" rx="4" fill="#16031d" />
+        <rect x="14" y="40" width="254" height="8" rx="4" fill="url(#dsiTimerBar)" />
+
+        <text x="14" y="64" fill="#e9d5ff" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="600">Next word auto-reveals in <tspan fill="#fcd34d" font-weight="800">18s</tspan></text>
+        <text x="416" y="64" text-anchor="end" fill="#6ee7b7" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="700">3 chat solvers locked in</text>
+      </g>
+
+      <!-- Stackdown Header Pill ("HOW TO PLAY" + "4 WORDS REMAINING · WORD #3 OF 6") -->
+      <g transform="translate(0, 112)">
+        <circle cx="148" cy="13" r="12" fill="#3b0d47" stroke="#fbbf24" stroke-width="1.5" />
+        <text x="148" y="17.5" text-anchor="middle" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="900">🧩</text>
+        <rect x="166" y="1" width="110" height="24" rx="12" fill="#ffffff" />
+        <text x="221" y="16.5" text-anchor="middle" fill="#3b0d47" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="900" letter-spacing="0.8">HOW TO PLAY</text>
+
+        <text x="215" y="41" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700" letter-spacing="0.9">
+          <tspan fill="#fcd34d" font-weight="900">4</tspan> WORDS REMAINING · <tspan fill="#fcd34d" font-weight="800">WORD #3 OF 6</tspan>
+        </text>
+      </g>
+
+      <!-- Recessed Square Stack Board (430x314) -->
+      <g transform="translate(0, 162)">
+        <rect x="0" y="0" width="430" height="314" rx="18" fill="#360b42" stroke="#7e22ce" stroke-opacity="0.4" stroke-width="1.5" filter="url(#dsiBoardInset)" />
+
+        <!-- LAYER 0 (Bottom Outer Ring) -->
+        <g transform="translate(153, 46)"><use href="#dsiTileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">T</text></g>
+        <g transform="translate(277, 46)"><use href="#dsiTileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">E</text></g>
+        <g transform="translate(91, 102)"><use href="#dsiTileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">L</text></g>
+        <g transform="translate(91, 157)"><use href="#dsiTileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">M</text></g>
+        <g transform="translate(91, 212)"><use href="#dsiTileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">O</text></g>
+        <g transform="translate(339, 102)"><use href="#dsiTileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">R</text></g>
+        <g transform="translate(339, 157)"><use href="#dsiTileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">K</text></g>
+        <g transform="translate(339, 212)"><use href="#dsiTileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">N</text></g>
+        <g transform="translate(153, 268)"><use href="#dsiTileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">D</text></g>
+        <g transform="translate(277, 268)"><use href="#dsiTileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">G</text></g>
+
+        <!-- LAYER 1 (8 half-step overlapping tiles) -->
+        <g transform="translate(184, 74)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">H</text></g>
+        <g transform="translate(246, 74)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">I</text></g>
+        <g transform="translate(122, 129)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">U</text></g>
+        <g transform="translate(122, 185)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">B</text></g>
+        <g transform="translate(308, 129)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">V</text></g>
+        <g transform="translate(308, 185)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">Y</text></g>
+        <g transform="translate(184, 240)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">W</text></g>
+        <g transform="translate(246, 240)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">F</text></g>
+
+        <!-- LAYER 2 (3x3 Ring) -->
+        <g transform="translate(153, 102)"><use href="#dsiTileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">C</text></g>
+        <g transform="translate(215, 102)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">R</text></g>
+        <g transform="translate(277, 102)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">A</text></g>
+        <g transform="translate(153, 157)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">N</text></g>
+        <g transform="translate(277, 157)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">T</text></g>
+        <g transform="translate(153, 212)"><use href="#dsiTileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">E</text></g>
+        <g transform="translate(215, 212)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">S</text></g>
+        <g transform="translate(277, 212)"><use href="#dsiTileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">L</text></g>
+
+        <!-- LAYER 3 (Top Center 2x2 Peak - Exposed Cream Tiles) -->
+        <g transform="translate(246, 129)"><use href="#dsiTileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">R</text></g>
+        <g transform="translate(184, 185)"><use href="#dsiTileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">K</text></g>
+        <g transform="translate(246, 185)"><use href="#dsiTileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">E</text></g>
+      </g>
+
+      <!-- 5-Letter Slot Rack -->
+      <g transform="translate(15, 488)">
+        <rect x="0" y="4" width="68" height="58" rx="12" fill="#7c581e" />
+        <rect x="0" y="0" width="68" height="58" rx="12" fill="#fbf6e8" stroke="#fcd34d" stroke-width="2" />
+        <text x="34" y="38" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="25" font-weight="900">S</text>
+
+        <rect x="83" y="4" width="68" height="58" rx="12" fill="#7c581e" />
+        <rect x="83" y="0" width="68" height="58" rx="12" fill="#fbf6e8" stroke="#fcd34d" stroke-width="2" />
+        <text x="117" y="38" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="25" font-weight="900">P</text>
+
+        <rect x="166" y="4" width="68" height="58" rx="12" fill="#7c581e" />
+        <rect x="166" y="0" width="68" height="58" rx="12" fill="#fbf6e8" stroke="#fcd34d" stroke-width="2" />
+        <text x="200" y="38" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="25" font-weight="900">A</text>
+
+        <rect x="249" y="0" width="68" height="58" rx="12" fill="#360b42" stroke="#7e22ce" stroke-opacity="0.35" stroke-width="1.5" />
+        <rect x="332" y="0" width="68" height="58" rx="12" fill="#360b42" stroke="#7e22ce" stroke-opacity="0.35" stroke-width="1.5" />
+      </g>
+
+      <!-- Bottom Swipe-to-Reveal Clue Bar -->
+      <g transform="translate(15, 558)">
+        <rect x="0" y="0" width="400" height="40" rx="20" fill="#ffffff" stroke="#fbbf24" stroke-width="2" />
+        <text x="200" y="25" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">💡 Hint: A bright flash of light or glowing ember</text>
+      </g>
+    </g>
+
+    <!-- =================================================================== -->
+    <!-- RIGHT COLUMN (7 cols): TikTokLivePanel (Running Scoreboard + Chat)  -->
+    <!-- =================================================================== -->
+    <g transform="translate(490, 104)" filter="url(#dsiShadow)">
+      <rect x="0" y="0" width="678" height="596" rx="20" fill="#2c0938" stroke="#a855f7" stroke-opacity="0.35" stroke-width="1.5" />
+
+      <!-- Top Status & Connection Bar (#390c47) -->
+      <rect x="0" y="0" width="678" height="52" rx="20" fill="#390c47" />
+      <line x1="0" y1="52" x2="678" y2="52" stroke="#7e22ce" stroke-opacity="0.35" stroke-width="1" />
+
+      <rect x="16" y="11" width="150" height="30" rx="10" fill="#064e3b" stroke="#34d399" stroke-opacity="0.5" stroke-width="1.2" />
+      <circle cx="32" cy="26" r="4.5" fill="#34d399" />
+      <text x="95" y="30" text-anchor="middle" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">LIVE: @mrdimpz</text>
+
+      <text x="180" y="30" fill="#e9d5ff" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="600">
+        Word 3/6 · <tspan fill="#fcd34d" font-weight="800">3</tspan> solved current word
+      </text>
+
+      <rect x="488" y="11" width="144" height="30" rx="10" fill="#452615" stroke="#fbbf24" stroke-opacity="0.5" stroke-width="1" />
+      <text x="560" y="30" text-anchor="middle" fill="#fde68a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">⚡ Simulate Chat Rush</text>
+
+      <rect x="640" y="11" width="26" height="30" rx="8" fill="#4a155c" />
+      <text x="653" y="30" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">↻</text>
+
+      <!-- Split 2-Column Interior: Left = Running Scoreboard, Right = Live TikTok Chat -->
+      <line x1="339" y1="52" x2="339" y2="544" stroke="#7e22ce" stroke-opacity="0.3" stroke-width="1" />
+
+      <!-- Subheader Left: RUNNING SCOREBOARD -->
+      <rect x="0" y="52" width="339" height="36" fill="#1e0526" />
+      <text x="16" y="75" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800" letter-spacing="0.8">🏆 RUNNING SCOREBOARD</text>
+      <text x="324" y="75" text-anchor="end" fill="#d8b4fe" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="700">👥 18 players</text>
+
+      <!-- Scoreboard Row #1 -->
+      <g transform="translate(12, 100)">
+        <rect x="0" y="0" width="315" height="66" rx="14" fill="#3b104c" stroke="#fbbf24" stroke-width="1.5" />
+        <circle cx="24" cy="33" r="13" fill="#fbbf24" />
+        <text x="24" y="37.5" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="900">1</text>
+        <circle cx="56" cy="33" r="15" fill="#fde68a" stroke="#fbbf24" stroke-width="1.5" />
+        <text x="56" y="37.5" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="900">WM</text>
+        <text x="80" y="27" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">WordMaster_UK</text>
+        <rect x="190" y="14" width="48" height="17" rx="5" fill="#064e3b" stroke="#34d399" stroke-width="0.8" />
+        <text x="214" y="26" text-anchor="middle" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8.5" font-weight="800">SOLVED</text>
+        <text x="80" y="46" fill="#d8b4fe" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="600">3 words · Last: SPARK (+960) · ⚡ 2.4s</text>
+        <text x="303" y="37" text-anchor="end" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="15" font-weight="900">2,840</text>
+      </g>
+
+      <!-- Scoreboard Row #2 -->
+      <g transform="translate(12, 176)">
+        <rect x="0" y="0" width="315" height="64" rx="14" fill="#23062c" stroke="#6b21a8" stroke-width="1" />
+        <circle cx="24" cy="32" r="13" fill="#e2e8f0" />
+        <text x="24" y="36.5" text-anchor="middle" fill="#0f172a" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="900">2</text>
+        <circle cx="56" cy="32" r="15" fill="#fbcfe8" stroke="#f472b6" stroke-width="1.5" />
+        <text x="56" y="36.5" text-anchor="middle" fill="#4a044e" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="900">SS</text>
+        <text x="80" y="26" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">SarahStacks</text>
+        <rect x="172" y="13" width="48" height="17" rx="5" fill="#064e3b" stroke="#34d399" stroke-width="0.8" />
+        <text x="196" y="25" text-anchor="middle" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8.5" font-weight="800">SOLVED</text>
+        <text x="80" y="45" fill="#d8b4fe" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="600">3 words · Last: SPARK (+880) · ⚡ 4.1s</text>
+        <text x="303" y="36" text-anchor="end" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="15" font-weight="900">2,410</text>
+      </g>
+
+      <!-- Scoreboard Row #3 -->
+      <g transform="translate(12, 250)">
+        <rect x="0" y="0" width="315" height="64" rx="14" fill="#23062c" stroke="#6b21a8" stroke-width="1" />
+        <circle cx="24" cy="32" r="13" fill="#d97706" />
+        <text x="24" y="36.5" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="900">3</text>
+        <circle cx="56" cy="32" r="15" fill="#bae6fd" stroke="#38bdf8" stroke-width="1.5" />
+        <text x="56" y="36.5" text-anchor="middle" fill="#0c4a6e" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="900">LL</text>
+        <text x="80" y="26" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">LeoLightning</text>
+        <rect x="176" y="13" width="48" height="17" rx="5" fill="#064e3b" stroke="#34d399" stroke-width="0.8" />
+        <text x="200" y="25" text-anchor="middle" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8.5" font-weight="800">SOLVED</text>
+        <text x="80" y="45" fill="#d8b4fe" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="600">2 words · Last: SPARK (+810) · ⚡ 5.8s</text>
+        <text x="303" y="36" text-anchor="end" fill="#fb923c" font-family="DejaVu Sans Mono, monospace" font-size="15" font-weight="900">1,790</text>
+      </g>
+
+      <!-- Scoreboard Row #4 -->
+      <g transform="translate(12, 324)">
+        <rect x="0" y="0" width="315" height="60" rx="14" fill="#23062c" stroke="#6b21a8" stroke-width="1" />
+        <circle cx="24" cy="30" r="13" fill="#3b0d47" />
+        <text x="24" y="34.5" text-anchor="middle" fill="#d8b4fe" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="800">4</text>
+        <circle cx="56" cy="30" r="15" fill="#ddd6fe" stroke="#a855f7" stroke-width="1.5" />
+        <text x="56" y="34.5" text-anchor="middle" fill="#3b0764" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="900">PQ</text>
+        <text x="80" y="25" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">PixelQueen</text>
+        <text x="80" y="43" fill="#d8b4fe" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="600">1 word · Last: FLAME (+920) · ⚡ 3.2s</text>
+        <text x="303" y="35" text-anchor="end" fill="#e9d5ff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">920</text>
+      </g>
+
+      <!-- Scoreboard Row #5 -->
+      <g transform="translate(12, 394)">
+        <rect x="0" y="0" width="315" height="60" rx="14" fill="#23062c" stroke="#6b21a8" stroke-width="1" />
+        <circle cx="24" cy="30" r="13" fill="#3b0d47" />
+        <text x="24" y="34.5" text-anchor="middle" fill="#d8b4fe" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="800">5</text>
+        <circle cx="56" cy="30" r="15" fill="#fed7aa" stroke="#fb923c" stroke-width="1.5" />
+        <text x="56" y="34.5" text-anchor="middle" fill="#431407" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="900">JT</text>
+        <text x="80" y="25" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">JaxTurbo</text>
+        <text x="80" y="43" fill="#d8b4fe" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="600">1 word · Last: CROWN (+870) · ⚡ 4.9s</text>
+        <text x="303" y="35" text-anchor="end" fill="#e9d5ff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">870</text>
+      </g>
+
+      <!-- Speed Formula Footnote -->
+      <rect x="12" y="468" width="315" height="62" rx="12" fill="#1a0422" stroke="#581c87" stroke-width="1" />
+      <text x="169.5" y="492" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800">⚡ SPEED-BASED SCORING + LINKED TIKTOK @ SYNC</text>
+      <text x="169.5" y="512" text-anchor="middle" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="600">Faster solves earn up to 1,000 pts per word</text>
+
+      <!-- Subheader Right: LIVE TIKTOK CHAT -->
+      <rect x="340" y="52" width="338" height="36" fill="#1e0526" />
+      <text x="356" y="75" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800" letter-spacing="0.8">💬 LIVE TIKTOK CHAT</text>
+      <text x="664" y="75" text-anchor="end" fill="#d8b4fe" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="600">Type 5-letter word</text>
+
+      <!-- Chat Item 1 (Correct #1) -->
+      <g transform="translate(352, 100)">
+        <rect x="0" y="0" width="314" height="68" rx="13" fill="#064e3b" fill-opacity="0.45" stroke="#34d399" stroke-opacity="0.55" stroke-width="1.2" />
+        <circle cx="24" cy="26" r="13" fill="#fde68a" />
+        <text x="24" y="30" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="900">WM</text>
+        <text x="45" y="23" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">WordMaster_UK</text>
+        <rect x="162" y="10" width="142" height="20" rx="6" fill="#10b981" fill-opacity="0.3" />
+        <text x="233" y="24" text-anchor="middle" fill="#a7f3d0" font-family="DejaVu Sans Mono, monospace" font-size="9.5" font-weight="800">✓ +960 pts (#1 · 2.4s)</text>
+        <text x="45" y="48" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900" letter-spacing="1.5">SPARK</text>
+      </g>
+
+      <!-- Chat Item 2 (Correct #2) -->
+      <g transform="translate(352, 178)">
+        <rect x="0" y="0" width="314" height="68" rx="13" fill="#064e3b" fill-opacity="0.35" stroke="#34d399" stroke-opacity="0.4" stroke-width="1.2" />
+        <circle cx="24" cy="26" r="13" fill="#fbcfe8" />
+        <text x="24" y="30" text-anchor="middle" fill="#4a044e" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="900">SS</text>
+        <text x="45" y="23" fill="#f9a8d4" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">SarahStacks</text>
+        <rect x="162" y="10" width="142" height="20" rx="6" fill="#10b981" fill-opacity="0.25" />
+        <text x="233" y="24" text-anchor="middle" fill="#6ee7b7" font-family="DejaVu Sans Mono, monospace" font-size="9.5" font-weight="800">✓ +880 pts (#2 · 4.1s)</text>
+        <text x="45" y="48" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900" letter-spacing="1.5">SPARK</text>
+      </g>
+
+      <!-- Chat Item 3 (Correct #3) -->
+      <g transform="translate(352, 256)">
+        <rect x="0" y="0" width="314" height="68" rx="13" fill="#064e3b" fill-opacity="0.3" stroke="#34d399" stroke-opacity="0.35" stroke-width="1.2" />
+        <circle cx="24" cy="26" r="13" fill="#bae6fd" />
+        <text x="24" y="30" text-anchor="middle" fill="#0c4a6e" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="900">LL</text>
+        <text x="45" y="23" fill="#7dd3fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">LeoLightning</text>
+        <rect x="162" y="10" width="142" height="20" rx="6" fill="#10b981" fill-opacity="0.25" />
+        <text x="233" y="24" text-anchor="middle" fill="#6ee7b7" font-family="DejaVu Sans Mono, monospace" font-size="9.5" font-weight="800">✓ +810 pts (#3 · 5.8s)</text>
+        <text x="45" y="48" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900" letter-spacing="1.5">SPARK</text>
+      </g>
+
+      <!-- Chat Item 4 (Regular Guess) -->
+      <g transform="translate(352, 334)">
+        <rect x="0" y="0" width="314" height="58" rx="13" fill="#1e0526" stroke="#581c87" stroke-width="1" />
+        <circle cx="24" cy="29" r="13" fill="#ddd6fe" />
+        <text x="24" y="33" text-anchor="middle" fill="#3b0764" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="900">PQ</text>
+        <text x="45" y="24" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">PixelQueen</text>
+        <text x="45" y="43" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">Is the next word CRANE?</text>
+      </g>
+
+      <!-- Chat Item 5 (Already Scored) -->
+      <g transform="translate(352, 402)">
+        <rect x="0" y="0" width="314" height="58" rx="13" fill="#451a03" fill-opacity="0.45" stroke="#f59e0b" stroke-opacity="0.4" stroke-width="1" />
+        <circle cx="24" cy="29" r="13" fill="#fde68a" />
+        <text x="24" y="33" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="900">WM</text>
+        <text x="45" y="24" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">WordMaster_UK</text>
+        <text x="298" y="24" text-anchor="end" fill="#fbbf24" font-family="DejaVu Sans Mono, monospace" font-size="9.5" font-weight="800">Already scored</text>
+        <text x="45" y="43" fill="#fde68a" font-family="DejaVu Sans Mono, monospace" font-size="12.5" font-weight="800">SPARK</text>
+      </g>
+
+      <!-- Bottom Simulator Chat Bar -->
+      <rect x="0" y="544" width="678" height="52" rx="16" fill="#1e0526" />
+      <rect x="14" y="555" width="142" height="30" rx="8" fill="#310a3d" stroke="#7e22ce" stroke-width="1" />
+      <text x="85" y="574" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">As: WordMaster_UK ▾</text>
+
+      <rect x="164" y="555" width="424" height="30" rx="8" fill="#120217" stroke="#581c87" stroke-width="1" />
+      <text x="178" y="574" fill="#a855f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Simulate TikTok chat message or 5-letter word guess...</text>
+
+      <rect x="596" y="555" width="68" height="30" rx="8" fill="url(#dsiGoldBtn)" />
+      <text x="630" y="574" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">Send</text>
+    </g>
+  </g>
+</svg>

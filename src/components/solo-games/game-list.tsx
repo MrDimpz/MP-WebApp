@@ -40,8 +40,8 @@ export function SoloGameList() {
         <h1 id="solo-title">Your game, your moment.</h1>
         <p>
           Solo games to play on your own and weave into your creator content. Explore our daily
-          20×20 &amp; 8×8 crosswords, 733+ visual rebus challenges, tactile daily word grids, and
-          daily word association puzzles.
+          20×20 &amp; 8×8 crosswords, 733+ visual rebus challenges, tactile daily word grids,
+          daily word association puzzles, and 3D layered word unstacking towers.
         </p>
         <div className="mt-4">
           <a
@@ -74,8 +74,8 @@ export function SoloGameList() {
                   Welcome back, {getCleanDisplayName(user)}
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                  Your Google / Email login is synced across Crossword, Missing Rebus, Squared &amp;
-                  Thematix.
+                  Your Google / Email login is synced across Crossword, Missing Rebus, Squared,
+                  Thematix &amp; DeStack.
                 </p>
               </>
             ) : (
@@ -87,7 +87,7 @@ export function SoloGameList() {
                   Sign in with Google or Email &amp; Password
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                  Use a single account across all 4 solo games to record your high scores and
+                  Use a single account across all 5 solo games to record your high scores and
                   compete on the visitor leaderboards.
                 </p>
               </>
@@ -315,6 +315,49 @@ export function SoloGameList() {
             <button
               type="button"
               onClick={() => openModal('thematix', 'leaderboards')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
+            >
+              <Trophy size={13} />
+              <span>Leaderboard</span>
+            </button>
+          </div>
+        </article>
+
+        <article className="game-card">
+          <div className="card-top">
+            <span className="category-label">
+              <span className="status-dot" /> NOW PLAYING
+            </span>
+            <span className="card-number">05 /</span>
+          </div>
+          <Link
+            to="/solo-games/destack"
+            className="game-art game-art-thumb"
+            aria-label="Open DeStack Daily Word Unstacking Puzzle"
+          >
+            <img
+              className="game-thumbnail"
+              src="/destack-website-thumbnail.svg"
+              alt="DeStack — Daily Word Unstacking Puzzle website thumbnail"
+              referrerPolicy="no-referrer"
+            />
+          </Link>
+          <h3>DeStack — Word Unstacking</h3>
+          <p>
+            Unstack the daily 3D letter tower by finding 6 hidden five-letter words. Features
+            Standard (4-layer) and Hard (6-layer) stack modes, progressive hints, daily archive,
+            and leaderboards.
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-2">
+            <Link className="game-link flex-1" to="/solo-games/destack">
+              Play DeStack{' '}
+              <span>
+                <ArrowUpRight size={22} />
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => openModal('destack', 'leaderboards')}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
             >
               <Trophy size={13} />

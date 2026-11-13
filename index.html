@@ -17,28 +17,49 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" />
     <script>
-      // Suppress benign Vite WebSocket/HMR disconnect errors in sandbox iframe environment
-      window.addEventListener('unhandledrejection', function(event) {
-        if (
-          event &&
-          event.reason &&
-          (typeof event.reason.message === 'string' &&
-            (event.reason.message.includes('WebSocket closed without opened') ||
-             event.reason.message.includes('createWebSocketModuleRunnerTransport') ||
-             event.reason.message.includes('vite-hmr')))
-        ) {
-          event.preventDefault();
+      // Prevent @vite/client from throwing "WebSocket closed without opened" when HMR is disabled in AI Studio
+      (function() {
+        var OriginalWebSocket = window.WebSocket;
+        if (OriginalWebSocket) {
+          var PatchedWebSocket = function(url, protocols) {
+            var protoStr = Array.isArray(protocols) ? protocols.join(',') : String(protocols || '');
+            if (protoStr.indexOf('vite-hmr') !== -1 || protoStr.indexOf('vite-ping') !== -1) {
+              return {
+                url: String(url || ''),
+                readyState: 1,
+                OPEN: 1,
+                CONNECTING: 0,
+                CLOSING: 2,
+                CLOSED: 3,
+                protocol: protoStr,
+                extensions: '',
+                bufferedAmount: 0,
+                binaryType: 'blob',
+                addEventListener: function(type, listener) {
+                  if (type === 'open' && typeof listener === 'function') {
+                    setTimeout(function() {
+                      try { listener({ type: 'open' }); } catch (e) {}
+                    }, 0);
+                  }
+                },
+                removeEventListener: function() {},
+                dispatchEvent: function() { return true; },
+                send: function() {},
+                close: function() {}
+              };
+            }
+            return protocols !== undefined
+              ? new OriginalWebSocket(url, protocols)
+              : new OriginalWebSocket(url);
+          };
+          PatchedWebSocket.prototype = OriginalWebSocket.prototype;
+          PatchedWebSocket.CONNECTING = OriginalWebSocket.CONNECTING;
+          PatchedWebSocket.OPEN = OriginalWebSocket.OPEN;
+          PatchedWebSocket.CLOSING = OriginalWebSocket.CLOSING;
+          PatchedWebSocket.CLOSED = OriginalWebSocket.CLOSED;
+          window.WebSocket = PatchedWebSocket;
         }
-      });
-      window.addEventListener('error', function(event) {
-        if (
-          event &&
-          ((event.message && (event.message.includes('WebSocket') || event.message.includes('createWebSocketModuleRunnerTransport'))) ||
-           (event.filename && event.filename.includes('@vite/client')))
-        ) {
-          event.preventDefault();
-        }
-      });
+      })();
     </script>
   </head>
   <body>

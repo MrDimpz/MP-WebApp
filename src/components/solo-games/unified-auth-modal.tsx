@@ -74,9 +74,15 @@ const SOLO_GAME_META: Record<
     shortTitle: 'Thematix',
     subtitle: 'Daily Word Association & Hard Mode Scores',
   },
+  destack: {
+    number: '05',
+    title: 'DeStack — Word Unstacking',
+    shortTitle: 'DeStack',
+    subtitle: 'Daily 4-Layer & 6-Layer Word Stack Scores',
+  },
 };
 
-const ALLOWED_GAMES: SoloGameId[] = ['crossword', 'rebus', 'squared', 'thematix'];
+const ALLOWED_GAMES: SoloGameId[] = ['crossword', 'rebus', 'squared', 'thematix', 'destack'];
 
 export function UnifiedLeaderboardPanel({
   initialGameId = 'crossword',
@@ -98,6 +104,7 @@ export function UnifiedLeaderboardPanel({
     rebus: [],
     squared: [],
     thematix: [],
+    destack: [],
     cruciverbalist: [],
     crossword: [],
   });
@@ -150,7 +157,7 @@ export function UnifiedLeaderboardPanel({
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1.5 rounded-xl bg-black/35 border border-white/10">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1.5 rounded-xl bg-black/35 border border-white/10">
         {ALLOWED_GAMES.map((gId) => {
           const gMeta = SOLO_GAME_META[gId];
           const count = leaderboards[gId]?.length || 0;
@@ -588,8 +595,8 @@ export function UnifiedAuthModal({
                 </div>
                 <p className="text-xs text-[#D6CBE2] mt-0.5">
                   When your linked TikTok <code>@username</code> scores points in any Interactive
-                  Game (WiKirecTangled, WikiContexto, Squared Interactive, or Lexi Tiles), those
-                  points are automatically credited to your website profile.
+                  Game (WiKirecTangled, WikiContexto, Squared Interactive, Lexi Tiles, or DeStack
+                  Interactive), those points are automatically credited to your website profile.
                 </p>
               </div>
 
@@ -627,7 +634,7 @@ export function UnifiedAuthModal({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {(Object.keys(INTERACTIVE_GAME_LABELS) as InteractiveGameId[]).map((gId) => (
                     <div
                       key={gId}

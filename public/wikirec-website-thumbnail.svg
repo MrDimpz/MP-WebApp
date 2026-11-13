@@ -1,121 +1,451 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
   <defs>
-    <linearGradient id="wrBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#191613"/>
-      <stop offset="100%" stop-color="#0f0d0b"/>
+    <clipPath id="wktClip">
+      <rect x="0" y="0" width="1200" height="720" rx="16" />
+    </clipPath>
+    <!-- Physical 3D Keycap Gradients from src/wikirec/index.css -->
+    <linearGradient id="capDefault" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#27495f" />
+      <stop offset="48%" stop-color="#1b3446" />
+      <stop offset="100%" stop-color="#12252f" />
     </linearGradient>
-    <linearGradient id="wrGold" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f3b340"/>
-      <stop offset="100%" stop-color="#c4621a"/>
+    <linearGradient id="capGreen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c6f78a" />
+      <stop offset="55%" stop-color="#9eea3a" />
+      <stop offset="100%" stop-color="#6fb81c" />
     </linearGradient>
-    <linearGradient id="wrTile" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#faf6ee"/>
-      <stop offset="100%" stop-color="#ebe2d2"/>
+    <linearGradient id="capCommon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9ecdff" />
+      <stop offset="55%" stop-color="#5aa3ff" />
+      <stop offset="100%" stop-color="#3873c4" />
     </linearGradient>
+    <linearGradient id="capRare" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe89a" />
+      <stop offset="55%" stop-color="#f7c948" />
+      <stop offset="100%" stop-color="#c99a17" />
+    </linearGradient>
+    <linearGradient id="capUltra" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d3c4ff" />
+      <stop offset="55%" stop-color="#a78bfa" />
+      <stop offset="100%" stop-color="#7a58e0" />
+    </linearGradient>
+    <g id="keycapBase">
+      <rect x="0" y="4" width="46" height="44" rx="9" fill="#08131b" />
+      <rect x="0" y="0" width="46" height="44" rx="9" fill="url(#capDefault)" stroke="#38627d" stroke-width="1" />
+    </g>
+    <g id="keycapGreen">
+      <rect x="0" y="4" width="46" height="44" rx="9" fill="#2c5208" />
+      <rect x="0" y="0" width="46" height="44" rx="9" fill="url(#capGreen)" stroke="#e4ffbe" stroke-width="1.2" />
+    </g>
+    <g id="keycapBlue">
+      <rect x="0" y="4" width="46" height="44" rx="9" fill="#173866" />
+      <rect x="0" y="0" width="46" height="44" rx="9" fill="url(#capCommon)" stroke="#d4e9ff" stroke-width="1.2" />
+    </g>
+    <g id="keycapGold">
+      <rect x="0" y="4" width="46" height="44" rx="9" fill="#634806" />
+      <rect x="0" y="0" width="46" height="44" rx="9" fill="url(#capRare)" stroke="#fff3c4" stroke-width="1.2" />
+    </g>
   </defs>
 
-  <rect width="800" height="500" rx="28" fill="url(#wrBg)"/>
-  <rect x="20" y="20" width="760" height="460" rx="22" fill="none" stroke="#2e2822" stroke-width="2"/>
+  <g clip-path="url(#wktClip)">
+    <!-- WiKirecTangled Authentic Slate-Teal Background (#0a1620) -->
+    <rect x="0" y="0" width="1200" height="720" fill="#0a1620" />
 
-  <!-- Top Badge Bar -->
-  <rect x="48" y="44" width="215" height="32" rx="16" fill="rgba(217, 155, 38, 0.16)" stroke="#d99b26" stroke-width="1.5"/>
-  <circle cx="68" cy="60" r="5" fill="#f3b340"/>
-  <text x="82" y="65" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="800" fill="#f3b340" letter-spacing="1.2">TIKTOK LIVE + SOLO</text>
+    <!-- Unified Interactive Stream Gate Top Bar -->
+    <rect x="0" y="0" width="1200" height="38" fill="#0d101b" />
+    <line x1="0" y1="38" x2="1200" y2="38" stroke="#1f3a4d" stroke-width="1" />
+    <rect x="16" y="7" width="62" height="24" rx="6" fill="#181d30" stroke="#2e3652" stroke-width="1" />
+    <text x="47" y="23" text-anchor="middle" fill="#e2e8f0" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">← Back</text>
+    <text x="92" y="23" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">The Missing Piece</text>
+    <text x="212" y="23" fill="#64748b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">·</text>
+    <text x="224" y="23" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">WiKirecTangled</text>
 
-  <!-- Title Chips Preview -->
-  <g transform="translate(48, 94)">
-    <text x="0" y="18" font-family="'Fraunces', Georgia, serif" font-size="30" font-weight="800" fill="#f3ede2">WiKirec</text>
-    <text x="122" y="18" font-family="'Fraunces', Georgia, serif" font-size="30" font-weight="800" fill="#d99b26">Tangled</text>
-    <text x="0" y="44" font-family="'Plus Jakarta Sans', sans-serif" font-size="14" font-weight="600" fill="#a89f91">8-Connected Wikipedia Word Grid · Common, Rare &amp; Title Tiers</text>
-  </g>
+    <rect x="818" y="7" width="166" height="24" rx="7" fill="#0c2e24" stroke="#10b981" stroke-opacity="0.5" stroke-width="1" />
+    <circle cx="832" cy="19" r="4" fill="#34d399" />
+    <text x="875" y="23" text-anchor="middle" fill="#a7f3d0" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="700">@mrdimpz</text>
+    <text x="948" y="23" text-anchor="middle" fill="#fda4af" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="700">Switch Key</text>
 
-  <!-- 5x3 Sample 3D Keycap Grid -->
-  <g transform="translate(48, 165)">
-    <!-- Row 1 -->
-    <g transform="translate(0, 0)">
-      <rect width="76" height="76" rx="14" fill="url(#wrTile)" stroke="#4eb886" stroke-width="3"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#1e1915">S</text>
-    </g>
-    <g transform="translate(90, 0)">
-      <rect width="76" height="76" rx="14" fill="url(#wrGold)" stroke="#fff3d1" stroke-width="2"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#14100b">O</text>
-    </g>
-    <g transform="translate(180, 0)">
-      <rect width="76" height="76" rx="14" fill="url(#wrGold)" stroke="#fff3d1" stroke-width="2"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#14100b">L</text>
-    </g>
-    <g transform="translate(270, 0)">
-      <rect width="76" height="76" rx="14" fill="url(#wrTile)" stroke="#d6cbb8" stroke-width="2"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#1e1915">E</text>
-    </g>
-    <g transform="translate(360, 0)">
-      <rect width="76" height="76" rx="14" fill="url(#wrTile)" stroke="#f3b340" stroke-width="3"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#1e1915">C</text>
+    <rect x="994" y="7" width="190" height="24" rx="7" fill="#26143d" stroke="#a855f7" stroke-opacity="0.5" stroke-width="1" />
+    <text x="1089" y="23" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">👤 Dimpz (@mrdimpz) · 4,850 pts</text>
+
+    <!-- =================================================================== -->
+    <!-- LEFT ASIDE (.side-box): TikTok Live Connect & Real-Time Chat Stream -->
+    <!-- =================================================================== -->
+    <g transform="translate(20, 52)">
+      <rect x="0" y="0" width="295" height="650" rx="14" fill="#152734" stroke="#1f3a4d" stroke-width="1.5" />
+      <rect x="0" y="0" width="295" height="44" rx="14" fill="#1b3346" />
+      <circle cx="22" cy="22" r="5" fill="#9eea3a" />
+      <text x="36" y="27" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">TikTok Live Stream</text>
+      <rect x="202" y="11" width="78" height="22" rx="6" fill="#0e1d28" stroke="#9eea3a" stroke-opacity="0.5" stroke-width="1" />
+      <text x="241" y="26" text-anchor="middle" fill="#9eea3a" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="800">@mrdimpz</text>
+
+      <!-- Connected Stream Stats Strip -->
+      <rect x="12" y="54" width="271" height="46" rx="10" fill="#0e1d28" stroke="#1f3a4d" stroke-width="1" />
+      <text x="56" y="73" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">42</text>
+      <text x="56" y="89" text-anchor="middle" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="600">Guesses</text>
+      <line x1="102" y1="60" x2="102" y2="94" stroke="#1f3a4d" stroke-width="1" />
+      <text x="147" y="73" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">1,420</text>
+      <text x="147" y="89" text-anchor="middle" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="600">Likes</text>
+      <line x1="192" y1="60" x2="192" y2="94" stroke="#1f3a4d" stroke-width="1" />
+      <text x="238" y="73" text-anchor="middle" fill="#e8b53a" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">128</text>
+      <text x="238" y="89" text-anchor="middle" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="600">Gifts</text>
+
+      <!-- Live Chat Stream List (.chat-stream-item) -->
+      <g transform="translate(12, 112)">
+        <rect x="0" y="0" width="271" height="58" rx="10" fill="#163226" stroke="#9eea3a" stroke-opacity="0.6" stroke-width="1.2" />
+        <circle cx="24" cy="29" r="14" fill="#e8b53a" />
+        <text x="24" y="33.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">AS</text>
+        <text x="46" y="24" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">AstroSolver</text>
+        <rect x="196" y="10" width="64" height="19" rx="5" fill="#9eea3a" />
+        <text x="228" y="23" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="900">+50,000</text>
+        <text x="46" y="44" fill="#9eea3a" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">SOLAR</text>
+      </g>
+
+      <g transform="translate(12, 178)">
+        <rect x="0" y="0" width="271" height="58" rx="10" fill="#163226" stroke="#9eea3a" stroke-opacity="0.45" stroke-width="1.2" />
+        <circle cx="24" cy="29" r="14" fill="#5aa3ff" />
+        <text x="24" y="33.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">LQ</text>
+        <text x="46" y="24" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">LexiQueen</text>
+        <rect x="202" y="10" width="58" height="19" rx="5" fill="#9eea3a" />
+        <text x="231" y="23" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="900">+6,400</text>
+        <text x="46" y="44" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">CORONA</text>
+      </g>
+
+      <g transform="translate(12, 244)">
+        <rect x="0" y="0" width="271" height="58" rx="10" fill="#163226" stroke="#9eea3a" stroke-opacity="0.45" stroke-width="1.2" />
+        <circle cx="24" cy="29" r="14" fill="#ee7a2c" />
+        <text x="24" y="33.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">WH</text>
+        <text x="46" y="24" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">WikiHunter</text>
+        <rect x="202" y="10" width="58" height="19" rx="5" fill="#9eea3a" />
+        <text x="231" y="23" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="900">+3,200</text>
+        <text x="46" y="44" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">ORBIT</text>
+      </g>
+
+      <g transform="translate(12, 310)">
+        <rect x="0" y="0" width="271" height="56" rx="10" fill="#0e1d28" stroke="#1f3a4d" stroke-width="1" />
+        <circle cx="24" cy="28" r="14" fill="#a78bfa" />
+        <text x="24" y="32.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">NK</text>
+        <text x="46" y="23" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">NovaKnight</text>
+        <rect x="210" y="10" width="50" height="18" rx="5" fill="#3a6fd0" />
+        <text x="235" y="22" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="9.5" font-weight="800">WIKI</text>
+        <text x="46" y="43" fill="#8aa0ad" font-family="DejaVu Sans Mono, monospace" font-size="12.5" font-weight="700">SHADOW</text>
+      </g>
+
+      <g transform="translate(12, 374)">
+        <rect x="0" y="0" width="271" height="56" rx="10" fill="#0e1d28" stroke="#1f3a4d" stroke-width="1" />
+        <circle cx="24" cy="28" r="14" fill="#f7c948" />
+        <text x="24" y="32.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">CS</text>
+        <text x="46" y="23" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">ChloeSolves</text>
+        <rect x="210" y="10" width="50" height="18" rx="5" fill="#d4b741" />
+        <text x="235" y="22" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans Mono, monospace" font-size="9.5" font-weight="800">DUP</text>
+        <text x="46" y="43" fill="#8aa0ad" font-family="DejaVu Sans Mono, monospace" font-size="12.5" font-weight="700">SOLAR</text>
+      </g>
+
+      <g transform="translate(12, 438)">
+        <rect x="0" y="0" width="271" height="58" rx="10" fill="#163226" stroke="#9eea3a" stroke-opacity="0.45" stroke-width="1.2" />
+        <circle cx="24" cy="29" r="14" fill="#4ade80" />
+        <text x="24" y="33.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">JT</text>
+        <text x="46" y="24" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">JaxTurbo</text>
+        <rect x="202" y="10" width="58" height="19" rx="5" fill="#9eea3a" />
+        <text x="231" y="23" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="900">+2,100</text>
+        <text x="46" y="44" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">LUNAR</text>
+      </g>
+
+      <!-- Side Box Footer Buttons -->
+      <rect x="12" y="600" width="130" height="36" rx="9" fill="#0e1d28" stroke="#2a4a5f" stroke-width="1.2" />
+      <text x="77" y="622" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">+ Sim Guess</text>
+
+      <rect x="152" y="600" width="131" height="36" rx="9" fill="#ee7a2c" />
+      <text x="217.5" y="622" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">Live Hub &amp; Key</text>
     </g>
 
-    <!-- Row 2 -->
-    <g transform="translate(0, 90)">
-      <rect width="76" height="76" rx="14" fill="url(#wrTile)" stroke="#d6cbb8" stroke-width="2"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#1e1915">P</text>
-    </g>
-    <g transform="translate(90, 90)">
-      <rect width="76" height="76" rx="14" fill="url(#wrTile)" stroke="#d6cbb8" stroke-width="2"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#1e1915">R</text>
-    </g>
-    <g transform="translate(180, 90)">
-      <rect width="76" height="76" rx="14" fill="url(#wrGold)" stroke="#fff3d1" stroke-width="2"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#14100b">A</text>
-    </g>
-    <g transform="translate(270, 90)">
-      <rect width="76" height="76" rx="14" fill="url(#wrGold)" stroke="#fff3d1" stroke-width="2"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#14100b">R</text>
-    </g>
-    <g transform="translate(360, 90)">
-      <rect width="76" height="76" rx="14" fill="url(#wrTile)" stroke="#e0533c" stroke-width="3"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#1e1915">M</text>
+    <!-- =================================================================== -->
+    <!-- CENTER COLUMN (.game-center-col): WiKirecTangled 490px Arena        -->
+    <!-- =================================================================== -->
+    <g transform="translate(335, 52)">
+      <!-- Topbar -->
+      <text x="0" y="24" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">
+        WiKi<tspan fill="#ee7a2c">rec</tspan><tspan fill="#9eea3a">Tangled</tspan>
+      </text>
+
+      <!-- Counts G / T / C -->
+      <g transform="translate(216, 6)">
+        <rect x="0" y="0" width="52" height="26" rx="7" fill="#152734" stroke="#1f3a4d" stroke-width="1" />
+        <circle cx="13" cy="13" r="8" fill="#5aa3ff" />
+        <text x="13" y="16.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="900">G</text>
+        <text x="35" y="17.5" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="800">18</text>
+
+        <rect x="58" y="0" width="64" height="26" rx="7" fill="#152734" stroke="#9eea3a" stroke-opacity="0.6" stroke-width="1" />
+        <circle cx="71" cy="13" r="8" fill="#9eea3a" />
+        <text x="71" y="16.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="900">T</text>
+        <text x="100" y="17.5" text-anchor="middle" fill="#9eea3a" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="800">1/2</text>
+
+        <rect x="128" y="0" width="74" height="26" rx="7" fill="#152734" stroke="#1f3a4d" stroke-width="1" />
+        <circle cx="141" cy="13" r="8" fill="#e8b53a" />
+        <text x="141" y="16.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="900">C</text>
+        <text x="175" y="17.5" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="800">9/15</text>
+      </g>
+
+      <!-- Hint & Live Pill -->
+      <rect x="428" y="6" width="28" height="26" rx="7" fill="#152734" stroke="#1f3a4d" stroke-width="1" />
+      <text x="442" y="23" text-anchor="middle" fill="#e8b53a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13">💡</text>
+
+      <rect x="462" y="6" width="68" height="26" rx="7" fill="#163226" stroke="#9eea3a" stroke-width="1" />
+      <text x="496" y="23" text-anchor="middle" fill="#9eea3a" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="800">● LIVE</text>
+
+      <!-- Main 2-Column Upper Area: Left = Title + Podium, Right = 5 Target Cards -->
+      <!-- Left Column: Title Block -->
+      <rect x="0" y="42" width="232" height="106" rx="12" fill="#152734" stroke="#1f3a4d" stroke-width="1.5" />
+      <text x="14" y="62" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="800" letter-spacing="1">TITLE</text>
+      <text x="218" y="62" text-anchor="end" fill="#9eea3a" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="800">ECL... (7L)</text>
+
+      <!-- Title Chips: SOLAR (revealed lime) + HIDDEN (orange) -->
+      <rect x="14" y="72" width="92" height="32" rx="8" fill="#9eea3a" />
+      <text x="60" y="93" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="14" font-weight="900">SOLAR</text>
+
+      <rect x="114" y="72" width="104" height="32" rx="8" fill="#ee7a2c" />
+      <text x="166" y="93" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="900">HIDDEN</text>
+
+      <text x="14" y="132" fill="#5aa3ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">Phase: Searching for Common &amp; Title words</text>
+
+      <!-- Left Column: 3-Player Podium (.players-row) -->
+      <g transform="translate(0, 156)">
+        <!-- #1 Gold -->
+        <rect x="0" y="0" width="73" height="84" rx="11" fill="#1b3346" stroke="#e8b53a" stroke-width="2" />
+        <circle cx="36.5" cy="25" r="14" fill="#e8b53a" />
+        <text x="36.5" y="29.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">AS</text>
+        <text x="36.5" y="54" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="800">AstroSolver</text>
+        <text x="36.5" y="72" text-anchor="middle" fill="#e8b53a" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">58,400</text>
+
+        <!-- #2 Silver -->
+        <rect x="79.5" y="0" width="73" height="84" rx="11" fill="#152734" stroke="#c4d3da" stroke-width="1.5" />
+        <circle cx="116" cy="25" r="14" fill="#5aa3ff" />
+        <text x="116" y="29.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">LQ</text>
+        <text x="116" y="54" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="800">LexiQueen</text>
+        <text x="116" y="72" text-anchor="middle" fill="#c4d3da" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">24,100</text>
+
+        <!-- #3 Bronze -->
+        <rect x="159" y="0" width="73" height="84" rx="11" fill="#152734" stroke="#b07a3d" stroke-width="1.5" />
+        <circle cx="195.5" cy="25" r="14" fill="#ee7a2c" />
+        <text x="195.5" y="29.5" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">WH</text>
+        <text x="195.5" y="54" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="800">WikiHunter</text>
+        <text x="195.5" y="72" text-anchor="middle" fill="#b07a3d" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">15,800</text>
+      </g>
+
+      <!-- Right Column: 5 Capsule-in-Capsule Target Cards (#target-cards) -->
+      <g transform="translate(244, 42)">
+        <!-- Card 1 -->
+        <rect x="0" y="0" width="286" height="36" rx="18" fill="#152734" stroke="#4ade80" stroke-width="2" />
+        <rect x="3" y="3" width="260" height="30" rx="15" fill="#4ade80" fill-opacity="0.32" />
+        <text x="16" y="23" fill="#9eea3a" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="900">#1</text>
+        <text x="54" y="23" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="900">SOLAR</text>
+        <text x="270" y="23" text-anchor="end" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">AstroSolver</text>
+
+        <!-- Card 2 -->
+        <rect x="0" y="40" width="286" height="36" rx="18" fill="#152734" stroke="#38bdf8" stroke-width="1.8" />
+        <rect x="3" y="43" width="215" height="30" rx="15" fill="#38bdf8" fill-opacity="0.28" />
+        <text x="16" y="63" fill="#7dd3fc" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="900">#12</text>
+        <text x="54" y="63" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="900">CORONA</text>
+        <text x="270" y="63" text-anchor="end" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">LexiQueen</text>
+
+        <!-- Card 3 -->
+        <rect x="0" y="80" width="286" height="36" rx="18" fill="#152734" stroke="#60a5fa" stroke-width="1.8" />
+        <rect x="3" y="83" width="180" height="30" rx="15" fill="#60a5fa" fill-opacity="0.25" />
+        <text x="16" y="103" fill="#93c5fd" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="900">#45</text>
+        <text x="54" y="103" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="900">ORBIT</text>
+        <text x="270" y="103" text-anchor="end" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">WikiHunter</text>
+
+        <!-- Card 4 -->
+        <rect x="0" y="120" width="286" height="36" rx="18" fill="#152734" stroke="#a78bfa" stroke-width="1.8" />
+        <rect x="3" y="123" width="142" height="30" rx="15" fill="#a78bfa" fill-opacity="0.25" />
+        <text x="16" y="143" fill="#c4b5fd" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="900">#128</text>
+        <text x="62" y="143" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="900">LUNAR</text>
+        <text x="270" y="143" text-anchor="end" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">JaxTurbo</text>
+
+        <!-- Card 5 (Unrevealed Target Slot) -->
+        <rect x="0" y="160" width="286" height="36" rx="18" fill="#0e1d28" stroke="#2a4a5f" stroke-width="1.5" />
+        <text x="16" y="183" fill="#8aa0ad" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="800">#5</text>
+        <text x="54" y="183" fill="#8aa0ad" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">•••••••</text>
+      </g>
+
+      <!-- Last Guess Card (.found-words-card) -->
+      <rect x="0" y="248" width="530" height="38" rx="10" fill="#152734" stroke="#9eea3a" stroke-opacity="0.55" stroke-width="1.5" />
+      <circle cx="22" cy="267" r="12" fill="#e8b53a" />
+      <text x="22" y="271" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="900">AS</text>
+      <text x="42" y="272" fill="#9eea3a" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">SOLAR</text>
+      <text x="108" y="272" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">found by AstroSolver</text>
+      <rect x="418" y="255" width="98" height="24" rx="6" fill="#9eea3a" />
+      <text x="467" y="271" text-anchor="middle" fill="#0a1620" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">+50,000 TITLE</text>
+
+      <!-- ================================================================= -->
+      <!-- 9x5 PHYSICAL 3D KEYCAP BOGGLE GRID (.grid)                        -->
+      <!-- ================================================================= -->
+      <g transform="translate(0, 296)">
+        <rect x="0" y="0" width="530" height="292" rx="16" fill="#0e1d28" stroke="#1f3a4d" stroke-width="1.5" />
+
+        <!-- Row 0 -->
+        <g transform="translate(14, 14)">
+          <g transform="translate(0,0)"><use href="#keycapGreen" /><text x="23" y="29" text-anchor="middle" fill="#12280b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">S</text><text x="38" y="13" text-anchor="end" fill="#12280b" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">3</text></g>
+          <g transform="translate(56,0)"><use href="#keycapGreen" /><text x="23" y="29" text-anchor="middle" fill="#12280b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">O</text></g>
+          <g transform="translate(112,0)"><use href="#keycapGreen" /><text x="23" y="29" text-anchor="middle" fill="#12280b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">L</text></g>
+          <g transform="translate(168,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">E</text></g>
+          <g transform="translate(224,0)"><use href="#keycapBlue" /><text x="23" y="29" text-anchor="middle" fill="#091e3a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">C</text><text x="38" y="13" text-anchor="end" fill="#091e3a" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">4</text></g>
+          <g transform="translate(280,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">R</text></g>
+          <g transform="translate(336,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">O</text></g>
+          <g transform="translate(392,0)"><use href="#keycapGold" /><text x="23" y="29" text-anchor="middle" fill="#2b1e02" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">N</text><text x="38" y="13" text-anchor="end" fill="#2b1e02" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">2</text></g>
+          <g transform="translate(448,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">A</text></g>
+        </g>
+
+        <!-- Row 1 -->
+        <g transform="translate(14, 68)">
+          <g transform="translate(0,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">P</text></g>
+          <g transform="translate(56,0)"><use href="#keycapBlue" /><text x="23" y="29" text-anchor="middle" fill="#091e3a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">M</text><text x="38" y="13" text-anchor="end" fill="#091e3a" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">2</text></g>
+          <g transform="translate(112,0)"><use href="#keycapGreen" /><text x="23" y="29" text-anchor="middle" fill="#12280b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">A</text></g>
+          <g transform="translate(168,0)"><use href="#keycapGreen" /><text x="23" y="29" text-anchor="middle" fill="#12280b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">R</text></g>
+          <g transform="translate(224,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">L</text></g>
+          <g transform="translate(280,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">I</text></g>
+          <g transform="translate(336,0)"><use href="#keycapBlue" /><text x="23" y="29" text-anchor="middle" fill="#091e3a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">T</text><text x="38" y="13" text-anchor="end" fill="#091e3a" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">3</text></g>
+          <g transform="translate(392,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">S</text></g>
+          <g transform="translate(448,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">E</text></g>
+        </g>
+
+        <!-- Row 2 -->
+        <g transform="translate(14, 122)">
+          <g transform="translate(0,0)"><use href="#keycapGold" /><text x="23" y="29" text-anchor="middle" fill="#2b1e02" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">U</text><text x="38" y="13" text-anchor="end" fill="#2b1e02" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">1</text></g>
+          <g transform="translate(56,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">N</text></g>
+          <g transform="translate(112,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">B</text></g>
+          <g transform="translate(168,0)"><use href="#keycapBlue" /><text x="23" y="29" text-anchor="middle" fill="#091e3a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">O</text><text x="38" y="13" text-anchor="end" fill="#091e3a" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">2</text></g>
+          <g transform="translate(224,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">R</text></g>
+          <g transform="translate(280,0)"><use href="#keycapGold" /><text x="23" y="29" text-anchor="middle" fill="#2b1e02" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">P</text><text x="38" y="13" text-anchor="end" fill="#2b1e02" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">2</text></g>
+          <g transform="translate(336,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">H</text></g>
+          <g transform="translate(392,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">A</text></g>
+          <g transform="translate(448,0)"><use href="#keycapBlue" /><text x="23" y="29" text-anchor="middle" fill="#091e3a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">D</text><text x="38" y="13" text-anchor="end" fill="#091e3a" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">1</text></g>
+        </g>
+
+        <!-- Row 3 -->
+        <g transform="translate(14, 176)">
+          <g transform="translate(0,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">L</text></g>
+          <g transform="translate(56,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">A</text></g>
+          <g transform="translate(112,0)"><use href="#keycapBlue" /><text x="23" y="29" text-anchor="middle" fill="#091e3a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">S</text><text x="38" y="13" text-anchor="end" fill="#091e3a" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">3</text></g>
+          <g transform="translate(168,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">H</text></g>
+          <g transform="translate(224,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">A</text></g>
+          <g transform="translate(280,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">D</text></g>
+          <g transform="translate(336,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">O</text></g>
+          <g transform="translate(392,0)"><use href="#keycapBlue" /><text x="23" y="29" text-anchor="middle" fill="#091e3a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">W</text><text x="38" y="13" text-anchor="end" fill="#091e3a" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">2</text></g>
+          <g transform="translate(448,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">K</text></g>
+        </g>
+
+        <!-- Row 4 -->
+        <g transform="translate(14, 230)">
+          <g transform="translate(0,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">T</text></g>
+          <g transform="translate(56,0)"><use href="#keycapGold" /><text x="23" y="29" text-anchor="middle" fill="#2b1e02" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">I</text><text x="38" y="13" text-anchor="end" fill="#2b1e02" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">1</text></g>
+          <g transform="translate(112,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">D</text></g>
+          <g transform="translate(168,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">E</text></g>
+          <g transform="translate(224,0)"><use href="#keycapBlue" /><text x="23" y="29" text-anchor="middle" fill="#091e3a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">G</text><text x="38" y="13" text-anchor="end" fill="#091e3a" font-family="DejaVu Sans Mono, monospace" font-size="9" font-weight="900">2</text></g>
+          <g transform="translate(280,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">L</text></g>
+          <g transform="translate(336,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">O</text></g>
+          <g transform="translate(392,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">W</text></g>
+          <g transform="translate(448,0)"><use href="#keycapBase" /><text x="23" y="29" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="21" font-weight="900">S</text></g>
+        </g>
+      </g>
+
+      <!-- Bottom Word Composer Bar -->
+      <rect x="0" y="600" width="424" height="44" rx="11" fill="#152734" stroke="#2a4a5f" stroke-width="1.5" />
+      <text x="16" y="627" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="600">Swipe 8-connected keycaps or type a word...</text>
+      <rect x="434" y="600" width="96" height="44" rx="11" fill="#ee7a2c" />
+      <text x="482" y="627" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13.5" font-weight="800">Guess</text>
     </g>
 
-    <!-- Row 3 -->
-    <g transform="translate(0, 180)">
-      <rect width="76" height="76" rx="14" fill="url(#wrTile)" stroke="#4eb886" stroke-width="3"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#1e1915">T</text>
-    </g>
-    <g transform="translate(90, 180)">
-      <rect width="76" height="76" rx="14" fill="url(#wrTile)" stroke="#d6cbb8" stroke-width="2"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#1e1915">I</text>
-    </g>
-    <g transform="translate(180, 180)">
-      <rect width="76" height="76" rx="14" fill="url(#wrTile)" stroke="#d6cbb8" stroke-width="2"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#1e1915">D</text>
-    </g>
-    <g transform="translate(270, 180)">
-      <rect width="76" height="76" rx="14" fill="url(#wrTile)" stroke="#d6cbb8" stroke-width="2"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#1e1915">E</text>
-    </g>
-    <g transform="translate(360, 180)">
-      <rect width="76" height="76" rx="14" fill="url(#wrTile)" stroke="#d6cbb8" stroke-width="2"/>
-      <text x="38" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="800" fill="#1e1915">S</text>
-    </g>
-  </g>
+    <!-- =================================================================== -->
+    <!-- RIGHT ASIDE (.side-box): Round Leaderboard & Discovered Tiers       -->
+    <!-- =================================================================== -->
+    <g transform="translate(885, 52)">
+      <rect x="0" y="0" width="295" height="650" rx="14" fill="#152734" stroke="#1f3a4d" stroke-width="1.5" />
+      <rect x="0" y="0" width="295" height="44" rx="14" fill="#1b3346" />
+      <text x="16" y="27" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">🏆 Round Standings &amp; Tiers</text>
+      <text x="279" y="27" text-anchor="end" fill="#e8b53a" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="800">18 Found</text>
 
-  <!-- Right Live Panel Card -->
-  <g transform="translate(515, 95)">
-    <rect width="235" height="326" rx="18" fill="#231e1a" stroke="#2e2822" stroke-width="2"/>
-    <text x="22" y="36" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="800" fill="#f3b340" letter-spacing="1">ARTICLE TITLE</text>
-    <rect x="22" y="50" width="191" height="36" rx="10" fill="rgba(217, 155, 38, 0.2)" stroke="#d99b26" stroke-width="1.5"/>
-    <text x="117" y="73" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="15" font-weight="800" fill="#fff6e0">SOLAR ECLIPSE</text>
+      <!-- Tier Progress Pills -->
+      <g transform="translate(12, 56)">
+        <rect x="0" y="0" width="85" height="44" rx="9" fill="#0e1d28" stroke="#9eea3a" stroke-opacity="0.6" stroke-width="1" />
+        <text x="42.5" y="18" text-anchor="middle" fill="#9eea3a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="800">TITLE TIER</text>
+        <text x="42.5" y="35" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">1 / 2</text>
 
-    <text x="22" y="116" font-family="'Plus Jakarta Sans', sans-serif" font-size="11" font-weight="800" fill="#4eb886" letter-spacing="1">LIVE CHAT HITS</text>
-    <rect x="22" y="128" width="191" height="38" rx="10" fill="#191613" stroke="#2e2822"/>
-    <text x="34" y="152" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="700" fill="#f3ede2">@astro: SOLAR +50k</text>
+        <rect x="93" y="0" width="85" height="44" rx="9" fill="#0e1d28" stroke="#5aa3ff" stroke-opacity="0.6" stroke-width="1" />
+        <text x="135.5" y="18" text-anchor="middle" fill="#5aa3ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="800">COMMON</text>
+        <text x="135.5" y="35" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">9 / 15</text>
 
-    <rect x="22" y="176" width="191" height="38" rx="10" fill="#191613" stroke="#2e2822"/>
-    <text x="34" y="200" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="700" fill="#4eb886">@lexi: ORBIT +2.5k</text>
+        <rect x="186" y="0" width="85" height="44" rx="9" fill="#0e1d28" stroke="#f7c948" stroke-opacity="0.6" stroke-width="1" />
+        <text x="228.5" y="18" text-anchor="middle" fill="#f7c948" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="800">RARE TIER</text>
+        <text x="228.5" y="35" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">8 / 12</text>
+      </g>
 
-    <rect x="22" y="224" width="191" height="38" rx="10" fill="#191613" stroke="#2e2822"/>
-    <text x="34" y="248" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="700" fill="#f3b340">@solver: CORONA +5k</text>
+      <!-- Discovered Grid Words Feed -->
+      <text x="16" y="124" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800" letter-spacing="0.8">RECENT GRID DISCOVERIES</text>
 
-    <rect x="22" y="276" width="191" height="32" rx="8" fill="rgba(56, 152, 107, 0.16)" stroke="#4eb886"/>
-    <text x="117" y="297" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="800" fill="#4eb886">KEY: LIVE-XXXX-XXXX</text>
+      <g transform="translate(12, 134)">
+        <rect x="0" y="0" width="271" height="42" rx="9" fill="#0e1d28" stroke="#9eea3a" stroke-opacity="0.5" stroke-width="1" />
+        <text x="14" y="26" fill="#9eea3a" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">SOLAR</text>
+        <text x="88" y="26" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">AstroSolver</text>
+        <text x="257" y="26" text-anchor="end" fill="#9eea3a" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="800">+50,000</text>
+      </g>
+
+      <g transform="translate(12, 184)">
+        <rect x="0" y="0" width="271" height="42" rx="9" fill="#0e1d28" stroke="#f7c948" stroke-opacity="0.4" stroke-width="1" />
+        <text x="14" y="26" fill="#f7c948" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">CORONA</text>
+        <text x="88" y="26" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">LexiQueen</text>
+        <text x="257" y="26" text-anchor="end" fill="#f7c948" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="800">+6,400</text>
+      </g>
+
+      <g transform="translate(12, 234)">
+        <rect x="0" y="0" width="271" height="42" rx="9" fill="#0e1d28" stroke="#5aa3ff" stroke-opacity="0.4" stroke-width="1" />
+        <text x="14" y="26" fill="#5aa3ff" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">ORBIT</text>
+        <text x="88" y="26" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">WikiHunter</text>
+        <text x="257" y="26" text-anchor="end" fill="#5aa3ff" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="800">+3,200</text>
+      </g>
+
+      <g transform="translate(12, 284)">
+        <rect x="0" y="0" width="271" height="42" rx="9" fill="#0e1d28" stroke="#5aa3ff" stroke-opacity="0.4" stroke-width="1" />
+        <text x="14" y="26" fill="#5aa3ff" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">LUNAR</text>
+        <text x="88" y="26" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">JaxTurbo</text>
+        <text x="257" y="26" text-anchor="end" fill="#5aa3ff" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="800">+2,100</text>
+      </g>
+
+      <g transform="translate(12, 334)">
+        <rect x="0" y="0" width="271" height="42" rx="9" fill="#0e1d28" stroke="#a78bfa" stroke-opacity="0.4" stroke-width="1" />
+        <text x="14" y="26" fill="#c4b5fd" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">SHADOW</text>
+        <text x="88" y="26" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">NovaKnight</text>
+        <text x="257" y="26" text-anchor="end" fill="#c4b5fd" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="800">+4,500</text>
+      </g>
+
+      <g transform="translate(12, 384)">
+        <rect x="0" y="0" width="271" height="42" rx="9" fill="#0e1d28" stroke="#1f3a4d" stroke-width="1" />
+        <text x="14" y="26" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">TIDES</text>
+        <text x="88" y="26" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">ChloeSolves</text>
+        <text x="257" y="26" text-anchor="end" fill="#eaf3f7" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="800">+1,800</text>
+      </g>
+
+      <!-- Game Modes Selector Preview -->
+      <text x="16" y="454" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800" letter-spacing="0.8">GAME MODES</text>
+      <g transform="translate(12, 464)">
+        <rect x="0" y="0" width="131" height="36" rx="8" fill="#ee7a2c" />
+        <text x="65.5" y="23" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">Multiplayer Live</text>
+
+        <rect x="140" y="0" width="131" height="36" rx="8" fill="#0e1d28" stroke="#2a4a5f" stroke-width="1" />
+        <text x="205.5" y="23" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">Daily Solo</text>
+
+        <rect x="0" y="44" width="131" height="36" rx="8" fill="#0e1d28" stroke="#2a4a5f" stroke-width="1" />
+        <text x="65.5" y="67" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">Endless Practice</text>
+
+        <rect x="140" y="44" width="131" height="36" rx="8" fill="#0e1d28" stroke="#2a4a5f" stroke-width="1" />
+        <text x="205.5" y="67" text-anchor="middle" fill="#eaf3f7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">4×4 Blitz</text>
+      </g>
+
+      <!-- Unified Profile Sync Banner -->
+      <rect x="12" y="560" width="271" height="76" rx="10" fill="#0e1d28" stroke="#9eea3a" stroke-opacity="0.4" stroke-width="1" />
+      <text x="147.5" y="586" text-anchor="middle" fill="#9eea3a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">✓ LINKED TIKTOK @ AUTO-SYNC</text>
+      <text x="147.5" y="606" text-anchor="middle" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="600">Points scored in TikTok chat sync</text>
+      <text x="147.5" y="622" text-anchor="middle" fill="#8aa0ad" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="600">directly to your website profile.</text>
+    </g>
   </g>
 </svg>

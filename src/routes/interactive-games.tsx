@@ -88,7 +88,7 @@ export function InteractiveGamesPage() {
                       Streamer {activeStreamer.displayHandle}
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                      All 4 interactive games are unlocked. Scores for linked TikTok @ accounts sync
+                      All 5 interactive games are unlocked. Scores for linked TikTok @ accounts sync
                       automatically to their website profile.
                     </p>
                   </>
@@ -101,8 +101,8 @@ export function InteractiveGamesPage() {
                       Enter your TikTok @username &amp; LIVE-xxxx-xxxx Stream Key
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                      Sign in once below to unlock WiKirecTangled, WikiContexto, Squared Interactive
-                      &amp; Lexi Tiles, or open the Admin Portal to register stream keys.
+                      Sign in once below to unlock WiKirecTangled, WikiContexto, Squared Interactive,
+                      Lexi Tiles &amp; DeStack Interactive, or open the Admin Portal to register stream keys.
                     </p>
                   </>
                 )}
@@ -315,6 +315,40 @@ export function InteractiveGamesPage() {
             <div className="mt-auto pt-2">
               <Link className="game-link" to="/interactive-games/lexi">
                 Play Lexi Tiles{' '}
+                <span>
+                  <ArrowUpRight size={22} />
+                </span>
+              </Link>
+            </div>
+          </article>
+
+          <article className="game-card">
+            <div className="card-top">
+              <span className="category-label">
+                <span className="status-dot" /> NOW PLAYING
+              </span>
+              <span className="card-number">05 /</span>
+            </div>
+            <Link
+              to="/interactive-games/destackint"
+              className="game-art game-art-thumb"
+              aria-label="Play DeStack Interactive game"
+            >
+              <img
+                className="game-thumbnail"
+                src="/destackint-website-thumbnail.svg"
+                alt="Preview of the DeStack Interactive 4-layer word pyramid, auto-reveal timer, and TikTok Live chat speed leaderboard"
+              />
+            </Link>
+            <h3>DeStack Interactive</h3>
+            <p>
+              Unstack the 4-layer word pyramid live on TikTok. Viewers race in chat to spot valid
+              5-letter words from exposed top-layer tiles before the auto-reveal timer expires,
+              earning speed-bonus points on the running stream scoreboard.
+            </p>
+            <div className="mt-auto pt-2">
+              <Link className="game-link" to="/interactive-games/destackint">
+                Play DeStack Interactive{' '}
                 <span>
                   <ArrowUpRight size={22} />
                 </span>

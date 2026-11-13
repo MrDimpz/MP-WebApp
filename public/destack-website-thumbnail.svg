@@ -1,0 +1,333 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <clipPath id="dsClip">
+      <rect x="0" y="0" width="1200" height="720" rx="16" />
+    </clipPath>
+    <linearGradient id="dsBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b0d47" />
+      <stop offset="50%" stop-color="#4a1259" />
+      <stop offset="100%" stop-color="#22072b" />
+    </linearGradient>
+    <linearGradient id="goldBtn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="hardBtn" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#f97316" />
+    </linearGradient>
+    <filter id="panelShadow" x="-12%" y="-12%" width="124%" height="128%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#0d0212" flood-opacity="0.55" />
+    </filter>
+    <filter id="boardInset" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#09010d" flood-opacity="0.6" />
+    </filter>
+    <!-- Exposed Top Tile (#fbf6e8 with 3D #7c581e bottom lip) -->
+    <g id="tileExposed">
+      <rect x="-29" y="-25" width="58" height="55" rx="11" fill="#7c581e" />
+      <rect x="-29" y="-29" width="58" height="54" rx="11" fill="#fbf6e8" stroke="#fcd34d" stroke-width="1.5" />
+    </g>
+    <!-- Covered Lower-Layer Tile (#bfa97a with dark 3D bottom lip) -->
+    <g id="tileCovered">
+      <rect x="-29" y="-25" width="58" height="55" rx="11" fill="#1e1124" fill-opacity="0.75" />
+      <rect x="-29" y="-29" width="58" height="54" rx="11" fill="#bfa97a" stroke="#9c8658" stroke-width="1.2" />
+    </g>
+    <!-- Deepest Layer 0 Covered Tile (#9e885c) -->
+    <g id="tileDeep">
+      <rect x="-29" y="-25" width="58" height="55" rx="11" fill="#140818" fill-opacity="0.8" />
+      <rect x="-29" y="-29" width="58" height="54" rx="11" fill="#9e885c" stroke="#7d6a43" stroke-width="1" />
+    </g>
+  </defs>
+
+  <g clip-path="url(#dsClip)">
+    <!-- Royal Purple Game Canvas Background -->
+    <rect x="0" y="0" width="1200" height="720" fill="url(#dsBg)" />
+
+    <!-- Subtle Watermark Pattern Dots -->
+    <g fill="#ffffff" fill-opacity="0.03">
+      <circle cx="110" cy="180" r="26" />
+      <circle cx="220" cy="290" r="26" />
+      <circle cx="110" cy="400" r="26" />
+      <circle cx="220" cy="510" r="26" />
+      <circle cx="980" cy="180" r="26" />
+      <circle cx="1090" cy="290" r="26" />
+      <circle cx="980" cy="400" r="26" />
+      <circle cx="1090" cy="510" r="26" />
+    </g>
+
+    <!-- Browser Top Bar -->
+    <rect x="0" y="0" width="1200" height="40" fill="#12021a" />
+    <circle cx="24" cy="20" r="6" fill="#ff5f56" />
+    <circle cx="44" cy="20" r="6" fill="#ffbd2e" />
+    <circle cx="64" cy="20" r="6" fill="#27c93f" />
+    <rect x="340" y="7" width="520" height="26" rx="6" fill="#230730" stroke="#4c1d6e" stroke-width="1" />
+    <text x="600" y="24" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">themissingpiece.fun/solo-games/destack</text>
+
+    <!-- DeStack Actual Header Bar -->
+    <rect x="0" y="40" width="1200" height="58" fill="#1a0624" stroke="#581c6b" stroke-opacity="0.6" stroke-width="1" />
+    <!-- Back to Solo Games button -->
+    <rect x="24" y="54" width="96" height="30" rx="10" fill="#310d42" stroke="#6b21a8" stroke-width="1" />
+    <text x="72" y="73" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">← Solo Games</text>
+
+    <!-- Brand Emblem & DeStack Wordmark -->
+    <circle cx="146" cy="69" r="17" fill="#3b0d47" stroke="#fbbf24" stroke-width="2" />
+    <text x="146" y="74" text-anchor="middle" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="14" font-weight="900">🧩</text>
+    <text x="172" y="66" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="18" font-weight="900">De<tspan fill="#fbbf24">Stack</tspan></text>
+    <text x="172" y="80" fill="#fcd34d" fill-opacity="0.85" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8.5" font-weight="700" letter-spacing="1.2">THE MISSING PIECE</text>
+
+    <!-- Center Header Nav Links -->
+    <text x="415" y="73" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="700">Today's Puzzle</text>
+    <text x="530" y="73" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">📅 Archive ▾</text>
+    <text x="635" y="73" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">🏆 Leaderboard</text>
+    <text x="755" y="73" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">📊 Statistics</text>
+
+    <!-- Right Header Action Buttons (Sign In, Icons, Play Today) -->
+    <rect x="920" y="53" width="108" height="32" rx="10" fill="#2d0a3d" stroke="#fbbf24" stroke-opacity="0.6" stroke-width="1.2" />
+    <text x="974" y="73" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">👤 Sign In</text>
+
+    <rect x="1040" y="53" width="136" height="32" rx="10" fill="url(#goldBtn)" />
+    <text x="1108" y="73" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">Play Today</text>
+
+    <!-- ============================================================ -->
+    <!-- LEFT SIDE CARD: Words Unstacked & Layer Depth Info           -->
+    <!-- ============================================================ -->
+    <g transform="translate(36, 134)" filter="url(#panelShadow)">
+      <rect x="0" y="0" width="296" height="534" rx="22" fill="#240830" stroke="#6b21a8" stroke-width="1.5" />
+
+      <text x="24" y="36" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.5">HOW DESTACK WORKS</text>
+      <text x="24" y="62" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">Unstack the Pyramid</text>
+      <text x="24" y="84" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">Pick exposed cream tiles to spell each</text>
+      <text x="24" y="101" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">5-letter word &amp; uncover tiles below.</text>
+
+      <!-- Tile Legend -->
+      <rect x="20" y="120" width="256" height="62" rx="14" fill="#1a0524" stroke="#581c87" stroke-width="1" />
+      <rect x="34" y="135" width="32" height="30" rx="7" fill="#7c581e" />
+      <rect x="34" y="132" width="32" height="30" rx="7" fill="#fbf6e8" stroke="#fcd34d" stroke-width="1.5" />
+      <text x="50" y="153" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="15" font-weight="900">S</text>
+      <text x="78" y="148" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="800">Exposed Tile (Playable)</text>
+      <text x="78" y="165" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Bright cream · Top of stack</text>
+
+      <rect x="20" y="192" width="256" height="62" rx="14" fill="#1a0524" stroke="#581c87" stroke-width="1" />
+      <rect x="34" y="207" width="32" height="30" rx="7" fill="#140818" />
+      <rect x="34" y="204" width="32" height="30" rx="7" fill="#bfa97a" stroke="#9c8658" stroke-width="1.2" />
+      <text x="50" y="225" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="15" font-weight="900">R</text>
+      <text x="78" y="220" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="800">Covered Tile (Locked)</text>
+      <text x="78" y="237" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Clear overlapping tiles above</text>
+
+      <!-- Words Unstacked Progress -->
+      <text x="24" y="286" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.5">WORDS UNSTACKED (2 / 6)</text>
+
+      <rect x="20" y="300" width="256" height="42" rx="11" fill="#1a0524" stroke="#fbbf24" stroke-opacity="0.5" stroke-width="1.2" />
+      <text x="36" y="326" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="800">1. C R O W N</text>
+      <text x="258" y="326" text-anchor="end" fill="#4ade80" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">✓ Cleared</text>
+
+      <rect x="20" y="350" width="256" height="42" rx="11" fill="#1a0524" stroke="#fbbf24" stroke-opacity="0.5" stroke-width="1.2" />
+      <text x="36" y="376" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="800">2. F L A M E</text>
+      <text x="258" y="376" text-anchor="end" fill="#4ade80" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">✓ Cleared</text>
+
+      <rect x="20" y="400" width="256" height="42" rx="11" fill="#360b42" stroke="#fcd34d" stroke-width="1.5" />
+      <text x="36" y="426" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="800">3. S P A _ _</text>
+      <text x="258" y="426" text-anchor="end" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">ACTIVE</text>
+
+      <rect x="20" y="450" width="256" height="62" rx="14" fill="#160320" stroke="#581c87" stroke-width="1" />
+      <text x="148" y="476" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">2 Difficulty Modes Daily</text>
+      <text x="148" y="496" text-anchor="middle" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">4-Layer (30 Tiles) · 6-Layer Hard (50 Tiles)</text>
+    </g>
+
+    <!-- ============================================================ -->
+    <!-- CENTER: ACTUAL DESTACK GAME BOARD (Exact Replica of UI)      -->
+    <!-- ============================================================ -->
+    <g transform="translate(380, 110)">
+      <!-- Top Utility Strip: ← Menu | [4 Layers | Hard (6 Layers)] | 0:42 ↻ -->
+      <text x="4" y="18" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">← Menu</text>
+
+      <rect x="108" y="0" width="224" height="28" rx="10" fill="#360b42" stroke="#7e22ce" stroke-width="1" />
+      <rect x="111" y="3" width="96" height="22" rx="7" fill="#fbbf24" />
+      <text x="159" y="18" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800">4 Layers</text>
+      <text x="268" y="18" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800">🔥 Hard (6 Layers)</text>
+
+      <text x="404" y="18" text-anchor="end" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="12.5" font-weight="700">0:42</text>
+      <text x="432" y="18" text-anchor="end" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="700">↻</text>
+
+      <!-- Stackdown Header Pill ("HOW TO PLAY" + "4 WORDS REMAINING · 4 LAYERS (30 TILES)") -->
+      <circle cx="152" cy="48" r="13" fill="#3b0d47" stroke="#fbbf24" stroke-width="1.5" />
+      <text x="152" y="53" text-anchor="middle" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">🧩</text>
+      <rect x="172" y="35" width="116" height="26" rx="13" fill="#ffffff" />
+      <text x="230" y="52" text-anchor="middle" fill="#3b0d47" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="900" letter-spacing="0.8">HOW TO PLAY</text>
+
+      <text x="220" y="79" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700" letter-spacing="1">
+        <tspan fill="#fcd34d" font-weight="900">4</tspan> WORDS REMAINING · <tspan fill="#fcd34d" font-weight="800">4 LAYERS (30 TILES)</tspan>
+      </text>
+
+      <!-- Recessed Square Stack Board (440x360 scaled square container) -->
+      <g transform="translate(20, 92)">
+        <rect x="0" y="0" width="400" height="360" rx="18" fill="#360b42" stroke="#7e22ce" stroke-opacity="0.4" stroke-width="1.5" filter="url(#boardInset)" />
+
+        <!-- ======================================================== -->
+        <!-- LAYER 0 (Bottom Outer Ring - 10 tiles)                   -->
+        <!-- Center of board is (200, 180); step = 68pxX, 62pxY       -->
+        <!-- ======================================================== -->
+        <!-- (-1, -2) -> (132, 56) Covered -->
+        <g transform="translate(132, 56)"><use href="#tileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">T</text></g>
+        <!-- (1, -2) -> (268, 56) Exposed outer tile -->
+        <g transform="translate(268, 56)"><use href="#tileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">E</text></g>
+        <!-- (-2, -1) -> (64, 118) Covered -->
+        <g transform="translate(64, 118)"><use href="#tileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">L</text></g>
+        <!-- (-2, 0) -> (64, 180) Exposed outer tile -->
+        <g transform="translate(64, 180)"><use href="#tileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">M</text></g>
+        <!-- (-2, 1) -> (64, 242) Covered -->
+        <g transform="translate(64, 242)"><use href="#tileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">O</text></g>
+        <!-- (2, -1) -> (336, 118) Covered -->
+        <g transform="translate(336, 118)"><use href="#tileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">R</text></g>
+        <!-- (2, 0) -> (336, 180) Exposed outer tile -->
+        <g transform="translate(336, 180)"><use href="#tileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">K</text></g>
+        <!-- (2, 1) -> (336, 242) Covered -->
+        <g transform="translate(336, 242)"><use href="#tileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">N</text></g>
+        <!-- (-1, 2) -> (132, 304) Exposed outer tile -->
+        <g transform="translate(132, 304)"><use href="#tileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">D</text></g>
+        <!-- (1, 2) -> (268, 304) Covered -->
+        <g transform="translate(268, 304)"><use href="#tileDeep" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">G</text></g>
+
+        <!-- ======================================================== -->
+        <!-- LAYER 1 (8 half-step overlapping tiles)                  -->
+        <!-- ======================================================== -->
+        <!-- (-0.5, -1.5) -> (166, 87) Covered -->
+        <g transform="translate(166, 87)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">H</text></g>
+        <!-- (0.5, -1.5) -> (234, 87) Covered -->
+        <g transform="translate(234, 87)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">I</text></g>
+        <!-- (-1.5, -0.5) -> (98, 149) Covered -->
+        <g transform="translate(98, 149)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">U</text></g>
+        <!-- (-1.5, 0.5) -> (98, 211) Covered -->
+        <g transform="translate(98, 211)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">B</text></g>
+        <!-- (1.5, -0.5) -> (302, 149) Covered -->
+        <g transform="translate(302, 149)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">V</text></g>
+        <!-- (1.5, 0.5) -> (302, 211) Covered -->
+        <g transform="translate(302, 211)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">Y</text></g>
+        <!-- (-0.5, 1.5) -> (166, 273) Covered -->
+        <g transform="translate(166, 273)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">W</text></g>
+        <!-- (0.5, 1.5) -> (234, 273) Covered -->
+        <g transform="translate(234, 273)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">F</text></g>
+
+        <!-- ======================================================== -->
+        <!-- LAYER 2 (3x3 Ring with Empty Center - 8 tiles)           -->
+        <!-- ======================================================== -->
+        <!-- (-1, -1) -> (132, 118) Exposed (since top-left L3 tile was picked!) -->
+        <g transform="translate(132, 118)"><use href="#tileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">C</text></g>
+        <!-- (0, -1) -> (200, 118) Covered -->
+        <g transform="translate(200, 118)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">R</text></g>
+        <!-- (1, -1) -> (268, 118) Covered -->
+        <g transform="translate(268, 118)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">A</text></g>
+        <!-- (-1, 0) -> (132, 180) Covered -->
+        <g transform="translate(132, 180)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">N</text></g>
+        <!-- (1, 0) -> (268, 180) Covered -->
+        <g transform="translate(268, 180)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">T</text></g>
+        <!-- (-1, 1) -> (132, 242) Exposed -->
+        <g transform="translate(132, 242)"><use href="#tileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">E</text></g>
+        <!-- (0, 1) -> (200, 242) Covered -->
+        <g transform="translate(200, 242)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">S</text></g>
+        <!-- (1, 1) -> (268, 242) Covered -->
+        <g transform="translate(268, 242)"><use href="#tileCovered" /><text x="0" y="6" text-anchor="middle" fill="#2c2233" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">L</text></g>
+
+        <!-- ======================================================== -->
+        <!-- LAYER 3 (Top Center 2x2 Peak - Exposed Cream Tiles)      -->
+        <!-- ======================================================== -->
+        <!-- (0.5, -0.5) -> (234, 149) Exposed -->
+        <g transform="translate(234, 149)"><use href="#tileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">R</text></g>
+        <!-- (-0.5, 0.5) -> (166, 211) Exposed -->
+        <g transform="translate(166, 211)"><use href="#tileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">K</text></g>
+        <!-- (0.5, 0.5) -> (234, 211) Exposed -->
+        <g transform="translate(234, 211)"><use href="#tileExposed" /><text x="0" y="6" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">E</text></g>
+      </g>
+
+      <!-- 5-Letter Slot Rack Below Board -->
+      <g transform="translate(20, 468)">
+        <!-- Slot 1: Filled with 'S' -->
+        <rect x="0" y="5" width="70" height="66" rx="12" fill="#7c581e" />
+        <rect x="0" y="0" width="70" height="66" rx="12" fill="#fbf6e8" stroke="#fcd34d" stroke-width="2" />
+        <text x="35" y="42" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="28" font-weight="900">S</text>
+
+        <!-- Slot 2: Filled with 'P' -->
+        <rect x="82.5" y="5" width="70" height="66" rx="12" fill="#7c581e" />
+        <rect x="82.5" y="0" width="70" height="66" rx="12" fill="#fbf6e8" stroke="#fcd34d" stroke-width="2" />
+        <text x="117.5" y="42" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="28" font-weight="900">P</text>
+
+        <!-- Slot 3: Filled with 'A' -->
+        <rect x="165" y="5" width="70" height="66" rx="12" fill="#7c581e" />
+        <rect x="165" y="0" width="70" height="66" rx="12" fill="#fbf6e8" stroke="#fcd34d" stroke-width="2" />
+        <text x="200" y="42" text-anchor="middle" fill="#231929" font-family="DejaVu Sans, system-ui, sans-serif" font-size="28" font-weight="900">A</text>
+
+        <!-- Slot 4: Empty Recessed Slot -->
+        <rect x="247.5" y="0" width="70" height="66" rx="12" fill="#360b42" stroke="#7e22ce" stroke-opacity="0.35" stroke-width="1.5" />
+
+        <!-- Slot 5: Empty Recessed Slot -->
+        <rect x="330" y="0" width="70" height="66" rx="12" fill="#360b42" stroke="#7e22ce" stroke-opacity="0.35" stroke-width="1.5" />
+      </g>
+
+      <!-- Bottom Swipe-to-Reveal Hint Pill -->
+      <g transform="translate(28, 550)">
+        <rect x="0" y="0" width="384" height="44" rx="22" fill="#360b42" stroke="#7e22ce" stroke-opacity="0.4" stroke-width="1.5" />
+        <circle cx="24" cy="22" r="17" fill="#ffffff" stroke="#fcd34d" stroke-width="1.5" />
+        <text x="24" y="27" text-anchor="middle" fill="#f59e0b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="15">💡</text>
+        <text x="206" y="26" text-anchor="middle" fill="#d8b4fe" fill-opacity="0.65" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.8">SWIPE TO REVEAL HINT</text>
+      </g>
+    </g>
+
+    <!-- ============================================================ -->
+    <!-- RIGHT SIDE CARD: Unified Leaderboard & Account Sync          -->
+    <!-- ============================================================ -->
+    <g transform="translate(868, 134)" filter="url(#panelShadow)">
+      <rect x="0" y="0" width="296" height="534" rx="22" fill="#240830" stroke="#6b21a8" stroke-width="1.5" />
+
+      <text x="24" y="36" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.5">PUBLIC LEADERBOARD</text>
+      <text x="24" y="62" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">05 / DeStack</text>
+      <text x="24" y="84" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">Synced with your Solo Games login</text>
+
+      <!-- Top 4 Leaderboard Entries -->
+      <g transform="translate(20, 106)">
+        <rect x="0" y="0" width="256" height="54" rx="13" fill="#351058" stroke="#fbbf24" stroke-width="1.5" />
+        <rect x="12" y="13" width="28" height="28" rx="8" fill="#fbbf24" />
+        <text x="26" y="32" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">#1</text>
+        <text x="50" y="25" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">StackQueen</text>
+        <text x="50" y="42" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="600">Hard (6-Layer) · 48s</text>
+        <text x="242" y="32" text-anchor="end" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">2,650</text>
+      </g>
+
+      <g transform="translate(20, 170)">
+        <rect x="0" y="0" width="256" height="54" rx="13" fill="#1a0524" stroke="#581c87" stroke-width="1" />
+        <rect x="12" y="13" width="28" height="28" rx="8" fill="#2d0a3d" />
+        <text x="26" y="32" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">#2</text>
+        <text x="50" y="25" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">WordMaster_UK</text>
+        <text x="50" y="42" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="600">Standard (4-Layer) · 36s</text>
+        <text x="242" y="32" text-anchor="end" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">1,692</text>
+      </g>
+
+      <g transform="translate(20, 234)">
+        <rect x="0" y="0" width="256" height="54" rx="13" fill="#1a0524" stroke="#581c87" stroke-width="1" />
+        <rect x="12" y="13" width="28" height="28" rx="8" fill="#2d0a3d" />
+        <text x="26" y="32" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">#3</text>
+        <text x="50" y="25" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">PuzzlerPro</text>
+        <text x="50" y="42" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="600">Standard (4-Layer) · 44s</text>
+        <text x="242" y="32" text-anchor="end" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">1,668</text>
+      </g>
+
+      <g transform="translate(20, 298)">
+        <rect x="0" y="0" width="256" height="54" rx="13" fill="#1a0524" stroke="#581c87" stroke-width="1" />
+        <rect x="12" y="13" width="28" height="28" rx="8" fill="#2d0a3d" />
+        <text x="26" y="32" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">#4</text>
+        <text x="50" y="25" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">LexiSolver</text>
+        <text x="50" y="42" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="600">Standard (4-Layer) · 51s</text>
+        <text x="242" y="32" text-anchor="end" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">1,647</text>
+      </g>
+
+      <!-- ActiveHint / Clue Preview Box -->
+      <rect x="20" y="372" width="256" height="74" rx="14" fill="#160320" stroke="#fbbf24" stroke-opacity="0.5" stroke-width="1.2" />
+      <text x="36" y="396" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800" letter-spacing="1.2">💡 CURRENT WORD CLUE</text>
+      <text x="36" y="418" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="700">"A bright sudden burst of light</text>
+      <text x="36" y="435" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="700">or glowing ember (5 letters)"</text>
+
+      <!-- Bottom Unified Account CTA -->
+      <rect x="20" y="462" width="256" height="50" rx="14" fill="url(#goldBtn)" />
+      <text x="148" y="492" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13.5" font-weight="900">🏆 View All Leaderboards</text>
+    </g>
+  </g>
+</svg>

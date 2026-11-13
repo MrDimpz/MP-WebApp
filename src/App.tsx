@@ -14,10 +14,12 @@ import SoloGamesPage from '@/routes/solo-games';
 import RebusPage from '@/routes/rebus';
 import SquaredPage from '@/routes/squared';
 import ThematixPage from '@/routes/thematix';
+import DeStackPage from '@/routes/destack';
 import SquaredIntGamePage from '@/routes/squaredint-game';
 import WikirecGamePage from '@/routes/wikirec-game';
 import WikiconGamePage from '@/routes/wikicon-game';
 import LexiGamePage from '@/routes/lexi-game';
+import DeStackIntGamePage from '@/routes/destackint-game';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'The Missing Piece — TikTok interactive & solo games',
@@ -27,21 +29,27 @@ const PAGE_TITLES: Record<string, string> = {
   '/interactive-games/squared': 'Squared Interactive — TikTok Live Game — The Missing Piece',
   '/interactive-games/squaredint': 'Squared Interactive — TikTok Live Game — The Missing Piece',
   '/interactive-games/lexi': 'Lexi Tiles — TikTok Interactive Game — The Missing Piece',
+  '/interactive-games/destack': 'DeStack Interactive — TikTok Live Game — The Missing Piece',
+  '/interactive-games/destackint': 'DeStack Interactive — TikTok Live Game — The Missing Piece',
   '/solo-games': 'Solo games — The Missing Piece',
   '/solo-games/rebus': 'Missing Rebus — Solo game — The Missing Piece',
   '/solo-games/squared': 'Squared — Daily Word Grid — The Missing Piece',
   '/solo-games/thematix': 'Thematix — Word Association — The Missing Piece',
+  '/solo-games/destack': 'DeStack — Word Unstacking — The Missing Piece',
 };
 
 const STANDALONE_GAME_PATHS = new Set([
   '/solo-games/rebus',
   '/solo-games/squared',
   '/solo-games/thematix',
+  '/solo-games/destack',
   '/interactive-games/wikirec',
   '/interactive-games/wikicon',
   '/interactive-games/squared',
   '/interactive-games/squaredint',
   '/interactive-games/lexi',
+  '/interactive-games/destack',
+  '/interactive-games/destackint',
 ]);
 
 function AppShell() {
@@ -70,11 +78,14 @@ function AppShell() {
         <Route path="/solo-games/rebus" element={<RebusPage />} />
         <Route path="/solo-games/squared" element={<SquaredPage />} />
         <Route path="/solo-games/thematix" element={<ThematixPage />} />
+        <Route path="/solo-games/destack" element={<DeStackPage />} />
         <Route path="/interactive-games/wikirec" element={<WikirecGamePage />} />
         <Route path="/interactive-games/wikicon" element={<WikiconGamePage />} />
         <Route path="/interactive-games/squared" element={<SquaredIntGamePage />} />
         <Route path="/interactive-games/squaredint" element={<SquaredIntGamePage />} />
         <Route path="/interactive-games/lexi" element={<LexiGamePage />} />
+        <Route path="/interactive-games/destack" element={<DeStackIntGamePage />} />
+        <Route path="/interactive-games/destackint" element={<DeStackIntGamePage />} />
       </Routes>
     );
   }
@@ -90,6 +101,8 @@ function AppShell() {
         <Route path="/interactive-games/squared" element={<SquaredIntGamePage />} />
         <Route path="/interactive-games/squaredint" element={<SquaredIntGamePage />} />
         <Route path="/interactive-games/lexi" element={<LexiGamePage />} />
+        <Route path="/interactive-games/destack" element={<DeStackIntGamePage />} />
+        <Route path="/interactive-games/destackint" element={<DeStackIntGamePage />} />
         <Route path="/solo-games" element={<SoloGamesPage />} />
       </Routes>
       <SiteFooter />

@@ -41,12 +41,6 @@ export function InteractiveStreamGate({
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  useEffect(() => {
-    if (siteUser?.linkedTikTokHandle && !usernameInput) {
-      setUsernameInput(siteUser.linkedTikTokHandle);
-    }
-  }, [siteUser?.linkedTikTokHandle, usernameInput]);
-
   // 15-Minute Inactivity Tracker: Touch session on user interaction and monitor interval
   useEffect(() => {
     if (!activeStreamer) return;
@@ -303,6 +297,7 @@ export function InteractiveStreamGate({
       <UnifiedAuthModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
+        user={siteUser}
       />
     </div>
   );

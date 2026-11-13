@@ -3,207 +3,418 @@
     <clipPath id="lexiClip">
       <rect x="0" y="0" width="1200" height="720" rx="16" />
     </clipPath>
-    <linearGradient id="lexiBgGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#180727" />
-      <stop offset="50%" stop-color="#2a0a3d" />
-      <stop offset="100%" stop-color="#12041d" />
+    <linearGradient id="lexiCabinetGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3c1361" />
+      <stop offset="50%" stop-color="#2a0a47" />
+      <stop offset="100%" stop-color="#1c0531" />
     </linearGradient>
-    <linearGradient id="lexiCoral" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#ff4b72" />
-      <stop offset="100%" stop-color="#d91e48" />
+    <linearGradient id="lexiMarqueeFrame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d8c2f2" />
+      <stop offset="50%" stop-color="#b88ce8" />
+      <stop offset="100%" stop-color="#9864d4" />
     </linearGradient>
-    <linearGradient id="lexiGold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#fbbf24" />
-      <stop offset="100%" stop-color="#d97706" />
+    <linearGradient id="lexiTrayGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#cfaef5" />
+      <stop offset="100%" stop-color="#9b66db" />
     </linearGradient>
-    <linearGradient id="lexiCyan" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#38bdf8" />
-      <stop offset="100%" stop-color="#0284c7" />
-    </linearGradient>
-    <linearGradient id="lexiTileFace" x1="0" y1="0" x2="0" y2="100%">
+    <linearGradient id="lexiTileRoyal" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#ede4f5" />
+      <stop offset="100%" stop-color="#e5d4f7" />
     </linearGradient>
-    <linearGradient id="lexiTileDark" x1="0" y1="0" x2="0" y2="100%">
-      <stop offset="0%" stop-color="#33144e" />
-      <stop offset="100%" stop-color="#1e0931" />
+    <linearGradient id="lexiTileGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="100%" stop-color="#f59e0b" />
     </linearGradient>
-    <filter id="lexiGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#ff4b72" flood-opacity="0.4" />
-    </filter>
-    <filter id="lexiCardShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.5" />
-    </filter>
+    <linearGradient id="lexiTileMystery" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4c1d95" />
+      <stop offset="100%" stop-color="#2e1065" />
+    </linearGradient>
+    <linearGradient id="lexiTileBonus" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#065f46" />
+      <stop offset="100%" stop-color="#064e3b" />
+    </linearGradient>
+    <linearGradient id="lexiProgressGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="50%" stop-color="#5eead4" />
+      <stop offset="100%" stop-color="#fcd34d" />
+    </linearGradient>
   </defs>
+
   <g clip-path="url(#lexiClip)">
-    <!-- Main Background -->
-    <rect x="0" y="0" width="1200" height="720" fill="url(#lexiBgGrad)" />
+    <!-- Slate-950 Outer Shell Background (#020617) -->
+    <rect x="0" y="0" width="1200" height="720" fill="#020617" />
 
-    <!-- Browser Top Window Bar -->
-    <rect x="0" y="0" width="1200" height="44" fill="#11051b" />
-    <circle cx="24" cy="22" r="6" fill="#ff5f56" />
-    <circle cx="44" cy="22" r="6" fill="#ffbd2e" />
-    <circle cx="64" cy="22" r="6" fill="#27c93f" />
-    <rect x="310" y="9" width="580" height="26" rx="6" fill="#200a30" stroke="#4a1c69" stroke-width="1" />
-    <text x="600" y="26" text-anchor="middle" fill="#e9d5ff" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="600">lexi.missingpiecepuzzles.fun</text>
+    <!-- Unified Interactive Stream Gate Top Bar -->
+    <rect x="0" y="0" width="1200" height="36" fill="#0d101b" />
+    <line x1="0" y1="36" x2="1200" y2="36" stroke="#1e293b" stroke-width="1" />
+    <rect x="16" y="6" width="62" height="24" rx="6" fill="#181d30" stroke="#2e3652" stroke-width="1" />
+    <text x="47" y="22" text-anchor="middle" fill="#e2e8f0" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">← Back</text>
+    <text x="92" y="22" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">The Missing Piece</text>
+    <text x="212" y="22" fill="#64748b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">·</text>
+    <text x="224" y="22" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">Lexi Tiles</text>
 
-    <!-- Game Header Navigation Bar -->
-    <rect x="48" y="64" width="1104" height="62" rx="16" fill="#250b3a" stroke="#541b7a" stroke-width="1.5" />
-    <circle cx="88" cy="95" r="20" fill="#3f115e" stroke="#ff4b72" stroke-width="2" />
-    <text x="88" y="101" text-anchor="middle" fill="#ff4b72" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="800">🔤</text>
-    <text x="122" y="91" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="800">Lexi Tiles — TikTok Live Lexicon Arena</text>
-    <text x="122" y="111" fill="#f472b6" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">LIVE LEXICON SHOWDOWN · DYNAMIC LETTER POOL</text>
+    <rect x="818" y="6" width="166" height="24" rx="7" fill="#0c2e24" stroke="#10b981" stroke-opacity="0.5" stroke-width="1" />
+    <circle cx="832" cy="18" r="4" fill="#34d399" />
+    <text x="875" y="22" text-anchor="middle" fill="#a7f3d0" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="700">@mrdimpz</text>
+    <text x="948" y="22" text-anchor="middle" fill="#fda4af" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="700">Switch Key</text>
 
-    <!-- Mode & Live Status Pills -->
-    <rect x="680" y="76" width="140" height="38" rx="10" fill="rgba(251, 191, 36, 0.15)" stroke="#fbbf24" stroke-width="1.2" />
-    <text x="750" y="100" text-anchor="middle" fill="#fbbf24" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="800">⚡ 3× MULTI</text>
+    <rect x="994" y="6" width="190" height="24" rx="7" fill="#26143d" stroke="#a855f7" stroke-opacity="0.5" stroke-width="1" />
+    <text x="1089" y="22" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">👤 Dimpz (@mrdimpz) · 4,850 pts</text>
 
-    <rect x="834" y="76" width="298" height="38" rx="10" fill="#064e3b" stroke="#34d399" stroke-width="1.5" />
-    <circle cx="858" cy="95" r="5" fill="#34d399" />
-    <text x="988" y="100" text-anchor="middle" fill="#a7f3d0" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="700">TIKTOK LIVE · @MissingPiece</text>
+    <!-- Lexi Tiles 3-Zone Top Bar (Game Arena · Vertical 9:16 · OBS Overlay · Leaderboard · Admin Studio) -->
+    <rect x="0" y="36" width="1200" height="46" fill="#020617" />
+    <line x1="0" y1="82" x2="1200" y2="82" stroke="#1e293b" stroke-width="1" />
+    <circle cx="34" cy="59" r="14" fill="#3b0d47" stroke="#fbbf24" stroke-width="1.5" />
+    <text x="34" y="64" text-anchor="middle" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">🧩</text>
+    <text x="56" y="63" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="14" font-weight="800">THE MISSING PIECE</text>
 
-    <!-- Left Arena Container: Lexi Tiles Board -->
-    <g filter="url(#lexiCardShadow)">
-      <rect x="48" y="150" width="710" height="520" rx="24" fill="#130721" stroke="#ff4b72" stroke-width="3" />
-      
-      <!-- Sub-header inside Arena -->
-      <text x="80" y="190" fill="#c084fc" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="700" letter-spacing="1">ROUND 4 · 7-LETTER TARGET POOL</text>
-      
-      <!-- Timer & Score Counters -->
-      <rect x="520" y="170" width="208" height="36" rx="10" fill="#240c39" stroke="#581c82" stroke-width="1" />
-      <text x="624" y="193" text-anchor="middle" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="800">SCORE: 4,820 PTS</text>
+    <!-- 5 Navigation Links -->
+    <text x="350" y="63" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">Game Arena</text>
+    <line x1="350" y1="71" x2="424" y2="71" stroke="#fbbf24" stroke-width="2" />
+    <text x="454" y="63" fill="#cbd5e1" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">Vertical 9:16</text>
+    <text x="556" y="63" fill="#cbd5e1" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">OBS Overlay</text>
+    <text x="658" y="63" fill="#cbd5e1" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">Leaderboard</text>
+    <text x="760" y="63" fill="#cbd5e1" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">Admin Studio</text>
 
-      <!-- Active Chain Trace Arc -->
-      <path d="M 125 315 L 235 315 L 345 315 L 455 315 L 565 315" stroke="#ff4b72" stroke-width="12" stroke-linecap="round" opacity="0.35" />
+    <rect x="920" y="45" width="150" height="28" rx="8" fill="#064e3b" stroke="#10b981" stroke-opacity="0.6" stroke-width="1" />
+    <text x="995" y="63" text-anchor="middle" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">📶 @mrdimpz Connected</text>
 
-      <!-- Row of Tactile 3D Word Tiles: L - E - X - I - C - O - N -->
-      <!-- Tile 1: L -->
-      <g transform="translate(80, 260)">
-        <rect x="0" y="0" width="90" height="100" rx="18" fill="url(#lexiTileFace)" stroke="#ffffff" stroke-width="3" />
-        <text x="45" y="62" text-anchor="middle" fill="#1e0633" font-family="DejaVu Sans, sans-serif" font-size="44" font-weight="800">L</text>
-        <text x="74" y="30" text-anchor="end" fill="#ff4b72" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="800">1</text>
+    <rect x="1080" y="45" width="96" height="28" rx="8" fill="url(#lexiTileGold)" />
+    <text x="1128" y="63" text-anchor="middle" fill="#020617" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">New Round</text>
+
+    <!-- =================================================================== -->
+    <!-- LEFT / CENTER (8 cols): ARCADE GAME-SHOW CABINET BOARD              -->
+    <!-- =================================================================== -->
+    <g transform="translate(24, 96)">
+      <rect x="0" y="0" width="760" height="604" rx="26" fill="url(#lexiCabinetGrad)" stroke="#b384eb" stroke-width="2.5" />
+      <!-- Top & Bottom Beveled Metallic Trim Notches -->
+      <rect x="270" y="0" width="220" height="6" rx="3" fill="#fcd34d" />
+      <rect x="270" y="598" width="220" height="6" rx="3" fill="#fcd34d" />
+
+      <!-- TOP ARCADE CABINET HEADER: Arched MISSING PIECE Tiles (Left) · Studded Light-Bulb Marquee (Center) · GOAL/LEVEL (Right) -->
+      <g transform="translate(20, 18)">
+        <!-- Left: Medallion + Arched Mini-Tiles spelling MISSING -->
+        <circle cx="24" cy="34" r="20" fill="#230638" stroke="#fcd34d" stroke-width="2" />
+        <text x="24" y="40" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="16" font-weight="900">🧩</text>
+
+        <g transform="translate(52, 8)">
+          <rect x="0" y="2" width="18" height="22" rx="4" fill="#6ee7b7" stroke="#230638" stroke-width="1" /><text x="9" y="17" text-anchor="middle" fill="#12031f" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">M</text>
+          <rect x="20" y="1" width="18" height="22" rx="4" fill="#ffffff" stroke="#230638" stroke-width="1" /><text x="29" y="16" text-anchor="middle" fill="#230638" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">I</text>
+          <rect x="40" y="0" width="18" height="22" rx="4" fill="#6ee7b7" stroke="#230638" stroke-width="1" /><text x="49" y="15" text-anchor="middle" fill="#12031f" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">S</text>
+          <rect x="60" y="0" width="18" height="22" rx="4" fill="#ffffff" stroke="#230638" stroke-width="1" /><text x="69" y="15" text-anchor="middle" fill="#230638" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">S</text>
+          <rect x="80" y="0" width="18" height="22" rx="4" fill="#6ee7b7" stroke="#230638" stroke-width="1" /><text x="89" y="15" text-anchor="middle" fill="#12031f" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">I</text>
+          <rect x="100" y="1" width="18" height="22" rx="4" fill="#ffffff" stroke="#230638" stroke-width="1" /><text x="109" y="16" text-anchor="middle" fill="#230638" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">N</text>
+          <rect x="120" y="2" width="18" height="22" rx="4" fill="#6ee7b7" stroke="#230638" stroke-width="1" /><text x="129" y="17" text-anchor="middle" fill="#12031f" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">G</text>
+
+          <rect x="0" y="28" width="34" height="18" rx="4" fill="#fbbf24" stroke="#230638" stroke-width="1" />
+          <text x="17" y="40" text-anchor="middle" fill="#1e0533" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="900">THE</text>
+          <text x="42" y="41" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="14" font-weight="900">PIECE</text>
+        </g>
+
+        <!-- Center: Studded Light-Bulb Marquee Sign -->
+        <g transform="translate(208, 0)">
+          <rect x="0" y="0" width="310" height="72" rx="16" fill="url(#lexiMarqueeFrame)" stroke="#230638" stroke-width="2" />
+          <!-- Left 5 Bulbs -->
+          <rect x="6" y="6" width="16" height="60" rx="6" fill="#381059" />
+          <circle cx="14" cy="14" r="3.5" fill="#fef08a" />
+          <circle cx="14" cy="25" r="3.5" fill="#fef08a" />
+          <circle cx="14" cy="36" r="3.5" fill="#fef08a" />
+          <circle cx="14" cy="47" r="3.5" fill="#fef08a" />
+          <circle cx="14" cy="58" r="3.5" fill="#fef08a" />
+
+          <!-- Center Halftone Marquee Screen -->
+          <rect x="26" y="6" width="258" height="60" rx="11" fill="#230638" stroke="#120220" stroke-width="1.5" />
+          <text x="155" y="29" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="14" font-weight="900">WORK TOGETHER</text>
+          <text x="155" y="47" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="14" font-weight="900">TO FIND THE WORDS!</text>
+          <text x="155" y="60" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="700">Center "R" Required · Deduce "?" Tile (+8 pts)</text>
+
+          <!-- Right 5 Bulbs -->
+          <rect x="288" y="6" width="16" height="60" rx="6" fill="#381059" />
+          <circle cx="296" cy="14" r="3.5" fill="#fef08a" />
+          <circle cx="296" cy="25" r="3.5" fill="#fef08a" />
+          <circle cx="296" cy="36" r="3.5" fill="#fef08a" />
+          <circle cx="296" cy="47" r="3.5" fill="#fef08a" />
+          <circle cx="296" cy="58" r="3.5" fill="#fef08a" />
+        </g>
+
+        <!-- Right: Recessed GOAL / LEVEL Capsule + 2 Tactile Square Buttons -->
+        <g transform="translate(534, 8)">
+          <rect x="0" y="0" width="144" height="56" rx="14" fill="#1e0533" stroke="#b78ce8" stroke-width="2.5" />
+          <text x="42" y="19" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="900">GOAL</text>
+          <text x="42" y="42" text-anchor="middle" fill="#6ee7b7" font-family="DejaVu Sans Mono, monospace" font-size="17" font-weight="900">14/27</text>
+          <line x1="82" y1="10" x2="82" y2="46" stroke="#6b21a8" stroke-width="1.5" />
+          <text x="113" y="19" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="900">LEVEL</text>
+          <text x="113" y="42" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans Mono, monospace" font-size="17" font-weight="900">3</text>
+
+          <rect x="152" y="0" width="26" height="26" rx="7" fill="url(#lexiTrayGrad)" stroke="#230638" stroke-width="1.5" />
+          <text x="165" y="18" text-anchor="middle" fill="#230638" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">✕</text>
+          <rect x="152" y="30" width="26" height="26" rx="7" fill="url(#lexiTrayGrad)" stroke="#230638" stroke-width="1.5" />
+          <text x="165" y="48" text-anchor="middle" fill="#230638" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">⚙</text>
+        </g>
       </g>
 
-      <!-- Tile 2: E -->
-      <g transform="translate(190, 260)">
-        <rect x="0" y="0" width="90" height="100" rx="18" fill="url(#lexiTileFace)" stroke="#ffffff" stroke-width="3" />
-        <text x="45" y="62" text-anchor="middle" fill="#1e0633" font-family="DejaVu Sans, sans-serif" font-size="44" font-weight="800">E</text>
-        <text x="74" y="30" text-anchor="end" fill="#ff4b72" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="800">1</text>
+      <!-- FULL-WIDTH PERFORATED CHEVRON TRACK + POINTED HEXAGONAL 3D TILE STAGE -->
+      <g transform="translate(16, 102)">
+        <rect x="0" y="18" width="728" height="54" rx="12" fill="#19032b" stroke="#4a1775" stroke-width="1.5" />
+        <text x="18" y="54" fill="#3b0d54" font-family="DejaVu Sans, system-ui, sans-serif" font-size="26" font-weight="900">‹‹‹‹‹</text>
+        <text x="710" y="54" text-anchor="end" fill="#3b0d54" font-family="DejaVu Sans, system-ui, sans-serif" font-size="26" font-weight="900">›››››</text>
+
+        <!-- Hexagonal Tray Container -->
+        <rect x="64" y="4" width="600" height="82" rx="18" fill="url(#lexiTrayGrad)" stroke="#230638" stroke-width="2.5" />
+
+        <!-- 7 Single-Line 3D Tiles inside Tray (S P A [R-Center] K L [?-Mystery]) -->
+        <!-- Tile 1: S -->
+        <g transform="translate(82, 12)">
+          <rect x="0" y="4" width="70" height="62" rx="12" fill="#230638" />
+          <rect x="0" y="0" width="70" height="62" rx="12" fill="url(#lexiTileRoyal)" stroke="#230638" stroke-width="2" />
+          <rect x="4" y="4" width="62" height="54" rx="9" fill="none" stroke="#2d0a47" stroke-width="1.5" />
+          <text x="35" y="41" text-anchor="middle" fill="#230638" font-family="DejaVu Sans, system-ui, sans-serif" font-size="30" font-weight="900">S</text>
+          <text x="58" y="53" text-anchor="end" fill="#230638" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">1</text>
+        </g>
+
+        <!-- Tile 2: P (Golden +5pt Bonus Tile) -->
+        <g transform="translate(164, 12)">
+          <rect x="0" y="4" width="70" height="62" rx="12" fill="#022c22" />
+          <rect x="0" y="0" width="70" height="62" rx="12" fill="url(#lexiTileBonus)" stroke="#34d399" stroke-width="2" />
+          <text x="14" y="18" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">⚡</text>
+          <text x="35" y="41" text-anchor="middle" fill="#ecfdf5" font-family="DejaVu Sans, system-ui, sans-serif" font-size="30" font-weight="900">P</text>
+          <text x="58" y="53" text-anchor="end" fill="#6ee7b7" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">3</text>
+        </g>
+
+        <!-- Tile 3: A -->
+        <g transform="translate(246, 12)">
+          <rect x="0" y="4" width="70" height="62" rx="12" fill="#230638" />
+          <rect x="0" y="0" width="70" height="62" rx="12" fill="url(#lexiTileRoyal)" stroke="#230638" stroke-width="2" />
+          <rect x="4" y="4" width="62" height="54" rx="9" fill="none" stroke="#2d0a47" stroke-width="1.5" />
+          <text x="35" y="41" text-anchor="middle" fill="#230638" font-family="DejaVu Sans, system-ui, sans-serif" font-size="30" font-weight="900">A</text>
+          <text x="58" y="53" text-anchor="end" fill="#230638" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">1</text>
+        </g>
+
+        <!-- Tile 4: R (Gold Center Required Tile) -->
+        <g transform="translate(328, 12)">
+          <rect x="0" y="4" width="70" height="62" rx="12" fill="#451a03" />
+          <rect x="0" y="0" width="70" height="62" rx="12" fill="url(#lexiTileGold)" stroke="#713f12" stroke-width="2" />
+          <rect x="4" y="4" width="62" height="54" rx="9" fill="none" stroke="#713f12" stroke-width="1.5" />
+          <text x="35" y="41" text-anchor="middle" fill="#1f0633" font-family="DejaVu Sans, system-ui, sans-serif" font-size="30" font-weight="900">R</text>
+          <text x="58" y="53" text-anchor="end" fill="#451a03" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">1</text>
+        </g>
+
+        <!-- Tile 5: K -->
+        <g transform="translate(410, 12)">
+          <rect x="0" y="4" width="70" height="62" rx="12" fill="#230638" />
+          <rect x="0" y="0" width="70" height="62" rx="12" fill="url(#lexiTileRoyal)" stroke="#230638" stroke-width="2" />
+          <rect x="4" y="4" width="62" height="54" rx="9" fill="none" stroke="#2d0a47" stroke-width="1.5" />
+          <text x="35" y="41" text-anchor="middle" fill="#230638" font-family="DejaVu Sans, system-ui, sans-serif" font-size="30" font-weight="900">K</text>
+          <text x="58" y="53" text-anchor="end" fill="#230638" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">5</text>
+        </g>
+
+        <!-- Tile 6: L -->
+        <g transform="translate(492, 12)">
+          <rect x="0" y="4" width="70" height="62" rx="12" fill="#230638" />
+          <rect x="0" y="0" width="70" height="62" rx="12" fill="url(#lexiTileRoyal)" stroke="#230638" stroke-width="2" />
+          <rect x="4" y="4" width="62" height="54" rx="9" fill="none" stroke="#2d0a47" stroke-width="1.5" />
+          <text x="35" y="41" text-anchor="middle" fill="#230638" font-family="DejaVu Sans, system-ui, sans-serif" font-size="30" font-weight="900">L</text>
+          <text x="58" y="53" text-anchor="end" fill="#230638" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">1</text>
+        </g>
+
+        <!-- Tile 7: ? (Mystery Hidden Tile) -->
+        <g transform="translate(574, 12)">
+          <rect x="0" y="4" width="70" height="62" rx="12" fill="#1e0533" />
+          <rect x="0" y="0" width="70" height="62" rx="12" fill="url(#lexiTileMystery)" stroke="#fcd34d" stroke-width="2" />
+          <text x="35" y="41" text-anchor="middle" fill="#fde68a" font-family="DejaVu Sans, system-ui, sans-serif" font-size="30" font-weight="900">?</text>
+          <text x="58" y="53" text-anchor="end" fill="#fcd34d" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">★</text>
+        </g>
       </g>
 
-      <!-- Tile 3: X (Highlighted Coral Active Tile) -->
-      <g transform="translate(300, 250)" filter="url(#lexiGlow)">
-        <rect x="0" y="0" width="90" height="110" rx="18" fill="url(#lexiCoral)" stroke="#ffe4e6" stroke-width="3.5" />
-        <text x="45" y="68" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="48" font-weight="800">X</text>
-        <text x="74" y="30" text-anchor="end" fill="#fef08a" font-family="'JetBrains Mono', monospace" font-size="15" font-weight="800">8</text>
+      <!-- HORIZONTAL PROGRESS BAR WITH 5 CIRCULAR PADLOCK CHECKPOINTS -->
+      <g transform="translate(56, 200)">
+        <text x="0" y="14" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="0.8">COMMUNITY TARGET PROGRESS · 🔥 2X BOOST ACTIVE (24s)</text>
+        <text x="648" y="14" text-anchor="end" fill="#fcd34d" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="900">340 / 500 pts (68%)</text>
+
+        <rect x="0" y="24" width="648" height="14" rx="7" fill="#19032b" stroke="#230638" stroke-width="2" />
+        <rect x="2" y="26" width="440" height="10" rx="5" fill="url(#lexiProgressGrad)" />
+
+        <!-- 5 Padlock Medallions at 16%, 33%, 50%, 67%, 84% -->
+        <g transform="translate(104, 31)">
+          <circle cx="0" cy="0" r="14" fill="url(#lexiTileGold)" stroke="#ffffff" stroke-width="2" />
+          <text x="0" y="4" text-anchor="middle" fill="#1e0533" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">🔓</text>
+        </g>
+        <g transform="translate(214, 31)">
+          <circle cx="0" cy="0" r="14" fill="url(#lexiTileGold)" stroke="#ffffff" stroke-width="2" />
+          <text x="0" y="4" text-anchor="middle" fill="#1e0533" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">🔓</text>
+        </g>
+        <g transform="translate(324, 31)">
+          <circle cx="0" cy="0" r="14" fill="url(#lexiTileGold)" stroke="#ffffff" stroke-width="2" />
+          <text x="0" y="4" text-anchor="middle" fill="#1e0533" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">🔓</text>
+        </g>
+        <g transform="translate(434, 31)">
+          <circle cx="0" cy="0" r="14" fill="url(#lexiTileGold)" stroke="#ffffff" stroke-width="2" />
+          <text x="0" y="4" text-anchor="middle" fill="#1e0533" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">🔓</text>
+        </g>
+        <g transform="translate(544, 31)">
+          <circle cx="0" cy="0" r="14" fill="#4a1775" stroke="#b78ce8" stroke-width="2" />
+          <text x="0" y="4" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">🔒</text>
+        </g>
       </g>
 
-      <!-- Tile 4: I -->
-      <g transform="translate(410, 260)">
-        <rect x="0" y="0" width="90" height="100" rx="18" fill="url(#lexiTileFace)" stroke="#ffffff" stroke-width="3" />
-        <text x="45" y="62" text-anchor="middle" fill="#1e0633" font-family="DejaVu Sans, sans-serif" font-size="44" font-weight="800">I</text>
-        <text x="74" y="30" text-anchor="end" fill="#ff4b72" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="800">1</text>
+      <!-- 3-COLUMN ANAGRAM WORD SLOTS BOARD (DiscoveredWordsGrid) -->
+      <g transform="translate(24, 256)">
+        <rect x="0" y="0" width="712" height="278" rx="18" fill="#1e0533" stroke="#6b21a8" stroke-width="1.5" />
+        <text x="18" y="26" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900" letter-spacing="1">DISCOVERED ROUND WORDS (14 / 27)</text>
+        <text x="694" y="26" text-anchor="end" fill="#6ee7b7" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="800">★ PANGRAM: SPARKLE (+50 BONUS)</text>
+
+        <!-- Column 1 (4-Letter Words) -->
+        <g transform="translate(18, 40)">
+          <rect x="0" y="0" width="214" height="36" rx="8" fill="#2d0a47" stroke="#34d399" stroke-width="1.2" />
+          <text x="14" y="23" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900" letter-spacing="3">PARK</text>
+          <text x="200" y="23" text-anchor="end" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">@WordMaster</text>
+
+          <rect x="0" y="44" width="214" height="36" rx="8" fill="#2d0a47" stroke="#34d399" stroke-width="1.2" />
+          <text x="14" y="67" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900" letter-spacing="3">LARK</text>
+          <text x="200" y="67" text-anchor="end" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">@SarahStacks</text>
+
+          <rect x="0" y="88" width="214" height="36" rx="8" fill="#2d0a47" stroke="#34d399" stroke-width="1.2" />
+          <text x="14" y="111" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900" letter-spacing="3">SPAR</text>
+          <text x="200" y="111" text-anchor="end" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">@LeoLightning</text>
+
+          <rect x="0" y="132" width="214" height="36" rx="8" fill="#160326" stroke="#4a1775" stroke-width="1" />
+          <text x="14" y="155" fill="#a855f7" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="800" letter-spacing="4">R _ _ _</text>
+
+          <rect x="0" y="176" width="214" height="36" rx="8" fill="#160326" stroke="#4a1775" stroke-width="1" />
+          <text x="14" y="199" fill="#6b21a8" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="800" letter-spacing="4">_ _ _ _</text>
+        </g>
+
+        <!-- Column 2 (5-Letter Words) -->
+        <g transform="translate(249, 40)">
+          <rect x="0" y="0" width="214" height="36" rx="8" fill="#2d0a47" stroke="#fcd34d" stroke-width="1.5" />
+          <text x="14" y="23" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900" letter-spacing="3">SPARK</text>
+          <text x="200" y="23" text-anchor="end" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800">@WordMaster</text>
+
+          <rect x="0" y="44" width="214" height="36" rx="8" fill="#2d0a47" stroke="#34d399" stroke-width="1.2" />
+          <text x="14" y="67" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900" letter-spacing="3">PEARL</text>
+          <text x="200" y="67" text-anchor="end" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">@PixelQueen</text>
+
+          <rect x="0" y="88" width="214" height="36" rx="8" fill="#2d0a47" stroke="#34d399" stroke-width="1.2" />
+          <text x="14" y="111" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900" letter-spacing="3">SPEAR</text>
+          <text x="200" y="111" text-anchor="end" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">@JaxTurbo</text>
+
+          <rect x="0" y="132" width="214" height="36" rx="8" fill="#160326" stroke="#4a1775" stroke-width="1" />
+          <text x="14" y="155" fill="#a855f7" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="800" letter-spacing="4">S P _ _ _</text>
+
+          <rect x="0" y="176" width="214" height="36" rx="8" fill="#160326" stroke="#4a1775" stroke-width="1" />
+          <text x="14" y="199" fill="#6b21a8" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="800" letter-spacing="4">_ _ _ _ _</text>
+        </g>
+
+        <!-- Column 3 (6 & 7-Letter Words + Pangram) -->
+        <g transform="translate(480, 40)">
+          <rect x="0" y="0" width="214" height="36" rx="8" fill="#451a03" stroke="#fbbf24" stroke-width="1.8" />
+          <text x="14" y="23" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900" letter-spacing="2">SPARKLE</text>
+          <text x="200" y="23" text-anchor="end" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="900">★ PANGRAM</text>
+
+          <rect x="0" y="44" width="214" height="36" rx="8" fill="#2d0a47" stroke="#34d399" stroke-width="1.2" />
+          <text x="14" y="67" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900" letter-spacing="2">SPARKS</text>
+          <text x="200" y="67" text-anchor="end" fill="#6ee7b7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">@SarahStacks</text>
+
+          <rect x="0" y="88" width="214" height="36" rx="8" fill="#160326" stroke="#4a1775" stroke-width="1" />
+          <text x="14" y="111" fill="#a855f7" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="800" letter-spacing="3">P A R _ _ _</text>
+
+          <rect x="0" y="132" width="214" height="36" rx="8" fill="#160326" stroke="#4a1775" stroke-width="1" />
+          <text x="14" y="155" fill="#6b21a8" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="800" letter-spacing="3">_ _ _ _ _ _</text>
+
+          <rect x="0" y="176" width="214" height="36" rx="8" fill="#160326" stroke="#4a1775" stroke-width="1" />
+          <text x="14" y="199" fill="#6b21a8" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="800" letter-spacing="3">_ _ _ _ _ _</text>
+        </g>
       </g>
 
-      <!-- Tile 5: C -->
-      <g transform="translate(520, 260)">
-        <rect x="0" y="0" width="90" height="100" rx="18" fill="url(#lexiTileFace)" stroke="#ffffff" stroke-width="3" />
-        <text x="45" y="62" text-anchor="middle" fill="#1e0633" font-family="DejaVu Sans, sans-serif" font-size="44" font-weight="800">C</text>
-        <text x="74" y="30" text-anchor="end" fill="#ff4b72" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="800">3</text>
-      </g>
+      <!-- Bottom Word Input & Shuffle/Hint Controls -->
+      <g transform="translate(24, 546)">
+        <rect x="0" y="0" width="98" height="40" rx="11" fill="#2d0a47" stroke="#b384eb" stroke-width="1.5" />
+        <text x="49" y="25" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">🔀 Shuffle</text>
 
-      <!-- Tile 6: O -->
-      <g transform="translate(630, 260)" opacity="0.85">
-        <rect x="0" y="0" width="90" height="100" rx="18" fill="url(#lexiTileDark)" stroke="#a855f7" stroke-width="2" />
-        <text x="45" y="62" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, sans-serif" font-size="44" font-weight="800">O</text>
-        <text x="74" y="30" text-anchor="end" fill="#a855f7" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="800">1</text>
-      </g>
+        <rect x="108" y="0" width="98" height="40" rx="11" fill="#2d0a47" stroke="#fcd34d" stroke-width="1.5" />
+        <text x="157" y="25" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">💡 Hint</text>
 
-      <!-- Submission / Chat Word Banner -->
-      <g transform="translate(80, 400)">
-        <rect x="0" y="0" width="640" height="64" rx="16" fill="#1e0933" stroke="#ff4b72" stroke-width="2" />
-        <text x="24" y="38" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="20" font-weight="800">LEXICAL</text>
-        <text x="140" y="38" fill="#cbd5e1" font-family="DejaVu Sans, sans-serif" font-size="16" font-weight="600">submitted by TikTok chat</text>
-        <rect x="490" y="14" width="130" height="36" rx="10" fill="#059669" />
-        <text x="555" y="37" text-anchor="middle" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="15" font-weight="800">+1,240 PTS</text>
-      </g>
+        <rect x="216" y="0" width="380" height="40" rx="11" fill="#160326" stroke="#6b21a8" stroke-width="1.5" />
+        <text x="234" y="25" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">Click tiles or type in TikTok LIVE chat...</text>
 
-      <!-- Word Discovery Feed -->
-      <g transform="translate(80, 490)">
-        <rect x="0" y="0" width="640" height="140" rx="16" fill="#0f041b" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" />
-        <text x="24" y="32" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">RECENT WORDS UNLOCKED IN THIS ROUND</text>
-
-        <!-- Chips -->
-        <rect x="24" y="48" width="130" height="32" rx="8" fill="rgba(255, 75, 114, 0.18)" stroke="#ff4b72" stroke-width="1" />
-        <text x="89" y="69" text-anchor="middle" fill="#ff4b72" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="700">EXILE · 450P</text>
-
-        <rect x="166" y="48" width="140" height="32" rx="8" fill="rgba(56, 189, 248, 0.18)" stroke="#38bdf8" stroke-width="1" />
-        <text x="236" y="69" text-anchor="middle" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="700">COIL · 320P</text>
-
-        <rect x="318" y="48" width="140" height="32" rx="8" fill="rgba(251, 191, 36, 0.18)" stroke="#fbbf24" stroke-width="1" />
-        <text x="388" y="69" text-anchor="middle" fill="#fbbf24" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="700">LICE · 380P</text>
-
-        <rect x="470" y="48" width="146" height="32" rx="8" fill="rgba(52, 211, 153, 0.18)" stroke="#34d399" stroke-width="1" />
-        <text x="543" y="69" text-anchor="middle" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="700">CLONE · 590P</text>
-
-        <text x="24" y="112" fill="#94a3b8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="600">Total round vocabulary found: 32 / 48 words · 14 rare words remaining</text>
+        <rect x="606" y="0" width="106" height="40" rx="11" fill="url(#lexiTileGold)" />
+        <text x="659" y="25" text-anchor="middle" fill="#1e0533" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="900">Submit</text>
       </g>
     </g>
 
-    <!-- Right Container: Live TikTok Solvers Leaderboard -->
-    <g filter="url(#lexiCardShadow)">
-      <rect x="782" y="150" width="370" height="520" rx="24" fill="#130721" stroke="rgba(255,255,255,0.14)" stroke-width="2" />
-      
-      <!-- Leaderboard Header -->
-      <rect x="806" y="174" width="322" height="42" rx="12" fill="#200a30" stroke="#4c1a6b" stroke-width="1" />
-      <text x="967" y="200" text-anchor="middle" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="800">LIVE CHAT SOLVERS</text>
+    <!-- =================================================================== -->
+    <!-- RIGHT ASIDE (4 cols): LiveStreamChatPanel + LiveLeaderboardPanel    -->
+    <!-- =================================================================== -->
+    <g transform="translate(804, 96)">
+      <!-- Top Box: LiveStreamChatPanel -->
+      <rect x="0" y="0" width="372" height="300" rx="20" fill="#0f172a" stroke="#1e293b" stroke-width="1.5" />
+      <rect x="0" y="0" width="372" height="44" rx="20" fill="#1e293b" />
+      <text x="18" y="27" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">💬 TikTok Live Chat &amp; Answers</text>
+      <text x="354" y="27" text-anchor="end" fill="#34d399" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="800">● LIVE</text>
 
-      <!-- Solver 1 -->
-      <g transform="translate(806, 234)">
-        <rect x="0" y="0" width="322" height="64" rx="14" fill="#270c3d" stroke="#ff4b72" stroke-width="1.8" />
-        <circle cx="32" cy="32" r="16" fill="#ff4b72" />
-        <text x="32" y="38" text-anchor="middle" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="800">1</text>
-        <text x="60" y="28" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="700">@wordmaster</text>
-        <text x="60" y="48" fill="#ff7597" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">LEXICAL (+1,240)</text>
-        <text x="300" y="38" text-anchor="end" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="16" font-weight="800">2,480</text>
+      <g transform="translate(14, 56)">
+        <rect x="0" y="0" width="344" height="50" rx="10" fill="#064e3b" fill-opacity="0.45" stroke="#10b981" stroke-opacity="0.5" stroke-width="1" />
+        <text x="14" y="21" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">@WordMaster_UK</text>
+        <text x="330" y="21" text-anchor="end" fill="#6ee7b7" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">+84 PTS ★ PANGRAM</text>
+        <text x="14" y="40" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">SPARKLE</text>
       </g>
 
-      <!-- Solver 2 -->
-      <g transform="translate(806, 312)">
-        <rect x="0" y="0" width="322" height="64" rx="14" fill="#1c092d" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
-        <circle cx="32" cy="32" r="16" fill="#38bdf8" />
-        <text x="32" y="38" text-anchor="middle" fill="#081b36" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="800">2</text>
-        <text x="60" y="28" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="700">@stream_solver</text>
-        <text x="60" y="48" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">EXILE (+450)</text>
-        <text x="300" y="38" text-anchor="end" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="16" font-weight="800">1,890</text>
+      <g transform="translate(14, 114)">
+        <rect x="0" y="0" width="344" height="50" rx="10" fill="#064e3b" fill-opacity="0.35" stroke="#10b981" stroke-opacity="0.4" stroke-width="1" />
+        <text x="14" y="21" fill="#38bdf8" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">@SarahStacks</text>
+        <text x="330" y="21" text-anchor="end" fill="#6ee7b7" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">+32 PTS (2X)</text>
+        <text x="14" y="40" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">SPARKS</text>
       </g>
 
-      <!-- Solver 3 -->
-      <g transform="translate(806, 390)">
-        <rect x="0" y="0" width="322" height="64" rx="14" fill="#1c092d" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
-        <circle cx="32" cy="32" r="16" fill="#fbbf24" />
-        <text x="32" y="38" text-anchor="middle" fill="#331e03" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="800">3</text>
-        <text x="60" y="28" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="700">@puzzlequeen</text>
-        <text x="60" y="48" fill="#fbbf24" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">LICE (+380)</text>
-        <text x="300" y="38" text-anchor="end" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="16" font-weight="800">1,420</text>
+      <g transform="translate(14, 172)">
+        <rect x="0" y="0" width="344" height="50" rx="10" fill="#3b0764" fill-opacity="0.45" stroke="#a855f7" stroke-opacity="0.5" stroke-width="1" />
+        <text x="14" y="21" fill="#f472b6" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">@SuperGifter</text>
+        <text x="330" y="21" text-anchor="end" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">🎁 GIFT BOOST</text>
+        <text x="14" y="40" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">Triggered 2X Score Multiplier for 30s!</text>
       </g>
 
-      <!-- Solver 4 -->
-      <g transform="translate(806, 468)">
-        <rect x="0" y="0" width="322" height="64" rx="14" fill="#1c092d" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
-        <circle cx="32" cy="32" r="16" fill="#a78bfa" />
-        <text x="32" y="38" text-anchor="middle" fill="#1b0833" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="800">4</text>
-        <text x="60" y="28" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="700">@lexicoder</text>
-        <text x="60" y="48" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">CLONE (+590)</text>
-        <text x="300" y="38" text-anchor="end" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="16" font-weight="800">1,150</text>
+      <rect x="14" y="238" width="248" height="44" rx="10" fill="#020617" stroke="#334155" stroke-width="1" />
+      <text x="26" y="265" fill="#64748b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="600">Simulate viewer word...</text>
+      <rect x="270" y="238" width="88" height="44" rx="10" fill="#10b981" />
+      <text x="314" y="265" text-anchor="middle" fill="#022c22" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">+ Send</text>
+
+      <!-- Bottom Box: LiveLeaderboardPanel -->
+      <rect x="0" y="316" width="372" height="288" rx="20" fill="#0f172a" stroke="#1e293b" stroke-width="1.5" />
+      <rect x="0" y="316" width="372" height="44" rx="20" fill="#1e293b" />
+      <text x="18" y="343" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="800">🏆 Live Stream Leaderboard</text>
+      <text x="354" y="343" text-anchor="end" fill="#cbd5e1" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="700">Round · All-Time</text>
+
+      <g transform="translate(14, 372)">
+        <rect x="0" y="0" width="344" height="48" rx="10" fill="#1e293b" stroke="#fbbf24" stroke-width="1.5" />
+        <circle cx="24" cy="24" r="12" fill="#fbbf24" />
+        <text x="24" y="28" text-anchor="middle" fill="#020617" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="900">1</text>
+        <text x="46" y="22" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="800">WordMaster_UK</text>
+        <text x="46" y="38" fill="#94a3b8" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="600">6 words · Linked TikTok @</text>
+        <text x="328" y="29" text-anchor="end" fill="#fcd34d" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">248 pts</text>
       </g>
 
-      <!-- Live Chat Instructions Footnote -->
-      <g transform="translate(806, 550)">
-        <rect x="0" y="0" width="322" height="90" rx="14" fill="#0e0416" stroke="#ff4b72" stroke-width="1.2" stroke-dasharray="4 4" />
-        <text x="161" y="36" text-anchor="middle" fill="#ff4b72" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="800">TIKTOK LIVE CHAT COMMANDS</text>
-        <text x="161" y="60" text-anchor="middle" fill="#e2e8f0" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="600">Type any word in live stream chat!</text>
+      <g transform="translate(14, 428)">
+        <rect x="0" y="0" width="344" height="48" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1" />
+        <circle cx="24" cy="24" r="12" fill="#cbd5e1" />
+        <text x="24" y="28" text-anchor="middle" fill="#020617" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="900">2</text>
+        <text x="46" y="22" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="800">SarahStacks</text>
+        <text x="46" y="38" fill="#94a3b8" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="600">4 words · 3× Combo</text>
+        <text x="328" y="29" text-anchor="end" fill="#e2e8f0" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">164 pts</text>
       </g>
+
+      <g transform="translate(14, 484)">
+        <rect x="0" y="0" width="344" height="48" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1" />
+        <circle cx="24" cy="24" r="12" fill="#d97706" />
+        <text x="24" y="28" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="900">3</text>
+        <text x="46" y="22" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="800">LeoLightning</text>
+        <text x="46" y="38" fill="#94a3b8" font-family="DejaVu Sans Mono, monospace" font-size="10" font-weight="600">3 words · Deduce "?" +8</text>
+        <text x="328" y="29" text-anchor="end" fill="#fb923c" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">118 pts</text>
+      </g>
+
+      <!-- Progressive Modifiers Strip -->
+      <rect x="14" y="542" width="344" height="48" rx="10" fill="#020617" stroke="#334155" stroke-width="1" />
+      <text x="186" y="562" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800">PROGRESSIVE MODIFIERS + 9:16 VERTICAL &amp; OBS VIEW</text>
+      <text x="186" y="579" text-anchor="middle" fill="#94a3b8" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="600">Mystery "?" · Locked Tiles · Golden +5pt · Decoy Traps</text>
     </g>
   </g>
 </svg>
