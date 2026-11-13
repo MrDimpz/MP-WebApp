@@ -44,6 +44,7 @@ function loadRelayState($file) {
         'username' => '',
         'roomId' => '',
         'provider' => 'tikfinity',
+        'seq' => 0,
         'events' => [],
         'sessions' => [],
         'lastWebhookTime' => 0,
@@ -442,8 +443,11 @@ if (strpos($uri, '/socket.io') !== false || $route === 'socket.io' || isset($_GE
                         $evData['type'] = $evName;
                         $normEv = normalizeIncomingEventPayload($evData, $nowMs);
                         if ($normEv) {
+                            $state['seq'] = (int)($state['seq'] ?? 0) + 1;
+                            $normEv['payload']['_seq'] = $state['seq'];
                             $state['events'][] = [
                                 'id' => $normEv['id'],
+                                'seq' => $state['seq'],
                                 'timestamp' => $normEv['timestamp'],
                                 'type' => $normEv['type'],
                                 'payload' => $normEv['payload']
@@ -509,6 +513,7 @@ if (strpos($uri, '/api/tiktok/connect') !== false || $route === 'tiktok/connect'
     $uname = isset($payload['username']) ? ltrim(trim((string)$payload['username']), '@') : 'streamer';
     if ($uname === '') $uname = 'streamer';
     $isTest = !empty($payload['isTestMode']);
+    $gameId = isset($payload['gameId']) ? trim((string)$payload['gameId']) : '';
     $prov = isset($payload['provider']) && in_array($payload['provider'], ['tikfinity', 'bettertok'])
         ? $payload['provider']
         : ($state['provider'] ?? 'tikfinity');
@@ -523,7 +528,8 @@ if (strpos($uri, '/api/tiktok/connect') !== false || $route === 'tiktok/connect'
         'username' => $uname,
         'roomId' => $roomId,
         'isTestMode' => $isTest,
-        'provider' => $prov
+        'provider' => $prov,
+        'gameId' => $gameId !== '' ? $gameId : null
     ];
     broadcastPacketToSessions($state, '42' . json_encode(['tiktok-connected', $connPayload]));
     broadcastPacketToSessions($state, '42' . json_encode(['tiktok-status', ['connected' => true] + $connPayload]));
@@ -534,18 +540,20 @@ if (strpos($uri, '/api/tiktok/connect') !== false || $route === 'tiktok/connect'
         'connected' => true,
         'username' => $state['username'],
         'roomId' => $state['roomId'],
-        'provider' => $state['provider']
+        'provider' => $state['provider'],
+        'gameId' => $gameId !== '' ? $gameId : null
     ]);
     exit;
 }
 
 // 2. Disconnect endpoint
 if (strpos($uri, '/api/tiktok/disconnect') !== false || $route === 'tiktok/disconnect') {
+    $gameId = isset($payload['gameId']) ? trim((string)$payload['gameId']) : '';
     $state['connected'] = false;
     $state['username'] = '';
     $state['roomId'] = '';
-    broadcastPacketToSessions($state, '42' . json_encode(['tiktok-disconnected']));
-    broadcastPacketToSessions($state, '42' . json_encode(['tiktok-status', ['connected' => false, 'username' => '', 'roomId' => '']]));
+    broadcastPacketToSessions($state, '42' . json_encode(['tiktok-disconnected', ['gameId' => $gameId !== '' ? $gameId : null]]));
+    broadcastPacketToSessions($state, '42' . json_encode(['tiktok-status', ['connected' => false, 'username' => '', 'roomId' => '', 'gameId' => $gameId !== '' ? $gameId : null]]));
     saveRelayState($storeFile, $state);
     echo json_encode(['ok' => true, 'connected' => false]);
     exit;
@@ -559,6 +567,7 @@ if (strpos($uri, '/api/tiktok/status') !== false || $route === 'tiktok/status') 
         'username' => $state['username'] ?? '',
         'roomId' => $state['roomId'] ?? '',
         'provider' => $state['provider'] ?? 'tikfinity',
+        'seq' => (int)($state['seq'] ?? 0),
         'lastWebhookTime' => $state['lastWebhookTime'] ?? 0,
         'lastWebhookProvider' => $state['lastWebhookProvider'] ?? '',
         'totalWebhooksReceived' => $state['totalWebhooksReceived'] ?? 0,
@@ -572,8 +581,17 @@ if (strpos($uri, '/api/tiktok/events') !== false || $route === 'tiktok/events') 
     $since = isset($_GET['since']) ? (float)$_GET['since'] : 0;
     $events = isset($state['events']) && is_array($state['events']) ? $state['events'] : [];
     $filtered = [];
-    foreach ($events as $ev) {
-        if (isset($ev['timestamp']) && $ev['timestamp'] > $since) {
+    foreach ($events as $idx => $ev) {
+        $evSeq = isset($ev['seq']) ? (int)$ev['seq'] : ($idx + 1);
+        $evTs = isset($ev['timestamp']) ? (float)$ev['timestamp'] : 0;
+        $isNew = ($since < 1000000000) ? ($evSeq > $since) : ($evTs > $since);
+        if ($isNew) {
+            if (!isset($ev['seq'])) {
+                $ev['seq'] = $evSeq;
+            }
+            if (isset($ev['payload']) && is_array($ev['payload']) && !isset($ev['payload']['_seq'])) {
+                $ev['payload']['_seq'] = $evSeq;
+            }
             $filtered[] = $ev;
         }
     }
@@ -582,12 +600,38 @@ if (strpos($uri, '/api/tiktok/events') !== false || $route === 'tiktok/events') 
         'connected' => !empty($state['connected']),
         'username' => $state['username'] ?? '',
         'roomId' => $state['roomId'] ?? '',
+        'seq' => (int)($state['seq'] ?? count($events)),
         'events' => $filtered
     ]);
     exit;
 }
 
-// 5. Diagnostic Endpoint (/api/tiktok/diagnostic)
+// 5. Simulate Endpoint (/api/tiktok/simulate)
+if (strpos($uri, '/api/tiktok/simulate') !== false || $route === 'tiktok/simulate') {
+    $simType = isset($payload['type']) ? (string)$payload['type'] : 'chat-message';
+    $simPayload = isset($payload['payload']) && is_array($payload['payload']) ? $payload['payload'] : $payload;
+    $simPayload['type'] = $simType;
+    $normEv = normalizeIncomingEventPayload($simPayload, $nowMs);
+    if ($normEv) {
+        $state['seq'] = (int)($state['seq'] ?? 0) + 1;
+        $normEv['payload']['_seq'] = $state['seq'];
+        $state['events'][] = [
+            'id' => $normEv['id'],
+            'seq' => $state['seq'],
+            'timestamp' => $normEv['timestamp'],
+            'type' => $normEv['type'],
+            'payload' => $normEv['payload']
+        ];
+        broadcastPacketToSessions($state, '42' . json_encode([$normEv['type'], $normEv['payload']]));
+        saveRelayState($storeFile, $state);
+        echo json_encode(['ok' => true, 'seq' => $state['seq'], 'event' => $normEv['payload']]);
+        exit;
+    }
+    echo json_encode(['ok' => false, 'error' => 'Invalid simulation payload']);
+    exit;
+}
+
+// 6. Diagnostic Endpoint (/api/tiktok/diagnostic)
 if (strpos($uri, '/api/tiktok/diagnostic') !== false || $route === 'tiktok/diagnostic') {
     $recent = array_slice($state['events'] ?? [], -10);
     echo json_encode([
@@ -595,6 +639,7 @@ if (strpos($uri, '/api/tiktok/diagnostic') !== false || $route === 'tiktok/diagn
         'connected' => !empty($state['connected']),
         'username' => $state['username'] ?? '',
         'provider' => $state['provider'] ?? 'tikfinity',
+        'seq' => (int)($state['seq'] ?? 0),
         'lastWebhookTime' => $state['lastWebhookTime'] ?? 0,
         'lastWebhookProvider' => $state['lastWebhookProvider'] ?? '',
         'totalWebhooksReceived' => $state['totalWebhooksReceived'] ?? 0,
@@ -606,7 +651,7 @@ if (strpos($uri, '/api/tiktok/diagnostic') !== false || $route === 'tiktok/diagn
     exit;
 }
 
-// 6. Webhook Event Ingestion (/api/tikfinity/event, /api/bettertok/event, /api/tiktok/event)
+// 7. Webhook Event Ingestion (/api/tikfinity/event, /api/bettertok/event, /api/tiktok/event)
 $webhookProvider = 'tiktok';
 if (strpos($uri, 'tikfinity') !== false || strpos($route, 'tikfinity') !== false) {
     $webhookProvider = 'tikfinity';
@@ -616,8 +661,11 @@ if (strpos($uri, 'tikfinity') !== false || strpos($route, 'tikfinity') !== false
 
 $normEv = normalizeIncomingEventPayload($payload, $nowMs);
 if ($normEv) {
+    $state['seq'] = (int)($state['seq'] ?? 0) + 1;
+    $normEv['payload']['_seq'] = $state['seq'];
     $state['events'][] = [
         'id' => $normEv['id'],
+        'seq' => $state['seq'],
         'timestamp' => $normEv['timestamp'],
         'type' => $normEv['type'],
         'payload' => $normEv['payload']
@@ -630,7 +678,7 @@ if ($normEv) {
     broadcastPacketToSessions($state, '42' . json_encode([$normEv['type'], $normEv['payload']]));
 
     saveRelayState($storeFile, $state);
-    echo json_encode(['ok' => true, 'type' => $normEv['shortType'], 'event' => $normEv['payload'], 'provider' => $webhookProvider]);
+    echo json_encode(['ok' => true, 'seq' => $state['seq'], 'type' => $normEv['shortType'], 'event' => $normEv['payload'], 'provider' => $webhookProvider]);
     exit;
 }
 

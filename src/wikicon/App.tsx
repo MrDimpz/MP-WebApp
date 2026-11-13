@@ -341,6 +341,8 @@ export function App() {
     setArchiveList(getArchiveList());
 
     const socket = io({
+      path: '/socket.io',
+      transports: ['polling', 'websocket'],
       reconnectionAttempts: 10,
       timeout: 5000,
       query: {
@@ -614,6 +616,8 @@ export function App() {
         username: cleaned,
         isTestMode,
         provider: savedProvider,
+        gameId: 'wikicon',
+        sessionId: getCurrentUserSessionPrefix(),
       },
       ({ username: uname, roomId }) => {
         setTiktokConnState('connected');
@@ -648,6 +652,8 @@ export function App() {
         username: cleaned,
         isTestMode,
         provider: savedProvider,
+        gameId: 'wikicon',
+        sessionId: getCurrentUserSessionPrefix(),
       },
       ({ username: uname, roomId }) => {
         setTiktokConnState('connected');

@@ -45,7 +45,10 @@ export interface LiveGiftEvent {
 export interface LiveStatusEvent {
   connected: boolean;
   username?: string;
+  roomId?: string;
+  gameId?: string;
   error?: string;
+  notice?: string;
 }
 
 export interface EventDeduplicator {
@@ -57,17 +60,19 @@ export function createEventDeduplicator(): EventDeduplicator {
   return {
     shouldProcess(type, payload) {
       if (!payload) return false;
-      const seqKey =
-        typeof payload._seq === "number"
-          ? `${type}:seq:${payload._seq}`
-          : payload.id || payload.eventId
-            ? `${type}:id:${payload.id || payload.eventId}`
-            : null;
-      if (!seqKey) return true;
-      if (seenKeys.has(seqKey)) return false;
-      seenKeys.add(seqKey);
-      if (seenKeys.size > 500) {
-        const oldest = Array.from(seenKeys).slice(0, 200);
+      const keysToCheck: string[] = [];
+      if (typeof payload._seq === "number") {
+        keysToCheck.push(`${type}:seq:${payload._seq}`);
+      }
+      const rawId = payload.id || payload.eventId || payload.msgId;
+      if (rawId) {
+        keysToCheck.push(`${type}:id:${rawId}`);
+      }
+      if (keysToCheck.length === 0) return true;
+      if (keysToCheck.some((k) => seenKeys.has(k))) return false;
+      keysToCheck.forEach((k) => seenKeys.add(k));
+      if (seenKeys.size > 600) {
+        const oldest = Array.from(seenKeys).slice(0, 250);
         oldest.forEach((k) => seenKeys.delete(k));
       }
       return true;
@@ -124,6 +129,7 @@ export function triggerResilientConnect(
     key?: string;
     sessionId?: string;
     gameId?: string;
+    forceReconnect?: boolean;
   },
   onConnected?: (info: { username: string; roomId?: string }) => void,
 ) {
@@ -132,28 +138,36 @@ export function triggerResilientConnect(
     .replace(/^@+/, "");
   const sessionId = options.sessionId || getCurrentUserSessionPrefix();
   const gameId = options.gameId;
+  const isTestMode = Boolean(options.isTestMode);
   if (!clean) return;
 
   if (socket) {
-    socket.emit("join-session", sessionId);
-    if (!options.isTestMode) {
-      socket.emit("connect-tiktok", {
-        username: clean,
-        sessionId,
-        gameId,
-      });
-    }
+    socket.emit("connect-tiktok", {
+      username: clean,
+      sessionId,
+      gameId,
+      isTestMode,
+      provider: options.provider,
+      forceReconnect: Boolean(options.forceReconnect),
+    });
   }
 
-  if (!options.isTestMode) {
-    void liveChatBridge.connectStream(clean, gameId).then((res) => {
-      if (res.connected && onConnected) {
-        onConnected({ username: res.username || clean, roomId: `session:${sessionId}` });
+  void liveChatBridge
+    .connectStream(clean, gameId, {
+      sessionId,
+      isTestMode,
+      provider: options.provider,
+      forceReconnect: Boolean(options.forceReconnect),
+    })
+    .then((res) => {
+      if (onConnected) {
+        onConnected({
+          username: res.username || clean,
+          roomId:
+            res.roomId || (isTestMode ? "TEST_SIMULATION_ROOM" : `LIVE_${clean}`),
+        });
       }
     });
-  } else if (onConnected) {
-    onConnected({ username: clean, roomId: "TEST_SIMULATION_ROOM" });
-  }
 }
 
 export function forceReconnectBridge(
@@ -168,7 +182,11 @@ export function forceReconnectBridge(
   },
   onConnected?: (info: { username: string; roomId?: string }) => void,
 ) {
-  triggerResilientConnect(socket, options, onConnected);
+  triggerResilientConnect(
+    socket,
+    { ...options, forceReconnect: true },
+    onConnected,
+  );
 }
 
 export function emitResilientEvent(
@@ -196,6 +214,7 @@ export function attachResilientChatListeners(params: {
   onChat?: (data: any) => void;
   onLike?: (data: any) => void;
   onGift?: (data: any) => void;
+  onStatus?: (status: LiveStatusEvent) => void;
   deduplicator?: EventDeduplicator;
 }): () => void {
   const dedup = params.deduplicator || createEventDeduplicator();
@@ -226,6 +245,13 @@ export function attachResilientChatListeners(params: {
         if (dedup.shouldProcess("gift", ev)) {
           params.onGift?.(ev);
         }
+      }),
+    );
+  }
+  if (params.onStatus) {
+    unsubs.push(
+      liveChatBridge.onStatus((status) => {
+        params.onStatus?.(status);
       }),
     );
   }
@@ -272,7 +298,7 @@ class LiveChatBridge {
       this.socket = io(window.location.origin, {
         path: "/socket.io",
         transports: ["polling", "websocket"],
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 8,
         query: {
           sessionId: this.sessionId,
         },
@@ -339,22 +365,32 @@ class LiveChatBridge {
         `/api/tiktok/events?sessionId=${sid}&since=${this.lastSeq}`,
       );
       if (!res.ok) return;
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) return;
       const data = await res.json();
 
       if (
         typeof data.connected === "boolean" &&
+        data.connected &&
         (data.connected !== this.currentStatus.connected ||
           data.username !== this.currentStatus.username)
       ) {
         this.updateStatus({
           connected: data.connected,
           username: data.username,
+          roomId: data.roomId,
         });
       }
 
       if (Array.isArray(data.events)) {
         for (const item of data.events) {
-          if (!this.shouldProcess(item.seq)) continue;
+          const itemSeq =
+            typeof item.seq === "number"
+              ? item.seq
+              : typeof item.payload?._seq === "number"
+                ? item.payload._seq
+                : undefined;
+          if (!this.shouldProcess(itemSeq)) continue;
           if (item.type === "chat-message") {
             touchActiveInteractiveStreamerSession();
             this.chatListeners.forEach((cb) =>
@@ -376,33 +412,57 @@ class LiveChatBridge {
     }
   }
 
-  public async connectStream(username: string, gameId?: string): Promise<LiveStatusEvent> {
+  public async connectStream(
+    username: string,
+    gameId?: string,
+    extraOptions?: {
+      sessionId?: string;
+      isTestMode?: boolean;
+      provider?: string;
+      forceReconnect?: boolean;
+    },
+  ): Promise<LiveStatusEvent> {
     this.init();
-    const clean = username.trim().replace(/^@/, "");
+    const clean = username.trim().replace(/^@+/, "");
     if (!clean) {
       const errStatus = { connected: false, error: "Enter a TikTok @username" };
       this.updateStatus(errStatus);
       return errStatus;
     }
 
-    const sessionId = this.getSessionId();
+    const sessionId = extraOptions?.sessionId || this.getSessionId();
 
     try {
       const res = await fetch("/api/tiktok/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: clean, sessionId, gameId }),
+        body: JSON.stringify({
+          username: clean,
+          sessionId,
+          gameId,
+          isTestMode: Boolean(extraOptions?.isTestMode),
+          provider: extraOptions?.provider,
+          forceReconnect: Boolean(extraOptions?.forceReconnect),
+        }),
       });
-      const data = (await res.json()) as LiveStatusEvent;
-      this.updateStatus(data);
-      return data;
-    } catch {
-      if (this.socket) {
-        this.socket.emit("join-session", sessionId);
-        this.socket.emit("connect-tiktok", { username: clean, sessionId, gameId });
+      const contentType = res.headers.get("content-type") || "";
+      if (res.ok && contentType.includes("application/json")) {
+        const data = (await res.json()) as LiveStatusEvent;
+        this.updateStatus(data);
+        return data;
       }
-      return this.currentStatus;
+    } catch {
+      // Fallback to socket or local relay status
     }
+
+    const fallbackStatus: LiveStatusEvent = {
+      connected: true,
+      username: clean,
+      roomId: `LIVE_${clean}`,
+      gameId,
+    };
+    this.updateStatus(fallbackStatus);
+    return fallbackStatus;
   }
 
   public async disconnectStream(gameId?: string): Promise<void> {

@@ -335,6 +335,11 @@ export function addOrUpdateInteractiveStreamerUser(params: {
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(next));
     notifyAuthUpdated();
+    fetch('/api/admin/authorized-users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ users: next }),
+    }).catch(() => {});
   }
 
   return { ok: true, user: userRecord, users: next };
@@ -350,6 +355,11 @@ export function removeInteractiveStreamerUser(
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(next));
     notifyAuthUpdated();
+    fetch('/api/admin/authorized-users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ users: next }),
+    }).catch(() => {});
   }
 
   return { ok: true, users: next };
@@ -530,6 +540,45 @@ export function useInteractiveAuthStore() {
     };
     window.addEventListener(SYNC_EVENT_NAME, refresh);
     window.addEventListener('storage', refresh);
+
+    // Sync any server-registered streamer keys on boot
+    fetch('/api/admin/authorized-users')
+      .then(async (res) => {
+        const ct = res.headers.get('content-type') || '';
+        if (!res.ok || !ct.includes('application/json')) return;
+        const data = await res.json();
+        if (Array.isArray(data?.users) && data.users.length > 0) {
+          const localUsers = getInteractiveStreamerUsers();
+          const map = new Map<string, InteractiveStreamerUser>();
+          for (const u of localUsers) {
+            map.set(u.username, u);
+          }
+          let changed = false;
+          for (const su of data.users) {
+            const clean = cleanTikTokHandle(su?.username);
+            const normKey = normalizeLiveKey(su?.key);
+            if (clean && isValidLiveKeyFormat(normKey) && !map.has(clean)) {
+              map.set(clean, {
+                id: String(su.id || `user-${clean}`),
+                username: clean,
+                displayHandle: `@${clean}`,
+                key: normKey,
+                label: su.label ? String(su.label) : undefined,
+                createdAt: Number(su.createdAt) || Date.now(),
+                createdBy: su.createdBy ? String(su.createdBy) : DEFAULT_ADMIN_USERNAME,
+              });
+              changed = true;
+            }
+          }
+          if (changed) {
+            const merged = Array.from(map.values());
+            window.localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(merged));
+            refresh();
+          }
+        }
+      })
+      .catch(() => {});
+
     return () => {
       window.removeEventListener(SYNC_EVENT_NAME, refresh);
       window.removeEventListener('storage', refresh);

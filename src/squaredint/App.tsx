@@ -67,7 +67,13 @@ import {
   getActiveInteractiveStreamerSession,
   touchActiveInteractiveStreamerSession,
 } from '../lib/interactive-key-auth';
-import { emitResilientEvent } from '../lib/live-chat-bridge';
+import {
+  attachResilientChatListeners,
+  createEventDeduplicator,
+  emitResilientEvent,
+  forceReconnectBridge,
+  triggerResilientConnect,
+} from '../lib/live-chat-bridge';
 
 type GameState = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'VICTORY';
 
@@ -663,7 +669,11 @@ export default function App() {
 
   // Connect to persistent Socket.IO server (scoped to isolated user session and squaredint game)
   useEffect(() => {
+    const deduplicator = createEventDeduplicator();
     const newSocket = io({
+      path: '/socket.io',
+      transports: ['polling', 'websocket'],
+      reconnectionAttempts: 10,
       query: {
         sessionId: getCurrentUserSessionPrefix(),
         gameId: 'squaredint',
@@ -675,7 +685,7 @@ export default function App() {
       if (!gameId || gameId === 'squaredint') {
         setIsLiveConnected(true);
         setTiktokUsername(username);
-        setRoomId(rId || '');
+        setRoomId(rId || `LIVE_${username}`);
         setTiktokError(null);
         try {
           localStorage.setItem('missing_piece_tiktok_username', username);
@@ -699,9 +709,7 @@ export default function App() {
     });
 
     newSocket.on('tiktok-error', (msg: string) => {
-      setTiktokError(msg || 'Failed to connect to TikTok Live');
-      setIsLiveConnected(false);
-      showToast(msg || 'TikTok Live error', 'error');
+      console.warn('TikTok connection notice:', msg);
     });
 
     newSocket.on('tiktok-disconnected', (payload?: { gameId?: string }) => {
@@ -714,10 +722,20 @@ export default function App() {
 
     // Actual chat messages only (likes & gifts ignored)
     newSocket.on('chat-message', (data: any) => {
-      handleIncomingChatMessage(data);
+      if (deduplicator.shouldProcess('chat', data)) {
+        handleIncomingChatMessage(data);
+      }
+    });
+
+    const detachBridge = attachResilientChatListeners({
+      onChat: (data) => {
+        handleIncomingChatMessage(data);
+      },
+      deduplicator,
     });
 
     return () => {
+      detachBridge();
       newSocket.disconnect();
     };
   }, [handleIncomingChatMessage, showToast]);
@@ -727,6 +745,8 @@ export default function App() {
       const clean = username.trim().replace(/^@+/, '') || 'test_streamer';
       setTiktokUsername(clean);
       setTiktokError(null);
+      setIsLiveConnected(true);
+      setRoomId(isTestMode ? 'TEST_SIMULATION_ROOM' : `LIVE_${clean}`);
       try {
         localStorage.setItem('missing_piece_tiktok_username', clean);
       } catch {
@@ -734,21 +754,33 @@ export default function App() {
       }
 
       if (isTestMode) {
-        setIsLiveConnected(true);
-        setRoomId('TEST_SIMULATION_ROOM');
         showToast(
           `Test Mode Active: Connected as @${clean}`,
           'gold',
           'Leaderboard & Chat Feed active for manual testing!'
         );
       } else {
-        socket?.emit('connect-tiktok', {
+        showToast(
+          `TikTok LIVE Connected: @${clean}`,
+          'emerald',
+          'Leaderboard Active · Viewer chat guesses will register live'
+        );
+      }
+
+      triggerResilientConnect(
+        socket,
+        {
           username: clean,
+          isTestMode: Boolean(isTestMode),
           gameId: 'squaredint',
           sessionId: getCurrentUserSessionPrefix(),
-        });
-        showToast(`Connecting @${clean} to TikTok LIVE...`, 'neutral');
-      }
+        },
+        ({ username: uname, roomId: rId }) => {
+          setIsLiveConnected(true);
+          setTiktokUsername(uname || clean);
+          if (rId) setRoomId(rId);
+        }
+      );
 
       setIsConnectModalOpen(false);
       if (gameState === 'TITLE_MENU') {
@@ -763,23 +795,37 @@ export default function App() {
       const clean = username.trim().replace(/^@+/, '') || tiktokUsername || 'streamer';
       setTiktokUsername(clean);
       setTiktokError(null);
+      setIsLiveConnected(true);
+      setRoomId(isTestMode ? 'TEST_SIMULATION_ROOM' : `LIVE_${clean}`);
 
       if (isTestMode) {
-        setIsLiveConnected(true);
-        setRoomId('TEST_SIMULATION_ROOM');
         showToast(
           `Test Mode Reconnected: @${clean}`,
           'gold',
           'Leaderboard & Chat Feed refreshed for testing!'
         );
       } else {
-        socket?.emit('connect-tiktok', {
+        showToast(
+          `Reconnected @${clean} to TikTok LIVE`,
+          'emerald',
+          'Leaderboard & Chat Feed refreshed!'
+        );
+      }
+
+      forceReconnectBridge(
+        socket,
+        {
           username: clean,
+          isTestMode: Boolean(isTestMode),
           gameId: 'squaredint',
           sessionId: getCurrentUserSessionPrefix(),
-        });
-        showToast(`Reconnecting @${clean} to TikTok LIVE...`, 'neutral');
-      }
+        },
+        ({ username: uname, roomId: rId }) => {
+          setIsLiveConnected(true);
+          setTiktokUsername(uname || clean);
+          if (rId) setRoomId(rId);
+        }
+      );
 
       setIsConnectModalOpen(false);
       if (gameState === 'TITLE_MENU') {
@@ -790,6 +836,14 @@ export default function App() {
   );
 
   const handleDisconnectTikTok = useCallback(() => {
+    fetch('/api/tiktok/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: getCurrentUserSessionPrefix(),
+        gameId: 'squaredint',
+      }),
+    }).catch(() => {});
     socket?.emit('disconnect-tiktok', {
       gameId: 'squaredint',
       sessionId: getCurrentUserSessionPrefix(),

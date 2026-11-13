@@ -282,7 +282,7 @@ export default function App() {
     } catch {}
 
     if (currentStreamer?.username) {
-      const tabSessionId = getOrInitTabSessionId();
+      const tabSessionId = getCurrentUserSessionPrefix();
       fetch('/api/auth/streamer-logout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -296,7 +296,8 @@ export default function App() {
     if (socketRef.current) {
       socketRef.current.emit('disconnect-tiktok', {
         username: currentStreamer?.username || null,
-        sessionId: getOrInitTabSessionId(),
+        sessionId: getCurrentUserSessionPrefix(),
+        gameId: 'wikirec',
       });
     }
 
@@ -326,7 +327,7 @@ export default function App() {
       if (socketRef.current) {
         socketRef.current.emit('register-streamer', {
           username: auth.username,
-          sessionId: getOrInitTabSessionId(),
+          sessionId: getCurrentUserSessionPrefix(),
         });
       }
     },
@@ -380,7 +381,8 @@ export default function App() {
         isTestMode,
         provider: inlineChatProvider,
         key: authorizedStreamer?.key,
-        sessionId: getOrInitTabSessionId(),
+        sessionId: getCurrentUserSessionPrefix(),
+        gameId: 'wikirec',
       },
       ({ username: uname }) => {
         setInlineConnecting(false);
@@ -413,7 +415,8 @@ export default function App() {
         isTestMode: false,
         provider: inlineChatProvider,
         key: authorizedStreamer?.key,
-        sessionId: getOrInitTabSessionId(),
+        sessionId: getCurrentUserSessionPrefix(),
+        gameId: 'wikirec',
       },
       ({ username: uname }) => {
         setInlineConnecting(false);
@@ -438,14 +441,14 @@ export default function App() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sessionId: getOrInitTabSessionId(),
+        sessionId: getCurrentUserSessionPrefix(),
         gameId: 'wikirec',
       }),
     }).catch(() => {});
     if (!socketRef.current) return;
     socketRef.current.emit('disconnect-tiktok', {
       username: authorizedStreamer?.username || inlineLiveHandle.trim().replace(/^@+/, ''),
-      sessionId: getOrInitTabSessionId(),
+      sessionId: getCurrentUserSessionPrefix(),
       gameId: 'wikirec',
     });
   };
@@ -455,7 +458,7 @@ export default function App() {
     const handleBeforeUnload = () => {
       const current = authorizedStreamerRef.current;
       if (current?.username) {
-        const tabSessionId = getOrInitTabSessionId();
+        const tabSessionId = getCurrentUserSessionPrefix();
         const payload = JSON.stringify({
           username: current.username,
           sessionId: tabSessionId,
@@ -516,7 +519,7 @@ export default function App() {
     }, 5000);
 
     const heartbeat = setInterval(() => {
-      const tabSessionId = getOrInitTabSessionId();
+      const tabSessionId = getCurrentUserSessionPrefix();
       fetch('/api/auth/streamer-activity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -565,6 +568,8 @@ export default function App() {
 
   useEffect(() => {
     const socket = io({
+      path: '/socket.io',
+      transports: ['polling', 'websocket'],
       reconnectionAttempts: 10,
       timeout: 5000,
       query: {
@@ -578,7 +583,7 @@ export default function App() {
     if (authorizedStreamerRef.current?.username) {
       socket.emit('register-streamer', {
         username: authorizedStreamerRef.current.username,
-        sessionId: getOrInitTabSessionId(),
+        sessionId: getCurrentUserSessionPrefix(),
       });
     }
 

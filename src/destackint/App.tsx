@@ -5,6 +5,7 @@ import {
   GameStats,
   DifficultyMode,
   TimerDuration,
+  LayoutMode,
   RunningScoreboardPlayer,
   LiveChatItem,
 } from './types';
@@ -29,7 +30,13 @@ import {
   getActiveInteractiveStreamerSession,
   touchActiveInteractiveStreamerSession,
 } from '@/lib/interactive-key-auth';
-import { emitResilientEvent } from '@/lib/live-chat-bridge';
+import {
+  attachResilientChatListeners,
+  createEventDeduplicator,
+  emitResilientEvent,
+  forceReconnectBridge,
+  triggerResilientConnect,
+} from '@/lib/live-chat-bridge';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import './index.css';
 
@@ -52,6 +59,7 @@ export default function App() {
   const [todayDateStr] = useState<string>(() => getLondonDateString());
   const [selectedDateStr, setSelectedDateStr] = useState<string>(() => getLondonDateString());
   const [difficulty, setDifficulty] = useState<DifficultyMode>('normal');
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('daily');
   const [timerDuration, setTimerDuration] = useState<TimerDuration>(30);
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -142,7 +150,11 @@ export default function App() {
 
   // Connect to persistent Socket.IO server scoped to isolated streamer session & destackint game
   useEffect(() => {
+    const deduplicator = createEventDeduplicator();
     const newSocket = io({
+      path: '/socket.io',
+      transports: ['polling', 'websocket'],
+      reconnectionAttempts: 10,
       query: {
         sessionId: getCurrentUserSessionPrefix(),
         gameId: 'destackint',
@@ -150,13 +162,29 @@ export default function App() {
     });
     setSocket(newSocket);
 
+    const enqueueChatPayload = (data: any) => {
+      const commentText = data?.comment ?? data?.text;
+      if (!data || !commentText) return;
+      touchActiveInteractiveStreamerSession();
+      setIncomingChatQueue((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          uniqueId: String(data.uniqueId || data.userId || data.username || 'viewer').replace(/^@+/, ''),
+          nickname: String(data.nickname || data.uniqueId || 'Player').replace(/^@+/, ''),
+          comment: String(commentText),
+          profilePictureUrl: String(data.profilePictureUrl || data.avatar || ''),
+        },
+      ]);
+    };
+
     newSocket.on(
       'tiktok-connected',
       ({ username, roomId: rId, gameId }: { username: string; roomId?: string; gameId?: string }) => {
         if (!gameId || gameId === 'destackint') {
           setIsLiveConnected(true);
           setTiktokUsername(username.replace(/^@+/, ''));
-          setRoomId(rId || '');
+          setRoomId(rId || `LIVE_${username.replace(/^@+/, '')}`);
           setTiktokError(null);
           try {
             localStorage.setItem(TIKTOK_USER_STORAGE_KEY, username.replace(/^@+/, ''));
@@ -177,8 +205,7 @@ export default function App() {
     );
 
     newSocket.on('tiktok-error', (msg: string) => {
-      setTiktokError(msg || 'Failed to connect to TikTok Live');
-      setIsLiveConnected(false);
+      console.warn('TikTok connection notice:', msg);
     });
 
     newSocket.on('tiktok-disconnected', (payload?: { gameId?: string }) => {
@@ -189,22 +216,18 @@ export default function App() {
     });
 
     newSocket.on('chat-message', (data: any) => {
-      const commentText = data?.comment ?? data?.text;
-      if (!data || !commentText) return;
-      touchActiveInteractiveStreamerSession();
-      setIncomingChatQueue((prev) => [
-        ...prev,
-        {
-          id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          uniqueId: String(data.uniqueId || data.userId || data.username || 'viewer').replace(/^@+/, ''),
-          nickname: String(data.nickname || data.uniqueId || 'Player').replace(/^@+/, ''),
-          comment: String(commentText),
-          profilePictureUrl: String(data.profilePictureUrl || data.avatar || ''),
-        },
-      ]);
+      if (deduplicator.shouldProcess('chat', data)) {
+        enqueueChatPayload(data);
+      }
+    });
+
+    const detachBridge = attachResilientChatListeners({
+      onChat: enqueueChatPayload,
+      deduplicator,
     });
 
     return () => {
+      detachBridge();
       newSocket.disconnect();
     };
   }, []);
@@ -214,20 +237,27 @@ export default function App() {
       const clean = username.trim().replace(/^@+/, '') || 'test_streamer';
       setTiktokUsername(clean);
       setTiktokError(null);
+      setIsLiveConnected(true);
+      setRoomId(isTestMode ? 'TEST_SIMULATION_ROOM' : `LIVE_${clean}`);
       try {
         localStorage.setItem(TIKTOK_USER_STORAGE_KEY, clean);
       } catch {}
 
-      if (isTestMode) {
-        setIsLiveConnected(true);
-        setRoomId('TEST_SIMULATION_ROOM');
-      } else {
-        socket?.emit('connect-tiktok', {
+      triggerResilientConnect(
+        socket,
+        {
           username: clean,
+          isTestMode: Boolean(isTestMode),
           gameId: 'destackint',
           sessionId: getCurrentUserSessionPrefix(),
-        });
-      }
+        },
+        ({ username: uname, roomId: rId }) => {
+          setIsLiveConnected(true);
+          setTiktokUsername((uname || clean).replace(/^@+/, ''));
+          if (rId) setRoomId(rId);
+        }
+      );
+
       setIsConnectModalOpen(false);
       if (currentView === 'TITLE') {
         setCurrentView('PLAYING');
@@ -241,22 +271,37 @@ export default function App() {
       const clean = username.trim().replace(/^@+/, '') || tiktokUsername || 'streamer';
       setTiktokUsername(clean);
       setTiktokError(null);
-      if (isTestMode) {
-        setIsLiveConnected(true);
-        setRoomId('TEST_SIMULATION_ROOM');
-      } else {
-        socket?.emit('connect-tiktok', {
+      setIsLiveConnected(true);
+      setRoomId(isTestMode ? 'TEST_SIMULATION_ROOM' : `LIVE_${clean}`);
+
+      forceReconnectBridge(
+        socket,
+        {
           username: clean,
+          isTestMode: Boolean(isTestMode),
           gameId: 'destackint',
           sessionId: getCurrentUserSessionPrefix(),
-        });
-      }
+        },
+        ({ username: uname, roomId: rId }) => {
+          setIsLiveConnected(true);
+          setTiktokUsername((uname || clean).replace(/^@+/, ''));
+          if (rId) setRoomId(rId);
+        }
+      );
       setIsConnectModalOpen(false);
     },
     [socket, tiktokUsername]
   );
 
   const handleDisconnectTikTok = useCallback(() => {
+    fetch('/api/tiktok/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: getCurrentUserSessionPrefix(),
+        gameId: 'destackint',
+      }),
+    }).catch(() => {});
     socket?.emit('disconnect-tiktok', {
       gameId: 'destackint',
       sessionId: getCurrentUserSessionPrefix(),
@@ -268,19 +313,16 @@ export default function App() {
   const handleSimulateChat = useCallback(
     (data: { uniqueId: string; nickname: string; comment: string; profilePictureUrl: string }) => {
       touchActiveInteractiveStreamerSession();
-      if (socket && socket.connected && roomId !== 'TEST_SIMULATION_ROOM') {
-        void emitResilientEvent(socket, 'chat-message', data);
-      } else {
-        setIncomingChatQueue((prev) => [
-          ...prev,
-          {
-            id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            ...data,
-          },
-        ]);
-      }
+      setIncomingChatQueue((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          ...data,
+        },
+      ]);
+      emitResilientEvent(socket, 'chat-message', { ...data, gameId: 'destackint' });
     },
-    [socket, roomId]
+    [socket]
   );
 
   const handleConsumeChatQueue = useCallback(() => {
@@ -430,7 +472,7 @@ export default function App() {
     setChatFeed([]);
   }, []);
 
-  const currentPuzzle = generateDailyPuzzle(selectedDateStr, difficulty);
+  const currentPuzzle = generateDailyPuzzle(selectedDateStr, difficulty, layoutMode);
 
   const handleVictory = (
     timeSeconds: number,
@@ -536,6 +578,8 @@ export default function App() {
             onSelectDate={(date) => setSelectedDateStr(date)}
             difficulty={difficulty}
             onSelectDifficulty={(mode) => setDifficulty(mode)}
+            layoutMode={layoutMode}
+            onChangeLayoutMode={setLayoutMode}
             currentUser={currentUser}
             isLiveConnected={isLiveConnected}
             tiktokUsername={tiktokUsername}
@@ -550,6 +594,8 @@ export default function App() {
             puzzle={currentPuzzle}
             difficulty={difficulty}
             onChangeDifficulty={(mode) => setDifficulty(mode)}
+            layoutMode={layoutMode}
+            onChangeLayoutMode={setLayoutMode}
             onVictory={handleVictory}
             setCurrentView={setCurrentView}
             onOpenHowToPlay={() => setShowHowToPlay(true)}

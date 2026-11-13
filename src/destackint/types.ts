@@ -2,6 +2,8 @@ export type GameState = 'TITLE' | 'PLAYING' | 'VICTORY' | 'ARCHIVE' | 'LEADERBOA
 
 export type DifficultyMode = 'normal' | 'hard';
 
+export type LayoutMode = 'daily' | 'pyramid' | 'twin_towers' | 'cross_fortress' | 'hourglass' | 'staircase';
+
 export type TimerDuration = 30 | 45 | 60;
 
 export interface TileData {

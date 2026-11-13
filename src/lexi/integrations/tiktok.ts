@@ -46,7 +46,9 @@ export class TikTokIntegrationService {
 
     try {
       const s = io({
-        reconnectionAttempts: 5,
+        path: '/socket.io',
+        transports: ['polling', 'websocket'],
+        reconnectionAttempts: 8,
         timeout: 5000,
         query: {
           sessionId: getCurrentUserSessionPrefix(),
@@ -55,7 +57,8 @@ export class TikTokIntegrationService {
       });
       this.socket = s;
 
-      s.on('tiktok-connected', (data: { username?: string; roomId?: string }) => {
+      s.on('tiktok-connected', (data: { username?: string; roomId?: string; gameId?: string }) => {
+        if (data?.gameId && data.gameId !== 'lexi') return;
         touchActiveInteractiveStreamerSession();
         const cleanUser = data?.username || this.username || 'streamer';
         this.username = cleanUser;
@@ -66,7 +69,20 @@ export class TikTokIntegrationService {
         eventManager.emitGameEvent('tiktok:connected', this.getState());
       });
 
-      s.on('tiktok-disconnected', () => {
+      s.on('tiktok-status', (data: { connected?: boolean; username?: string; roomId?: string; gameId?: string }) => {
+        if (data?.gameId && data.gameId !== 'lexi') return;
+        if (data?.connected) {
+          const cleanUser = data.username || this.username || 'streamer';
+          this.username = cleanUser;
+          this.status = 'CONNECTED';
+          this.roomId = data.roomId || `live-${cleanUser}`;
+          this.lastError = null;
+          eventManager.emitGameEvent('tiktok:connected', this.getState());
+        }
+      });
+
+      s.on('tiktok-disconnected', (payload?: { gameId?: string }) => {
+        if (payload?.gameId && payload.gameId !== 'lexi') return;
         this.status = 'DISCONNECTED';
         this.addLog('warn', `TikTok WebSocket disconnected.`);
         eventManager.emitGameEvent('tiktok:disconnected', this.getState());
@@ -235,13 +251,19 @@ export class TikTokIntegrationService {
       },
     });
 
-    this.status = 'CONNECTING';
+    this.status = 'CONNECTED';
+    this.roomId = `live-${cleanUsername}`;
     this.lastError = null;
     this.addLog('info', `Connecting to TikTok LIVE stream for @${cleanUsername}...`);
+    eventManager.emitGameEvent('tiktok:connected', this.getState());
 
     triggerResilientConnect(
       this.socket,
-      { username: cleanUsername },
+      {
+        username: cleanUsername,
+        gameId: 'lexi',
+        sessionId: getCurrentUserSessionPrefix(),
+      },
       (info) => {
         this.status = 'CONNECTED';
         this.roomId = info.roomId || `live-${cleanUsername}`;
@@ -259,9 +281,20 @@ export class TikTokIntegrationService {
   }
 
   public async disconnect(): Promise<void> {
+    fetch('/api/tiktok/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: getCurrentUserSessionPrefix(),
+        gameId: 'lexi',
+      }),
+    }).catch(() => {});
     if (this.socket) {
       try {
-        this.socket.emit('disconnect-tiktok');
+        this.socket.emit('disconnect-tiktok', {
+          sessionId: getCurrentUserSessionPrefix(),
+          gameId: 'lexi',
+        });
       } catch {}
     }
     this.status = 'DISCONNECTED';
@@ -282,10 +315,17 @@ export class TikTokIntegrationService {
       .trim()
       .replace(/^@/, '');
     this.addLog('info', `Manual reconnect requested for @${cleanUsername}...`);
+    this.status = 'CONNECTED';
+    this.roomId = `live-${cleanUsername}`;
+    eventManager.emitGameEvent('tiktok:connected', this.getState());
 
     forceReconnectBridge(
       this.socket,
-      { username: cleanUsername },
+      {
+        username: cleanUsername,
+        gameId: 'lexi',
+        sessionId: getCurrentUserSessionPrefix(),
+      },
       (info) => {
         this.status = 'CONNECTED';
         this.roomId = info.roomId || `live-${cleanUsername}`;

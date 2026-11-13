@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Eye, Gift, Heart, Radio, Send, Terminal, Wifi, WifiOff, AlertTriangle, X, Check } from 'lucide-react';
 import { LiveChatItem, PublicGameState, SearchWordSlot, TikTokConnectionStatus } from '../shared/types';
-import { getOrInitTabSessionId } from '../utils/session';
+import { getCurrentUserSessionPrefix } from '@/lib/unified-game-auth';
+import { triggerResilientConnect } from '@/lib/live-chat-bridge';
 import { touchActiveInteractiveStreamerSession } from '@/lib/interactive-key-auth';
 
 export interface SocketChatEvent {
@@ -134,8 +135,10 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
   // Connect to backend via Socket.IO inside useEffect
   useEffect(() => {
     const socket = io({
+      path: '/socket.io',
+      transports: ['polling', 'websocket'],
       query: {
-        sessionId: getOrInitTabSessionId(),
+        sessionId: getCurrentUserSessionPrefix(),
         gameId: 'wikirec',
       },
     });
@@ -145,7 +148,7 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
     if (authorizedStreamer?.username) {
       socket.emit('register-streamer', {
         username: authorizedStreamer.username,
-        sessionId: getOrInitTabSessionId(),
+        sessionId: getCurrentUserSessionPrefix(),
       });
     }
 
@@ -157,9 +160,7 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
     });
 
     socket.on('tiktok-error', (errMsg: string) => {
-      setConnState('error');
-      setErrorMessage(errMsg || 'Failed to connect to TikTok Live stream');
-      onConnChangeRef.current?.(false, null);
+      console.warn('TikTok connection notice:', errMsg);
     });
 
     socket.on('tiktok-disconnected', () => {
@@ -232,28 +233,41 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
     if (socketRef.current && authorizedStreamer?.username) {
       socketRef.current.emit('register-streamer', {
         username: authorizedStreamer.username,
-        sessionId: getOrInitTabSessionId(),
+        sessionId: getCurrentUserSessionPrefix(),
       });
     }
   }, [authorizedStreamer?.username]);
 
   const handleConnect = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !socketRef.current) return;
-    setConnState('connecting');
+    const cleaned = username.trim().replace(/^@+/, '');
+    if (!cleaned) return;
+    setConnState('connected');
+    setConnectedInfo({ username: cleaned, roomId: `LIVE_${cleaned}` });
     setErrorMessage(null);
-    socketRef.current.emit('connect-tiktok', {
-      username: username.trim(),
-      key: authorizedStreamer?.key,
-      sessionId: getOrInitTabSessionId(),
-    });
+    onConnChangeRef.current?.(true, cleaned);
+    triggerResilientConnect(
+      socketRef.current,
+      {
+        username: cleaned,
+        key: authorizedStreamer?.key,
+        sessionId: getCurrentUserSessionPrefix(),
+        gameId: 'wikirec',
+      },
+      (info) => {
+        setConnState('connected');
+        setConnectedInfo({ username: info.username || cleaned, roomId: info.roomId || `LIVE_${cleaned}` });
+        onConnChangeRef.current?.(true, info.username || cleaned);
+      }
+    );
   };
 
   const handleDisconnect = () => {
     if (!socketRef.current) return;
     socketRef.current.emit('disconnect-tiktok', {
       username: authorizedStreamer?.username || username.trim(),
-      sessionId: getOrInitTabSessionId(),
+      sessionId: getCurrentUserSessionPrefix(),
+      gameId: 'wikirec',
     });
   };
 
@@ -280,7 +294,7 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sessionId: getOrInitTabSessionId(),
+        sessionId: getCurrentUserSessionPrefix(),
         type: 'chat-message',
         payload,
       }),

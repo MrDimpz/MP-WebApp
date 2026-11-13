@@ -7,11 +7,13 @@ import {
   Clock,
   Flame,
   Layers,
+  LayoutGrid,
   LogIn,
   User as UserIcon,
   CheckCircle2,
 } from 'lucide-react';
-import { GameState, GameStats, DifficultyMode } from '../types';
+import { GameState, GameStats, DifficultyMode, LayoutSelection } from '../types';
+import { TILE_LAYOUTS, getDailyLayoutForDate } from '../utils/puzzles';
 import {
   getCleanDisplayName,
   type UnifiedPlayerUser,
@@ -25,6 +27,8 @@ interface TitleMenuProps {
   onSelectDate: (dateStr: string) => void;
   difficulty: DifficultyMode;
   onSelectDifficulty: (mode: DifficultyMode) => void;
+  layoutSelection: LayoutSelection;
+  onSelectLayout: (layout: LayoutSelection) => void;
   currentUser?: UnifiedPlayerUser | User | null;
   onOpenSignIn: () => void;
   onOpenUnifiedLeaderboard: () => void;
@@ -37,12 +41,16 @@ export const TitleMenu: React.FC<TitleMenuProps> = ({
   onSelectDate,
   difficulty,
   onSelectDifficulty,
+  layoutSelection,
+  onSelectLayout,
   currentUser,
   onOpenSignIn,
   onOpenUnifiedLeaderboard,
 }) => {
   const isTodayNormalDone = !!stats.completedDays[todayDateStr];
   const isTodayHardDone = !!stats.completedHardDays?.[todayDateStr];
+  const todayAutoLayoutId = getDailyLayoutForDate(todayDateStr);
+  const todayAutoLayout = TILE_LAYOUTS.find((l) => l.id === todayAutoLayoutId) || TILE_LAYOUTS[0];
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 sm:py-10 flex flex-col items-center justify-center min-h-[82vh] text-center">
@@ -63,9 +71,48 @@ export const TitleMenu: React.FC<TitleMenuProps> = ({
       <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.22em] text-[#581c6b] dark:text-amber-300/90 mb-3">
         The Missing Piece · Find Your Space
       </p>
-      <p className="text-sm sm:text-base text-slate-600 dark:text-purple-100/80 max-w-xl mb-6 leading-relaxed">
-        Clear the stack of tiles by finding each of the 5-letter words in order. Play Standard (4 Layers · 6 Words) or test your mastery in Hard Mode (6 Layers · 10 Words).
+      <p className="text-sm sm:text-base text-slate-600 dark:text-purple-100/80 max-w-xl mb-5 leading-relaxed">
+        Clear the stack of tiles by finding each of the 5-letter words in order. Every day rotates through unique multi-layer tile formations.
       </p>
+
+      {/* Tile Layout Picker */}
+      <div className="mb-6 w-full max-w-xl">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-purple-200/70 mb-2 flex items-center justify-center gap-1.5">
+          <LayoutGrid className="w-3.5 h-3.5 text-amber-500" />
+          Tile Layout · Today's Feature:{' '}
+          <span className="text-[#3b0d47] dark:text-amber-300 font-extrabold">
+            {todayAutoLayout.name}
+          </span>
+        </div>
+        <div className="inline-flex flex-wrap items-center justify-center gap-1.5 p-1.5 rounded-2xl bg-white/90 dark:bg-[#240930]/90 border border-purple-200 dark:border-purple-800/70 shadow-sm">
+          <button
+            type="button"
+            onClick={() => onSelectLayout('daily')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              layoutSelection === 'daily'
+                ? 'bg-[#3b0d47] dark:bg-amber-400 text-amber-300 dark:text-[#2d0938] shadow-sm'
+                : 'text-slate-600 dark:text-purple-200/80 hover:bg-purple-50 dark:hover:bg-purple-900/40'
+            }`}
+          >
+            Daily Auto
+          </button>
+          {TILE_LAYOUTS.map((layout) => (
+            <button
+              key={layout.id}
+              type="button"
+              onClick={() => onSelectLayout(layout.id)}
+              title={layout.description}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                layoutSelection === layout.id
+                  ? 'bg-[#3b0d47] dark:bg-amber-400 text-amber-300 dark:text-[#2d0938] shadow-sm'
+                  : 'text-slate-600 dark:text-purple-200/80 hover:bg-purple-50 dark:hover:bg-purple-900/40'
+              }`}
+            >
+              {layout.shortName}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Difficulty Selector & Primary Start CTAs */}
       <div className="flex flex-col sm:flex-row items-center gap-4 mb-6 w-full max-w-xl justify-center">
@@ -216,9 +263,9 @@ export const TitleMenu: React.FC<TitleMenuProps> = ({
       <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500 dark:text-purple-300/60">
         <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-amber-500" /> Daily Reset at 00:00 London, UK</span>
         <span>·</span>
-        <span>4-Layer Standard &amp; 6-Layer Hard Mode</span>
+        <span>5 Distinct Tile Layouts</span>
         <span>·</span>
-        <span>Royal Purple &amp; Gold Edition</span>
+        <span>4-Layer Standard &amp; 6-Layer Hard Mode</span>
       </div>
     </div>
   );

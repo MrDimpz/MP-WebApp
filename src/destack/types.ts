@@ -2,6 +2,10 @@ export type GameState = 'TITLE' | 'PLAYING' | 'VICTORY' | 'ARCHIVE' | 'LEADERBOA
 
 export type DifficultyMode = 'normal' | 'hard';
 
+export type LayoutId = 'pyramid' | 'twin_towers' | 'cross_fortress' | 'hourglass' | 'staircase';
+
+export type LayoutSelection = 'daily' | LayoutId;
+
 export interface TileData {
   id: string;
   letter: string;
@@ -17,6 +21,8 @@ export interface TileData {
 export interface WordPuzzle {
   id: string; // e.g. "2026-11-13"
   difficulty: DifficultyMode;
+  layoutId: LayoutId;
+  layoutName: string;
   totalLayers: number; // 4 for normal, 6 for hard
   dayIndex: number; // Day number in archive
   dateString: string;

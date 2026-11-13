@@ -10,6 +10,7 @@ import {
 interface VictoryModalProps {
   dateStr: string;
   difficulty: DifficultyMode;
+  layoutName: string;
   timeSeconds: number;
   hintsUsed: number;
   score: number;
@@ -24,6 +25,7 @@ interface VictoryModalProps {
 export const VictoryModal: React.FC<VictoryModalProps> = ({
   dateStr,
   difficulty,
+  layoutName,
   timeSeconds,
   hintsUsed,
   score,
@@ -42,10 +44,13 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     return `${mins}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const modeLabel = difficulty === 'hard' ? 'Hard Mode (6 Layers · 10 Words)' : 'Standard (4 Layers · 6 Words)';
+  const modeLabel =
+    difficulty === 'hard'
+      ? `Hard Mode (6 Layers · ${layoutName})`
+      : `Standard (4 Layers · ${layoutName})`;
 
   const handleShare = () => {
-    const text = `DeStack ${difficulty === 'hard' ? '🔥 HARD MODE ' : ''}(${dateStr}) Solved! 🟨🟪\n⏱️ Time: ${formatTime(timeSeconds)}\n💡 Hints: ${hintsUsed}\n⭐ Score: ${score}\nPlay DeStack: ${window.location.origin}/solo-games/destack`;
+    const text = `DeStack ${difficulty === 'hard' ? '🔥 HARD MODE ' : ''}(${dateStr} · ${layoutName}) Solved! 🟨🟪\n⏱️ Time: ${formatTime(timeSeconds)}\n💡 Hints: ${hintsUsed}\n⭐ Score: ${score}\nPlay DeStack: ${window.location.origin}/solo-games/destack`;
     if (navigator.share) {
       navigator.share({ title: 'DeStack Score', text }).catch(() => {});
     } else {

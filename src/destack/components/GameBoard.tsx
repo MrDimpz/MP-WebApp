@@ -1,21 +1,58 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Lightbulb, RotateCcw, ArrowLeft, Flame, Layers } from 'lucide-react';
-import { WordPuzzle, TileData, GameState, DifficultyMode } from '../types';
+import { Lightbulb, RotateCcw, ArrowLeft, Flame, Layers, LayoutGrid } from 'lucide-react';
+import { WordPuzzle, TileData, GameState, DifficultyMode, LayoutSelection } from '../types';
 import { soundManager } from '../utils/audio';
+import { TILE_LAYOUTS } from '../utils/puzzles';
 
 interface GameBoardProps {
   puzzle: WordPuzzle;
   difficulty: DifficultyMode;
   onChangeDifficulty: (mode: DifficultyMode) => void;
+  layoutSelection: LayoutSelection;
+  onChangeLayout: (layout: LayoutSelection) => void;
   onVictory: (timeSeconds: number, hintsUsed: number, score: number, words: string[]) => void;
   setCurrentView: (view: GameState) => void;
   onOpenHowToPlay: () => void;
 }
 
+const LAYER_KEY_ITEMS = [
+  { label: 'L1', color: 'bg-amber-600 border-amber-500' },
+  { label: 'L2', color: 'bg-emerald-500 border-emerald-400' },
+  { label: 'L3', color: 'bg-cyan-400 border-cyan-300' },
+  { label: 'L4', color: 'bg-purple-400 border-purple-300' },
+  { label: 'L5', color: 'bg-rose-400 border-rose-300' },
+  { label: 'L6', color: 'bg-amber-300 border-amber-200' },
+];
+
+const getLayerOutlineClass = (layer: number, isExposed: boolean) => {
+  const bgClass = isExposed
+    ? 'bg-[#fbf6e8] hover:bg-white text-[#231929] shadow-[0_5px_0_#7c581e,0_8px_15px_rgba(0,0,0,0.38)]'
+    : 'bg-[#bfa97a]/90 dark:bg-[#8f7b53]/95 text-[#2c2233] opacity-95 shadow-[0_4px_0_rgba(0,0,0,0.45)]';
+
+  switch (layer) {
+    case 0:
+      return `border-[3px] border-amber-600 ${bgClass}`;
+    case 1:
+      return `border-[3px] border-emerald-500 ${bgClass}`;
+    case 2:
+      return `border-[3px] border-cyan-400 ${bgClass}`;
+    case 3:
+      return `border-[3px] border-purple-400 ${bgClass}`;
+    case 4:
+      return `border-[3px] border-rose-400 ${bgClass}`;
+    case 5:
+      return `border-[3px] border-amber-300 ${bgClass}`;
+    default:
+      return `border-[3px] border-amber-400 ${bgClass}`;
+  }
+};
+
 export const GameBoard: React.FC<GameBoardProps> = ({
   puzzle,
   difficulty,
   onChangeDifficulty,
+  layoutSelection,
+  onChangeLayout,
   onVictory,
   setCurrentView,
   onOpenHowToPlay,
@@ -39,7 +76,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [isDraggingHint, setIsDraggingHint] = useState(false);
   const swipeTrackRef = useRef<HTMLDivElement | null>(null);
 
-  // Reset board if puzzle date or difficulty changes
+  // Reset board if puzzle date, difficulty, or layout changes
   useEffect(() => {
     setTiles(JSON.parse(JSON.stringify(puzzle.tiles)));
     setRack([null, null, null, null, null]);
@@ -298,9 +335,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       />
 
       {/* Main Stackdown Card Shell */}
-      <div className="relative z-10 w-full max-w-[460px] flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-[500px] flex flex-col items-center">
         {/* Top Utility Strip (Exit / Difficulty Switch / Timer / Reset) */}
-        <div className="w-full flex items-center justify-between px-1 mb-2.5 text-purple-100/85 text-xs font-semibold">
+        <div className="w-full flex items-center justify-between px-1 mb-2 text-purple-100/85 text-xs font-semibold">
           <button
             onClick={() => setCurrentView('TITLE')}
             className="inline-flex items-center gap-1 hover:text-amber-300 transition-colors py-1"
@@ -349,6 +386,39 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           </div>
         </div>
 
+        {/* Layout Selector Strip (Daily + 5 Distinct Tile Layouts) */}
+        <div className="w-full flex items-center gap-1 p-1 rounded-xl bg-[#360b42]/90 dark:bg-[#16041c]/90 border border-purple-400/20 mb-2.5 overflow-x-auto no-scrollbar">
+          <span className="px-1.5 text-purple-200/60 shrink-0" title="Tile Layout">
+            <LayoutGrid className="w-3.5 h-3.5" />
+          </span>
+          <button
+            type="button"
+            onClick={() => onChangeLayout('daily')}
+            className={`px-2 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+              layoutSelection === 'daily'
+                ? 'bg-amber-400 text-[#2d0938] shadow-sm'
+                : 'text-purple-200/75 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            Daily
+          </button>
+          {TILE_LAYOUTS.map(layout => (
+            <button
+              key={layout.id}
+              type="button"
+              onClick={() => onChangeLayout(layout.id)}
+              title={layout.description}
+              className={`px-2 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                layoutSelection === layout.id
+                  ? 'bg-amber-400 text-[#2d0938] shadow-sm'
+                  : 'text-purple-200/75 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {layout.shortName}
+            </button>
+          ))}
+        </div>
+
         {/* Stackdown Header Pill ("HOW TO PLAY" + Logo Emblem + "X WORDS REMAINING") */}
         <div className="flex flex-col items-center gap-1 mb-2.5">
           <div className="flex items-center gap-2.5">
@@ -364,20 +434,35 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               HOW TO PLAY
             </button>
           </div>
-          <div className="text-purple-100/90 text-xs sm:text-sm tracking-widest uppercase font-medium mt-1 flex items-center gap-2">
+          <div className="text-purple-100/90 text-xs tracking-widest uppercase font-medium mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
             <span>
               <strong className="font-black text-amber-300 tabular-nums">{wordsRemaining}</strong>{' '}
               {wordsRemaining === 1 ? 'WORD REMAINING' : 'WORDS REMAINING'}
             </span>
             <span aria-hidden="true" className="text-purple-300/40">·</span>
-            <span className="text-xs text-amber-300/90 font-bold">
-              {puzzle.totalLayers} LAYERS ({puzzle.tiles.length} TILES)
+            <span className="text-amber-300/90 font-bold">
+              {puzzle.layoutName}
+            </span>
+            <span aria-hidden="true" className="text-purple-300/40">·</span>
+            <span className="text-purple-200/80 font-bold">
+              {puzzle.totalLayers} Layers
             </span>
           </div>
         </div>
 
-        {/* Recessed Square Stack Board — 4-Layer (30 Tiles) or 6-Layer Hard Mode (50 Tiles) */}
-        <div className="relative w-full aspect-square bg-[#360b42] dark:bg-[#16041c] border border-purple-400/15 rounded-2xl shadow-[inset_0_5px_14px_rgba(0,0,0,0.45)] p-2.5 sm:p-4 overflow-hidden">
+        {/* Recessed Square Stack Board */}
+        <div className="relative w-full aspect-square bg-[#360b42] dark:bg-[#16041c] border border-purple-400/15 rounded-2xl shadow-[inset_0_5px_14px_rgba(0,0,0,0.45)] p-[30px] sm:p-[36px] overflow-hidden pt-14 sm:pt-16">
+          {/* Layer Key Bar Above Tiles But On The Board */}
+          <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-center gap-1 sm:gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-xl border border-white/15 text-[10px] text-purple-100 font-bold overflow-x-auto no-scrollbar">
+            <span className="text-amber-300 uppercase tracking-wider text-[9px] font-black shrink-0">Layer Key:</span>
+            {Array.from({ length: puzzle.totalLayers }).map((_, idx) => (
+              <div key={idx} className="flex items-center gap-1 shrink-0 px-1 py-0.5 rounded bg-white/5 border border-white/10">
+                <span className={`w-2.5 h-2.5 rounded-full border ${LAYER_KEY_ITEMS[idx]?.color || 'bg-amber-400 border-amber-300'}`} />
+                <span>L{idx + 1}</span>
+              </div>
+            ))}
+          </div>
+
           {tiles.map(tile => {
             if (tile.isCleared || tile.inRackIndex !== null) return null;
 
@@ -400,12 +485,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                   zIndex: tile.layer * 10 + (isExposed ? 5 : 0),
                 }}
                 className={`-translate-x-1/2 -translate-y-1/2 absolute rounded-xl flex items-center justify-center font-extrabold ${
-                  isHardMode ? 'text-base sm:text-xl' : 'text-xl sm:text-2xl'
-                } tracking-tight transition-transform duration-150 ${
+                  isHardMode ? 'text-2xl sm:text-3xl' : 'text-4xl sm:text-5xl'
+                } tracking-tight transition-transform duration-150 ${getLayerOutlineClass(
+                  tile.layer,
                   isExposed
-                    ? 'bg-[#fbf6e8] hover:bg-white text-[#231929] border border-amber-300/70 shadow-[0_5px_0_#7c581e,0_8px_15px_rgba(0,0,0,0.38)] hover:scale-[1.06] active:scale-[0.97] cursor-pointer'
-                    : 'bg-[#bfa97a] dark:bg-[#8f7b53] text-[#2c2233] shadow-[0_5px_0_rgba(0,0,0,0.52),0_4px_8px_rgba(0,0,0,0.3)] cursor-default'
-                }`}
+                )} ${isExposed ? 'hover:scale-[1.06] active:scale-[0.97] cursor-pointer' : 'cursor-default'}`}
               >
                 <span className="-mt-0.5 select-none">{tile.letter}</span>
               </button>
