@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
   GameState,
@@ -472,7 +472,9 @@ export default function App() {
     setChatFeed([]);
   }, []);
 
-  const currentPuzzle = generateDailyPuzzle(selectedDateStr, difficulty, layoutMode);
+  const currentPuzzle = useMemo(() => {
+    return generateDailyPuzzle(selectedDateStr, difficulty, layoutMode);
+  }, [selectedDateStr, difficulty, layoutMode]);
 
   const handleVictory = (
     timeSeconds: number,

@@ -87,7 +87,9 @@ export class ChatHandler {
 
     for (const token of tokens) {
       const cleanToken = token.replace(/[^a-zA-Z]/g, '');
-      if (cleanToken.length >= (gameConfig.minWordLength || 3)) {
+      const minLen = gameConfig.minWordLength || 3;
+      const maxLen = gameConfig.maxWordLength || 10;
+      if (cleanToken.length >= minLen && cleanToken.length <= maxLen) {
         const validation = gameEngine['validator'].validateSubmission({
           word: cleanToken,
           boardLetters,
