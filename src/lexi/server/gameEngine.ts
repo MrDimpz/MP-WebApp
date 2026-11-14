@@ -918,30 +918,37 @@ export class GameEngine {
     );
 
     if (!validation.valid) {
-      this.pushChatFeed({
-        userId: params.userId,
-        username: cleanUser,
-        nickname,
-        avatarUrl: params.avatarUrl,
-        text: validation.normalizedWord.toUpperCase() || params.word,
-        status: 'rejected',
-        reason: validation.message,
-        simulated,
-      });
+      const isIgnoredError =
+        validation.reason === 'TOO_SHORT' ||
+        validation.reason === 'TOO_LONG' ||
+        validation.reason === 'LETTERS_NOT_ON_BOARD';
 
-      this.events.emitGameEvent(
-        'word:rejected',
-        {
+      if (!isIgnoredError) {
+        this.pushChatFeed({
           userId: params.userId,
           username: cleanUser,
           nickname,
-          word: validation.normalizedWord.toUpperCase() || params.word,
-          reason: validation.reason,
-          message: validation.message,
-          source: params.source,
-        },
-        simulated
-      );
+          avatarUrl: params.avatarUrl,
+          text: validation.normalizedWord.toUpperCase() || params.word,
+          status: 'rejected',
+          reason: validation.message,
+          simulated,
+        });
+
+        this.events.emitGameEvent(
+          'word:rejected',
+          {
+            userId: params.userId,
+            username: cleanUser,
+            nickname,
+            word: validation.normalizedWord.toUpperCase() || params.word,
+            reason: validation.reason,
+            message: validation.message,
+            source: params.source,
+          },
+          simulated
+        );
+      }
 
       return {
         accepted: false,
