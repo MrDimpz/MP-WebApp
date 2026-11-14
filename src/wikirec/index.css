@@ -19,6 +19,15 @@
   }
 }
 
+@keyframes wk-answer-fly-once {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(calc(-1 * var(--wk-travel, 760px)), 0, 0);
+  }
+}
+
 .wikirec-root {
 
 
@@ -705,15 +714,6 @@ a {
 }
 
 /* ------------- found-words card (3x height board-width single-pass random-height answer stream) ------------- */
-@keyframes wk-answer-fly-once {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  100% {
-    transform: translate3d(calc(-1 * var(--wk-travel, 760px)), 0, 0);
-  }
-}
-
 .found-words-card {
   position: relative;
   z-index: 1;
