@@ -22,7 +22,7 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // October 30 (Mischief Night)
   '10-30': {
-    clue: '"Eve before the spooky costumes"',
+    clue: '"Night before Halloween trick-or-treating"',
     themeWord: 'MISCHIEF',
     words: ['APPLE', 'BONFIRE', 'CANDLE', 'COSTUME', 'MASK', 'PRANK'],
     difficulty: 'Medium',
@@ -46,7 +46,7 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // Christmas Day (December 25)
   '12-25': {
-    clue: '"Deck the halls with boughs of holly"',
+    clue: '"Deck the halls with festive boughs"',
     themeWord: 'YULETIDE',
     words: ['CANDLE', 'FEAST', 'HOLLY', 'MISTLETOE', 'PRESENTS', 'TINSEL'],
     difficulty: 'Easy',
@@ -62,7 +62,7 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // New Year\'s Eve (December 31)
   '12-31': {
-    clue: '"Midnight countdown to a new beginning"',
+    clue: '"Final seconds of the passing year"',
     themeWord: 'COUNTDOWN',
     words: ['BALLOON', 'CHAMPAGNE', 'CONFETTI', 'MIDNIGHT', 'PARTY', 'TOAST'],
     difficulty: 'Medium',
@@ -70,7 +70,7 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // New Year\'s Day (January 1)
   '01-01': {
-    clue: '"Turn over a fresh calendar page"',
+    clue: '"Fresh-start pledge for the coming year"',
     themeWord: 'RESOLVE',
     words: ['CALENDAR', 'GOAL', 'HOPE', 'JANUARY', 'NEW', 'PROMISE'],
     difficulty: 'Easy',
@@ -78,7 +78,7 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // Valentine\'s Day (February 14)
   '02-14': {
-    clue: '"Cupid\'s arrow of affection"',
+    clue: '"Traditional February day of love"',
     themeWord: 'ROMANCE',
     words: ['CANDLE', 'CHOCOLATE', 'CUPID', 'HEART', 'KISS', 'ROSE'],
     difficulty: 'Easy',
@@ -102,7 +102,7 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // Easter Sunday (April 5)
   '04-05': {
-    clue: '"Springtime painted egg hunt"',
+    clue: '"Springtime pastel basket treasure hunt"',
     themeWord: 'EASTER',
     words: ['BONNET', 'BUNNY', 'CHICK', 'CHOCOLATE', 'DAFFODIL', 'EGG'],
     difficulty: 'Easy',
@@ -110,7 +110,7 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // Earth Day (April 22)
   '04-22': {
-    clue: '"Protect our shared home planet"',
+    clue: '"Protect our shared blue-green world"',
     themeWord: 'PLANET',
     words: ['CLIMATE', 'FOREST', 'NATURE', 'OCEAN', 'RECYCLE', 'WILDLIFE'],
     difficulty: 'Easy',
@@ -118,7 +118,7 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // May Day (May 1)
   '05-01': {
-    clue: '"Dancing around the floral ribbon pole"',
+    clue: '"Dancing around the floral ribbon staff"',
     themeWord: 'MAYPOLE',
     words: ['BLOOM', 'BLOSSOM', 'CROWN', 'DANCE', 'GARLAND', 'SPRING'],
     difficulty: 'Easy',
@@ -126,15 +126,15 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // Cinco de Mayo (May 5)
   '05-05': {
-    clue: '"Fiesta of music and heritage"',
+    clue: '"Joyous May celebration of music and heritage"',
     themeWord: 'FIESTA',
-    words: ['GUITAR', 'MARIACHI', 'PIÑATA', 'SALSA', 'SOMBRERO', 'TACO'],
+    words: ['CHURRO', 'GUITAR', 'MARIACHI', 'SALSA', 'SOMBRERO', 'TACO'],
     difficulty: 'Easy',
     funFact: 'Cinco de Mayo commemorates the Mexican army\'s unlikely victory over the French Empire in 1862.'
   },
   // Summer Solstice / Midsummer (June 21)
   '06-21': {
-    clue: '"The longest daylight of the year"',
+    clue: '"Peak midsummer daylight of the year"',
     themeWord: 'SOLSTICE',
     words: ['BONFIRE', 'DAWN', 'LONGEST', 'MIDNIGHT', 'SUNLIGHT', 'TWILIGHT'],
     difficulty: 'Medium',
@@ -142,7 +142,7 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // Independence Day / Summer Picnic (July 4)
   '07-04': {
-    clue: '"Sparklers in the summer night sky"',
+    clue: '"Summer night pyrotechnics and liberty"',
     themeWord: 'FREEDOM',
     words: ['BARBECUE', 'BURGER', 'FIREWORK', 'PARADE', 'PICNIC', 'SPARKLER'],
     difficulty: 'Easy',
@@ -150,7 +150,7 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // Autumn Equinox / Harvest (September 22)
   '09-22': {
-    clue: '"When golden crops fill the barn"',
+    clue: '"When autumn crops are gathered in"',
     themeWord: 'HARVEST',
     words: ['ACORN', 'APPLE', 'BARN', 'CIDER', 'CORN', 'SCARECROW'],
     difficulty: 'Easy',
@@ -158,7 +158,7 @@ export const SPECIAL_DATE_PUZZLES: Record<
   },
   // Thanksgiving (November 26)
   '11-26': {
-    clue: '"Gathering around the roasted feast"',
+    clue: '"Autumn dinner of thanks and family"',
     themeWord: 'GRATITUDE',
     words: ['CRANBERRY', 'FEAST', 'GRAVY', 'PIE', 'STUFFING', 'TURKEY'],
     difficulty: 'Easy',
@@ -234,7 +234,7 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   },
   // 8. Compound: TEA
   {
-    clue: '"Morning cup of steeped herbal brew"',
+    clue: '"Morning mug of steeped herbal brew"',
     themeWord: 'TEA',
     words: ['BAG', 'CUP', 'LEAF', 'POT', 'SPOON', 'TIME'],
     difficulty: 'Easy',
@@ -322,7 +322,7 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   },
   // 19. Compound: EYE
   {
-    clue: '"The organ of sight"',
+    clue: '"The body\'s organ of vision"',
     themeWord: 'EYE',
     words: ['BALL', 'BROW', 'LASH', 'LID', 'OPENER', 'SIGHT'],
     difficulty: 'Easy',
@@ -332,9 +332,9 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Twinkling speck in deep space"',
     themeWord: 'STAR',
-    words: ['BURST', 'DOM', 'FISH', 'GAZE', 'LIGHT', 'SHIP'],
+    words: ['BURST', 'DUST', 'FISH', 'GAZE', 'LIGHT', 'SHIP'],
     difficulty: 'Easy',
-    funFact: 'Forms compound terms with STAR: Starburst, stardom, starfish, stargaze, starlight, starship.'
+    funFact: 'Forms compound terms with STAR: Starburst, stardust, starfish, stargaze, starlight, starship.'
   },
   // 21. Compound: CARD
   {
@@ -348,9 +348,9 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Precious shiny yellow metal"',
     themeWord: 'GOLD',
-    words: ['DIGGER', 'EN', 'FISH', 'MINE', 'RUSH', 'SMITH'],
+    words: ['BAR', 'DIGGER', 'FISH', 'MINE', 'RUSH', 'SMITH'],
     difficulty: 'Easy',
-    funFact: 'Forms compound terms with GOLD: Gold digger, golden, goldfish, goldmine, gold rush, goldsmith.'
+    funFact: 'Forms compound terms with GOLD: Gold bar, gold digger, goldfish, goldmine, gold rush, goldsmith.'
   },
   // 23. Compound: SILVER
   {
@@ -482,7 +482,7 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   },
   // 39. Compound: JELLY
   {
-    clue: '"Fruity gelatinous toast spread"',
+    clue: '"Fruity gelatinous toast topping"',
     themeWord: 'JELLY',
     words: ['BEAN', 'FISH', 'JAR', 'ROLL', 'SHOT', 'SPREAD'],
     difficulty: 'Easy',
@@ -490,7 +490,7 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   },
   // 40. Compound: CAMP
   {
-    clue: '"Outdoor summer tent site"',
+    clue: '"Wilderness summer tenting getaway"',
     themeWord: 'CAMP',
     words: ['BED', 'FIRE', 'GROUND', 'MATE', 'OUT', 'SITE'],
     difficulty: 'Easy',
@@ -586,7 +586,7 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   },
   // 52. Compound: ROOM (preceded by words)
   {
-    clue: '"Walled living interior space"',
+    clue: '"Walled interior floor space"',
     themeWord: 'ROOM',
     words: ['BATH', 'BED', 'CLASS', 'COURT', 'DINING', 'LIVING'],
     difficulty: 'Easy',
@@ -594,7 +594,7 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   },
   // 53. Compound: BOARD (preceded by words)
   {
-    clue: '"Flat surface for chalk or games"',
+    clue: '"Flat wooden plank or game surface"',
     themeWord: 'BOARD',
     words: ['BLACK', 'CHALK', 'CHESS', 'DART', 'KEY', 'SKATE'],
     difficulty: 'Easy',
@@ -620,9 +620,9 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Juicy wild bush fruit"',
     themeWord: 'BERRY',
-    words: ['BLACK', 'BLUE', 'CRAN', 'GOOSE', 'RASP', 'STRAW'],
+    words: ['BAY', 'BLACK', 'BLUE', 'CLOUD', 'DEW', 'ELDER'],
     difficulty: 'Easy',
-    funFact: 'Every lower word precedes BERRY: Blackberry, blueberry, cranberry, gooseberry, raspberry, strawberry.'
+    funFact: 'Every lower word precedes BERRY: Bayberry, blackberry, blueberry, cloudberry, dewberry, elderberry.'
   },
   // 57. Compound: LINE (preceded by words)
   {
@@ -684,9 +684,9 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Winter jacket with lapels"',
     themeWord: 'COAT',
-    words: ['OVER', 'PETTI', 'RAIN', 'RED', 'TOP', 'WAIST'],
+    words: ['OVER', 'PEA', 'RAIN', 'RED', 'TOP', 'WAIST'],
     difficulty: 'Medium',
-    funFact: 'Every lower word precedes COAT: Overcoat, petticoat, raincoat, redcoat, topcoat, waistcoat.'
+    funFact: 'Every lower word precedes COAT: Overcoat, peacoat, raincoat, redcoat, topcoat, waistcoat.'
   },
   // 65. Compound: MAN (preceded by words)
   {
@@ -708,17 +708,17 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Lateral border or flank"',
     themeWord: 'SIDE',
-    words: ['BED', 'CAMP', 'DOWN', 'IN', 'OUT', 'SEA'],
+    words: ['BED', 'CAMP', 'DOWN', 'OUT', 'ROAD', 'SEA'],
     difficulty: 'Easy',
-    funFact: 'Every lower word precedes SIDE: Bedside, campsite, downside, inside, outside, seaside.'
+    funFact: 'Every lower word precedes SIDE: Bedside, campsite, downside, outside, roadside, seaside.'
   },
   // 68. Compound: GROUND (preceded by words)
   {
-    clue: '"Surface terrain underfoot"',
+    clue: '"Solid earth beneath your feet"',
     themeWord: 'GROUND',
-    words: ['BACK', 'CAMP', 'FORE', 'PLAY', 'UNDER', 'UP'],
+    words: ['BACK', 'CAMP', 'FAIR', 'FORE', 'PLAY', 'UNDER'],
     difficulty: 'Medium',
-    funFact: 'Every lower word precedes GROUND: Background, campground, foreground, playground, underground, upground.'
+    funFact: 'Every lower word precedes GROUND: Background, campground, fairground, foreground, playground, underground.'
   },
   // 69. Compound: NOTE (preceded by words)
   {
@@ -868,9 +868,9 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Freshly minted or recently arrived"',
     themeWord: 'NEW',
-    words: ['BORN', 'CAST', 'COMER', 'FANGLED', 'FOUND', 'WAVE'],
+    words: ['BORN', 'CAST', 'COMER', 'FOUND', 'WAVE', 'YEAR'],
     difficulty: 'Medium',
-    funFact: 'Forms compound terms with NEW: Newborn, newscast, newcomer, newfangled, newfound, new wave.'
+    funFact: 'Forms compound terms with NEW: Newborn, newscast, newcomer, newfound, new wave, New Year.'
   },
   // 88. Compound: OLD
   {
@@ -900,9 +900,9 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"At liberty with zero cost"',
     themeWord: 'FREE',
-    words: ['BIRD', 'BOOT', 'DOM', 'FALL', 'LOAD', 'STYLE'],
+    words: ['BIRD', 'BOOT', 'FALL', 'LOAD', 'STYLE', 'WAY'],
     difficulty: 'Easy',
-    funFact: 'Forms compound terms with FREE: Freebird, freebooter, freedom, freefall, freeload, freestyle.'
+    funFact: 'Forms compound terms with FREE: Freebird, freebooter, freefall, freeload, freestyle, freeway.'
   },
   // 92. Compound: OPEN
   {
@@ -938,7 +938,7 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   },
   // 96. Compound: BACKWARD / FORE
   {
-    clue: '"Positioned in front or ahead"',
+    clue: '"Positioned at the front"',
     themeWord: 'FORE',
     words: ['ARM', 'CAST', 'FATHER', 'GROUND', 'HEAD', 'WORD'],
     difficulty: 'Medium',
@@ -1060,9 +1060,9 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Silvery-gray hearth residue"',
     themeWord: 'ASH',
-    words: ['BIN', 'CAN', 'FALL', 'LAR', 'PAN', 'TRAY'],
+    words: ['BIN', 'CAN', 'FALL', 'PAN', 'PIT', 'TRAY'],
     difficulty: 'Medium',
-    funFact: 'Forms compound terms with ASH: Ashbin, ashcan, ashfall, ashlar, ashpan, ashtray.'
+    funFact: 'Forms compound terms with ASH: Ashbin, ashcan, ashfall, ashpan, ashpit, ashtray.'
   },
   // 112. Compound:COAL
   {
@@ -1092,9 +1092,9 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Grassy mound smaller than a mountain"',
     themeWord: 'HILL',
-    words: ['BILLY', 'CREST', 'FORT', 'OCK', 'SIDE', 'TOP'],
+    words: ['BILLY', 'CLIMB', 'CREST', 'FORT', 'SIDE', 'TOP'],
     difficulty: 'Easy',
-    funFact: 'Forms compound terms with HILL: Hillbilly, hillcrest, hillfort, hillock, hillside, hilltop.'
+    funFact: 'Forms compound terms with HILL: Hillbilly, hillclimb, hillcrest, hillfort, hillside, hilltop.'
   },
   // 116. Compound: FIELD
   {
@@ -1162,7 +1162,7 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   },
   // 124. Compound: ROOF
   {
-    clue: '"Shingled shelter atop a house"',
+    clue: '"Shingled shelter crowning a house"',
     themeWord: 'ROOF',
     words: ['GARDEN', 'LINE', 'RACK', 'TILE', 'TOP', 'TREE'],
     difficulty: 'Easy',
@@ -1170,7 +1170,7 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   },
   // 125. Compound: WINDOW
   {
-    clue: '"Framed glass opening in a wall"',
+    clue: '"Glass opening set in a wall"',
     themeWord: 'WINDOW',
     words: ['BOX', 'FRAME', 'LEDGE', 'PANE', 'SEAT', 'SILL'],
     difficulty: 'Easy',
@@ -1218,7 +1218,7 @@ export const COMPOUND_PUZZLES_BANK: PuzzleTemplate[] = [
   },
   // 131. Compound: DRUM
   {
-    clue: '"Rhythmic percussion instrument beaten with sticks"',
+    clue: '"Rhythmic hollow percussion instrument"',
     themeWord: 'DRUM',
     words: ['BEAT', 'EAR', 'HEAD', 'KETTLE', 'ROLL', 'STICK'],
     difficulty: 'Easy',
@@ -1278,21 +1278,21 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The modern concert harp has 47 strings and 7 pedals to change the pitch of the strings.'
   },
   {
-    clue: '"Fresh bakery morning aromas"',
+    clue: '"Fresh patisserie morning aromas"',
     themeWord: 'BAKERY',
     words: ['BAGEL', 'BRIOCHE', 'CROISSANT', 'DANISH', 'ECLAIR', 'SCONE'],
     difficulty: 'Easy',
     funFact: 'The croissant was adapted from the Austrian kipferl following the siege of Vienna in 1683.'
   },
   {
-    clue: '"Citrus orchard harvest"',
+    clue: '"Tangy grove fruit harvest"',
     themeWord: 'CITRUS',
     words: ['BERGAMOT', 'CLEMENTINE', 'KUMQUAT', 'LEMON', 'LIME', 'ORANGE'],
     difficulty: 'Easy',
     funFact: 'All commercial citrus fruits derive from four wild ancestral species: citron, pomelo, mandarin, and papeda.'
   },
   {
-    clue: '"European capital getaways"',
+    clue: '"Historic European seat-of-government cities"',
     themeWord: 'CAPITALS',
     words: ['ATHENS', 'BERLIN', 'DUBLIN', 'LISBON', 'MADRID', 'ROME'],
     difficulty: 'Easy',
@@ -1306,8 +1306,8 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Octopuses have three hearts, nine brains, and blue, copper-based blood.'
   },
   {
-    clue: '"Olympics on ice and snow"',
-    themeWord: 'WINTER',
+    clue: '"Cold-weather games on ice and snow"',
+    themeWord: 'OLYMPIAD',
     words: ['BIATHLON', 'BOBSLED', 'CURLING', 'LUGE', 'SKELETON', 'SKIING'],
     difficulty: 'Medium',
     funFact: 'Curling stones are crafted exclusively from granite quarried on the Scottish island of Ailsa Craig.'
@@ -1315,7 +1315,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"William Shakespeare\'s stage"',
     themeWord: 'THEATRE',
-    words: ['HAMLET', 'MACBETH', 'OTHELLO', 'ROMEO', 'TEMPEST', 'TWELFTH'],
+    words: ['HAMLET', 'LEAR', 'MACBETH', 'OTHELLO', 'ROMEO', 'TEMPEST'],
     difficulty: 'Challenging',
     funFact: 'Actors avoid speaking the word "Macbeth" inside a theater due to a superstition dating to 1606.'
   },
@@ -1327,7 +1327,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Lapis lazuli was once ground into pigment more expensive than gold to produce ultramarine.'
   },
   {
-    clue: '"Card shark around the table"',
+    clue: '"Deck games around the green baize table"',
     themeWord: 'CARDS',
     words: ['BACCARAT', 'BLACKJACK', 'BRIDGE', 'CANASTA', 'EUCHRE', 'POKER'],
     difficulty: 'Medium',
@@ -1355,7 +1355,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Spirit levels were invented in 1661 by French polymath Melchisédech Thévenot using alcohol bubbles.'
   },
   {
-    clue: '"Spices from the silk road"',
+    clue: '"Aromatic seasonings from the silk road"',
     themeWord: 'SPICES',
     words: ['CARDAMOM', 'CLOVE', 'CUMIN', 'NUTMEG', 'PAPRIKA', 'SAFFRON'],
     difficulty: 'Medium',
@@ -1404,9 +1404,9 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'A single mature oak tree can produce up to 10,000 acorns in a single bumper year.'
   },
   {
-    clue: '"Berry patch basket"',
-    themeWord: 'BERRY',
-    words: ['CHERRY', 'CURRANT', 'FIG', 'GRAPE', 'PLUM', 'RAISIN'],
+    clue: '"Juicy wild bramble harvest"',
+    themeWord: 'BERRIES',
+    words: ['BLACKBERRY', 'BLUEBERRY', 'CRANBERRY', 'MULBERRY', 'RASPBERRY', 'STRAWBERRY'],
     difficulty: 'Easy',
     funFact: 'Botanically speaking, bananas, watermelons, and tomatoes are true berries, while strawberries and raspberries are not.'
   },
@@ -1434,7 +1434,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Things that keep time"',
     themeWord: 'CLOCKS',
-    words: ['ALARM', 'CHRONO', 'DIAL', 'HOURGLASS', 'PENDULUM', 'SUNDIAL'],
+    words: ['ALARM', 'CHIME', 'DIAL', 'HOURGLASS', 'PENDULUM', 'SUNDIAL'],
     difficulty: 'Medium',
     funFact: 'Christiaan Huygens invented the pendulum clock in 1656, increasing timekeeping accuracy from 15 minutes to 15 seconds a day.'
   },
@@ -1446,18 +1446,18 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Leonardo da Vinci took more than 14 years to paint the lips of the Mona Lisa.'
   },
   {
-    clue: '"Essential kitchen cookware"',
-    themeWord: 'KITCHEN',
-    words: ['COLANDER', 'DUTCH', 'GRIDDLE', 'KETTLE', 'SKILLET', 'WOK'],
+    clue: '"Essential culinary pots and pans"',
+    themeWord: 'COOKWARE',
+    words: ['COLANDER', 'DUTCHOVEN', 'GRIDDLE', 'KETTLE', 'SKILLET', 'WOK'],
     difficulty: 'Easy',
     funFact: 'Cast iron cookware can retain heat so effectively that it continues cooking food even after the burner is switched off.'
   },
   {
-    clue: '"Prehistoric dinosaur titans"',
+    clue: '"Prehistoric stone-preserved relics"',
     themeWord: 'FOSSIL',
-    words: ['ANKYLO', 'BRACHIO', 'RAPTOR', 'SPINO', 'STEGO', 'TREX'],
+    words: ['AMBER', 'AMMONITE', 'BONE', 'IMPRINT', 'SKELETON', 'TRILOBITE'],
     difficulty: 'Medium',
-    funFact: 'The Stegosaurus had a brain roughly the size of a walnut, despite weighing over 5 tons.'
+    funFact: 'Fossils are preserved remains or traces of ancient animals, plants, and other organisms from the remote geological past.'
   },
   {
     clue: '"Flight of backyard birds"',
@@ -1467,7 +1467,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'A hummingbird\'s heart can beat more than 1,200 times per minute during intense flight.'
   },
   {
-    clue: '"At the circus big top"',
+    clue: '"Under the big top tent"',
     themeWord: 'CIRCUS',
     words: ['ACROBAT', 'CLOWN', 'JUGGLER', 'RINGMASTER', 'TRAPEZE', 'UNICYCLE'],
     difficulty: 'Easy',
@@ -1488,7 +1488,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The human liver is the only internal organ capable of naturally regenerating lost tissue.'
   },
   {
-    clue: '"Ancient wonders of architecture"',
+    clue: '"Ancient marvels of architecture"',
     themeWord: 'WONDERS',
     words: ['COLOSSUS', 'GARDENS', 'LIGHTHOUSE', 'MAUSOLEUM', 'PYRAMID', 'TEMPLE'],
     difficulty: 'Medium',
@@ -1502,16 +1502,16 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Venus rotates in the opposite direction to most planets, meaning the Sun rises in the west and sets in the east.'
   },
   {
-    clue: '"Sweet tooth confectionery"',
+    clue: '"Sugary indulgence from the confectionery"',
     themeWord: 'SWEETS',
     words: ['CARAMEL', 'FUDGE', 'GUMMY', 'LICORICE', 'NOUGAT', 'TOFFEE'],
     difficulty: 'Easy',
     funFact: 'Licorice root contains glycyrrhizin, a compound that is 50 times sweeter than regular table sugar.'
   },
   {
-    clue: '"Modes of public transit"',
+    clue: '"Modes of public commute"',
     themeWord: 'TRANSIT',
-    words: ['BUS', 'FERRY', 'METRO', 'TRAM', 'TROLLEY', 'TUBETRAIN'],
+    words: ['BUS', 'FERRY', 'METRO', 'SUBWAY', 'TRAM', 'TROLLEY'],
     difficulty: 'Easy',
     funFact: 'The London Underground opened in 1863 as the world\'s very first underground passenger railway.'
   },
@@ -1558,7 +1558,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The Swiss cheese plant (Monstera deliciosa) produces natural holes in its leaves to withstand high winds in tropical rainforests.'
   },
   {
-    clue: '"Famous desert dunes of Earth"',
+    clue: '"Famous arid sand dunes of Earth"',
     themeWord: 'DESERTS',
     words: ['ATACAMA', 'GOBI', 'KALAHARI', 'MOJAVE', 'NAMIB', 'SAHARA'],
     difficulty: 'Medium',
@@ -1586,14 +1586,14 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Archaeological evidence shows winemaking in Georgia as early as 6000 BC in clay jars called qvevri.'
   },
   {
-    clue: '"Deep cave spelunking formations"',
+    clue: '"Deep subterranean spelunking formations"',
     themeWord: 'CAVERNS',
     words: ['ABYSS', 'CHASM', 'CRYSTAL', 'GROTTO', 'STALACTITE', 'STALAGMITE'],
     difficulty: 'Challenging',
     funFact: 'A simple mnemonic: stalactites hold "tight" to the ceiling; stalagmites "might" reach the roof from the floor.'
   },
   {
-    clue: '"Fresh salad bar garden greens"',
+    clue: '"Fresh leafy garden greens"',
     themeWord: 'SALAD',
     words: ['ARUGULA', 'CABBAGE', 'ENDIVE', 'KALE', 'ROMAINE', 'SPINACH'],
     difficulty: 'Easy',
@@ -1663,7 +1663,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Opals contain up to 20% water trapped within their microscopic silica sphere structure.'
   },
   {
-    clue: '"Things in the solar system orbit"',
+    clue: '"Things circling the solar system"',
     themeWord: 'ORBITS',
     words: ['ASTEROID', 'DEBRIS', 'GRAVITY', 'MOON', 'PROBE', 'SATELLITE'],
     difficulty: 'Easy',
@@ -1684,21 +1684,21 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Sloths move so slowly that green algae actually grows on their fur, providing natural camouflage.'
   },
   {
-    clue: '"At the post office counter"',
+    clue: '"At the postal delivery counter"',
     themeWord: 'MAILBOX',
     words: ['ENVELOPE', 'LETTER', 'PARCEL', 'POSTCARD', 'STAMP', 'ZIPCODE'],
     difficulty: 'Easy',
     funFact: 'The world\'s first adhesive postage stamp was the Penny Black, issued in Great Britain in May 1840.'
   },
   {
-    clue: '"Musical tempo markings"',
+    clue: '"Musical pace and rhythm markings"',
     themeWord: 'TEMPOS',
     words: ['ADAGIO', 'ALLEGRETTO', 'ALLEGRO', 'ANDANTE', 'LARGO', 'PRESTO'],
     difficulty: 'Challenging',
     funFact: 'Italian became the universal language of musical notation in the 17th century when Italian composers dominated European music.'
   },
   {
-    clue: '"In the cocktail bartender\'s garnish"',
+    clue: '"On the cocktail bartender\'s glass rim"',
     themeWord: 'GARNISH',
     words: ['CHERRY', 'CINNAMON', 'MINT', 'NUTMEG', 'OLIVE', 'TWIST'],
     difficulty: 'Medium',
@@ -1726,7 +1726,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The peregrine falcon is the fastest animal on the planet, reaching diving speeds over 240 miles per hour.'
   },
   {
-    clue: '"In the photographer\'s camera bag"',
+    clue: '"In the photographer\'s equipment bag"',
     themeWord: 'CAMERA',
     words: ['APERTURE', 'FILTER', 'FLASH', 'LENS', 'SHUTTER', 'TRIPOD'],
     difficulty: 'Medium',
@@ -1747,14 +1747,14 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Bristlecone pine trees in California\'s White Mountains are among the oldest living organisms on Earth, over 4,800 years old.'
   },
   {
-    clue: '"In the doctor\'s clinic room"',
+    clue: '"In the doctor\'s examination room"',
     themeWord: 'CLINICAL',
     words: ['BANDAGE', 'GAUZE', 'SCALPEL', 'SPLINT', 'STETHOSCOPE', 'SYRINGE'],
     difficulty: 'Medium',
     funFact: 'René Laennec invented the stethoscope in Paris in 1816 using a rolled-up wooden tube.'
   },
   {
-    clue: '"Popular ballroom dancing styles"',
+    clue: '"Popular formal dancing styles"',
     themeWord: 'BALLROOM',
     words: ['FOXTROT', 'JIVE', 'PASODOBLE', 'RUMBA', 'TANGO', 'WALTZ'],
     difficulty: 'Medium',
@@ -1789,9 +1789,9 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The word "abracadabra" was first recorded in the 2nd century AD by Roman physician Serenus Sammonicus as an antidote to fever.'
   },
   {
-    clue: '"Inside the bank vault"',
+    clue: '"Hidden inside a fortified strongbox"',
     themeWord: 'TREASURE',
-    words: ['BULLION', 'COINS', 'DEPOSIT', 'GOLD', 'LOCKER', 'SAFEDEPOSIT'],
+    words: ['BULLION', 'COINS', 'DEPOSIT', 'GOLD', 'LOCKER', 'VAULT'],
     difficulty: 'Medium',
     funFact: 'Fort Knox in Kentucky holds over 147 million ounces of gold bullion, about half of the United States Treasury\'s gold reserves.'
   },
@@ -1810,7 +1810,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The earliest known skis date back over 9,000 years, discovered in bog peat in northern Russia.'
   },
   {
-    clue: '"On the breakfast pancake table"',
+    clue: '"Midmorning weekend cafe table"',
     themeWord: 'BRUNCH',
     words: ['BACON', 'BUTTER', 'CREPE', 'PANCAKE', 'SYRUP', 'WAFFLE'],
     difficulty: 'Easy',
@@ -1831,7 +1831,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'A teaspoon of material from a collapsed neutron star would weigh approximately 6 billion tons on Earth.'
   },
   {
-    clue: '"In the Italian trattoria kitchen"',
+    clue: '"In the Italian rustic eatery"',
     themeWord: 'TRATTORIA',
     words: ['ANTIPASTO', 'BRUSCHETTA', 'CALZONE', 'CANNOLI', 'RISOTTO', 'TIRAMISU'],
     difficulty: 'Easy',
@@ -1845,21 +1845,21 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Levi Strauss and Jacob Davis were granted the patent for copper-riveted denim work trousers in 1873.'
   },
   {
-    clue: '"Under the hood of an electric car"',
+    clue: '"Under the hood of a zero-emission vehicle"',
     themeWord: 'ELECTRIC',
     words: ['BATTERY', 'CHARGER', 'INVERTER', 'MOTOR', 'PLUG', 'VOLTAGE'],
     difficulty: 'Medium',
     funFact: 'Electric vehicles were actually popular in the late 19th and early 20th centuries, before the discovery of cheap Texas oil.'
   },
   {
-    clue: '"In the morning cereal pantry"',
+    clue: '"In the morning sunlit dining nook"',
     themeWord: 'BREAKFAST',
     words: ['CEREAL', 'FLAKES', 'GRANOLA', 'OATMEAL', 'PUFFS', 'TOAST'],
     difficulty: 'Easy',
     funFact: 'Corn flakes were invented by Dr. John Harvey Kellogg in 1894 at the Battle Creek Sanitarium in Michigan.'
   },
   {
-    clue: '"Precious stones in the royal crown"',
+    clue: '"Regalia of a monarch\'s ceremony"',
     themeWord: 'CORONATION',
     words: ['DIADEM', 'ORB', 'PLATINUM', 'SCEPTER', 'TIARA', 'VELVET'],
     difficulty: 'Medium',
@@ -1887,14 +1887,14 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The yo-yo is one of the oldest known toys in history, depicted on ancient Greek vases dating back to 500 BC.'
   },
   {
-    clue: '"Fresh fruits in the summer orchard"',
+    clue: '"Fresh fruits in the summer grove"',
     themeWord: 'ORCHARD',
     words: ['APRICOT', 'CHERRY', 'FIG', 'PEACH', 'PEAR', 'PLUM'],
     difficulty: 'Easy',
     funFact: 'Peaches, plums, apricots, and cherries all belong to the genus Prunus in the rose family (Rosaceae).'
   },
   {
-    clue: '"On the classic diner counter"',
+    clue: '"On the classic retro eatery counter"',
     themeWord: 'DINER',
     words: ['BURGER', 'COFFEE', 'FLOAT', 'FRIES', 'PANCAKES', 'SHAKE'],
     difficulty: 'Easy',
@@ -1908,14 +1908,14 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The first modern bicycle with chain drive and equal-sized wheels was the Rover Safety Bicycle, designed in Coventry in 1885.'
   },
   {
-    clue: '"In the school science laboratory"',
+    clue: '"In the school science experiment room"',
     themeWord: 'LABORATORY',
     words: ['BALANCE', 'BEAKER', 'BURNER', 'CYLINDER', 'MICROSCOPE', 'PIPETTE'],
     difficulty: 'Medium',
     funFact: 'The periodic table of elements was formulated in 1869 by Russian chemist Dmitri Mendeleev.'
   },
   {
-    clue: '"Under the ocean coral reef"',
+    clue: '"Beneath the tropical ocean lagoon"',
     themeWord: 'REEFLIFE',
     words: ['ANEMONE', 'CLOWNFISH', 'CORAL', 'EEL', 'RAY', 'TURTLE'],
     difficulty: 'Easy',
@@ -1936,7 +1936,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Daniel Gabriel Fahrenheit invented the mercury thermometer in 1714 and the Fahrenheit temperature scale in 1724.'
   },
   {
-    clue: '"Musical brass section power"',
+    clue: '"Bold metallic wind section power"',
     themeWord: 'BRASS',
     words: ['CORNET', 'EUPHONIUM', 'HORN', 'SOUSAPHONE', 'TROMBONE', 'TRUMPET'],
     difficulty: 'Medium',
@@ -1957,7 +1957,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Linus Yale Jr. invented the modern pin tumbler cylinder lock in 1865, still used in homes today.'
   },
   {
-    clue: '"Things that sail through the wind"',
+    clue: '"Things powered or lifted by air currents"',
     themeWord: 'BREEZE',
     words: ['BALLOON', 'GLIDER', 'KITE', 'PARACHUTE', 'SAIL', 'WINDMILL'],
     difficulty: 'Easy',
@@ -1971,14 +1971,14 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The French macaron was created in Venetian monasteries in the 8th century before reaching Paris in the 1830s.'
   },
   {
-    clue: '"In the autumn apple orchard"',
+    clue: '"In the autumn orchard tasting room"',
     themeWord: 'CIDERY',
     words: ['APPLE', 'BASKET', 'CRISP', 'FRITTER', 'PIE', 'PRESS'],
     difficulty: 'Easy',
     funFact: 'There are over 7,500 varieties of apples grown throughout the world.'
   },
   {
-    clue: '"Classic tabletop pub games"',
+    clue: '"Classic tavern barroom pastimes"',
     themeWord: 'PUBGAMES',
     words: ['BILLIARDS', 'DARTS', 'DOMINOES', 'FOOSBALL', 'PINBALL', 'POOL'],
     difficulty: 'Easy',
@@ -1992,7 +1992,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Galileo Galilei was the first person to turn a telescope toward the night sky in 1609, discovering Jupiter\'s four largest moons.'
   },
   {
-    clue: '"On the campfire barbecue grill"',
+    clue: '"Sizzling on the backyard smoky grill"',
     themeWord: 'BARBECUE',
     words: ['BRISKET', 'BURGER', 'CHARCOAL', 'RIBS', 'SAUSAGE', 'STEAK'],
     difficulty: 'Easy',
@@ -2034,7 +2034,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The Library of Alexandria in ancient Egypt aimed to collect a copy of every book in the known world.'
   },
   {
-    clue: '"On the artist\'s color palette wheel"',
+    clue: '"Hues on the artist\'s paint wheel"',
     themeWord: 'COLORS',
     words: ['AMBER', 'CRIMSON', 'EMERALD', 'INDIGO', 'MAGENTA', 'VIOLET'],
     difficulty: 'Easy',
@@ -2062,7 +2062,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The word "circus" comes from the Latin word for circle, describing the circular arena where equestrian displays took place.'
   },
   {
-    clue: '"Things that keep warm in winter"',
+    clue: '"Things that keep cozy in winter"',
     themeWord: 'WARMTH',
     words: ['BLANKET', 'DOWN', 'FLANNEL', 'FLEECE', 'HEATER', 'WOOL'],
     difficulty: 'Easy',
@@ -2083,7 +2083,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Gelato contains less air and less butterfat than traditional ice cream, giving it a denser and richer flavor.'
   },
   {
-    clue: '"In the tropical island lagoon"',
+    clue: '"In the tropical island turquoise cove"',
     themeWord: 'LAGOON',
     words: ['ATOLL', 'CORAL', 'MANTA', 'PALM', 'SANDBAR', 'SURF'],
     difficulty: 'Easy',
@@ -2125,7 +2125,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Sourdough baking is the oldest form of leavened bread, utilizing wild airborne yeasts and lactobacilli bacteria.'
   },
   {
-    clue: '"Things in the galaxy night sky"',
+    clue: '"Cosmic bodies across the night sky"',
     themeWord: 'UNIVERSE',
     words: ['ASTEROID', 'COMET', 'GALAXY', 'METEOR', 'NEBULA', 'PLANET'],
     difficulty: 'Easy',
@@ -2181,7 +2181,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Quinoa was revered as the "mother of all grains" by the ancient Inca civilization in the Andes.'
   },
   {
-    clue: '"Things that fly through space"',
+    clue: '"Craft launched beyond Earth\'s atmosphere"',
     themeWord: 'SPACEFLIGHT',
     words: ['CAPSULE', 'LANDER', 'ORBITER', 'PROBE', 'ROVER', 'SHUTTLE'],
     difficulty: 'Medium',
@@ -2195,7 +2195,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Chocolate truffles are named after the prized subterranean fungal truffles due to their similar rustic shape.'
   },
   {
-    clue: '"In the royal coronation crown jewels"',
+    clue: '"In the monarch\'s coronation vault"',
     themeWord: 'ROYALTY',
     words: ['DIADEM', 'ERMINE', 'ORB', 'ROBE', 'SCEPTER', 'THRONE'],
     difficulty: 'Medium',
@@ -2230,7 +2230,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'In medieval Europe, throwing down a gauntlet was a formal challenge to a duel.'
   },
   {
-    clue: '"On the summer tennis lawn court"',
+    clue: '"On the summer Wimbledon grass court"',
     themeWord: 'TENNIS',
     words: ['ACE', 'DEUCE', 'FAULT', 'LOB', 'RACKET', 'VOLLEY'],
     difficulty: 'Easy',
@@ -2244,7 +2244,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'During World War II, Bletchley Park cryptanalysts used the Enigma-busting Bombe machines to decrypt Axis codes.'
   },
   {
-    clue: '"In the botanical apothecary herb shop"',
+    clue: '"In the botanical herbalist shop"',
     themeWord: 'APOTHECARY',
     words: ['ALOE', 'CHAMOMILE', 'GINSENG', 'LAVENDER', 'PEPPERMINT', 'VALERIAN'],
     difficulty: 'Medium',
@@ -2272,7 +2272,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Cast iron cookware improves with age as oils bond to the iron at high temperatures, creating a slick natural seasoning.'
   },
   {
-    clue: '"Things you find at a carnival fair"',
+    clue: '"Attractions at a lively summer carnival"',
     themeWord: 'FUNFAIR',
     words: ['ARCADE', 'BOOTH', 'CAROUSEL', 'FERRIS', 'MIDWAY', 'POPCORN'],
     difficulty: 'Easy',
@@ -2286,14 +2286,14 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Canaries were used in coal mines as early warning systems for toxic gases until electronic detectors replaced them in 1986.'
   },
   {
-    clue: '"Things that tell the time of day"',
+    clue: '"Devices that measure hours and minutes"',
     themeWord: 'TIMEPIECE',
     words: ['CHRONOMETER', 'CLOCK', 'DIAL', 'HOURGLASS', 'PENDULUM', 'WATCH'],
     difficulty: 'Medium',
     funFact: 'John Harrison invented the marine chronometer in the 18th century, finally solving the great longitude problem at sea.'
   },
   {
-    clue: '"Things that float on the water surface"',
+    clue: '"Vessels that drift on the water surface"',
     themeWord: 'BUOYANT',
     words: ['BARGE', 'CANOE', 'FLOAT', 'KAYAK', 'RAFT', 'YACHT'],
     difficulty: 'Easy',
@@ -2314,7 +2314,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Pythagoras discovered that musical harmony is governed by mathematical ratios when listening to blacksmiths\' hammers.'
   },
   {
-    clue: '"In the medieval king\'s royal court"',
+    clue: '"Nobles in the medieval king\'s palace"',
     themeWord: 'COURTIERS',
     words: ['BARON', 'DUKE', 'EARL', 'KNIGHT', 'LORD', 'VISCOUNT'],
     difficulty: 'Medium',
@@ -2344,7 +2344,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Things in the classroom science lab"',
     themeWord: 'EQUIPMENT',
-    words: ['BEAKER', 'BURNER', 'FLASK', 'GOGGLES', 'PIPETTE', 'TESTTUBE'],
+    words: ['BEAKER', 'BURNER', 'FLASK', 'GOGGLES', 'PIPETTE', 'VIAL'],
     difficulty: 'Easy',
     funFact: 'Pyrex borosilicate glass was created in 1915 by Corning scientists to resist thermal shock without shattering.'
   },
@@ -2356,7 +2356,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The largest living organism on Earth is an Armillaria ostoyae honey fungus in Oregon covering over 2,385 acres.'
   },
   {
-    clue: '"On the morning commuter subway map"',
+    clue: '"On the bustling city subway map"',
     themeWord: 'METROPOLIS',
     words: ['COMMUTE', 'DEPOT', 'LINE', 'PLATFORM', 'STATION', 'TRANSFER'],
     difficulty: 'Easy',
@@ -2370,21 +2370,21 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Vinyl microgroove LP records introduced in 1948 played at 33⅓ RPM, dramatically expanding listening time per side.'
   },
   {
-    clue: '"Things with feathers in the aviary"',
+    clue: '"Anatomy of a songbird in the aviary"',
     themeWord: 'BIRDLIFE',
     words: ['BEAK', 'CLAW', 'FEATHER', 'NEST', 'TALON', 'WING'],
     difficulty: 'Easy',
     funFact: 'Bird feathers are composed of beta-keratin, the same strong fibrous protein found in reptile scales.'
   },
   {
-    clue: '"In the morning country breakfast pantry"',
+    clue: '"In the morning country breakfast larder"',
     themeWord: 'PANTRY',
     words: ['BUTTER', 'FLOUR', 'HONEY', 'JAM', 'SUGAR', 'YEAST'],
     difficulty: 'Easy',
     funFact: 'Honey found in ancient Egyptian tombs over 3,000 years old is still completely preserved and edible.'
   },
   {
-    clue: '"In the winter Olympic bobsled chute"',
+    clue: '"In the winter Olympic banked chute"',
     themeWord: 'BOBSLEIGH',
     words: ['BRAKEMAN', 'CURVE', 'HELMET', 'ICE', 'RUNNER', 'SLED'],
     difficulty: 'Medium',
@@ -2399,7 +2399,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
   },
   {
     clue: '"Things that glow in the night sky"',
-    themeWord: 'CELESTIAL',
+    themeWord: 'STARLIGHT',
     words: ['AURORA', 'COMET', 'METEOR', 'MOON', 'NEBULA', 'STAR'],
     difficulty: 'Easy',
     funFact: 'Shooting stars are actually tiny meteoroids, often no larger than a grain of sand, burning up in Earth\'s mesosphere.'
@@ -2412,7 +2412,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Traditional Aran fishermen sweaters from Ireland used distinctive cable patterns that were unique to individual clans.'
   },
   {
-    clue: '"On the artist\'s drafting easel"',
+    clue: '"In the painter\'s sunlit studio"',
     themeWord: 'ATELIER',
     words: ['CANVAS', 'EASEL', 'MAHLSTICK', 'PALETTE', 'RAG', 'SPATULA'],
     difficulty: 'Medium',
@@ -2428,7 +2428,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Things that hold water"',
     themeWord: 'RESERVOIR',
-    words: ['BASIN', 'BISTRO', 'CISTERN', 'DAM', 'POND', 'TANK'],
+    words: ['BASIN', 'BUCKET', 'CISTERN', 'DAM', 'POND', 'TANK'],
     difficulty: 'Medium',
     funFact: 'The Hoover Dam on the Colorado River created Lake Mead, the largest reservoir by volume in the United States.'
   },
@@ -2454,9 +2454,9 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Mount Everest was officially measured as the world\'s highest peak in 1856 by the Great Trigonometrical Survey of India.'
   },
   {
-    clue: '"In the delicious pizzeria oven"',
-    themeWord: 'BAKEDPIZZA',
-    words: ['CRUST', 'DOUGH', 'MOZZARELLA', 'PEEL', 'SAUCE', 'WOODFIRED'],
+    clue: '"Wood-fired Italian pie essentials"',
+    themeWord: 'FLATBREAD',
+    words: ['BASIL', 'CRUST', 'DOUGH', 'MOZZARELLA', 'PEEL', 'SAUCE'],
     difficulty: 'Easy',
     funFact: 'Traditional Neapolitan pizza is baked in a wood-fired domed oven at temperatures between 850°F and 900°F for just 60 to 90 seconds.'
   },
@@ -2468,14 +2468,14 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Sea stars can regenerate entire lost limbs, and in some species, a single severed arm can grow an entirely new body.'
   },
   {
-    clue: '"On the evening symphony orchestra program"',
+    clue: '"On the evening orchestral concert program"',
     themeWord: 'SYMPHONY',
     words: ['ALLEGRO', 'ANDANTE', 'FINALE', 'MOVEMENT', 'SCHERZO', 'THEME'],
     difficulty: 'Medium',
     funFact: 'Beethoven composed his famous Ninth Symphony ("Ode to Joy") while completely deaf.'
   },
   {
-    clue: '"Things with strings that play music"',
+    clue: '"Instruments with chords that play music"',
     themeWord: 'STRINGS',
     words: ['BANJO', 'CELLO', 'GUITAR', 'HARP', 'LUTE', 'VIOLIN'],
     difficulty: 'Easy',
@@ -2503,28 +2503,28 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Wooden pegs were used in timber frame construction for centuries before metal mass-produced nails became common.'
   },
   {
-    clue: '"In the morning country breakfast basket"',
+    clue: '"In the morning country bakery assortment"',
     themeWord: 'BREADBASKET',
     words: ['BAGEL', 'BISCUIT', 'MUFFIN', 'ROLL', 'SCONE', 'TOAST'],
     difficulty: 'Easy',
     funFact: 'The English muffin was invented in New York City in 1894 by English immigrant baker Samuel Bath Thomas.'
   },
   {
-    clue: '"Things with four wheels on the tracks"',
+    clue: '"Railroad cars rolling along the iron line"',
     themeWord: 'RAILWAY',
     words: ['BOXCAR', 'DIESEL', 'HOPPER', 'SLEEPER', 'TANKER', 'TRACK'],
     difficulty: 'Medium',
     funFact: 'The Trans-Siberian Railway connects Moscow to Vladivostok, spanning 5,772 miles across eight time zones.'
   },
   {
-    clue: '"Things in the autumn harvest orchard"',
+    clue: '"Harvesting red autumn produce"',
     themeWord: 'APPLEPICK',
     words: ['BASKET', 'BRANCH', 'CRISP', 'FRUIT', 'LADDER', 'ORCHARD'],
     difficulty: 'Easy',
     funFact: 'Johnny Appleseed (John Chapman) was a real historical pioneer who planted apple nurseries across the American Midwest.'
   },
   {
-    clue: '"In the magical woodland fairy glen"',
+    clue: '"In the magical woodland mythical glen"',
     themeWord: 'ENCHANTED',
     words: ['BROOK', 'ELF', 'FAIRY', 'MOSS', 'MUSHROOM', 'SPRITE'],
     difficulty: 'Easy',
@@ -2580,7 +2580,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Polaris, the North Star, sits almost directly above Earth\'s true geographic North Pole.'
   },
   {
-    clue: '"In the morning country barnyard"',
+    clue: '"In the morning rural pasture"',
     themeWord: 'FARMLAND',
     words: ['BARN', 'COW', 'HAY', 'PIG', 'ROOSTER', 'TRACTOR'],
     difficulty: 'Easy',
@@ -2594,7 +2594,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The viola is slightly larger than a violin and tuned a perfect fifth lower (C-G-D-A).'
   },
   {
-    clue: '"In the deep subterranean gold mine"',
+    clue: '"Deep beneath the prospector\'s shaft"',
     themeWord: 'GOLDMINE',
     words: ['CARAT', 'CRUCIBLE', 'INGOT', 'NUGGET', 'ORE', 'VEIN'],
     difficulty: 'Medium',
@@ -2617,7 +2617,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Things that bloom in the garden flowerbed"',
     themeWord: 'PERENNIAL',
-    words: ['ANEMONE', 'BLEEDING', 'COLUMBINE', 'HOSTA', 'LUPINE', 'PEONY'],
+    words: ['ANEMONE', 'ASTER', 'COLUMBINE', 'HOSTA', 'LUPINE', 'PEONY'],
     difficulty: 'Medium',
     funFact: 'Perennial plants survive multiple growing seasons by storing nutrient energy in dormant root systems through winter.'
   },
@@ -2629,7 +2629,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The earliest known mention of ravioli appears in the 14th-century personal letters of merchant Francesco di Marco Datini.'
   },
   {
-    clue: '"In the ancient Olympic Greek stadium"',
+    clue: '"Events in the ancient Olympic Greek games"',
     themeWord: 'PENTATHLON',
     words: ['DISCUS', 'JAVELIN', 'RUNNING', 'STADIUM', 'TORCH', 'WRESTLING'],
     difficulty: 'Medium',
@@ -2664,7 +2664,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The bow is the front of a vessel and the stern is the back; port is left and starboard is right.'
   },
   {
-    clue: '"Things in the Italian espresso bar"',
+    clue: '"Things in the Italian coffee bar"',
     themeWord: 'ESPRESSO',
     words: ['AROMA', 'BARISTA', 'CREMA', 'DOSE', 'FILTER', 'TAMP'],
     difficulty: 'Easy',
@@ -2678,7 +2678,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Wood fires produce pleasant crackling sounds when pockets of moisture and sap trapped in the wood vaporize and burst.'
   },
   {
-    clue: '"Things you wear on your head"',
+    clue: '"Caps, hats, and crowns atop your brow"',
     themeWord: 'HEADWEAR',
     words: ['BERET', 'BONNET', 'CAP', 'FEDORA', 'HELMET', 'SOMBRERO'],
     difficulty: 'Easy',
@@ -2713,7 +2713,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The Mariana Trench is the deepest oceanic trench on Earth, plunging nearly 36,000 feet at Challenger Deep.'
   },
   {
-    clue: '"Things in the sweet bakery oven"',
+    clue: '"Staples inside a French boulangerie"',
     themeWord: 'BAGUETTES',
     words: ['CRUST', 'DOUGH', 'FLOUR', 'LOAF', 'OVEN', 'YEAST'],
     difficulty: 'Easy',
@@ -2734,7 +2734,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Wood-burning stoves were revolutionized in the 1740s by Benjamin Franklin\'s metal-lined "Franklin stove."'
   },
   {
-    clue: '"In the evening symphony orchestra concert hall"',
+    clue: '"Sections inside a grand symphony concert hall"',
     themeWord: 'ORCHESTRAS',
     words: ['BRASS', 'CHORD', 'FLUTE', 'HARP', 'STRINGS', 'VIOLIN'],
     difficulty: 'Easy',
@@ -2762,7 +2762,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Legend holds that Napoleon was so impressed by an omelette prepared for him in Bessières, France, that he ordered a giant one for his army.'
   },
   {
-    clue: '"Things in the sweet chocolate factory"',
+    clue: '"Things in the sweet confectionery factory"',
     themeWord: 'CHOCOLATE',
     words: ['BAR', 'BEAN', 'BUTTER', 'CACAO', 'DARK', 'MILK'],
     difficulty: 'Easy',
@@ -2783,7 +2783,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'In 1054 AD, Chinese and Arab astronomers recorded a supernova so bright it remained visible in broad daylight for 23 days.'
   },
   {
-    clue: '"Things in the classic detective mystery"',
+    clue: '"Things in the classic sleuth mystery"',
     themeWord: 'DETECTIVE',
     words: ['CLUE', 'EVIDENCE', 'FINGERPRINT', 'MOTIVE', 'PROOF', 'SUSPECT'],
     difficulty: 'Easy',
@@ -2804,14 +2804,14 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Hardwoods like oak and maple burn longer and produce more heat energy than softwoods like pine.'
   },
   {
-    clue: '"Things in the deep blue ocean reef"',
+    clue: '"Marine life in a warm tropical atoll"',
     themeWord: 'CORALREEF',
     words: ['ANEMONE', 'CLOWNFISH', 'KELP', 'MANTA', 'SPONGE', 'TURTLE'],
     difficulty: 'Easy',
     funFact: 'Coral reefs occupy less than 0.1% of the world\'s ocean area, yet provide a home for at least 25% of all marine species.'
   },
   {
-    clue: '"Things in the ancient Roman Colosseum arena"',
+    clue: '"Gear in the ancient Roman Colosseum"',
     themeWord: 'GLADIATOR',
     words: ['ARENA', 'CHARIOT', 'HELMET', 'SAND', 'SHIELD', 'SWORD'],
     difficulty: 'Medium',
@@ -2825,7 +2825,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The Associazione Verace Pizza Napoletana was founded in 1984 to maintain the strict traditional recipe for Neapolitan pizza.'
   },
   {
-    clue: '"Things in the morning espresso cup"',
+    clue: '"Frothy morning cafe staple"',
     themeWord: 'CAPPUCCINO',
     words: ['BARISTA', 'CREMA', 'ESPRESSO', 'FOAM', 'MILK', 'STEAM'],
     difficulty: 'Easy',
@@ -2839,7 +2839,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Young sunflowers exhibit heliotropism, tracking the Sun across the sky from east to west each day.'
   },
   {
-    clue: '"Things in the autumn harvest orchard"',
+    clue: '"Crushing crisp autumn harvest fruit"',
     themeWord: 'CIDERMILL',
     words: ['APPLE', 'BARREL', 'JUG', 'ORCHARD', 'PRESS', 'SWEET'],
     difficulty: 'Easy',
@@ -2853,7 +2853,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'A nautical mile is based on one minute of arc along a meridian of latitude, equal to 1,852 meters.'
   },
   {
-    clue: '"Things in the sweet ice cream sundae"',
+    clue: '"Toppings on a classic three-scoop dessert"',
     themeWord: 'BANANASPLIT',
     words: ['BERRY', 'CHERRY', 'CHOCOLATE', 'CREAM', 'NUTS', 'SAUCE'],
     difficulty: 'Easy',
@@ -2923,7 +2923,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'A calzone is essentially a folded turnover pizza, originating in Naples in the 18th century as a street food.'
   },
   {
-    clue: '"Things in the morning espresso blend"',
+    clue: '"Stained Italian cafe morning drink"',
     themeWord: 'MACCHIATO',
     words: ['BARISTA', 'CREMA', 'ESPRESSO', 'FOAM', 'MARK', 'MILK'],
     difficulty: 'Easy',
@@ -2946,12 +2946,12 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
   {
     clue: '"Things in the high mountain ski resort"',
     themeWord: 'APRESSKI',
-    words: ['CHALET', 'FIREPLACE', 'FONDU', 'HEATER', 'LODGE', 'SAUNA'],
+    words: ['CHALET', 'FIREPLACE', 'FONDUE', 'HEATER', 'LODGE', 'SAUNA'],
     difficulty: 'Easy',
     funFact: 'The French term "après-ski" arose in the 1950s in the Alps to describe the evening socializing, food, and drinks following a day on the slopes.'
   },
   {
-    clue: '"Things in the ancient pharaoh\'s burial tomb"',
+    clue: '"Inside the ancient pharaoh\'s desert monument"',
     themeWord: 'PYRAMIDS',
     words: ['BLOCK', 'CHAMBER', 'LIMESTONE', 'MUMMY', 'RAMP', 'TOMB'],
     difficulty: 'Easy',
@@ -2965,7 +2965,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Brioche is an enriched French bread with a high butter and egg content that gives it a rich, tender crumb.'
   },
   {
-    clue: '"Things in the evening starry galaxy"',
+    clue: '"Features of our nearest major cosmic neighbor"',
     themeWord: 'ANDROMEDA',
     words: ['CORE', 'DISK', 'DUST', 'GALAXY', 'SPIRAL', 'STARS'],
     difficulty: 'Medium',
@@ -3007,7 +3007,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The characteristic ridges on gnocchi are made by rolling the dough dumplings across the tines of a fork to hold sauce.'
   },
   {
-    clue: '"Things in the morning espresso cup"',
+    clue: '"Balanced cafe beverage with steamed dairy"',
     themeWord: 'CORTADOS',
     words: ['BARISTA', 'CREMA', 'EQUAL', 'ESPRESSO', 'GLASS', 'MILK'],
     difficulty: 'Easy',
@@ -3021,7 +3021,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Fruit tart glaze is often made with warmed apricot jam strained through a fine sieve to provide a shiny protective seal.'
   },
   {
-    clue: '"Things in the autumn harvest orchard"',
+    clue: '"Winding autumn farm labyrinth"',
     themeWord: 'CORNMAZE',
     words: ['FIELD', 'HARVEST', 'HAY', 'PATH', 'PUMPKIN', 'STALK'],
     difficulty: 'Easy',
@@ -3063,7 +3063,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'A raspberry is an aggregate fruit composed of dozens of tiny individual drupelets clustered around a central core.'
   },
   {
-    clue: '"Things in the cozy winter fireplace"',
+    clue: '"Sturdy metal supports holding burning logs"',
     themeWord: 'ANDIRONS',
     words: ['BRASS', 'CAST', 'EMBER', 'FIRE', 'GRATE', 'HEARTH'],
     difficulty: 'Medium',
@@ -3091,7 +3091,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'According to legend, a Bolognese chef invented tagliatelle in 1487, inspired by the luscious blonde hair of Lucrezia Borgia.'
   },
   {
-    clue: '"Things in the morning espresso cup"',
+    clue: '"Creamy frothed coffeehouse favorites"',
     themeWord: 'LATTES',
     words: ['BARISTA', 'CREMA', 'CUP', 'FOAM', 'MILK', 'STEAM'],
     difficulty: 'Easy',
@@ -3105,7 +3105,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Cannoli originated in the Sicilian city of Palermo during Arab rule in the 9th to 11th centuries.'
   },
   {
-    clue: '"Things in the autumn harvest orchard"',
+    clue: '"Wooden screw machine for autumn fruit"',
     themeWord: 'CIDERPRESS',
     words: ['APPLE', 'BARREL', 'CRANK', 'ORCHARD', 'POMACE', 'SWEET'],
     difficulty: 'Medium',
@@ -3147,7 +3147,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'In British folklore, it is said that the devil spits on wild blackberries after Michaelmas (September 29), making them bitter.'
   },
   {
-    clue: '"Things in the cozy winter fireplace"',
+    clue: '"Warm slab floor beneath glowing winter flames"',
     themeWord: 'HEARTHSTONE',
     words: ['ASH', 'BLAZE', 'BRICK', 'EMBER', 'FIRE', 'MANTEL'],
     difficulty: 'Easy',
@@ -3175,7 +3175,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Pappardelle comes from the Italian verb "pappare," meaning to gobble up or eat with ravenous pleasure.'
   },
   {
-    clue: '"Things in the morning espresso cup"',
+    clue: '"Classic roasted dark cafe beverages"',
     themeWord: 'AMERICANOS',
     words: ['BARISTA', 'CREMA', 'DILUTE', 'ESPRESSO', 'HOT', 'WATER'],
     difficulty: 'Easy',
@@ -3217,7 +3217,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Palmiers are puff pastry cookies rolled in granulated sugar and folded into a heart or elephant-ear palm shape before baking.'
   },
   {
-    clue: '"Things in the evening starry sky"',
+    clue: '"Distant worlds beyond our solar system"',
     themeWord: 'EXOPLANETS',
     words: ['ATMOSPHERE', 'HABITABLE', 'ORBIT', 'STAR', 'TELESCOPE', 'TRANSIT'],
     difficulty: 'Challenging',
@@ -3238,7 +3238,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'In British tradition, shaking hands with a chimney sweep on your wedding day is considered good luck.'
   },
   {
-    clue: '"Things in the captain\'s sea vessel"',
+    clue: '"Aboard a historic naval warship"',
     themeWord: 'FRIGATE',
     words: ['CANNON', 'CAPTAIN', 'DECK', 'MAST', 'RUDDER', 'SAIL'],
     difficulty: 'Medium',
@@ -3259,7 +3259,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'According to culinary legend in Modena, the distinct belly-button shape of tortellini was modeled after the navel of Venus.'
   },
   {
-    clue: '"Things in the morning espresso cup"',
+    clue: '"Cocoa-infused dark cafe drinks"',
     themeWord: 'MOCHAS',
     words: ['BARISTA', 'CHOCOLATE', 'COFFEE', 'CREAM', 'ESPRESSO', 'MILK'],
     difficulty: 'Easy',
@@ -3308,7 +3308,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The boundary around a black hole beyond which nothing can escape, not even light, is called the event horizon.'
   },
   {
-    clue: '"Things in the sweet summer garden"',
+    clue: '"Wild azure produce in the summer garden"',
     themeWord: 'BLUEBERRIES',
     words: ['BERRY', 'BUSH', 'CUP', 'FRUIT', 'INDIGO', 'SWEET'],
     difficulty: 'Easy',
@@ -3343,9 +3343,9 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Cappellacci di zucca is a Renaissance specialty of Ferrara, filled with roasted butternut squash and nutmeg.'
   },
   {
-    clue: '"Things in the morning espresso cup"',
+    clue: '"Velvety antipodean coffeehouse classic"',
     themeWord: 'FLATWHITE',
-    words: ['AUSTRAILA', 'BARISTA', 'CREMA', 'CUP', 'ESPRESSO', 'MICROFOAM'],
+    words: ['AUSTRALIA', 'BARISTA', 'CREMA', 'CUP', 'ESPRESSO', 'MICROFOAM'],
     difficulty: 'Easy',
     funFact: 'The flat white was created in Australia and New Zealand in the 1980s, prioritizing silky microfoam over thick froth.'
   },
@@ -3364,7 +3364,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Obelisks were carved from a single piece of red granite in Aswan and floated down the Nile on massive wooden barges.'
   },
   {
-    clue: '"Classic symphony woodwind section"',
+    clue: '"Classical symphony reed instrument section"',
     themeWord: 'WOODWINDS',
     words: ['BASSOON', 'CLARINET', 'FLUTE', 'OBOE', 'PICCOLO', 'SAXOPHONE'],
     difficulty: 'Easy',
@@ -3406,7 +3406,7 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The mechanical escapement is what gives a mechanical watch or clock its signature rhythmic ticking sound.'
   },
   {
-    clue: '"Aromatic Mediterranean herb garden"',
+    clue: '"Aromatic Mediterranean culinary plant garden"',
     themeWord: 'HERBARIUM',
     words: ['CHERVIL', 'FENNEL', 'LAVENDER', 'MARJORAM', 'SAVORY', 'TARRAGON'],
     difficulty: 'Medium',
@@ -3427,14 +3427,14 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The hinged clapperboard was invented by Australian film pioneer Frank Thring to synchronize separate audio and film reels.'
   },
   {
-    clue: '"Architectural gems of a Gothic cathedral"',
+    clue: '"Architectural gems of a Gothic minster"',
     themeWord: 'CATHEDRAL',
     words: ['APSE', 'BUTTRESS', 'CLOISTER', 'GARGOYLE', 'NAVE', 'TRANSEPT'],
     difficulty: 'Challenging',
     funFact: 'Flying buttresses allowed medieval master masons to transfer roof weight outward so walls could be filled with stained glass.'
   },
   {
-    clue: '"Tools of a traditional bookbinder"',
+    clue: '"Tools of a traditional tome artisan"',
     themeWord: 'BOOKBINDER',
     words: ['AWL', 'BUCKRAM', 'FOLIO', 'GLUE', 'PRESS', 'THREAD'],
     difficulty: 'Medium',
@@ -3462,16 +3462,16 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'The word "brasserie" originally meant "brewery" in French before coming to describe lively Alsatian-style dining halls in Paris.'
   },
   {
-    clue: '"Highland Scottish gathering"',
+    clue: '"Northern Scottish traditional gathering"',
     themeWord: 'HIGHLANDS',
     words: ['BAGPIPE', 'BONNET', 'CABER', 'CLAN', 'KILT', 'TARTAN'],
     difficulty: 'Easy',
     funFact: 'In the caber toss, competitors are judged on how straight the 175-pound larch pole lands (a "12 o\'clock" turn), not distance.'
   },
   {
-    clue: '"Instruments of celestial navigation"',
+    clue: '"Instruments of stellar navigation"',
     themeWord: 'CELESTIAL',
-    words: ['ALMANAC', 'ASTROLABE', 'CHRONO', 'COMPASS', 'OCTANT', 'SEXTANT'],
+    words: ['ALMANAC', 'ASTROLABE', 'CHART', 'COMPASS', 'OCTANT', 'SEXTANT'],
     difficulty: 'Medium',
     funFact: 'By measuring the angle between the horizon and the noon sun or Polaris, a sextant lets mariners determine latitude at sea.'
   },
@@ -3497,28 +3497,28 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Edgar Allan Poe\'s 1841 story "The Murders in the Rue Morgue" is widely credited as the first modern detective story.'
   },
   {
-    clue: '"Inside a classical luthiers workshop"',
+    clue: '"Inside a classical violin maker\'s workshop"',
     themeWord: 'LUTHIER',
     words: ['BRIDGE', 'CHISEL', 'EBONY', 'MAPLE', 'ROSIN', 'VARNISH'],
     difficulty: 'Medium',
     funFact: 'Violin backs are traditionally carved from flamed maple, while the resonant top soundboard is crafted from fine-grained spruce.'
   },
   {
-    clue: '"Desert oasis caravan stop"',
+    clue: '"Desert oasis merchant convoy stop"',
     themeWord: 'CARAVAN',
     words: ['CAMEL', 'CISTERN', 'DATES', 'DUNE', 'MIRAGE', 'PALM'],
     difficulty: 'Easy',
     funFact: 'Date palms can thrive in extreme desert heat so long as their deep roots reach subterranean oasis water tables.'
   },
   {
-    clue: '"Classic apothecary spice cabinet"',
+    clue: '"Classic apothecary seasoning cabinet"',
     themeWord: 'SPICERY',
     words: ['ANISE', 'CLOVE', 'CORIANDER', 'MACE', 'NUTMEG', 'SAFFRON'],
     difficulty: 'Medium',
     funFact: 'Nutmeg and mace both come from the exact same tropical tree: nutmeg is the seed kernel and mace is its lacy red covering.'
   },
   {
-    clue: '"Winter Nordic ski lodge"',
+    clue: '"Winter Scandinavian ski lodge"',
     themeWord: 'NORDIC',
     words: ['BIRCH', 'CHALET', 'FIR', 'HEARTH', 'SAUNA', 'SLEIGH'],
     difficulty: 'Easy',
@@ -3532,21 +3532,21 @@ export const THEMATIC_PUZZLES_BANK: PuzzleTemplate[] = [
     funFact: 'Goose and swan wing feathers made the finest medieval quills, cured in heated sand before cutting the split nib.'
   },
   {
-    clue: '"Classic boardwalk amusement pier"',
+    clue: '"Classic seaside amusement pier"',
     themeWord: 'BOARDWALK',
     words: ['ARCADE', 'CAROUSEL', 'COASTER', 'MIDWAY', 'PAVILION', 'TAFFY'],
     difficulty: 'Easy',
     funFact: 'Saltwater taffy became famous on the Atlantic City boardwalk in the 1880s—even though the recipe contains no actual ocean water.'
   },
   {
-    clue: '"Inside a glassblower\'s furnace studio"',
+    clue: '"Inside a glassblower\'s glowing studio"',
     themeWord: 'GLASSWORKS',
     words: ['ANNEAL', 'BLOWPIPE', 'CRUCIBLE', 'FURNACE', 'MOLTEN', 'PONTIL'],
     difficulty: 'Challenging',
     funFact: 'The slight scar on the bottom of hand-blown glassware is the "pontil mark," where the solid iron holding rod was snapped off.'
   },
   {
-    clue: '"Autumn woodland foraging basket"',
+    clue: '"Autumn forest foraging basket"',
     themeWord: 'WOODLAND',
     words: ['ACORN', 'BRAMBLE', 'CHESTNUT', 'FERN', 'HAZELNUT', 'TRUFFLE'],
     difficulty: 'Easy',

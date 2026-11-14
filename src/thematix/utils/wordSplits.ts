@@ -59,6 +59,7 @@ const TWO_WORD_PARTITIONS: Record<string, string[]> = {
   EARLGREY: ['EARL', 'GREY'],
   DOUBLEBASS: ['DOUBLE', 'BASS'],
   HALFPIPE: ['HALF', 'PIPE'],
+  DUTCHOVEN: ['DUTCH', 'OVEN'],
 };
 
 const customRuntimeSplits: Record<string, number[]> = {};
