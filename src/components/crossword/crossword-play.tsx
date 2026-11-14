@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { ArrowLeft, Check, Eye, RotateCcw, Trophy } from 'lucide-react';
 import type { VisualTheme, VisualThemeId } from '@/data/crossword-types';
 import type { PlacedClue, PuzzleDefinition, GridCellData } from '@/data/crossword-types';
+import { CURATED_PUZZLES, getTodayIsoDate } from '@/data/puzzles';
 import {
 	type GameDifficulty,
 	calculateScore,
@@ -9,9 +10,14 @@ import {
 	loadSavedGrid,
 	saveGrid,
 	clearSavedGrid,
+	loadProgress,
+	loadLeaderboard,
 	saveProgress,
 	addLeaderboardEntry,
 } from '@/lib/crossword-progress';
+import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
+import { triggerVictoryConfetti } from '@/lib/confetti';
+import { DailyStreakBadge } from '@/components/daily-streak-badge';
 
 type Dir = 'across' | 'down';
 
@@ -184,6 +190,19 @@ export function CrosswordPlay({ puzzle, onExit }: PlayProps) {
 	const [finalScore, setFinalScore] = useState<number | null>(null);
 	const gridRef = useRef<HTMLDivElement>(null);
 
+	const todayIso = useMemo(() => getTodayIsoDate(), []);
+	const isTodayPuzzle =
+		puzzle.archiveDate === todayIso ||
+		puzzle.editionDate === todayIso ||
+		puzzle.id.includes(todayIso);
+	const legacySolvedToday = useMemo(() => {
+		const progressMap = loadProgress();
+		return CURATED_PUZZLES.some(
+			(p) => (p.archiveDate === todayIso || p.editionDate === todayIso) && progressMap[p.id]?.solved,
+		);
+	}, [todayIso, finalScore]);
+	const dailyStreak = useDailyStreak('crossword', todayIso, legacySolvedToday);
+
 	const isBlocked = (r: number, c: number) => puzzle.grid[r][c].isBlocked;
 
 	// Reset per-puzzle state when the puzzle changes.
@@ -257,6 +276,11 @@ export function CrosswordPlay({ puzzle, onExit }: PlayProps) {
 	useEffect(() => {
 		if (!solved || finalScore !== null) return;
 		const score = calculateScore(difficulty, elapsed);
+		const prevBestScore = loadLeaderboard().reduce(
+			(max, item) => Math.max(max, item.score || 0),
+			0,
+		);
+		const isNewHighScore = prevBestScore > 0 && score > prevBestScore;
 		setFinalScore(score);
 		saveProgress(puzzle.id, {
 			solved: true,
@@ -275,7 +299,14 @@ export function CrosswordPlay({ puzzle, onExit }: PlayProps) {
 			difficulty,
 		});
 		clearSavedGrid(puzzle.id);
-	}, [solved, finalScore, difficulty, elapsed, puzzle]);
+		if (isTodayPuzzle) {
+			recordDailyPuzzleSolved('crossword', todayIso);
+		}
+		triggerVictoryConfetti({
+			isDaily: isTodayPuzzle,
+			isNewHighScore,
+		});
+	}, [solved, finalScore, difficulty, elapsed, puzzle, isTodayPuzzle, todayIso]);
 
 	const setLetter = useCallback((row: number, col: number, letter: string) => {
 		setLetters((prev) => {
@@ -430,9 +461,16 @@ export function CrosswordPlay({ puzzle, onExit }: PlayProps) {
 
 	return (
 		<div className="crossword-play" style={surfaceStyle}>
-			<button type="button" className="solo-back" style={{ color: theme.textSecondary }} onClick={onExit}>
-				<ArrowLeft size={16} /> Back to catalogue
-			</button>
+			<div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+				<button type="button" className="solo-back" style={{ color: theme.textSecondary }} onClick={onExit}>
+					<ArrowLeft size={16} /> Back to catalogue
+				</button>
+				<DailyStreakBadge
+					streak={dailyStreak.streak}
+					solvedToday={dailyStreak.solvedToday}
+					variant={isDark ? 'gold' : 'light'}
+				/>
+			</div>
 
 			<div className="crossword-head">
 				<p className="eyebrow" style={{ color: theme.textMuted }}>
@@ -474,12 +512,20 @@ export function CrosswordPlay({ puzzle, onExit }: PlayProps) {
 					>
 						{puzzle.grid.map((row: GridCellData[], r) =>
 							row.map((cell: GridCellData, c) => {
+								const stepMs = size >= 15 ? 8 : size >= 8 ? 16 : 22;
+								const tileDelay = `${Math.min((r + c) * stepMs, 320)}ms`;
 								if (cell.isBlocked) {
 									return (
 										<div
-											key={`${r}-${c}`}
-											className="crossword-cell black"
-											style={{ background: theme.gridBlocked, borderColor: theme.gridBlocked }}
+											key={`${puzzle.id}-${r}-${c}`}
+											className="crossword-cell black puzzle-tile-enter"
+											style={
+												{
+													background: theme.gridBlocked,
+													borderColor: theme.gridBlocked,
+													'--tile-delay': tileDelay,
+												} as CSSProperties
+											}
 											aria-hidden="true"
 										/>
 									);
@@ -496,14 +542,17 @@ export function CrosswordPlay({ puzzle, onExit }: PlayProps) {
 								else if (checked && letter === cell.solution) bg = '#C9E3B0';
 								return (
 									<div
-										key={`${r}-${c}`}
+										key={`${puzzle.id}-${r}-${c}`}
 										role="gridcell"
-										className="crossword-cell"
-										style={{
-											background: bg,
-											borderColor: theme.borderSubtle,
-											color: isSelected ? theme.gridCellFocusedText : theme.gridCellText,
-										}}
+										className="crossword-cell puzzle-tile-enter"
+										style={
+											{
+												background: bg,
+												borderColor: theme.borderSubtle,
+												color: isSelected ? theme.gridCellFocusedText : theme.gridCellText,
+												'--tile-delay': tileDelay,
+											} as CSSProperties
+										}
 										onClick={() => selectCell(r, c)}
 										aria-label={`Row ${r + 1}, column ${c + 1}${letter ? `, ${letter}` : ', empty'}`}
 									>

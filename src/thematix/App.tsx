@@ -4,15 +4,17 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import confetti from 'canvas-confetti';
 import { GameMode, Puzzle, WordValidationStatus } from './types/game';
 import { DAILY_PUZZLES, getTodayPuzzle, getRandomPuzzle } from './data/puzzles';
 import {
   loadPuzzleProgress,
   savePuzzleProgress,
+  loadStats,
   recordWin,
   recordLoss,
 } from './utils/storage';
+import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
+import { triggerVictoryConfetti } from '@/lib/confetti';
 import { sound } from './utils/sound';
 import {
   getMsUntilNextLondonMidnight,
@@ -33,6 +35,7 @@ import {
   useUnifiedAuth,
   getCleanDisplayName,
   saveUnifiedLeaderboardScore,
+  getCurrentUserSessionPrefix,
 } from '@/lib/unified-game-auth';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 
@@ -126,6 +129,23 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authModalTab, setAuthModalTab] = useState<'account' | 'leaderboards'>('leaderboards');
   const { user: currentUser, authReady } = useUnifiedAuth();
+
+  const todayLondonDate = useMemo(() => getLondonDateString(), []);
+  const legacySolvedToday = useMemo(() => {
+    const todayP = getTodayPuzzle();
+    const savedToday = loadPuzzleProgress(todayP.id);
+    return Boolean(savedToday?.isSolved && !savedToday?.isGivenUp);
+  }, [isSolved, isGivenUp, puzzle.id]);
+  const legacyStreakCount = useMemo(
+    () => loadStats().currentStreak,
+    [isSolved, isGivenUp, puzzle.id]
+  );
+  const dailyStreak = useDailyStreak(
+    'thematix',
+    todayLondonDate,
+    legacySolvedToday,
+    legacyStreakCount
+  );
 
   // Sync solved puzzle score to unified Firestore leaderboard when user is signed in
   useEffect(() => {
@@ -243,18 +263,25 @@ export default function App() {
     [puzzle.id, puzzle.themeWord]
   );
 
-  const triggerConfetti = () => {
-    try {
-      confetti({
-        particleCount: 90,
-        spread: 80,
-        origin: { y: 0.6 },
+  const triggerConfetti = useCallback(
+    (guessesUsed: number) => {
+      const computedScore = Math.max(100, 1000 - guessesUsed * 35);
+      const bestKey = `mp_thematix_personal_best_${getCurrentUserSessionPrefix()}`;
+      let prevBest = 0;
+      try {
+        prevBest = Number(localStorage.getItem(bestKey) || '0') || 0;
+        if (computedScore > prevBest) {
+          localStorage.setItem(bestKey, String(computedScore));
+        }
+      } catch {}
+      triggerVictoryConfetti({
+        isDaily: puzzle.date === todayLondonDate,
+        isNewHighScore: prevBest > 0 && computedScore > prevBest,
         colors: ['#2ec4b6', '#c2b1cb', '#ffb703', '#ffffff', '#8338ec'],
       });
-    } catch {
-      // Fallback
-    }
-  };
+    },
+    [puzzle.date, todayLondonDate]
+  );
 
   // Check if puzzle is completely resolved (Theme Word + 6 Alphabetical Words)
   const checkWinCondition = useCallback(
@@ -353,8 +380,11 @@ export default function App() {
         setWordValidation(['correct', 'correct', 'correct', 'correct', 'correct', 'correct']);
         setThemeValidation('correct');
         sound.playWin();
-        triggerConfetti();
-        recordWin(newGuessesCount, puzzle.date);
+        triggerConfetti(newGuessesCount);
+        const updatedStats = recordWin(newGuessesCount, puzzle.date);
+        if (puzzle.date === todayLondonDate) {
+          recordDailyPuzzleSolved('thematix', todayLondonDate, updatedStats.currentStreak);
+        }
         persistProgress(newGuessed, newGuessesCount, nextFilledWords, nextThemeWord, true, false);
         setTimeout(() => setShowWinModal(true), 600);
       } else {
@@ -373,6 +403,7 @@ export default function App() {
       filledWords,
       filledThemeWord,
       puzzle.date,
+      todayLondonDate,
       persistProgress,
     ]
   );
@@ -820,8 +851,11 @@ export default function App() {
       if (solveRevertTimerRef.current) clearTimeout(solveRevertTimerRef.current);
       setIsSolved(true);
       sound.playWin();
-      triggerConfetti();
-      recordWin(letterGuessesCount, puzzle.date);
+      triggerConfetti(letterGuessesCount);
+      const updatedStats = recordWin(letterGuessesCount, puzzle.date);
+      if (puzzle.date === todayLondonDate) {
+        recordDailyPuzzleSolved('thematix', todayLondonDate, updatedStats.currentStreak);
+      }
       persistProgress(guessedLetters, letterGuessesCount, filledWords, filledThemeWord, true, false);
       setTimeout(() => setShowWinModal(true), 500);
     } else {
@@ -1085,6 +1119,8 @@ export default function App() {
         isSignedIn={Boolean(currentUser)}
         userDisplayName={currentUser ? getCleanDisplayName(currentUser) : undefined}
         onResetOrClose={handleReset}
+        dailyStreak={dailyStreak.streak}
+        solvedToday={dailyStreak.solvedToday}
       />
 
       {/* Main Play Area - Centered on screen */}
@@ -1095,6 +1131,7 @@ export default function App() {
         >
           {/* Left Side: Clue, Fillable Theme Word, Divider, 6 Alphabetical Words Grid, Speech Bubble */}
           <ThematikBoard
+            key={puzzle.id}
             themeClue={puzzle.themeClue}
             themeWord={puzzle.themeWord}
             filledThemeWord={filledThemeWord}

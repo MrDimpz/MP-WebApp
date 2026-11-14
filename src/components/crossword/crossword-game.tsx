@@ -6,8 +6,11 @@ import { CURATED_PUZZLES, getTodayIsoDate } from '@/data/puzzles';
 import {
 	formatClock,
 	loadLeaderboard,
+	loadProgress,
 	syncLocalCrosswordScoresToCloud,
 } from '@/lib/crossword-progress';
+import { useDailyStreak } from '@/lib/daily-streak';
+import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import {
 	useUnifiedAuth,
 	getCleanDisplayName,
@@ -41,13 +44,23 @@ export function CrosswordGame() {
 		}
 	}, [authReady, user]);
 
+	const todayIso = useMemo(() => getTodayIsoDate(), []);
+
 	const todaysPuzzle = useMemo(() => {
-		const today = getTodayIsoDate();
 		return (
-			CURATED_PUZZLES.find((p) => p.archiveDate === today && p.gridSize === 20) ??
+			CURATED_PUZZLES.find((p) => p.archiveDate === todayIso && p.gridSize === 20) ??
 			CURATED_PUZZLES[0]
 		);
-	}, []);
+	}, [todayIso]);
+
+	const solvedToday = useMemo(() => {
+		const progressMap = loadProgress();
+		return CURATED_PUZZLES.some(
+			(p) => (p.archiveDate === todayIso || p.editionDate === todayIso) && progressMap[p.id]?.solved,
+		);
+	}, [todayIso, view]);
+
+	const dailyStreak = useDailyStreak('crossword', todayIso, solvedToday);
 
 	const startPlay = (puzzle: PuzzleDefinition) => {
 		setActivePuzzle(puzzle);
@@ -75,18 +88,25 @@ export function CrosswordGame() {
 					<ArrowLeft size={16} /> Back to solo games
 				</Link>
 
-				<button
-					type="button"
-					onClick={() => setAuthModalOpen(true)}
-					className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2B0938] text-[#F6C915] border border-[#D4A437] text-xs font-bold shadow-xs hover:opacity-95 transition-opacity cursor-pointer"
-				>
-					{user ? <UserIcon size={15} /> : <LogIn size={15} />}
-					<span>
-						{user
-							? `${getCleanDisplayName(user)} · Solo Pass Active`
-							: 'Sign In (Google / Email) · Sync Scores'}
-					</span>
-				</button>
+				<div className="flex flex-wrap items-center gap-2">
+					<DailyStreakBadge
+						streak={dailyStreak.streak}
+						solvedToday={dailyStreak.solvedToday}
+						variant="light"
+					/>
+					<button
+						type="button"
+						onClick={() => setAuthModalOpen(true)}
+						className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2B0938] text-[#F6C915] border border-[#D4A437] text-xs font-bold shadow-xs hover:opacity-95 transition-opacity cursor-pointer"
+					>
+						{user ? <UserIcon size={15} /> : <LogIn size={15} />}
+						<span>
+							{user
+								? `${getCleanDisplayName(user)} · Solo Pass Active`
+								: 'Sign In (Google / Email) · Sync Scores'}
+						</span>
+					</button>
+				</div>
 			</div>
 
 			<div className="crossword-head">

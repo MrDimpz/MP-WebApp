@@ -6,6 +6,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router';
 import { getCurrentUserSessionPrefix } from '../lib/unified-game-auth';
+import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
+import { triggerVictoryConfetti } from '@/lib/confetti';
+import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import {
   RotateCw,
   Lightbulb,
@@ -150,6 +153,17 @@ export default function App() {
 
   const grid = basePuzzle.grid;
   const requiredWords = basePuzzle.requiredWords;
+  const isTodaySolved =
+    selectedDateStr === todayDateStr &&
+    requiredWords.size > 0 &&
+    foundWords.size >= requiredWords.size;
+  const dailyStreak = useDailyStreak('squared', todayDateStr, isTodaySolved);
+
+  useEffect(() => {
+    if (isTodaySolved) {
+      recordDailyPuzzleSolved('squared', todayDateStr);
+    }
+  }, [isTodaySolved, todayDateStr]);
 
   // Load saved progress whenever basePuzzle changes
   useEffect(() => {
@@ -324,9 +338,23 @@ export default function App() {
 
         // Check if 100% of required words are now uncovered
         if (nextFound.size === requiredWords.size) {
+          const bestKey = `mp_squared_personal_best_${getCurrentUserSessionPrefix()}`;
+          let prevBest = 0;
+          try {
+            prevBest = Number(localStorage.getItem(bestKey) || '0') || 0;
+            if (nextScore > prevBest) {
+              localStorage.setItem(bestKey, String(nextScore));
+            }
+          } catch {}
+          const isNewHighScore = prevBest > 0 && nextScore > prevBest;
+          const isDailyToday = selectedDateStr === todayDateStr;
           setTimeout(() => {
             soundEngine.playVictory();
             setGameState('VICTORY');
+            triggerVictoryConfetti({
+              isDaily: isDailyToday,
+              isNewHighScore,
+            });
           }, 650);
         }
         return;
@@ -637,8 +665,14 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right: Mode Switcher, LoggedInIndicator, High Scores/Auth, Board Dark Mode Toggle, Audio Mute & Menu */}
+          {/* Right: Daily Streak, Mode Switcher, LoggedInIndicator, High Scores/Auth, Board Dark Mode Toggle, Audio Mute & Menu */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            <DailyStreakBadge
+              streak={dailyStreak.streak}
+              solvedToday={dailyStreak.solvedToday}
+              variant="gold"
+              compact
+            />
             <LoggedInIndicator />
             {/* Mode Quick Switch on Desktop */}
             <div className="hidden xl:flex items-center gap-1 p-1 bg-black/30 rounded-lg border border-white/10 mr-1">

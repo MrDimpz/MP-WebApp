@@ -15,6 +15,7 @@ import {
 } from "../../lib/unified-game-auth";
 import { AdminPortalModal } from "./admin-portal-modal";
 import { UnifiedAuthModal } from "../solo-games/unified-auth-modal";
+import { getOverlayConfigFromLocation } from "../../lib/live-overlay";
 
 interface InteractiveStreamGateProps {
   gameTitle: string;
@@ -28,6 +29,17 @@ interface InteractiveStreamGateProps {
  * the Brand Logo links back to the Home screen (`/`).
  */
 export function InteractiveStreamGate({
+  gameTitle,
+  children,
+}: InteractiveStreamGateProps) {
+  const { isOverlay } = getOverlayConfigFromLocation();
+  if (isOverlay) {
+    return <>{children}</>;
+  }
+  return <InteractiveStreamGateInner gameTitle={gameTitle}>{children}</InteractiveStreamGateInner>;
+}
+
+function InteractiveStreamGateInner({
   gameTitle,
   children,
 }: InteractiveStreamGateProps) {

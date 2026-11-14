@@ -19,6 +19,7 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { auth, db } from "../firebase";
+import { triggerNewHighScoreConfetti } from "./confetti";
 
 export { auth, db, onAuthStateChanged };
 export type { User };
@@ -28,6 +29,7 @@ export type SoloGameId =
   | "squared"
   | "thematix"
   | "destack"
+  | "unolingo"
   | "cruciverbalist"
   | "crossword";
 
@@ -102,6 +104,7 @@ export const SOLO_GAME_LABELS: Record<
   squared: { title: "Squared", metric: "Words & Level Score" },
   thematix: { title: "Thematix", metric: "Total Campaign Score" },
   destack: { title: "DeStack", metric: "Daily Stack Score" },
+  unolingo: { title: "Unolingo", metric: "26-Letter Crossword Score" },
   cruciverbalist: {
     title: "Cruciverbalist Crossword",
     metric: "Crossword Rating",
@@ -605,8 +608,18 @@ function readLocalLeaderboards(): UnifiedLeaderboardEntry[] {
   }
 }
 
-function writeLocalLeaderboardEntry(entry: UnifiedLeaderboardEntry) {
-  if (typeof window === "undefined") return;
+export interface LeaderboardSaveResult {
+  isNewHighScore: boolean;
+  isFirstScore: boolean;
+  previousBest: number;
+}
+
+function writeLocalLeaderboardEntry(
+  entry: UnifiedLeaderboardEntry,
+): LeaderboardSaveResult {
+  if (typeof window === "undefined") {
+    return { isNewHighScore: false, isFirstScore: false, previousBest: 0 };
+  }
   try {
     const safeEntry: UnifiedLeaderboardEntry = {
       ...entry,
@@ -614,6 +627,10 @@ function writeLocalLeaderboardEntry(entry: UnifiedLeaderboardEntry) {
     };
     const all = readLocalLeaderboards();
     const idx = all.findIndex((item) => item.id === safeEntry.id);
+    const previousBest = idx >= 0 ? all[idx].score : 0;
+    const isFirstScore = idx === -1 && safeEntry.score > 0;
+    const isNewHighScore = idx >= 0 && safeEntry.score > previousBest;
+
     if (idx >= 0) {
       if (safeEntry.score >= all[idx].score) {
         all[idx] = safeEntry;
@@ -626,8 +643,9 @@ function writeLocalLeaderboardEntry(entry: UnifiedLeaderboardEntry) {
       JSON.stringify(all),
     );
     window.dispatchEvent(new Event("mp-unified-leaderboard-updated"));
+    return { isNewHighScore, isFirstScore, previousBest };
   } catch {
-    // Ignore localStorage quota errors
+    return { isNewHighScore: false, isFirstScore: false, previousBest: 0 };
   }
 }
 
@@ -926,9 +944,11 @@ export async function saveUnifiedLeaderboardScore(params: {
   score: number;
   metricLabel?: string;
   subMetricLabel?: string;
-}): Promise<void> {
+}): Promise<LeaderboardSaveResult> {
   const { gameId, score, metricLabel, user: passedUser } = params;
-  if (!Number.isFinite(score) || score <= 0) return;
+  if (!Number.isFinite(score) || score <= 0) {
+    return { isNewHighScore: false, isFirstScore: false, previousBest: 0 };
+  }
 
   const normalizedGameId: SoloGameId =
     gameId === "crossword" ? "cruciverbalist" : gameId;
@@ -959,9 +979,13 @@ export async function saveUnifiedLeaderboardScore(params: {
     updatedAt: Date.now(),
   };
 
-  writeLocalLeaderboardEntry(entry);
+  const result = writeLocalLeaderboardEntry(entry);
 
-  if (!auth.currentUser) return;
+  if (result.isNewHighScore) {
+    triggerNewHighScoreConfetti();
+  }
+
+  if (!auth.currentUser) return result;
 
   try {
     const docRef = doc(db, "leaderboards", entryId);
@@ -969,6 +993,8 @@ export async function saveUnifiedLeaderboardScore(params: {
   } catch {
     // Fallback to local storage if Firestore rules block or offline
   }
+
+  return result;
 }
 
 export function subscribeToAllLeaderboards(
@@ -984,6 +1010,7 @@ export function subscribeToAllLeaderboards(
       squared: [],
       thematix: [],
       destack: [],
+      unolingo: [],
       cruciverbalist: [],
       crossword: [],
     };

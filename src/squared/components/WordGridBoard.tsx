@@ -38,6 +38,14 @@ export const WordGridBoard: React.FC<WordGridBoardProps> = ({
   const isDraggingRef = useRef<boolean>(false);
   const [pointerLocalPos, setPointerLocalPos] = useState<{ x: number; y: number } | null>(null);
   const [boardPx, setBoardPx] = useState<number>(360);
+  const [isShaking, setIsShaking] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (shakeTrigger <= 0) return;
+    setIsShaking(true);
+    const timer = window.setTimeout(() => setIsShaking(false), 360);
+    return () => window.clearTimeout(timer);
+  }, [shakeTrigger]);
 
   const rotationAngle = rotationSteps * 90;
 
@@ -233,10 +241,7 @@ export const WordGridBoard: React.FC<WordGridBoardProps> = ({
   return (
     <div className="relative flex items-center justify-center select-none">
       {/* Shake wrapper */}
-      <div
-        key={shakeTrigger}
-        className={shakeTrigger > 0 ? 'animate-shake' : ''}
-      >
+      <div className={isShaking ? 'animate-shake' : ''}>
         {/* 5px Gold Outer Border + 5px White Ceramic Ring */}
         <div
           style={{
@@ -338,6 +343,7 @@ export const WordGridBoard: React.FC<WordGridBoardProps> = ({
 
             {/* Grid Cells */}
             <div
+              key={`${size}-${grid.join('')}`}
               className="grid w-full h-full"
               style={{
                 gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
@@ -363,12 +369,15 @@ export const WordGridBoard: React.FC<WordGridBoardProps> = ({
                       tileRefs.current[idx] = el;
                     }}
                     data-cell-index={idx}
+                    style={{
+                      '--tile-delay': `${(Math.floor(idx / size) + (idx % size)) * 28}ms`,
+                    } as React.CSSProperties}
                     title={
                       isDepleted
                         ? 'All required words using this tile have been found'
                         : `${remainingStarts} remaining words start here · ${remainingUses} remaining words pass through this tile (bottom pips)`
                     }
-                    className={`relative rounded-xl select-none transition-all duration-150 ${
+                    className={`puzzle-tile-enter relative rounded-xl select-none transition-all duration-150 ${
                       isSelected
                         ? 'z-10 scale-[1.04] bg-gradient-to-br from-[#FFE566] via-[#F6C915] to-[#D49B27] text-[#1D0830] shadow-[0_0_18px_rgba(246,201,21,0.55),inset_0_1px_2px_rgba(255,255,255,0.9)] border-2 border-[#FFFBEB]'
                         : isDepleted

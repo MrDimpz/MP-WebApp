@@ -185,9 +185,12 @@ export const BoggleGrid: React.FC<BoggleGridProps> = ({
       .join(' ');
   }, [activePath, rows, cols]);
 
+  const boardKey = useMemo(() => `${rows}x${cols}:${grid.join('')}`, [rows, cols, grid]);
+
   return (
     <section className="grid-wrap" id="grid-wrap">
       <div
+        key={boardKey}
         ref={gridRef}
         id="grid"
         className="grid"
@@ -224,7 +227,12 @@ export const BoggleGrid: React.FC<BoggleGridProps> = ({
           }
           if (isFlashed) {
             classes.push('flash');
+          } else {
+            classes.push('puzzle-tile-enter');
           }
+
+          const colCount = cols || 9;
+          const tileDelayMs = (Math.floor(idx / colCount) + (idx % colCount)) * 16;
 
           return (
             <div
@@ -236,6 +244,7 @@ export const BoggleGrid: React.FC<BoggleGridProps> = ({
                 e.preventDefault();
                 handleStartCell(idx);
               }}
+              style={{ '--tile-delay': `${tileDelayMs}ms` } as React.CSSProperties}
               className={classes.join(' ')}
             >
               {letter}

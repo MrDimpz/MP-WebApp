@@ -13,6 +13,8 @@ import {
   useUnifiedAuth,
   saveUnifiedLeaderboardScore,
 } from '@/lib/unified-game-auth';
+import { recordDailyPuzzleSolved } from '@/lib/daily-streak';
+import { triggerVictoryConfetti } from '@/lib/confetti';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import './index.css';
 
@@ -98,6 +100,15 @@ export default function App() {
   );
 
   const handleVictory = (timeSeconds: number, hintsUsed: number, score: number, words: string[]) => {
+    const prevBestScore = Math.max(
+      0,
+      ...Object.values(stats.completedDays || {}).map((d) => d.score || 0),
+      ...Object.values(stats.completedHardDays || {}).map((d) => d.score || 0)
+    );
+    const isNewBestScore = prevBestScore > 0 && score > prevBestScore;
+    const isNewBestTime = stats.bestTimeSeconds < 9999 && timeSeconds < stats.bestTimeSeconds;
+    const isDailyToday = selectedDateStr === todayDateStr;
+
     setVictoryData({
       timeSeconds,
       hintsUsed,
@@ -105,6 +116,15 @@ export default function App() {
       words,
       difficulty,
       layoutName: currentPuzzle.layoutName,
+    });
+
+    if (isDailyToday) {
+      recordDailyPuzzleSolved('destack', todayDateStr);
+    }
+
+    triggerVictoryConfetti({
+      isDaily: isDailyToday && layoutSelection === 'daily',
+      isNewHighScore: isNewBestScore || isNewBestTime,
     });
 
     void saveUnifiedLeaderboardScore({

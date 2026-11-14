@@ -38,6 +38,15 @@ import {
   creditInteractiveScoreByTikTokHandle,
   getCurrentUserSessionPrefix,
 } from '../lib/unified-game-auth';
+import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
+import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
+import {
+  getLocalTodayDateStr,
+  recordDailyPuzzleSolved,
+  useDailyStreak,
+} from '@/lib/daily-streak';
+import { triggerVictoryConfetti } from '@/lib/confetti';
+import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import './index.css';
 
 const STORAGE_NAME_KEY = 'wkt_display_name';
@@ -83,7 +92,24 @@ function getTargetCardHue(rank: number | null, totalRankedWords: number): string
   return `hsl(${hue.toFixed(1)}, 70%, 55%)`;
 }
 
+interface MarqueeDanmakuItem {
+  uid: string;
+  word: string;
+  displayName: string;
+  profileImage: string | null;
+  badge: string;
+  result: string;
+  cells: number[];
+  topPx: number;
+  durationMs: number;
+  delayMs: number;
+  travelPx: number;
+}
+
 export default function App() {
+  const { isOverlay, bg: overlayBg, streamer: overlayStreamer } = useOverlayConfig();
+  const hasReceivedHostSyncRef = useRef(false);
+
   const [mode, setMode] = useState<GameMode>(() => {
     if (typeof window !== 'undefined' && window.location.pathname === '/solo') {
       return 'daily-solo';
@@ -92,19 +118,29 @@ export default function App() {
   });
 
   const [gameState, setGameState] = useState<PublicGameState | null>(null);
+  const todayDateStr = useMemo(() => getLocalTodayDateStr(), []);
+  const dailyStreak = useDailyStreak('wikirec', todayDateStr);
+
+  useEffect(() => {
+    if (!isOverlay && gameState?.isComplete) {
+      recordDailyPuzzleSolved('wikirec', todayDateStr);
+    }
+  }, [isOverlay, gameState?.isComplete, todayDateStr]);
 
   const localGameRef = useRef<WiKirecGame | null>(null);
 
   const initLocalGame = useCallback(async (selectedMode: GameMode) => {
+    if (isOverlay && hasReceivedHostSyncRef.current) return;
     try {
       const game = await createNewGameInstance(selectedMode);
+      if (isOverlay && hasReceivedHostSyncRef.current) return;
       localGameRef.current = game;
       const next = game.getPublicState();
       setGameState(next);
     } catch (e) {
       console.warn('Local game fallback error:', e);
     }
-  }, []);
+  }, [isOverlay]);
 
   useEffect(() => {
     initLocalGame(mode);
@@ -133,6 +169,12 @@ export default function App() {
   const [guessInput, setGuessInput] = useState('');
   const [swipePreview, setSwipePreview] = useState('');
   const [flashedCells, setFlashedCells] = useState<number[]>([]);
+  const marqueeCardRef = useRef<HTMLDivElement | null>(null);
+  const seenMarqueeTagIdsRef = useRef<Set<string>>(new Set());
+  const marqueeRoundIdRef = useRef<string | null>(null);
+  const laneFreeAtRef = useRef<number[]>([0, 0, 0]);
+  const marqueeHoverStartRef = useRef<number | null>(null);
+  const [marqueeItems, setMarqueeItems] = useState<MarqueeDanmakuItem[]>([]);
   const [wordAnnounce, setWordAnnounce] = useState<{
     word: string;
     points: number;
@@ -587,6 +629,25 @@ export default function App() {
       });
     }
 
+    // Standalone overlay auto-connect when opened directly with ?streamer=handle and no host tab synced
+    let standaloneConnectTimer: ReturnType<typeof setTimeout> | null = null;
+    if (isOverlay && overlayStreamer) {
+      const cleanOverlayStreamer = overlayStreamer.replace(/^@+/, '').trim();
+      if (cleanOverlayStreamer) {
+        standaloneConnectTimer = setTimeout(() => {
+          if (!hasReceivedHostSyncRef.current) {
+            triggerResilientConnect(socket, {
+              username: cleanOverlayStreamer,
+              isTestMode: false,
+              provider: 'tikfinity',
+              sessionId: getCurrentUserSessionPrefix(),
+              gameId: 'wikirec',
+            });
+          }
+        }, 1200);
+      }
+    }
+
     socket.on('tiktok-connected', (payload: { username: string; roomId: string; gameId?: string }) => {
       if (!payload.gameId || payload.gameId === 'wikirec') {
         lastActivityRef.current = Date.now();
@@ -695,6 +756,10 @@ export default function App() {
         ? normalizedPfp
         : `https://i.pravatar.cc/150?u=${encodeURIComponent(viewerUsername || viewerDisplay)}`;
 
+      if (isOverlay && hasReceivedHostSyncRef.current) {
+        return;
+      }
+
       if (rawComment.toLowerCase() === '!hint' && localGameRef.current) {
         localGameRef.current.requestHint();
         setGameState(localGameRef.current.getPublicState());
@@ -772,6 +837,21 @@ export default function App() {
         setGameState(updatedState);
         if (updatedState.isComplete && !prevCompleteRef.current) {
           sfx.playRoundWin();
+          if (!isOverlay) {
+            const topScore = updatedState.topPlayers?.[0]?.score || 0;
+            const bestKey = `mp_wikirec_best_score_${getCurrentUserSessionPrefix()}`;
+            let prevBest = 0;
+            try {
+              prevBest = Number(localStorage.getItem(bestKey) || '0') || 0;
+              if (topScore > prevBest) {
+                localStorage.setItem(bestKey, String(topScore));
+              }
+            } catch {}
+            triggerVictoryConfetti({
+              isDaily: mode === 'daily-solo',
+              isNewHighScore: prevBest > 0 && topScore > prevBest,
+            });
+          }
         }
         prevCompleteRef.current = !!updatedState.isComplete;
       }
@@ -856,11 +936,12 @@ export default function App() {
     });
 
     return () => {
+      if (standaloneConnectTimer) clearTimeout(standaloneConnectTimer);
       detachBridge();
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [triggerWordAnnounce]);
+  }, [triggerWordAnnounce, isOverlay, overlayStreamer]);
 
   const switchMode = useCallback(
     (nextMode: GameMode) => {
@@ -895,6 +976,21 @@ export default function App() {
         setGameState(nextState);
         if (nextState.isComplete && !prevCompleteRef.current) {
           sfx.playRoundWin();
+          if (!isOverlay) {
+            const topScore = nextState.topPlayers?.[0]?.score || 0;
+            const bestKey = `mp_wikirec_best_score_${getCurrentUserSessionPrefix()}`;
+            let prevBest = 0;
+            try {
+              prevBest = Number(localStorage.getItem(bestKey) || '0') || 0;
+              if (topScore > prevBest) {
+                localStorage.setItem(bestKey, String(topScore));
+              }
+            } catch {}
+            triggerVictoryConfetti({
+              isDaily: mode === 'daily-solo',
+              isNewHighScore: prevBest > 0 && topScore > prevBest,
+            });
+          }
         }
         prevCompleteRef.current = !!nextState.isComplete;
 
@@ -1005,66 +1101,115 @@ export default function App() {
     return [list[0] || null, list[1] || null, list[2] || null];
   }, [gameState?.topPlayers]);
 
-  const latestFoundWord = gameState?.foundWords?.[0] || null;
-  const lastTag =
-    gameState?.recentTags && gameState.recentTags.length > 0
-      ? gameState.recentTags[gameState.recentTags.length - 1]
-      : null;
-  const firstRevealedTarget = useMemo(() => {
-    return (gameState?.targets || []).find((t) => t.revealed && t.word && t.finder) || null;
-  }, [gameState?.targets]);
+  useEffect(() => {
+    const roundId = gameState?.roundId || null;
+    if (roundId !== marqueeRoundIdRef.current) {
+      marqueeRoundIdRef.current = roundId;
+      seenMarqueeTagIdsRef.current.clear();
+      laneFreeAtRef.current = [0, 0, 0];
+      setMarqueeItems([]);
+    }
 
-  const lastGuessEntry = useMemo(() => {
-    if (lastTag) {
-      return {
-        word: lastTag.word.toUpperCase(),
-        displayName: lastTag.displayName || displayName,
-        platform: lastTag.platform || 'web',
-        profileImage: lastTag.profileImage,
-        badge:
-          lastTag.points && lastTag.points > 0
-            ? `+${lastTag.points.toLocaleString()}`
-            : lastTag.rank != null
-            ? `#${formatRank(lastTag.rank)}`
-            : lastTag.result === 'already_found'
-            ? 'DUP'
-            : '',
-        cells:
-          latestFoundWord &&
-          latestFoundWord.word.toLowerCase() === lastTag.word.toLowerCase()
-            ? latestFoundWord.cells
-            : [],
-      };
+    const tags = gameState?.recentTags || [];
+    if (tags.length === 0) return;
+
+    const foundCellLookup = new Map<string, number[]>();
+    for (const fw of gameState?.foundWords || []) {
+      foundCellLookup.set(fw.word.toLowerCase(), fw.cells || []);
     }
-    if (latestFoundWord) {
-      return {
-        word: latestFoundWord.word.toUpperCase(),
-        displayName: latestFoundWord.displayName || displayName,
-        platform: latestFoundWord.platform || 'web',
-        profileImage: latestFoundWord.profileImage,
-        badge: `+${latestFoundWord.points.toLocaleString()}`,
-        cells: latestFoundWord.cells,
-      };
+
+    const LANE_TOPS = [7, 48, 89];
+    const SPEED_PX_PER_MS = 0.088;
+    const MIN_HORIZONTAL_GAP_PX = 28;
+    const stageW = marqueeCardRef.current?.clientWidth || 490;
+    const now = performance.now();
+    const newItems: MarqueeDanmakuItem[] = [];
+
+    for (let idx = 0; idx < tags.length; idx++) {
+      const tag = tags[idx];
+      const tagKey = tag.id || `${tag.word}-${tag.ts}-${tag.displayName}-${idx}`;
+      if (seenMarqueeTagIdsRef.current.has(tagKey)) continue;
+      seenMarqueeTagIdsRef.current.add(tagKey);
+
+      const wordUpper = tag.word.toUpperCase();
+      const rawFinder = tag.displayName || displayName || 'You';
+      const cleanFinder = rawFinder.replace(/^@/, '');
+      const badge =
+        tag.points && tag.points > 0
+          ? `+${tag.points.toLocaleString()}`
+          : tag.rank != null
+          ? `#${formatRank(tag.rank)}`
+          : tag.result === 'already_found'
+          ? 'DUP'
+          : tag.result === 'miss_in_article'
+          ? 'WIKI'
+          : '';
+
+      const estWidthPx = Math.ceil(
+        64 +
+          wordUpper.length * 11.5 +
+          Math.min(110, cleanFinder.length * 8.5) +
+          (badge ? badge.length * 8.5 + 10 : 0)
+      );
+
+      const freeLanes: number[] = [];
+      let earliestFreeAt = Infinity;
+      for (let l = 0; l < LANE_TOPS.length; l++) {
+        const freeAt = laneFreeAtRef.current[l];
+        if (freeAt <= now) {
+          freeLanes.push(l);
+        }
+        if (freeAt < earliestFreeAt) {
+          earliestFreeAt = freeAt;
+        }
+      }
+
+      let chosenLane: number;
+      if (freeLanes.length > 0) {
+        chosenLane = freeLanes[Math.floor(Math.random() * freeLanes.length)];
+      } else {
+        const nearEarliest = LANE_TOPS.map((_, l) => l).filter(
+          (l) => laneFreeAtRef.current[l] <= earliestFreeAt + 180
+        );
+        chosenLane = nearEarliest[Math.floor(Math.random() * nearEarliest.length)];
+      }
+
+      const launchAt = Math.max(now, laneFreeAtRef.current[chosenLane]);
+      const delayMs = Math.max(0, Math.round(launchAt - now));
+      const clearRightEdgeMs = (estWidthPx + MIN_HORIZONTAL_GAP_PX) / SPEED_PX_PER_MS;
+      laneFreeAtRef.current[chosenLane] = launchAt + clearRightEdgeMs;
+
+      const jitter = Math.round((Math.random() - 0.5) * 4);
+      const topPx = LANE_TOPS[chosenLane] + jitter;
+      const travelPx = stageW + estWidthPx + 40;
+      const durationMs = Math.round(travelPx / SPEED_PX_PER_MS);
+
+      newItems.push({
+        uid: `${tagKey}-${Math.random().toString(36).slice(2, 6)}`,
+        word: wordUpper,
+        displayName: rawFinder,
+        profileImage: tag.profileImage || null,
+        badge,
+        result: tag.result,
+        cells: foundCellLookup.get(tag.word.toLowerCase()) || [],
+        topPx,
+        durationMs,
+        delayMs,
+        travelPx,
+      });
     }
-    if (firstRevealedTarget && firstRevealedTarget.word && firstRevealedTarget.finder) {
-      return {
-        word: firstRevealedTarget.word.toUpperCase(),
-        displayName: firstRevealedTarget.finder.displayName || displayName,
-        platform: firstRevealedTarget.finder.platform || 'web',
-        profileImage: firstRevealedTarget.finder.profileImage,
-        badge: `#${formatRank(firstRevealedTarget.rank)}`,
-        cells: [],
-      };
+
+    if (seenMarqueeTagIdsRef.current.size > 400) {
+      const activeIds = new Set(
+        tags.map((t, idx) => t.id || `${t.word}-${t.ts}-${t.displayName}-${idx}`)
+      );
+      seenMarqueeTagIdsRef.current = activeIds;
     }
-    return {
-      word: (swipePreview || guessInput || '—').toUpperCase(),
-      displayName: displayName || 'You',
-      platform: 'web' as const,
-      profileImage: null,
-      badge: '',
-      cells: [],
-    };
-  }, [lastTag, latestFoundWord, firstRevealedTarget, swipePreview, guessInput, displayName]);
+
+    if (newItems.length > 0) {
+      setMarqueeItems((prev) => [...prev, ...newItems]);
+    }
+  }, [gameState?.roundId, gameState?.recentTags, gameState?.foundWords, displayName]);
 
   const searchWordGroups = useMemo(() => {
     const all = gameState?.searchWords || [];
@@ -1126,8 +1271,55 @@ export default function App() {
   const showVictoryModal =
     gameState?.isComplete && dismissedRoundId !== gameState.roundId;
 
+  const syncedSnapshot = useMemo(
+    () =>
+      !isOverlay && gameState
+        ? {
+            gameState,
+            flashedCells,
+            wordAnnounce,
+          }
+        : null,
+    [isOverlay, gameState, flashedCells, wordAnnounce]
+  );
+
+  useOverlaySync<{
+    gameState: PublicGameState | null;
+    flashedCells: number[];
+    wordAnnounce: {
+      word: string;
+      points: number;
+      finderName: string;
+      visible: boolean;
+    };
+  }>({
+    gameId: 'wikirec',
+    streamer:
+      overlayStreamer ||
+      authorizedStreamer?.username ||
+      tiktokStatus.username ||
+      undefined,
+    isOverlay,
+    localState: syncedSnapshot,
+    onSyncedState: useCallback((remote) => {
+      if (!remote || !remote.gameState) return;
+      hasReceivedHostSyncRef.current = true;
+      setGameState(remote.gameState);
+      if (Array.isArray(remote.flashedCells)) {
+        setFlashedCells(remote.flashedCells);
+      }
+      if (remote.wordAnnounce) {
+        setWordAnnounce(remote.wordAnnounce);
+      }
+    }, []),
+  });
+
   return (
-    <div className="wikirec-root">
+    <div
+      className={`wikirec-root ${isOverlay ? 'wikirec-overlay' : ''} ${
+        isOverlay && overlayBg === 'transparent' ? 'wikirec-overlay-transparent' : ''
+      }`}
+    >
       {logoutNotice && (
         <div
           style={{
@@ -1167,6 +1359,7 @@ export default function App() {
       )}
 
       {/* Top Account & Navigation Bar */}
+      {!isOverlay && (
       <div
         style={{
           width: '100%',
@@ -1210,12 +1403,20 @@ export default function App() {
           </Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <LiveOverlayButton
+            gameTitle="WiKirecTangled"
+            gameSlug="wikirec"
+            streamerHandle={authorizedStreamer?.username || tiktokStatus.username}
+            recommendedSize="540 × 1080 or 1080 × 1920"
+          />
           <LoggedInIndicator />
         </div>
       </div>
+      )}
 
       <div className="app-stage">
-        {/* LEFT BOX: TIKTOK LIVE CONNECT & LIVE CHAT STREAM (Always visible) */}
+        {/* LEFT BOX: TIKTOK LIVE CONNECT & LIVE CHAT STREAM (Always visible in host view) */}
+        {!isOverlay && (
         <aside className="side-box left-chat-box" aria-label="TikTok Live Connect & Chat Stream">
           <div className="side-box-header">
             <div className="side-box-title">
@@ -1606,6 +1807,7 @@ export default function App() {
             </button>
           </div>
         </aside>
+        )}
 
         {/* CENTER COLUMN: MAIN WIKIRECTANGLED GAME */}
         <div className="game-center-col">
@@ -1653,90 +1855,100 @@ export default function App() {
               </span>
             </div>
 
-            {/* Hint button */}
-            <button
-              type="button"
-              onClick={handleRequestHint}
-              className="mute-toggle"
-              title="Reveal a tile hint"
-              aria-label="Reveal Hint"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 18h6" />
-                <path d="M10 22h4" />
-                <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
-              </svg>
-            </button>
+            {!isOverlay && (
+              <>
+                <DailyStreakBadge
+                  streak={dailyStreak.streak}
+                  solvedToday={dailyStreak.solvedToday}
+                  variant="gold"
+                  compact
+                />
+                {/* Hint button */}
+                <button
+                  type="button"
+                  onClick={handleRequestHint}
+                  className="mute-toggle"
+                  title="Reveal a tile hint"
+                  aria-label="Reveal Hint"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 18h6" />
+                    <path d="M10 22h4" />
+                    <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
+                  </svg>
+                </button>
 
-            {/* TikTok Live Chat & Streamer Relay Button */}
-            <button
-              type="button"
-              onClick={handleOpenTikTokLive}
-              className={`tiktok-pill-btn ${tiktokStatus.connected ? 'live' : ''} ${authorizedStreamer ? 'authorized' : ''}`}
-              title={
-                authorizedStreamer
-                  ? `Logged in as @${authorizedStreamer.username} · Open TikTok Live Hub`
-                  : 'Log in with registered @username and key to open TikTok Live'
-              }
-            >
-              <span>
-                {tiktokStatus.connected && tiktokStatus.username
-                  ? `● @${tiktokStatus.username}`
-                  : authorizedStreamer
-                  ? `Connect @${authorizedStreamer.username}`
-                  : 'Connect Live'}
-              </span>
-              {tiktokStatus.guessesFromChat > 0 && (
-                <span>({tiktokStatus.guessesFromChat})</span>
-              )}
-            </button>
+                {/* TikTok Live Chat & Streamer Relay Button */}
+                <button
+                  type="button"
+                  onClick={handleOpenTikTokLive}
+                  className={`tiktok-pill-btn ${tiktokStatus.connected ? 'live' : ''} ${authorizedStreamer ? 'authorized' : ''}`}
+                  title={
+                    authorizedStreamer
+                      ? `Logged in as @${authorizedStreamer.username} · Open TikTok Live Hub`
+                      : 'Log in with registered @username and key to open TikTok Live'
+                  }
+                >
+                  <span>
+                    {tiktokStatus.connected && tiktokStatus.username
+                      ? `● @${tiktokStatus.username}`
+                      : authorizedStreamer
+                      ? `Connect @${authorizedStreamer.username}`
+                      : 'Connect Live'}
+                  </span>
+                  {tiktokStatus.guessesFromChat > 0 && (
+                    <span>({tiktokStatus.guessesFromChat})</span>
+                  )}
+                </button>
 
-        {/* Sound Mute Toggle */}
-        <button
-          className={`mute-toggle ${muted ? 'muted' : ''}`}
-          id="muteToggle"
-          type="button"
-          onClick={() => setMuted(sfx.toggleMute())}
-          aria-pressed={muted}
-          aria-label="Toggle sound"
-        >
-          {!muted ? (
-            <svg
-              className="icon-sound"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
-            </svg>
-          ) : (
-            <svg
-              className="icon-muted"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <line x1="22" y1="9" x2="16" y2="15" />
-              <line x1="16" y1="9" x2="22" y2="15" />
-            </svg>
-          )}
-        </button>
-      </header>
+                {/* Sound Mute Toggle */}
+                <button
+                  className={`mute-toggle ${muted ? 'muted' : ''}`}
+                  id="muteToggle"
+                  type="button"
+                  onClick={() => setMuted(sfx.toggleMute())}
+                  aria-pressed={muted}
+                  aria-label="Toggle sound"
+                >
+                  {!muted ? (
+                    <svg
+                      className="icon-sound"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="icon-muted"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                      <line x1="22" y1="9" x2="16" y2="15" />
+                      <line x1="16" y1="9" x2="22" y2="15" />
+                    </svg>
+                  )}
+                </button>
+              </>
+            )}
+          </header>
 
       {/* MAIN 2-COLUMN LAYOUT — Exact wikirectangled.com structure */}
       <main className="layout">
@@ -1912,47 +2124,6 @@ export default function App() {
           </div>
         </section>
 
-        {/* LAST GUESS CARD (Always shows last guess with icon, name, and guess) */}
-        <div className="found-words-card" id="found-words-card">
-          <div className="found-words-list" id="found-words-list">
-            <div
-              className="found-word-item"
-              onMouseEnter={() => {
-                if (lastGuessEntry.cells.length > 0) {
-                  setFlashedCells(lastGuessEntry.cells);
-                }
-              }}
-              onMouseLeave={() => setFlashedCells([])}
-            >
-              <span className="fw-avatar-wrap">
-                <img
-                  src={
-                    lastGuessEntry.profileImage && lastGuessEntry.profileImage.startsWith('http')
-                      ? lastGuessEntry.profileImage
-                      : `https://i.pravatar.cc/150?u=${encodeURIComponent(lastGuessEntry.displayName || 'Player')}`
-                  }
-                  alt={lastGuessEntry.displayName}
-                  referrerPolicy="no-referrer"
-                  className="fw-fallback"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    const fallback = `https://i.pravatar.cc/150?u=${encodeURIComponent(lastGuessEntry.displayName || 'Player')}`;
-                    if (target.src !== fallback) {
-                      target.src = fallback;
-                    }
-                  }}
-                />
-              </span>
-              <span className="fw-word">{lastGuessEntry.word}</span>
-              <span className="fw-finder-wrap">
-                <span className="fw-finder">
-                  {(lastGuessEntry.displayName || 'You').replace(/^@/, '')}
-                </span>
-              </span>
-              <span className="fw-pts">{lastGuessEntry.badge}</span>
-            </div>
-          </div>
-        </div>
       </main>
 
       {/* 9x5 BOGGLE KEYCAP LETTER GRID */}
@@ -1969,7 +2140,102 @@ export default function App() {
         onSwipePreviewChange={setSwipePreview}
       />
 
-      {/* COMPOSER */}
+      {/* 3X HEIGHT SINGLE-PASS NON-OVERLAPPING ANSWER MARQUEE (Between board and guess entry box) */}
+      <div
+        ref={marqueeCardRef}
+        className="found-words-card"
+        id="found-words-card"
+        aria-live="polite"
+        onMouseEnter={() => {
+          marqueeHoverStartRef.current = performance.now();
+        }}
+        onMouseLeave={() => {
+          if (marqueeHoverStartRef.current !== null) {
+            const pausedMs = performance.now() - marqueeHoverStartRef.current;
+            marqueeHoverStartRef.current = null;
+            laneFreeAtRef.current = laneFreeAtRef.current.map((t) =>
+              t > 0 ? t + pausedMs : 0
+            );
+          }
+          setFlashedCells([]);
+        }}
+      >
+        {marqueeItems.length === 0 ? (
+          <div className="found-word-empty">
+            {swipePreview || guessInput
+              ? `Preview: ${(swipePreview || guessInput).toUpperCase()}`
+              : 'Submitted answers scroll here...'}
+          </div>
+        ) : (
+          <div className="fw-marquee-stage" id="found-words-list">
+            {marqueeItems.map((item) => {
+              const cleanFinder = (item.displayName || 'You').replace(/^@/, '');
+              const fallbackUrl = `https://i.pravatar.cc/150?u=${encodeURIComponent(cleanFinder)}`;
+              const itemVars = {
+                '--wk-top': `${item.topPx}px`,
+                '--wk-dur': `${item.durationMs}ms`,
+                '--wk-delay': `${item.delayMs}ms`,
+                '--wk-travel': `${item.travelPx}px`,
+              } as React.CSSProperties;
+              return (
+                <div
+                  key={item.uid}
+                  style={itemVars}
+                  className={`found-word-item wk-danmaku-item ${
+                    item.cells.length > 0 ? 'is-flashable' : ''
+                  }`}
+                  onAnimationEnd={() => {
+                    setMarqueeItems((prev) => prev.filter((x) => x.uid !== item.uid));
+                  }}
+                  onMouseEnter={() => {
+                    if (item.cells.length > 0) {
+                      setFlashedCells(item.cells);
+                    }
+                  }}
+                  onMouseLeave={() => setFlashedCells([])}
+                >
+                  <span className="fw-avatar-wrap">
+                    <img
+                      src={
+                        item.profileImage && item.profileImage.startsWith('http')
+                          ? item.profileImage
+                          : fallbackUrl
+                      }
+                      alt={cleanFinder}
+                      referrerPolicy="no-referrer"
+                      className="fw-fallback"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (target.src !== fallbackUrl) {
+                          target.src = fallbackUrl;
+                        }
+                      }}
+                    />
+                  </span>
+                  <span className="fw-word">{item.word}</span>
+                  <span className="fw-finder">{cleanFinder}</span>
+                  {item.badge && (
+                    <span
+                      className={`fw-pts ${
+                        item.result === 'already_found'
+                          ? 'is-dup'
+                          : !item.badge.startsWith('+')
+                          ? 'is-neutral'
+                          : ''
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* COMPOSER (hidden in LIVE Studio overlay) */}
+      {!isOverlay && (
       <form
         className="composer"
         id="composer"
@@ -2006,6 +2272,7 @@ export default function App() {
           </button>
         )}
       </form>
+      )}
 
       {/* WIN-CONDITION STRIP (T, C, R, U) */}
       <div className="win-strip" id="win-strip">
@@ -2043,7 +2310,9 @@ export default function App() {
         </span>
       </div>
 
-      {/* PLAYER STRIP — Exact wikirectangled.com footer links */}
+      {/* PLAYER STRIP & FOOTER (hidden in LIVE Studio overlay) */}
+      {!isOverlay && (
+      <>
       <div className="player-strip">
         {isEditingName ? (
           <form
@@ -2132,9 +2401,12 @@ export default function App() {
         </button>{' '}
         &middot; <span>&copy; 2026 Word Tycoon</span>
       </footer>
+      </>
+      )}
         </div>
 
-        {/* RIGHT BOX: WORDS BEING LOOKED FOR (50px gap to the right of the game) */}
+        {/* RIGHT BOX: WORDS BEING LOOKED FOR (hidden in LIVE Studio overlay) */}
+        {!isOverlay && (
         <aside className="side-box right-words-box" aria-label="Words Being Looked For">
           <div className="side-box-header">
             <div className="side-box-title">
@@ -2287,6 +2559,7 @@ export default function App() {
             </div>
           </div>
         </aside>
+        )}
       </div>
 
       {/* WORD ANNOUNCE SLIDE-DOWN TOAST */}
@@ -2373,6 +2646,7 @@ export default function App() {
                 Next round in {gameState.roundEndCountdownSec}s
               </div>
             )}
+            {!isOverlay && (
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               <button
                 type="button"
@@ -2407,10 +2681,13 @@ export default function App() {
                 Play again
               </button>
             </div>
+            )}
           </div>
         </div>
       )}
 
+      {!isOverlay && (
+      <>
       {/* TIKTOK LIVE INTERACTIVITY DRAWER */}
       <TikTokLivePanel
         status={tiktokStatus}
@@ -2450,6 +2727,8 @@ export default function App() {
         currentAdminUser={adminSession?.username || 'Admin'}
         onLogoutAdmin={handleAdminLogout}
       />
+      </>
+      )}
     </div>
   );
 }

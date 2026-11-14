@@ -326,7 +326,7 @@
 }
 
 .animate-tile-pop {
-  animation: tilePop 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: tilePop 260ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .animate-word-celebrate {

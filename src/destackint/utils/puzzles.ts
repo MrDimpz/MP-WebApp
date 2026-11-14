@@ -260,6 +260,22 @@ const WORD_BANK = RAW_WORD_BANK.filter(item => {
   return true;
 });
 
+const WORD_MASKS = new Uint32Array(WORD_BANK.length);
+const WORD_FIRST_BITS = new Uint32Array(WORD_BANK.length);
+const WORD_CHAR_BITS = new Uint32Array(WORD_BANK.length * 5);
+
+for (let i = 0; i < WORD_BANK.length; i++) {
+  const w = WORD_BANK[i].word;
+  let mask = 0;
+  for (let k = 0; k < 5; k++) {
+    const bit = 1 << (w.charCodeAt(k) - 65);
+    WORD_CHAR_BITS[i * 5 + k] = bit;
+    mask |= bit;
+    if (k === 0) WORD_FIRST_BITS[i] = bit;
+  }
+  WORD_MASKS[i] = mask;
+}
+
 // Deterministic PRNG (Mulberry32)
 function createPRNG(seed: number) {
   let a = seed;
@@ -295,14 +311,13 @@ export function generateDailyPuzzle(
 ): WordPuzzle {
   const seedKey =
     roundSeed > 0
-      ? `${dateStr}-${difficulty}-${layoutMode}-round-${roundSeed}`
-      : `${dateStr}-${difficulty}-${layoutMode}`;
-  let hash = 2166136261;
+      ? `${dateStr}-${difficulty}-${layoutMode}-round-${roundSeed}-V4`
+      : `${dateStr}-${difficulty}-${layoutMode}-V4`;
+  let baseHash = 2166136261;
   for (let i = 0; i < seedKey.length; i++) {
-    hash ^= seedKey.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
+    baseHash ^= seedKey.charCodeAt(i);
+    baseHash = Math.imul(baseHash, 16777619);
   }
-  const rng = createPRNG(hash);
 
   const patternSeedDate = roundSeed > 0 ? `${dateStr}-r${roundSeed}` : dateStr;
   const pattern = getPatternForMode(difficulty, layoutMode, patternSeedDate);
@@ -325,292 +340,287 @@ export function generateDailyPuzzle(
     return covering;
   });
 
-  // Step 1: Build a balanced cascading unstacking sequence `slotOrder[0 .. totalSlots-1]`:
-  // - Within each 5-letter word, the first picks clear oldest-exposed / highest-layer tiles so no tile lingers across many words,
-  //   while the later picks in the word select newly uncovered tiles so each word requires unstacking step-by-step!
-  const slotOrder: number[] = [];
-  const exposedAtStep: number[][] = [];
-  const removedSlots = new Set<number>();
-  const exposedSinceStep: number[] = new Array(totalSlots).fill(-1);
+  const coversIndices: number[][] = pattern.map((_, i) =>
+    coveredByIndices
+      .map((cs, j) => (cs.includes(i) ? j : -1))
+      .filter(j => j >= 0)
+  );
 
-  // Mark initially uncovered slots at step 0
-  for (let s = 0; s < totalSlots; s++) {
-    if (coveredByIndices[s].length === 0) {
-      exposedSinceStep[s] = 0;
-    }
-  }
+  const clearedFlags = new Uint8Array(totalSlots);
+  const assignedStepLetters: string[] = new Array(totalSlots).fill('');
+  const assignedStepBits = new Uint32Array(totalSlots);
+  const assignedSlotLetters: string[] = new Array(totalSlots).fill('');
+  const chosenWordBankIndices: number[] = new Array(wordCount).fill(0);
+  const usedBankSet = new Uint8Array(WORD_BANK.length);
 
-  let prevPickedSlot: number | null = null;
+  let finalAssignedSlotLetters: string[] | null = null;
+  let finalChosenWordBankIndices: number[] | null = null;
 
-  for (let step = 0; step < totalSlots; step++) {
-    const currentlyExposed: number[] = [];
-    for (let s = 0; s < totalSlots; s++) {
-      if (removedSlots.has(s)) continue;
-      if (coveredByIndices[s].every(cov => removedSlots.has(cov))) {
-        if (exposedSinceStep[s] === -1) {
-          exposedSinceStep[s] = step;
-        }
-        currentlyExposed.push(s);
-      }
-    }
-    exposedAtStep.push(currentlyExposed);
+  const MAX_ATTEMPTS = 240;
+  const MAX_SEARCH_CALLS = 140;
+  const MAX_BRANCH_TRIES = 3;
 
-    const kInWord = step % 5; // 0..4
-    const wordStartStep = step - kInWord;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const rng = createPRNG((baseHash + Math.imul(attempt, 2654435761)) >>> 0);
 
-    const scoredCandidates = currentlyExposed.map(s => {
-      let newlyUncoveredCount = 0;
-      for (let sub = 0; sub < totalSlots; sub++) {
-        if (removedSlots.has(sub) || sub === s) continue;
-        if (!coveredByIndices[sub].includes(s)) continue;
-        const allOthersRemoved = coveredByIndices[sub].every(
-          cov => cov === s || removedSlots.has(cov)
-        );
-        if (allOthersRemoved) {
-          newlyUncoveredCount++;
+    // Step 1: Build a narrow-frontier unstacking sequence `slotOrder[0 .. totalSlots-1]`
+    const slotOrder: number[] = [];
+    const exposedAtStep: number[][] = [];
+    const removedSlots = new Set<number>();
+
+    for (let step = 0; step < totalSlots; step++) {
+      const currentlyExposed: number[] = [];
+      for (let s = 0; s < totalSlots; s++) {
+        if (removedSlots.has(s)) continue;
+        if (coveredByIndices[s].every(cov => removedSlots.has(cov))) {
+          currentlyExposed.push(s);
         }
       }
+      exposedAtStep.push(currentlyExposed);
 
-      const age = step - exposedSinceStep[s];
-      const uncoveredInCurrentWord = exposedSinceStep[s] > wordStartStep ? 1 : 0;
-      const distToPrev =
-        prevPickedSlot !== null
-          ? Math.hypot(
-              pattern[s].gridX - pattern[prevPickedSlot].gridX,
-              pattern[s].gridY - pattern[prevPickedSlot].gridY
-            )
-          : 0;
+      const scoredCandidates = currentlyExposed.map(s => {
+        let newlyUncoveredCount = 0;
+        const subs = coversIndices[s];
+        for (let i = 0; i < subs.length; i++) {
+          const sub = subs[i];
+          if (removedSlots.has(sub)) continue;
+          const allOthersRemoved = coveredByIndices[sub].every(
+            cov => cov === s || removedSlots.has(cov)
+          );
+          if (allOthersRemoved) {
+            newlyUncoveredCount++;
+          }
+        }
 
-      // For kInWord >= 2, strongly prefer slots that were uncovered during the current word (cascading path!)
-      // while also preventing any old tile from lingering for > 6 steps.
-      let score = 0;
-      if (age >= 6) {
-        // Must clear lingering tile so the exposed frontier stays small and fresh
-        score = -50 - age * 4 - pattern[s].layer * 2 + rng() * 0.5;
-      } else if (kInWord >= 2 && uncoveredInCurrentWord) {
-        // Cascade into newly uncovered tile for this word!
-        score = -20 + newlyUncoveredCount * 2.5 + distToPrev * 1.5 + rng() * 0.8;
-      } else {
-        // Clear highest-layer / adjacent exposed tile that uncovers the next step
-        score = -pattern[s].layer * 3 - age * 1.5 + distToPrev * 1.2 + newlyUncoveredCount * 1.5 + rng() * 0.8;
+        const widePenalty =
+          currentlyExposed.length >= 6
+            ? newlyUncoveredCount * 12
+            : newlyUncoveredCount * 3 - pattern[s].layer * 0.5;
+
+        return { slot: s, score: widePenalty + (rng() - 0.5) * 4 };
+      });
+
+      scoredCandidates.sort((a, b) => a.score - b.score);
+      const chosenSlot = scoredCandidates[0].slot;
+
+      slotOrder.push(chosenSlot);
+      removedSlots.add(chosenSlot);
+    }
+
+    const stepOfSlot: number[] = new Array(totalSlots).fill(0);
+    for (let t = 0; t < totalSlots; t++) {
+      stepOfSlot[slotOrder[t]] = t;
+    }
+
+    // Verify every future word wj > wi has at least one slot blocked by a slot in [wi*5 .. wj*5 - 1]
+    let blockOk = true;
+    for (let wi = 0; wi < wordCount - 1 && blockOk; wi++) {
+      for (let wj = wi + 1; wj < wordCount && blockOk; wj++) {
+        let hasBlocker = false;
+        for (let k = 0; k < 5; k++) {
+          const sj = slotOrder[wj * 5 + k];
+          const covs = coveredByIndices[sj];
+          for (let c = 0; c < covs.length; c++) {
+            const stC = stepOfSlot[covs[c]];
+            if (stC >= wi * 5 && stC < wj * 5) {
+              hasBlocker = true;
+              break;
+            }
+          }
+          if (hasBlocker) break;
+        }
+        if (!hasBlocker) blockOk = false;
       }
+    }
+    if (!blockOk) continue;
 
-      return { slot: s, score };
+    const otherExposedStepsAtStep: number[][] = Array.from({ length: totalSlots }, (_, t) => {
+      const slotT = slotOrder[t];
+      return exposedAtStep[t]
+        .filter(s => s !== slotT)
+        .map(s => stepOfSlot[s]);
     });
 
-    scoredCandidates.sort((a, b) => a.score - b.score);
-    const chosenSlot = scoredCandidates[0].slot;
-
-    slotOrder.push(chosenSlot);
-    removedSlots.add(chosenSlot);
-    prevPickedSlot = chosenSlot;
-  }
-
-  // Map each pattern slot index `s` to the step `t` at which it is picked
-  const stepOfSlot: number[] = new Array(totalSlots).fill(0);
-  for (let t = 0; t < totalSlots; t++) {
-    stepOfSlot[slotOrder[t]] = t;
-  }
-
-  // For each step `t`, find all LATER steps `t' > t` whose tile `slotOrder[t']` is ALREADY exposed at step `t`
-  const otherExposedStepsAtStep: number[][] = Array.from({ length: totalSlots }, (_, t) => {
-    const slotT = slotOrder[t];
-    return exposedAtStep[t]
-      .filter(s => s !== slotT)
-      .map(s => stepOfSlot[s]);
-  });
-
-  // Shuffle word bank indices deterministically for this date
-  const shuffledBankIndices = WORD_BANK.map((_, i) => i);
-  for (let i = shuffledBankIndices.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [shuffledBankIndices[i], shuffledBankIndices[j]] = [shuffledBankIndices[j], shuffledBankIndices[i]];
-  }
-
-  // Helper to check if a 5-letter word `wStr` can be formed in 5 valid unstacking steps
-  // starting from `startStep` (when `slotOrder[0 .. startStep - 1]` are already cleared)
-  function canFormWordFromStep(startStep: number, wStr: string, slotLetters: string[]): boolean {
-    const cleared = new Set<number>();
-    for (let u = 0; u < startStep; u++) {
-      cleared.add(slotOrder[u]);
+    const shuffledBankIndices = WORD_BANK.map((_, i) => i);
+    for (let i = shuffledBankIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [shuffledBankIndices[i], shuffledBankIndices[j]] = [shuffledBankIndices[j], shuffledBankIndices[i]];
     }
 
-    function dfs(letterIdx: number): boolean {
-      if (letterIdx === 5) return true;
-      const targetChar = wStr[letterIdx];
-
-      for (let s = 0; s < totalSlots; s++) {
-        if (cleared.has(s)) continue;
-        if (slotLetters[s] !== targetChar) continue;
-        const isExp = coveredByIndices[s].every(cov => cleared.has(cov));
-        if (!isExp) continue;
-
-        cleared.add(s);
-        if (dfs(letterIdx + 1)) return true;
-        cleared.delete(s);
-      }
-      return false;
-    }
-
-    return dfs(0);
-  }
-
-  // Step 2: Assign words from last word (`wordCount - 1`) down to first word (`0`).
-  // Because we assign from `wordCount - 1` down to `0`, when testing `wordIdx`,
-  // ALL deeper tiles (`step >= (wordIdx + 1) * 5`) already have their letters assigned,
-  // AND any other tile in `exposedAtStep[step]` is at some `t' > step` which is already assigned!
-  const chosenWordBankIndices: number[] = new Array(wordCount).fill(0);
-  const usedBankSet = new Set<number>();
-  const assignedStepLetters: string[] = new Array(totalSlots).fill('');
-  const assignedSlotLetters: string[] = new Array(totalSlots).fill('');
-
-  let searchCalls = 0;
-  const MAX_SEARCH_CALLS = 4000;
-
-  function solveWordReverse(wordIdx: number, strictOtherWords: boolean): boolean {
-    if (wordIdx < 0) {
-      return true;
-    }
-    searchCalls++;
-    if (searchCalls > MAX_SEARCH_CALLS) {
-      return false;
-    }
-
-    const baseStep = wordIdx * 5;
-
-    for (let i = 0; i < shuffledBankIndices.length; i++) {
-      const bankIdx = shuffledBankIndices[i];
-      if (usedBankSet.has(bankIdx)) continue;
-
-      const candidateWord = WORD_BANK[bankIdx].word;
-      let valid = true;
-
-      // Temporarily place letters for steps baseStep .. baseStep + 4
-      for (let k = 0; k < 5; k++) {
-        const step = baseStep + k;
-        assignedStepLetters[step] = candidateWord[k];
-        assignedSlotLetters[slotOrder[step]] = candidateWord[k];
+    function canFormWordFromStep(startStep: number, wStr: string): boolean {
+      clearedFlags.fill(0);
+      for (let u = 0; u < startStep; u++) {
+        clearedFlags[slotOrder[u]] = 1;
       }
 
-      // Check 1 (Unique Path): At each of the 5 steps `step = baseStep + k`,
-      // `candidateWord[k]` must NOT match any other tile exposed on the board at `step` (`otherExposedStepsAtStep[step]`).
-      for (let k = 0; k < 5; k++) {
-        const step = baseStep + k;
-        const ch = candidateWord[k];
-        const otherSteps = otherExposedStepsAtStep[step];
-        for (let c = 0; c < otherSteps.length; c++) {
-          if (assignedStepLetters[otherSteps[c]] === ch) {
-            valid = false;
-            break;
+      function dfs(letterIdx: number): boolean {
+        if (letterIdx === 5) return true;
+        const targetChar = wStr[letterIdx];
+
+        for (let s = 0; s < totalSlots; s++) {
+          if (clearedFlags[s]) continue;
+          if (assignedSlotLetters[s] !== targetChar) continue;
+          const covs = coveredByIndices[s];
+          let isExp = true;
+          for (let c = 0; c < covs.length; c++) {
+            if (!clearedFlags[covs[c]]) {
+              isExp = false;
+              break;
+            }
           }
+          if (!isExp) continue;
+
+          clearedFlags[s] = 1;
+          if (dfs(letterIdx + 1)) return true;
+          clearedFlags[s] = 0;
         }
-        if (!valid) break;
-      }
-
-      // Check 2 (Single Possible Answer): Verify that at the start of `wordIdx` (`baseStep`),
-      // NO other word in `WORD_BANK` can be formed in 5 valid unstacking steps!
-      if (valid && strictOtherWords) {
-        for (let b = 0; b < WORD_BANK.length; b++) {
-          if (b === bankIdx) continue;
-          if (canFormWordFromStep(baseStep, WORD_BANK[b].word, assignedSlotLetters)) {
-            valid = false;
-            break;
-          }
-        }
-      }
-
-      if (valid) {
-        usedBankSet.add(bankIdx);
-        chosenWordBankIndices[wordIdx] = bankIdx;
-
-        if (solveWordReverse(wordIdx - 1, strictOtherWords)) {
-          return true;
-        }
-
-        usedBankSet.delete(bankIdx);
-      }
-
-      // Clean up temporary placement
-      for (let k = 0; k < 5; k++) {
-        const step = baseStep + k;
-        assignedStepLetters[step] = '';
-        assignedSlotLetters[slotOrder[step]] = '';
-      }
-
-      if (searchCalls > MAX_SEARCH_CALLS) {
         return false;
       }
+
+      return dfs(0);
     }
 
-    return false;
-  }
-
-  // Pass 1: Full strict solve (Unique Path + Single Possible Word Answer)
-  let solved = solveWordReverse(wordCount - 1, true);
-
-  // Pass 2: If search budget was exceeded, solve with Unique Path (Check 1) only
-  if (!solved) {
-    searchCalls = 0;
-    usedBankSet.clear();
+    usedBankSet.fill(0);
     assignedStepLetters.fill('');
+    assignedStepBits.fill(0);
     assignedSlotLetters.fill('');
-    solved = solveWordReverse(wordCount - 1, false);
-  }
+    let searchCalls = 0;
 
-  // Pass 3: Guaranteed greedy fallback per word (picks word with minimal/zero exposed letter conflicts)
-  if (!solved) {
-    usedBankSet.clear();
-    assignedStepLetters.fill('');
-    assignedSlotLetters.fill('');
-    for (let w = wordCount - 1; w >= 0; w--) {
-      const baseStep = w * 5;
-      let bestBankIdx = shuffledBankIndices.find(idx => !usedBankSet.has(idx)) ?? 0;
-      let bestConflicts = 999;
+    function solveWordReverse(wordIdx: number): boolean {
+      if (wordIdx < 0) return true;
+      searchCalls++;
+      if (searchCalls > MAX_SEARCH_CALLS) return false;
+
+      const baseStep = wordIdx * 5;
+      const forbiddenMasks = [0, 0, 0, 0, 0];
+      for (let k = 0; k < 5; k++) {
+        const otherSteps = otherExposedStepsAtStep[baseStep + k];
+        let fMask = 0;
+        for (let c = 0; c < otherSteps.length; c++) {
+          fMask |= assignedStepBits[otherSteps[c]];
+        }
+        forbiddenMasks[k] = fMask;
+      }
+
+      let remainingMask = 0;
+      for (let st = baseStep + 5; st < totalSlots; st++) {
+        remainingMask |= assignedStepBits[st];
+      }
+
+      let branchTries = 0;
 
       for (let i = 0; i < shuffledBankIndices.length; i++) {
         const bankIdx = shuffledBankIndices[i];
-        if (usedBankSet.has(bankIdx)) continue;
-        const candidateWord = WORD_BANK[bankIdx].word;
-        for (let k = 0; k < 5; k++) {
-          assignedStepLetters[baseStep + k] = candidateWord[k];
+        if (usedBankSet[bankIdx]) continue;
+
+        const baseOffset = bankIdx * 5;
+        if (
+          (WORD_CHAR_BITS[baseOffset] & forbiddenMasks[0]) ||
+          (WORD_CHAR_BITS[baseOffset + 1] & forbiddenMasks[1]) ||
+          (WORD_CHAR_BITS[baseOffset + 2] & forbiddenMasks[2]) ||
+          (WORD_CHAR_BITS[baseOffset + 3] & forbiddenMasks[3]) ||
+          (WORD_CHAR_BITS[baseOffset + 4] & forbiddenMasks[4])
+        ) {
+          continue;
         }
-        let conflicts = 0;
+
+        const candidateWord = WORD_BANK[bankIdx].word;
         for (let k = 0; k < 5; k++) {
           const step = baseStep + k;
           const ch = candidateWord[k];
-          for (const oStep of otherExposedStepsAtStep[step]) {
-            if (assignedStepLetters[oStep] === ch) conflicts++;
+          assignedStepLetters[step] = ch;
+          assignedStepBits[step] = WORD_CHAR_BITS[baseOffset + k];
+          assignedSlotLetters[slotOrder[step]] = ch;
+        }
+
+        let exposedStartMask = 0;
+        const expStartSlots = exposedAtStep[baseStep];
+        for (let e = 0; e < expStartSlots.length; e++) {
+          exposedStartMask |= assignedStepBits[stepOfSlot[expStartSlots[e]]];
+        }
+        const totalRemMask = remainingMask | WORD_MASKS[bankIdx];
+
+        let valid = true;
+        for (let b = 0; b < WORD_BANK.length; b++) {
+          if (b === bankIdx) continue;
+          if ((WORD_FIRST_BITS[b] & exposedStartMask) === 0) continue;
+          if ((WORD_MASKS[b] & totalRemMask) !== WORD_MASKS[b]) continue;
+          if (canFormWordFromStep(baseStep, WORD_BANK[b].word)) {
+            valid = false;
+            break;
           }
         }
-        if (conflicts < bestConflicts) {
-          bestConflicts = conflicts;
-          bestBankIdx = bankIdx;
-          if (conflicts === 0) break;
+
+        if (valid) {
+          usedBankSet[bankIdx] = 1;
+          chosenWordBankIndices[wordIdx] = bankIdx;
+
+          if (solveWordReverse(wordIdx - 1)) {
+            return true;
+          }
+
+          usedBankSet[bankIdx] = 0;
+          branchTries++;
+          if (branchTries >= MAX_BRANCH_TRIES) {
+            for (let k = 0; k < 5; k++) {
+              const step = baseStep + k;
+              assignedStepLetters[step] = '';
+              assignedStepBits[step] = 0;
+              assignedSlotLetters[slotOrder[step]] = '';
+            }
+            return false;
+          }
+        }
+
+        for (let k = 0; k < 5; k++) {
+          const step = baseStep + k;
+          assignedStepLetters[step] = '';
+          assignedStepBits[step] = 0;
+          assignedSlotLetters[slotOrder[step]] = '';
+        }
+
+        if (searchCalls > MAX_SEARCH_CALLS) {
+          return false;
         }
       }
 
-      usedBankSet.add(bestBankIdx);
-      chosenWordBankIndices[w] = bestBankIdx;
-      const finalWord = WORD_BANK[bestBankIdx].word;
+      return false;
+    }
+
+    if (solveWordReverse(wordCount - 1)) {
+      finalAssignedSlotLetters = [...assignedSlotLetters];
+      finalChosenWordBankIndices = [...chosenWordBankIndices];
+      break;
+    }
+  }
+
+  // Defensive fallback only if all 240 attempts failed (should never be reached)
+  if (!finalAssignedSlotLetters || !finalChosenWordBankIndices) {
+    finalChosenWordBankIndices = WORD_BANK.slice(0, wordCount).map((_, i) => i);
+    finalAssignedSlotLetters = new Array(totalSlots).fill('A');
+    for (let w = 0; w < wordCount; w++) {
       for (let k = 0; k < 5; k++) {
-        const step = baseStep + k;
-        assignedStepLetters[step] = finalWord[k];
-        assignedSlotLetters[slotOrder[step]] = finalWord[k];
+        finalAssignedSlotLetters[w * 5 + k] = WORD_BANK[w].word[k];
       }
     }
   }
 
-  const words = chosenWordBankIndices.map(idx => WORD_BANK[idx].word);
-  const hints = chosenWordBankIndices.map(idx => WORD_BANK[idx].hint);
+  const words = finalChosenWordBankIndices.map(idx => WORD_BANK[idx].word);
+  const hints = finalChosenWordBankIndices.map(idx => WORD_BANK[idx].hint);
 
-  const stepPct = difficulty === 'hard' ? 13.0 : 18.5;
+  const maxAbsCoord = pattern.reduce(
+    (acc, s) => Math.max(acc, Math.abs(s.gridX), Math.abs(s.gridY)),
+    2.0
+  );
+  const targetHalfSpanPct = difficulty === 'hard' ? 39.0 : 37.0;
+  const stepPct = targetHalfSpanPct / maxAbsCoord;
 
   const tiles: TileData[] = pattern.map((slot, idx) => {
     const id = `tile-${dateStr}-${difficulty}-${idx}`;
     const coveredBy = coveredByIndices[idx].map(covIdx => `tile-${dateStr}-${difficulty}-${covIdx}`);
     return {
       id,
-      letter: assignedSlotLetters[idx],
+      letter: finalAssignedSlotLetters![idx],
       x: 50 + slot.gridX * stepPct,
       y: 56 + slot.gridY * (stepPct * 0.78),
       layer: slot.layer,
@@ -703,46 +713,45 @@ export const PATTERN_NORMAL_PYRAMID: PatternSlot[] = [
 
 // 2. Twin Towers (twin_towers)
 export const PATTERN_NORMAL_TOWERS: PatternSlot[] = [
-  // Layer 0 (Bottom - 10 tiles split in two columns)
-  { gridX: -2.0, gridY: -2.6, layer: 0 }, { gridX: -1.0, gridY: -2.6, layer: 0 },
-  { gridX: -2.0, gridY: -1.3, layer: 0 }, { gridX: -1.0, gridY: -1.3, layer: 0 },
-  { gridX: -2.0, gridY:  1.3, layer: 0 }, { gridX: -1.0, gridY:  1.3, layer: 0 },
-  { gridX: -2.0, gridY:  2.6, layer: 0 }, { gridX: -1.0, gridY:  2.6, layer: 0 },
-  { gridX:  0.0, gridY:  0.0, layer: 0 }, { gridX:  0.0, gridY: -0.7, layer: 0 },
-  // Layer 1 (8 tiles)
-  { gridX:  1.0, gridY: -2.6, layer: 1 }, { gridX:  2.0, gridY: -2.6, layer: 1 },
-  { gridX:  1.0, gridY: -1.3, layer: 1 }, { gridX:  2.0, gridY: -1.3, layer: 1 },
-  { gridX:  1.0, gridY:  1.3, layer: 1 }, { gridX:  2.0, gridY:  1.3, layer: 1 },
-  { gridX:  1.0, gridY:  2.6, layer: 1 }, { gridX:  2.0, gridY:  2.6, layer: 1 },
-  // Layer 2 (8 tiles)
-  { gridX: -1.5, gridY: -1.9, layer: 2 }, { gridX: -1.5, gridY:  1.9, layer: 2 },
-  { gridX:  1.5, gridY: -1.9, layer: 2 }, { gridX:  1.5, gridY:  1.9, layer: 2 },
-  { gridX: -1.5, gridY: -0.7, layer: 2 }, { gridX: -1.5, gridY:  0.7, layer: 2 },
-  { gridX:  1.5, gridY: -0.7, layer: 2 }, { gridX:  1.5, gridY:  0.7, layer: 2 },
-  // Layer 3 (4 tiles top bridges)
-  { gridX: -1.5, gridY:  0.0, layer: 3 }, { gridX: -0.5, gridY:  0.0, layer: 3 },
-  { gridX:  0.5, gridY:  0.0, layer: 3 }, { gridX:  1.5, gridY:  0.0, layer: 3 },
+  // Layer 0 (10 tiles: 5 left, 5 right)
+  { gridX: -2.0, gridY: -1.5, layer: 0 }, { gridX: -1.0, gridY: -1.5, layer: 0 },
+  { gridX: -2.0, gridY:  0.0, layer: 0 }, { gridX: -2.0, gridY:  1.5, layer: 0 }, { gridX: -1.0, gridY:  1.5, layer: 0 },
+  { gridX:  1.0, gridY: -1.5, layer: 0 }, { gridX:  2.0, gridY: -1.5, layer: 0 },
+  { gridX:  2.0, gridY:  0.0, layer: 0 }, { gridX:  1.0, gridY:  1.5, layer: 0 }, { gridX:  2.0, gridY:  1.5, layer: 0 },
+  // Layer 1 (8 tiles: 4 left, 4 right)
+  { gridX: -1.5, gridY: -1.0, layer: 1 }, { gridX: -1.5, gridY: -0.5, layer: 1 },
+  { gridX: -1.5, gridY:  0.5, layer: 1 }, { gridX: -1.5, gridY:  1.0, layer: 1 },
+  { gridX:  1.5, gridY: -1.0, layer: 1 }, { gridX:  1.5, gridY: -0.5, layer: 1 },
+  { gridX:  1.5, gridY:  0.5, layer: 1 }, { gridX:  1.5, gridY:  1.0, layer: 1 },
+  // Layer 2 (8 tiles: 4 left, 4 right)
+  { gridX: -2.0, gridY: -0.5, layer: 2 }, { gridX: -1.0, gridY: -0.5, layer: 2 },
+  { gridX: -2.0, gridY:  0.5, layer: 2 }, { gridX: -1.0, gridY:  0.5, layer: 2 },
+  { gridX:  1.0, gridY: -0.5, layer: 2 }, { gridX:  2.0, gridY: -0.5, layer: 2 },
+  { gridX:  1.0, gridY:  0.5, layer: 2 }, { gridX:  2.0, gridY:  0.5, layer: 2 },
+  // Layer 3 (Top - 4 tiles: 2 left, 2 right)
+  { gridX: -1.5, gridY: -0.5, layer: 3 }, { gridX: -1.5, gridY:  0.5, layer: 3 },
+  { gridX:  1.5, gridY: -0.5, layer: 3 }, { gridX:  1.5, gridY:  0.5, layer: 3 },
 ];
 
 // 3. Cross Fortress (cross_fortress)
 export const PATTERN_NORMAL_FORTRESS: PatternSlot[] = [
-  // Layer 0 (10 tiles cross base)
-  { gridX:  0.0, gridY: -2.0, layer: 0 }, { gridX:  0.0, gridY:  2.0, layer: 0 },
-  { gridX: -2.0, gridY:  0.0, layer: 0 }, { gridX:  2.0, gridY:  0.0, layer: 0 },
-  { gridX: -1.0, gridY: -2.0, layer: 0 }, { gridX:  1.0, gridY: -2.0, layer: 0 },
-  { gridX: -1.0, gridY:  2.0, layer: 0 }, { gridX:  1.0, gridY:  2.0, layer: 0 },
-  { gridX: -2.0, gridY: -1.0, layer: 0 }, { gridX:  2.0, gridY:  1.0, layer: 0 },
+  // Layer 0 (12 tiles)
+  { gridX: -0.5, gridY: -2.0, layer: 0 }, { gridX:  0.5, gridY: -2.0, layer: 0 },
+  { gridX: -0.5, gridY:  2.0, layer: 0 }, { gridX:  0.5, gridY:  2.0, layer: 0 },
+  { gridX: -2.0, gridY: -0.5, layer: 0 }, { gridX: -2.0, gridY:  0.5, layer: 0 },
+  { gridX:  2.0, gridY: -0.5, layer: 0 }, { gridX:  2.0, gridY:  0.5, layer: 0 },
+  { gridX: -1.0, gridY: -1.0, layer: 0 }, { gridX:  1.0, gridY: -1.0, layer: 0 },
+  { gridX: -1.0, gridY:  1.0, layer: 0 }, { gridX:  1.0, gridY:  1.0, layer: 0 },
   // Layer 1 (8 tiles)
   { gridX:  0.0, gridY: -1.5, layer: 1 }, { gridX:  0.0, gridY:  1.5, layer: 1 },
   { gridX: -1.5, gridY:  0.0, layer: 1 }, { gridX:  1.5, gridY:  0.0, layer: 1 },
-  { gridX: -1.0, gridY: -1.0, layer: 1 }, { gridX:  1.0, gridY:  1.0, layer: 1 },
-  { gridX: -1.0, gridY:  1.0, layer: 1 }, { gridX:  1.0, gridY: -1.0, layer: 1 },
-  // Layer 2 (8 tiles)
+  { gridX: -0.5, gridY: -0.5, layer: 1 }, { gridX:  0.5, gridY: -0.5, layer: 1 },
+  { gridX: -0.5, gridY:  0.5, layer: 1 }, { gridX:  0.5, gridY:  0.5, layer: 1 },
+  // Layer 2 (6 tiles)
   { gridX: -0.5, gridY: -1.0, layer: 2 }, { gridX:  0.5, gridY: -1.0, layer: 2 },
+  { gridX: -1.0, gridY:  0.0, layer: 2 }, { gridX:  1.0, gridY:  0.0, layer: 2 },
   { gridX: -0.5, gridY:  1.0, layer: 2 }, { gridX:  0.5, gridY:  1.0, layer: 2 },
-  { gridX: -1.0, gridY: -0.5, layer: 2 }, { gridX:  1.0, gridY: -0.5, layer: 2 },
-  { gridX: -1.0, gridY:  0.5, layer: 2 }, { gridX:  1.0, gridY:  0.5, layer: 2 },
-  // Layer 3 (4 tiles center keep)
+  // Layer 3 (Top - 4 tiles)
   { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -0.5, layer: 3 },
   { gridX: -0.5, gridY:  0.5, layer: 3 }, { gridX:  0.5, gridY:  0.5, layer: 3 },
 ];
@@ -750,45 +759,45 @@ export const PATTERN_NORMAL_FORTRESS: PatternSlot[] = [
 // 4. Hourglass (hourglass)
 export const PATTERN_NORMAL_HOURGLASS: PatternSlot[] = [
   // Layer 0 (10 tiles wide top/bottom)
-  { gridX: -2.0, gridY: -2.6, layer: 0 }, { gridX: -1.0, gridY: -2.6, layer: 0 },
-  { gridX:  0.0, gridY: -2.6, layer: 0 }, { gridX:  1.0, gridY: -2.6, layer: 0 },
-  { gridX:  2.0, gridY: -2.6, layer: 0 }, { gridX: -2.0, gridY:  2.6, layer: 0 },
-  { gridX: -1.0, gridY:  2.6, layer: 0 }, { gridX:  0.0, gridY:  2.6, layer: 0 },
-  { gridX:  1.0, gridY:  2.6, layer: 0 }, { gridX:  2.0, gridY:  2.6, layer: 0 },
+  { gridX: -2.0, gridY: -1.5, layer: 0 }, { gridX: -1.0, gridY: -1.5, layer: 0 },
+  { gridX:  0.0, gridY: -1.5, layer: 0 }, { gridX:  1.0, gridY: -1.5, layer: 0 },
+  { gridX:  2.0, gridY: -1.5, layer: 0 }, { gridX: -2.0, gridY:  1.5, layer: 0 },
+  { gridX: -1.0, gridY:  1.5, layer: 0 }, { gridX:  0.0, gridY:  1.5, layer: 0 },
+  { gridX:  1.0, gridY:  1.5, layer: 0 }, { gridX:  2.0, gridY:  1.5, layer: 0 },
   // Layer 1 (8 tiles tapering)
-  { gridX: -1.5, gridY: -1.9, layer: 1 }, { gridX: -0.5, gridY: -1.9, layer: 1 },
-  { gridX:  0.5, gridY: -1.9, layer: 1 }, { gridX:  1.5, gridY: -1.9, layer: 1 },
-  { gridX: -1.5, gridY:  1.9, layer: 1 }, { gridX: -0.5, gridY:  1.9, layer: 1 },
-  { gridX:  0.5, gridY:  1.9, layer: 1 }, { gridX:  1.5, gridY:  1.9, layer: 1 },
-  // Layer 2 (8 tiles narrow waist)
-  { gridX: -1.0, gridY: -1.3, layer: 2 }, { gridX:  1.0, gridY: -1.3, layer: 2 },
-  { gridX: -1.0, gridY: -0.7, layer: 2 }, { gridX:  1.0, gridY: -0.7, layer: 2 },
-  { gridX: -1.0, gridY:  0.7, layer: 2 }, { gridX:  1.0, gridY:  0.7, layer: 2 },
-  { gridX: -1.0, gridY:  1.3, layer: 2 }, { gridX:  1.0, gridY:  1.3, layer: 2 },
+  { gridX: -1.5, gridY: -1.0, layer: 1 }, { gridX: -0.5, gridY: -1.0, layer: 1 },
+  { gridX:  0.5, gridY: -1.0, layer: 1 }, { gridX:  1.5, gridY: -1.0, layer: 1 },
+  { gridX: -1.5, gridY:  1.0, layer: 1 }, { gridX: -0.5, gridY:  1.0, layer: 1 },
+  { gridX:  0.5, gridY:  1.0, layer: 1 }, { gridX:  1.5, gridY:  1.0, layer: 1 },
+  // Layer 2 (8 tiles waist)
+  { gridX: -1.0, gridY: -0.5, layer: 2 }, { gridX:  0.0, gridY: -0.5, layer: 2 },
+  { gridX:  1.0, gridY: -0.5, layer: 2 }, { gridX: -0.5, gridY:  0.0, layer: 2 },
+  { gridX:  0.5, gridY:  0.0, layer: 2 }, { gridX: -1.0, gridY:  0.5, layer: 2 },
+  { gridX:  0.0, gridY:  0.5, layer: 2 }, { gridX:  1.0, gridY:  0.5, layer: 2 },
   // Layer 3 (4 tiles center waist)
-  { gridX: -0.5, gridY: -0.7, layer: 3 }, { gridX:  0.5, gridY: -0.7, layer: 3 },
-  { gridX: -0.5, gridY:  0.7, layer: 3 }, { gridX:  0.5, gridY:  0.7, layer: 3 },
+  { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -0.5, layer: 3 },
+  { gridX: -0.5, gridY:  0.5, layer: 3 }, { gridX:  0.5, gridY:  0.5, layer: 3 },
 ];
 
 // 5. Diagonal Cascade (staircase)
 export const PATTERN_NORMAL_STAIRCASE: PatternSlot[] = [
-  // Layer 0 (10 tiles diagonal)
-  { gridX: -2.0, gridY: -2.0, layer: 0 }, { gridX: -1.5, gridY: -1.5, layer: 0 },
-  { gridX: -1.0, gridY: -1.0, layer: 0 }, { gridX: -0.5, gridY: -0.5, layer: 0 },
-  { gridX:  0.0, gridY:  0.0, layer: 0 }, { gridX:  0.5, gridY:  0.5, layer: 0 },
-  { gridX:  1.0, gridY:  1.0, layer: 0 }, { gridX:  1.5, gridY:  1.5, layer: 0 },
-  { gridX:  2.0, gridY:  2.0, layer: 0 }, { gridX:  2.0, gridY: -2.0, layer: 0 },
+  // Layer 0 (12 tiles)
+  { gridX: -2.0, gridY: -2.0, layer: 0 }, { gridX: -1.0, gridY: -2.0, layer: 0 },
+  { gridX:  0.0, gridY: -2.0, layer: 0 }, { gridX: -2.0, gridY: -1.0, layer: 0 },
+  { gridX: -2.0, gridY:  0.0, layer: 0 }, { gridX:  2.0, gridY:  0.0, layer: 0 },
+  { gridX:  2.0, gridY:  1.0, layer: 0 }, { gridX:  0.0, gridY:  2.0, layer: 0 },
+  { gridX:  1.0, gridY:  2.0, layer: 0 }, { gridX:  2.0, gridY:  2.0, layer: 0 },
+  { gridX: -1.0, gridY:  1.0, layer: 0 }, { gridX:  1.0, gridY: -1.0, layer: 0 },
   // Layer 1 (8 tiles)
-  { gridX: -1.5, gridY: -2.0, layer: 1 }, { gridX: -1.0, gridY: -1.5, layer: 1 },
-  { gridX: -0.5, gridY: -1.0, layer: 1 }, { gridX:  0.0, gridY: -0.5, layer: 1 },
-  { gridX:  0.5, gridY:  0.0, layer: 1 }, { gridX:  1.0, gridY:  0.5, layer: 1 },
-  { gridX:  1.5, gridY:  1.0, layer: 1 }, { gridX:  2.0, gridY:  1.5, layer: 1 },
-  // Layer 2 (8 tiles)
-  { gridX: -2.0, gridY: -1.5, layer: 2 }, { gridX: -1.5, gridY: -1.0, layer: 2 },
-  { gridX: -1.0, gridY: -0.5, layer: 2 }, { gridX: -0.5, gridY:  0.0, layer: 2 },
-  { gridX:  0.0, gridY:  0.5, layer: 2 }, { gridX:  0.5, gridY:  1.0, layer: 2 },
-  { gridX:  1.0, gridY:  1.5, layer: 2 }, { gridX:  1.5, gridY:  2.0, layer: 2 },
-  // Layer 3 (4 tiles core)
+  { gridX: -1.5, gridY: -1.5, layer: 1 }, { gridX: -0.5, gridY: -1.5, layer: 1 },
+  { gridX: -1.5, gridY: -0.5, layer: 1 }, { gridX:  0.5, gridY: -0.5, layer: 1 },
+  { gridX: -0.5, gridY:  0.5, layer: 1 }, { gridX:  1.5, gridY:  0.5, layer: 1 },
+  { gridX:  0.5, gridY:  1.5, layer: 1 }, { gridX:  1.5, gridY:  1.5, layer: 1 },
+  // Layer 2 (6 tiles)
+  { gridX: -1.0, gridY: -1.0, layer: 2 }, { gridX:  0.0, gridY: -1.0, layer: 2 },
+  { gridX: -1.0, gridY:  0.0, layer: 2 }, { gridX:  1.0, gridY:  0.0, layer: 2 },
+  { gridX:  0.0, gridY:  1.0, layer: 2 }, { gridX:  1.0, gridY:  1.0, layer: 2 },
+  // Layer 3 (Top - 4 tiles core)
   { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -0.5, layer: 3 },
   { gridX: -0.5, gridY:  0.5, layer: 3 }, { gridX:  0.5, gridY:  0.5, layer: 3 },
 ];
@@ -834,69 +843,66 @@ export const PATTERN_HARD_PYRAMID: PatternSlot[] = [
 
 // 2. Twin Towers Hard (twin_towers)
 export const PATTERN_HARD_TOWERS: PatternSlot[] = [
-  // Layer 0 (8 tiles)
-  { gridX: -2.5, gridY: -2.6, layer: 0 }, { gridX: -1.5, gridY: -2.6, layer: 0 },
-  { gridX: -2.5, gridY:  2.6, layer: 0 }, { gridX: -1.5, gridY:  2.6, layer: 0 },
-  { gridX:  1.5, gridY: -2.6, layer: 0 }, { gridX:  2.5, gridY: -2.6, layer: 0 },
-  { gridX:  1.5, gridY:  2.6, layer: 0 }, { gridX:  2.5, gridY:  2.6, layer: 0 },
-  // Layer 1 (12 tiles)
-  { gridX: -2.5, gridY: -1.3, layer: 1 }, { gridX: -1.5, gridY: -1.3, layer: 1 },
-  { gridX: -2.5, gridY:  0.0, layer: 1 }, { gridX: -1.5, gridY:  0.0, layer: 1 },
-  { gridX: -2.5, gridY:  1.3, layer: 1 }, { gridX: -1.5, gridY:  1.3, layer: 1 },
-  { gridX:  1.5, gridY: -1.3, layer: 1 }, { gridX:  2.5, gridY: -1.3, layer: 1 },
-  { gridX:  1.5, gridY:  0.0, layer: 1 }, { gridX:  2.5, gridY:  0.0, layer: 1 },
-  { gridX:  1.5, gridY:  1.3, layer: 1 }, { gridX:  2.5, gridY:  1.3, layer: 1 },
-  // Layer 2 (10 tiles)
-  { gridX: -2.0, gridY: -3.3, layer: 2 }, { gridX: -2.0, gridY:  3.3, layer: 2 },
-  { gridX:  2.0, gridY: -3.3, layer: 2 }, { gridX:  2.0, gridY:  3.3, layer: 2 },
-  { gridX: -2.0, gridY: -2.0, layer: 2 }, { gridX: -2.0, gridY:  2.0, layer: 2 },
-  { gridX:  2.0, gridY: -2.0, layer: 2 }, { gridX:  2.0, gridY:  2.0, layer: 2 },
-  { gridX:  0.0, gridY: -3.3, layer: 2 }, { gridX:  0.0, gridY:  3.3, layer: 2 },
-  // Layer 3 (8 tiles)
-  { gridX: -2.0, gridY: -0.7, layer: 3 }, { gridX: -2.0, gridY:  0.7, layer: 3 },
-  { gridX:  2.0, gridY: -0.7, layer: 3 }, { gridX:  2.0, gridY:  0.7, layer: 3 },
-  { gridX: -1.0, gridY: -2.6, layer: 3 }, { gridX: -1.0, gridY:  2.6, layer: 3 },
-  { gridX:  1.0, gridY: -2.6, layer: 3 }, { gridX:  1.0, gridY:  2.6, layer: 3 },
-  // Layer 4 (8 tiles)
-  { gridX: -1.5, gridY: -1.3, layer: 4 }, { gridX: -1.5, gridY:  1.3, layer: 4 },
-  { gridX:  1.5, gridY: -1.3, layer: 4 }, { gridX:  1.5, gridY:  1.3, layer: 4 },
-  { gridX: -1.0, gridY: -1.3, layer: 4 }, { gridX: -1.0, gridY:  1.3, layer: 4 },
-  { gridX:  1.0, gridY: -1.3, layer: 4 }, { gridX:  1.0, gridY:  1.3, layer: 4 },
-  // Layer 5 (4 tiles center bridge)
-  { gridX: -0.5, gridY: -0.7, layer: 5 }, { gridX:  0.5, gridY: -0.7, layer: 5 },
-  { gridX: -0.5, gridY:  0.7, layer: 5 }, { gridX:  0.5, gridY:  0.7, layer: 5 },
+  // Layer 0 (12 tiles: 6 left, 6 right)
+  { gridX: -2.5, gridY: -2.0, layer: 0 }, { gridX: -1.5, gridY: -2.0, layer: 0 }, { gridX: -0.5, gridY: -2.0, layer: 0 },
+  { gridX: -2.5, gridY:  2.0, layer: 0 }, { gridX: -1.5, gridY:  2.0, layer: 0 }, { gridX: -0.5, gridY:  2.0, layer: 0 },
+  { gridX:  0.5, gridY: -2.0, layer: 0 }, { gridX:  1.5, gridY: -2.0, layer: 0 }, { gridX:  2.5, gridY: -2.0, layer: 0 },
+  { gridX:  0.5, gridY:  2.0, layer: 0 }, { gridX:  1.5, gridY:  2.0, layer: 0 }, { gridX:  2.5, gridY:  2.0, layer: 0 },
+  // Layer 1 (12 tiles: 6 left, 6 right)
+  { gridX: -2.0, gridY: -1.5, layer: 1 }, { gridX: -1.0, gridY: -1.5, layer: 1 },
+  { gridX: -2.5, gridY:  0.0, layer: 1 }, { gridX: -0.5, gridY:  0.0, layer: 1 },
+  { gridX: -2.0, gridY:  1.5, layer: 1 }, { gridX: -1.0, gridY:  1.5, layer: 1 },
+  { gridX:  1.0, gridY: -1.5, layer: 1 }, { gridX:  2.0, gridY: -1.5, layer: 1 },
+  { gridX:  0.5, gridY:  0.0, layer: 1 }, { gridX:  2.5, gridY:  0.0, layer: 1 },
+  { gridX:  1.0, gridY:  1.5, layer: 1 }, { gridX:  2.0, gridY:  1.5, layer: 1 },
+  // Layer 2 (8 tiles: 4 left, 4 right)
+  { gridX: -2.0, gridY: -1.0, layer: 2 }, { gridX: -1.0, gridY: -1.0, layer: 2 },
+  { gridX: -2.0, gridY:  1.0, layer: 2 }, { gridX: -1.0, gridY:  1.0, layer: 2 },
+  { gridX:  1.0, gridY: -1.0, layer: 2 }, { gridX:  2.0, gridY: -1.0, layer: 2 },
+  { gridX:  1.0, gridY:  1.0, layer: 2 }, { gridX:  2.0, gridY:  1.0, layer: 2 },
+  // Layer 3 (8 tiles: 4 left, 4 right)
+  { gridX: -2.0, gridY: -0.5, layer: 3 }, { gridX: -1.0, gridY: -0.5, layer: 3 },
+  { gridX: -2.0, gridY:  0.5, layer: 3 }, { gridX: -1.0, gridY:  0.5, layer: 3 },
+  { gridX:  1.0, gridY: -0.5, layer: 3 }, { gridX:  2.0, gridY: -0.5, layer: 3 },
+  { gridX:  1.0, gridY:  0.5, layer: 3 }, { gridX:  2.0, gridY:  0.5, layer: 3 },
+  // Layer 4 (6 tiles: 3 left, 3 right)
+  { gridX: -1.5, gridY: -1.0, layer: 4 }, { gridX: -1.5, gridY:  0.0, layer: 4 }, { gridX: -1.5, gridY:  1.0, layer: 4 },
+  { gridX:  1.5, gridY: -1.0, layer: 4 }, { gridX:  1.5, gridY:  0.0, layer: 4 }, { gridX:  1.5, gridY:  1.0, layer: 4 },
+  // Layer 5 (4 tiles)
+  { gridX: -1.5, gridY: -0.5, layer: 5 }, { gridX: -1.5, gridY:  0.5, layer: 5 },
+  { gridX:  1.5, gridY: -0.5, layer: 5 }, { gridX:  1.5, gridY:  0.5, layer: 5 },
 ];
 
 // 3. Cross Fortress Hard (cross_fortress)
 export const PATTERN_HARD_FORTRESS: PatternSlot[] = [
-  // Layer 0 (8 tiles)
-  { gridX:  0.0, gridY: -3.0, layer: 0 }, { gridX:  0.0, gridY:  3.0, layer: 0 },
-  { gridX: -3.0, gridY:  0.0, layer: 0 }, { gridX:  3.0, gridY:  0.0, layer: 0 },
-  { gridX: -2.0, gridY: -2.0, layer: 0 }, { gridX:  2.0, gridY: -2.0, layer: 0 },
-  { gridX: -2.0, gridY:  2.0, layer: 0 }, { gridX:  2.0, gridY:  2.0, layer: 0 },
+  // Layer 0 (12 tiles)
+  { gridX: -2.5, gridY: -2.5, layer: 0 }, { gridX: -1.5, gridY: -2.5, layer: 0 },
+  { gridX:  1.5, gridY: -2.5, layer: 0 }, { gridX:  2.5, gridY: -2.5, layer: 0 },
+  { gridX: -2.5, gridY: -1.5, layer: 0 }, { gridX:  2.5, gridY: -1.5, layer: 0 },
+  { gridX: -2.5, gridY:  1.5, layer: 0 }, { gridX:  2.5, gridY:  1.5, layer: 0 },
+  { gridX: -2.5, gridY:  2.5, layer: 0 }, { gridX: -1.5, gridY:  2.5, layer: 0 },
+  { gridX:  1.5, gridY:  2.5, layer: 0 }, { gridX:  2.5, gridY:  2.5, layer: 0 },
   // Layer 1 (12 tiles)
-  { gridX:  0.0, gridY: -2.0, layer: 1 }, { gridX:  0.0, gridY:  2.0, layer: 1 },
-  { gridX: -2.0, gridY:  0.0, layer: 1 }, { gridX:  2.0, gridY:  0.0, layer: 1 },
-  { gridX: -1.0, gridY: -2.5, layer: 1 }, { gridX:  1.0, gridY: -2.5, layer: 1 },
-  { gridX: -1.0, gridY:  2.5, layer: 1 }, { gridX:  1.0, gridY:  2.5, layer: 1 },
-  { gridX: -2.5, gridY: -1.0, layer: 1 }, { gridX:  2.5, gridY: -1.0, layer: 1 },
-  { gridX: -2.5, gridY:  1.0, layer: 1 }, { gridX:  2.5, gridY:  1.0, layer: 1 },
-  // Layer 2 (10 tiles)
-  { gridX: -1.5, gridY: -1.5, layer: 2 }, { gridX:  1.5, gridY: -1.5, layer: 2 },
-  { gridX: -1.5, gridY:  1.5, layer: 2 }, { gridX:  1.5, gridY:  1.5, layer: 2 },
-  { gridX:  0.0, gridY: -1.5, layer: 2 }, { gridX:  0.0, gridY:  1.5, layer: 2 },
-  { gridX: -1.5, gridY:  0.0, layer: 2 }, { gridX:  1.5, gridY:  0.0, layer: 2 },
-  { gridX: -1.0, gridY: -1.0, layer: 2 }, { gridX:  1.0, gridY:  1.0, layer: 2 },
+  { gridX: -2.0, gridY: -2.0, layer: 1 }, { gridX: -1.0, gridY: -2.0, layer: 1 },
+  { gridX:  1.0, gridY: -2.0, layer: 1 }, { gridX:  2.0, gridY: -2.0, layer: 1 },
+  { gridX: -2.0, gridY: -1.0, layer: 1 }, { gridX:  2.0, gridY: -1.0, layer: 1 },
+  { gridX: -2.0, gridY:  1.0, layer: 1 }, { gridX:  2.0, gridY:  1.0, layer: 1 },
+  { gridX: -2.0, gridY:  2.0, layer: 1 }, { gridX: -1.0, gridY:  2.0, layer: 1 },
+  { gridX:  1.0, gridY:  2.0, layer: 1 }, { gridX:  2.0, gridY:  2.0, layer: 1 },
+  // Layer 2 (8 tiles)
+  { gridX: -1.5, gridY: -1.5, layer: 2 }, { gridX:  0.0, gridY: -1.5, layer: 2 },
+  { gridX:  1.5, gridY: -1.5, layer: 2 }, { gridX: -1.5, gridY:  0.0, layer: 2 },
+  { gridX:  1.5, gridY:  0.0, layer: 2 }, { gridX: -1.5, gridY:  1.5, layer: 2 },
+  { gridX:  0.0, gridY:  1.5, layer: 2 }, { gridX:  1.5, gridY:  1.5, layer: 2 },
   // Layer 3 (8 tiles)
-  { gridX: -1.0, gridY: -0.5, layer: 3 }, { gridX:  1.0, gridY: -0.5, layer: 3 },
-  { gridX: -1.0, gridY:  0.5, layer: 3 }, { gridX:  1.0, gridY:  0.5, layer: 3 },
-  { gridX: -0.5, gridY: -1.0, layer: 3 }, { gridX:  0.5, gridY: -1.0, layer: 3 },
-  { gridX: -0.5, gridY:  1.0, layer: 3 }, { gridX:  0.5, gridY:  1.0, layer: 3 },
-  // Layer 4 (8 tiles)
-  { gridX: -1.0, gridY: -1.0, layer: 4 }, { gridX:  1.0, gridY: -1.0, layer: 4 },
-  { gridX: -1.0, gridY:  1.0, layer: 4 }, { gridX:  1.0, gridY:  1.0, layer: 4 },
-  { gridX:  0.0, gridY: -1.0, layer: 4 }, { gridX:  0.0, gridY:  1.0, layer: 4 },
-  { gridX: -1.0, gridY:  0.0, layer: 4 }, { gridX:  1.0, gridY:  0.0, layer: 4 },
+  { gridX: -1.0, gridY: -1.0, layer: 3 }, { gridX:  0.0, gridY: -1.0, layer: 3 },
+  { gridX:  1.0, gridY: -1.0, layer: 3 }, { gridX: -1.0, gridY:  0.0, layer: 3 },
+  { gridX:  1.0, gridY:  0.0, layer: 3 }, { gridX: -1.0, gridY:  1.0, layer: 3 },
+  { gridX:  0.0, gridY:  1.0, layer: 3 }, { gridX:  1.0, gridY:  1.0, layer: 3 },
+  // Layer 4 (6 tiles)
+  { gridX: -0.5, gridY: -1.0, layer: 4 }, { gridX:  0.5, gridY: -1.0, layer: 4 },
+  { gridX: -0.5, gridY:  0.0, layer: 4 }, { gridX:  0.5, gridY:  0.0, layer: 4 },
+  { gridX: -0.5, gridY:  1.0, layer: 4 }, { gridX:  0.5, gridY:  1.0, layer: 4 },
   // Layer 5 (4 tiles)
   { gridX: -0.5, gridY: -0.5, layer: 5 }, { gridX:  0.5, gridY: -0.5, layer: 5 },
   { gridX: -0.5, gridY:  0.5, layer: 5 }, { gridX:  0.5, gridY:  0.5, layer: 5 },
@@ -904,69 +910,69 @@ export const PATTERN_HARD_FORTRESS: PatternSlot[] = [
 
 // 4. Hourglass Hard (hourglass)
 export const PATTERN_HARD_HOURGLASS: PatternSlot[] = [
-  // Layer 0 (8 tiles)
-  { gridX: -2.5, gridY: -3.3, layer: 0 }, { gridX: -1.5, gridY: -3.3, layer: 0 },
-  { gridX:  1.5, gridY: -3.3, layer: 0 }, { gridX:  2.5, gridY: -3.3, layer: 0 },
-  { gridX: -2.5, gridY:  3.3, layer: 0 }, { gridX: -1.5, gridY:  3.3, layer: 0 },
-  { gridX:  1.5, gridY:  3.3, layer: 0 }, { gridX:  2.5, gridY:  3.3, layer: 0 },
-  // Layer 1 (12 tiles)
-  { gridX: -2.0, gridY: -2.6, layer: 1 }, { gridX: -1.0, gridY: -2.6, layer: 1 },
-  { gridX:  0.0, gridY: -2.6, layer: 1 }, { gridX:  1.0, gridY: -2.6, layer: 1 },
-  { gridX:  2.0, gridY: -2.6, layer: 1 }, { gridX: -2.0, gridY:  2.6, layer: 1 },
-  { gridX: -1.0, gridY:  2.6, layer: 1 }, { gridX:  0.0, gridY:  2.6, layer: 1 },
-  { gridX:  1.0, gridY:  2.6, layer: 1 }, { gridX:  2.0, gridY:  2.6, layer: 1 },
-  { gridX: -3.0, gridY:  0.0, layer: 1 }, { gridX:  3.0, gridY:  0.0, layer: 1 },
-  // Layer 2 (10 tiles tapering)
-  { gridX: -1.5, gridY: -2.0, layer: 2 }, { gridX: -0.5, gridY: -2.0, layer: 2 },
-  { gridX:  0.5, gridY: -2.0, layer: 2 }, { gridX:  1.5, gridY: -2.0, layer: 2 },
-  { gridX: -1.5, gridY:  2.0, layer: 2 }, { gridX: -0.5, gridY:  2.0, layer: 2 },
-  { gridX:  0.5, gridY:  2.0, layer: 2 }, { gridX:  1.5, gridY:  2.0, layer: 2 },
-  { gridX: -2.0, gridY:  0.0, layer: 2 }, { gridX:  2.0, gridY:  0.0, layer: 2 },
-  // Layer 3 (8 tiles narrow waist)
-  { gridX: -1.0, gridY: -1.3, layer: 3 }, { gridX:  1.0, gridY: -1.3, layer: 3 },
-  { gridX: -1.0, gridY: -0.7, layer: 3 }, { gridX:  1.0, gridY: -0.7, layer: 3 },
-  { gridX: -1.0, gridY:  0.7, layer: 3 }, { gridX:  1.0, gridY:  0.7, layer: 3 },
-  { gridX: -1.0, gridY:  1.3, layer: 3 }, { gridX:  1.0, gridY:  1.3, layer: 3 },
-  // Layer 4 (8 tiles waist)
-  { gridX: -0.5, gridY: -1.3, layer: 4 }, { gridX:  0.5, gridY: -1.3, layer: 4 },
-  { gridX: -0.5, gridY: -0.7, layer: 4 }, { gridX:  0.5, gridY: -0.7, layer: 4 },
-  { gridX: -0.5, gridY:  0.7, layer: 4 }, { gridX:  0.5, gridY:  0.7, layer: 4 },
-  { gridX: -0.5, gridY:  1.3, layer: 4 }, { gridX:  0.5, gridY:  1.3, layer: 4 },
-  // Layer 5 (4 tiles center)
-  { gridX: -0.5, gridY: -0.7, layer: 5 }, { gridX:  0.5, gridY: -0.7, layer: 5 },
-  { gridX: -0.5, gridY:  0.7, layer: 5 }, { gridX:  0.5, gridY:  0.7, layer: 5 },
+  // Layer 0 (10 tiles)
+  { gridX: -2.0, gridY: -2.5, layer: 0 }, { gridX: -1.0, gridY: -2.5, layer: 0 },
+  { gridX:  0.0, gridY: -2.5, layer: 0 }, { gridX:  1.0, gridY: -2.5, layer: 0 },
+  { gridX:  2.0, gridY: -2.5, layer: 0 }, { gridX: -2.0, gridY:  2.5, layer: 0 },
+  { gridX: -1.0, gridY:  2.5, layer: 0 }, { gridX:  0.0, gridY:  2.5, layer: 0 },
+  { gridX:  1.0, gridY:  2.5, layer: 0 }, { gridX:  2.0, gridY:  2.5, layer: 0 },
+  // Layer 1 (10 tiles)
+  { gridX: -1.5, gridY: -2.0, layer: 1 }, { gridX: -0.5, gridY: -2.0, layer: 1 },
+  { gridX:  0.5, gridY: -2.0, layer: 1 }, { gridX:  1.5, gridY: -2.0, layer: 1 },
+  { gridX: -2.0, gridY:  0.0, layer: 1 }, { gridX:  2.0, gridY:  0.0, layer: 1 },
+  { gridX: -1.5, gridY:  2.0, layer: 1 }, { gridX: -0.5, gridY:  2.0, layer: 1 },
+  { gridX:  0.5, gridY:  2.0, layer: 1 }, { gridX:  1.5, gridY:  2.0, layer: 1 },
+  // Layer 2 (10 tiles)
+  { gridX: -1.5, gridY: -1.5, layer: 2 }, { gridX: -0.5, gridY: -1.5, layer: 2 },
+  { gridX:  0.5, gridY: -1.5, layer: 2 }, { gridX:  1.5, gridY: -1.5, layer: 2 },
+  { gridX: -1.5, gridY:  0.0, layer: 2 }, { gridX:  1.5, gridY:  0.0, layer: 2 },
+  { gridX: -1.5, gridY:  1.5, layer: 2 }, { gridX: -0.5, gridY:  1.5, layer: 2 },
+  { gridX:  0.5, gridY:  1.5, layer: 2 }, { gridX:  1.5, gridY:  1.5, layer: 2 },
+  // Layer 3 (10 tiles)
+  { gridX: -1.5, gridY: -1.0, layer: 3 }, { gridX: -0.5, gridY: -1.0, layer: 3 },
+  { gridX:  0.5, gridY: -1.0, layer: 3 }, { gridX:  1.5, gridY: -1.0, layer: 3 },
+  { gridX: -1.0, gridY:  0.0, layer: 3 }, { gridX:  1.0, gridY:  0.0, layer: 3 },
+  { gridX: -1.5, gridY:  1.0, layer: 3 }, { gridX: -0.5, gridY:  1.0, layer: 3 },
+  { gridX:  0.5, gridY:  1.0, layer: 3 }, { gridX:  1.5, gridY:  1.0, layer: 3 },
+  // Layer 4 (6 tiles)
+  { gridX: -1.0, gridY: -0.5, layer: 4 }, { gridX:  0.0, gridY: -0.5, layer: 4 },
+  { gridX:  1.0, gridY: -0.5, layer: 4 }, { gridX: -1.0, gridY:  0.5, layer: 4 },
+  { gridX:  0.0, gridY:  0.5, layer: 4 }, { gridX:  1.0, gridY:  0.5, layer: 4 },
+  // Layer 5 (4 tiles)
+  { gridX: -0.5, gridY: -0.5, layer: 5 }, { gridX:  0.5, gridY: -0.5, layer: 5 },
+  { gridX: -0.5, gridY:  0.5, layer: 5 }, { gridX:  0.5, gridY:  0.5, layer: 5 },
 ];
 
 // 5. Diagonal Cascade Hard (staircase)
 export const PATTERN_HARD_STAIRCASE: PatternSlot[] = [
-  // Layer 0 (8 tiles)
-  { gridX: -3.0, gridY: -3.0, layer: 0 }, { gridX: -2.0, gridY: -2.0, layer: 0 },
-  { gridX: -1.0, gridY: -1.0, layer: 0 }, { gridX:  0.0, gridY:  0.0, layer: 0 },
-  { gridX:  1.0, gridY:  1.0, layer: 0 }, { gridX:  2.0, gridY:  2.0, layer: 0 },
-  { gridX:  3.0, gridY:  3.0, layer: 0 }, { gridX:  3.0, gridY: -3.0, layer: 0 },
-  // Layer 1 (12 tiles)
-  { gridX: -2.5, gridY: -2.5, layer: 1 }, { gridX: -1.5, gridY: -1.5, layer: 1 },
-  { gridX: -0.5, gridY: -0.5, layer: 1 }, { gridX:  0.5, gridY:  0.5, layer: 1 },
-  { gridX:  1.5, gridY:  1.5, layer: 1 }, { gridX:  2.5, gridY:  2.5, layer: 1 },
-  { gridX: -2.5, gridY: -1.5, layer: 1 }, { gridX: -1.5, gridY: -0.5, layer: 1 },
-  { gridX: -0.5, gridY:  0.5, layer: 1 }, { gridX:  0.5, gridY:  1.5, layer: 1 },
-  { gridX:  1.5, gridY:  2.5, layer: 1 }, { gridX:  2.5, gridY:  3.0, layer: 1 },
+  // Layer 0 (12 tiles)
+  { gridX: -2.5, gridY: -2.5, layer: 0 }, { gridX: -1.5, gridY: -2.5, layer: 0 },
+  { gridX: -0.5, gridY: -2.5, layer: 0 }, { gridX: -2.5, gridY: -1.5, layer: 0 },
+  { gridX: -2.5, gridY: -0.5, layer: 0 }, { gridX:  2.5, gridY:  2.5, layer: 0 },
+  { gridX:  1.5, gridY:  2.5, layer: 0 }, { gridX:  0.5, gridY:  2.5, layer: 0 },
+  { gridX:  2.5, gridY:  1.5, layer: 0 }, { gridX:  2.5, gridY:  0.5, layer: 0 },
+  { gridX: -1.5, gridY:  1.5, layer: 0 }, { gridX:  1.5, gridY: -1.5, layer: 0 },
+  // Layer 1 (10 tiles)
+  { gridX: -2.0, gridY: -2.0, layer: 1 }, { gridX: -1.0, gridY: -2.0, layer: 1 },
+  { gridX: -2.0, gridY: -1.0, layer: 1 }, { gridX:  1.0, gridY: -1.0, layer: 1 },
+  { gridX:  2.0, gridY:  2.0, layer: 1 }, { gridX:  1.0, gridY:  2.0, layer: 1 },
+  { gridX:  2.0, gridY:  1.0, layer: 1 }, { gridX: -1.0, gridY:  1.0, layer: 1 },
+  { gridX: -1.0, gridY:  0.0, layer: 1 }, { gridX:  1.0, gridY:  0.0, layer: 1 },
   // Layer 2 (10 tiles)
-  { gridX: -3.0, gridY: -1.0, layer: 2 }, { gridX: -2.0, gridY: -0.0, layer: 2 },
-  { gridX: -1.0, gridY:  1.0, layer: 2 }, { gridX:  0.0, gridY:  2.0, layer: 2 },
-  { gridX:  1.0, gridY:  3.0, layer: 2 }, { gridX: -2.0, gridY: -3.0, layer: 2 },
-  { gridX: -1.0, gridY: -2.0, layer: 2 }, { gridX:  0.0, gridY: -1.0, layer: 2 },
-  { gridX:  1.0, gridY:  0.0, layer: 2 }, { gridX:  2.0, gridY:  1.0, layer: 2 },
+  { gridX: -1.5, gridY: -1.5, layer: 2 }, { gridX: -0.5, gridY: -1.5, layer: 2 },
+  { gridX: -1.5, gridY: -0.5, layer: 2 }, { gridX:  0.5, gridY: -0.5, layer: 2 },
+  { gridX: -0.5, gridY:  0.5, layer: 2 }, { gridX:  1.5, gridY:  0.5, layer: 2 },
+  { gridX:  0.5, gridY:  1.5, layer: 2 }, { gridX:  1.5, gridY:  1.5, layer: 2 },
+  { gridX: -1.5, gridY:  0.5, layer: 2 }, { gridX:  1.5, gridY: -0.5, layer: 2 },
   // Layer 3 (8 tiles)
-  { gridX: -2.0, gridY: -1.5, layer: 3 }, { gridX: -1.0, gridY: -0.5, layer: 3 },
-  { gridX:  0.0, gridY:  0.5, layer: 3 }, { gridX:  1.0, gridY:  1.5, layer: 3 },
-  { gridX: -1.5, gridY: -2.0, layer: 3 }, { gridX: -0.5, gridY: -1.0, layer: 3 },
-  { gridX:  0.5, gridY:  0.0, layer: 3 }, { gridX:  1.5, gridY:  1.0, layer: 3 },
-  // Layer 4 (8 tiles)
-  { gridX: -1.0, gridY: -1.5, layer: 4 }, { gridX:  0.0, gridY: -0.5, layer: 4 },
-  { gridX:  1.0, gridY:  0.5, layer: 4 }, { gridX:  2.0, gridY:  1.5, layer: 4 },
-  { gridX: -1.5, gridY: -1.0, layer: 4 }, { gridX: -0.5, gridY:  0.0, layer: 4 },
-  { gridX:  0.5, gridY:  1.0, layer: 4 }, { gridX:  1.5, gridY:  2.0, layer: 4 },
+  { gridX: -1.0, gridY: -1.0, layer: 3 }, { gridX:  0.0, gridY: -1.0, layer: 3 },
+  { gridX:  1.0, gridY: -1.0, layer: 3 }, { gridX: -1.0, gridY:  0.0, layer: 3 },
+  { gridX:  1.0, gridY:  0.0, layer: 3 }, { gridX: -1.0, gridY:  1.0, layer: 3 },
+  { gridX:  0.0, gridY:  1.0, layer: 3 }, { gridX:  1.0, gridY:  1.0, layer: 3 },
+  // Layer 4 (6 tiles)
+  { gridX: -0.5, gridY: -1.0, layer: 4 }, { gridX:  0.5, gridY: -1.0, layer: 4 },
+  { gridX: -0.5, gridY:  0.0, layer: 4 }, { gridX:  0.5, gridY:  0.0, layer: 4 },
+  { gridX: -0.5, gridY:  1.0, layer: 4 }, { gridX:  0.5, gridY:  1.0, layer: 4 },
   // Layer 5 (4 tiles)
   { gridX: -0.5, gridY: -0.5, layer: 5 }, { gridX:  0.5, gridY: -0.5, layer: 5 },
   { gridX: -0.5, gridY:  0.5, layer: 5 }, { gridX:  0.5, gridY:  0.5, layer: 5 },

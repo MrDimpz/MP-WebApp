@@ -194,7 +194,7 @@ export const TitleMenu: React.FC<TitleMenuProps> = ({
                   Sign in with Google or Email &amp; Password
                 </div>
                 <p className="text-xs text-[#D6CBE2]">
-                  Use one account across all 5 solo games to record your DeStack high scores.
+                  Use one account across all 6 solo games to record your DeStack high scores.
                 </p>
               </>
             )}

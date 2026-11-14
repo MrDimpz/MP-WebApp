@@ -70,6 +70,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [timeSeconds, setTimeSeconds] = useState(0);
   const [isErrorShake, setIsErrorShake] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [resetCount, setResetCount] = useState(0);
 
   // Swipe-to-reveal hint state
   const [swipeProgress, setSwipeProgress] = useState(0);
@@ -314,8 +315,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     setWordsFound([]);
     setShowHintText(false);
     setSwipeProgress(0);
+    setResetCount(prev => prev + 1);
   };
 
+  const boardEntranceKey = `${difficulty}-${layoutSelection}-${puzzle.words.join(',')}-${resetCount}`;
   const wordsRemaining = puzzle.words.length - wordsFound.length;
   const isShowingCompletedWord = rack.every(t => t === null) && completedWordLetters !== null;
   const isHardMode = difficulty === 'hard';
@@ -463,38 +466,41 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             ))}
           </div>
 
-          {tiles.map(tile => {
-            if (tile.isCleared || tile.inRackIndex !== null) return null;
+          <div key={boardEntranceKey} className="contents">
+            {tiles.map((tile, idx) => {
+              if (tile.isCleared || tile.inRackIndex !== null) return null;
 
-            const isExposed = tile.isExposed;
+              const isExposed = tile.isExposed;
 
-            return (
-              <button
-                key={tile.id}
-                type="button"
-                onClick={() => handleTileClick(tile)}
-                disabled={!isExposed}
-                aria-label={`Tile ${tile.letter}, layer ${tile.layer + 1}, ${
-                  isExposed ? 'exposed' : 'covered'
-                }`}
-                style={{
-                  left: `${tile.x}%`,
-                  top: `${tile.y}%`,
-                  width: tileSizePct,
-                  height: tileSizePct,
-                  zIndex: tile.layer * 10 + (isExposed ? 5 : 0),
-                }}
-                className={`-translate-x-1/2 -translate-y-1/2 absolute rounded-xl flex items-center justify-center font-extrabold ${
-                  isHardMode ? 'text-2xl sm:text-3xl' : 'text-4xl sm:text-5xl'
-                } tracking-tight transition-transform duration-150 ${getLayerOutlineClass(
-                  tile.layer,
-                  isExposed
-                )} ${isExposed ? 'hover:scale-[1.06] active:scale-[0.97] cursor-pointer' : 'cursor-default'}`}
-              >
-                <span className="-mt-0.5 select-none">{tile.letter}</span>
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={tile.id}
+                  type="button"
+                  onClick={() => handleTileClick(tile)}
+                  disabled={!isExposed}
+                  aria-label={`Tile ${tile.letter}, layer ${tile.layer + 1}, ${
+                    isExposed ? 'exposed' : 'covered'
+                  }`}
+                  style={{
+                    left: `${tile.x}%`,
+                    top: `${tile.y}%`,
+                    width: tileSizePct,
+                    height: tileSizePct,
+                    zIndex: tile.layer * 10 + (isExposed ? 5 : 0),
+                    '--tile-delay': `${Math.min(idx, 30) * 14}ms`,
+                  } as React.CSSProperties}
+                  className={`puzzle-tile-enter -translate-x-1/2 -translate-y-1/2 absolute rounded-xl flex items-center justify-center font-extrabold ${
+                    isHardMode ? 'text-2xl sm:text-3xl' : 'text-4xl sm:text-5xl'
+                  } tracking-tight transition-transform duration-150 ${getLayerOutlineClass(
+                    tile.layer,
+                    isExposed
+                  )} ${isExposed ? 'hover:scale-[1.06] active:scale-[0.97] cursor-pointer' : 'cursor-default'}`}
+                >
+                  <span className="-mt-0.5 select-none">{tile.letter}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Status Toast if invalid word or word found */}

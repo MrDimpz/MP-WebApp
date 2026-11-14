@@ -74,6 +74,11 @@ import {
   forceReconnectBridge,
   triggerResilientConnect,
 } from '../lib/live-chat-bridge';
+import { useOverlayConfig, useOverlaySync } from '../lib/live-overlay';
+import { LiveOverlayButton } from '../components/interactive-games/live-overlay-button';
+import { recordDailyPuzzleSolved, useDailyStreak } from '../lib/daily-streak';
+import { triggerVictoryConfetti } from '../lib/confetti';
+import { DailyStreakBadge } from '../components/daily-streak-badge';
 
 type GameState = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'VICTORY';
 
@@ -101,8 +106,14 @@ function getLocalTodayString(): string {
 }
 
 export default function App() {
+  const { isOverlay, bg: overlayBg, streamer: overlayStreamer } = useOverlayConfig();
+  const hasReceivedHostSyncRef = useRef(false);
+
   const todayDateStr = useMemo(() => getLocalTodayString(), []);
-  const [gameState, setGameState] = useState<GameState>('TITLE_MENU');
+  const [gameState, setGameState] = useState<GameState>(() =>
+    isOverlay ? 'PLAYING' : 'TITLE_MENU'
+  );
+  const prevGameStateRef = useRef<GameState>(gameState);
   const [mode, setMode] = useState<GameModeId>('daily-4x4');
   const [selectedDateStr, setSelectedDateStr] = useState<string>(todayDateStr);
 
@@ -193,9 +204,40 @@ export default function App() {
 
   const grid = basePuzzle.grid;
   const requiredWords = basePuzzle.requiredWords;
+  const isTodaySolved =
+    !isOverlay &&
+    selectedDateStr === todayDateStr &&
+    requiredWords.size > 0 &&
+    foundWords.size >= requiredWords.size;
+  const dailyStreak = useDailyStreak('squaredint', todayDateStr, isTodaySolved);
 
-  // Load saved progress whenever basePuzzle changes
   useEffect(() => {
+    if (isTodaySolved) {
+      recordDailyPuzzleSolved('squaredint', todayDateStr);
+    }
+  }, [isTodaySolved, todayDateStr]);
+
+  useEffect(() => {
+    if (!isOverlay && gameState === 'VICTORY' && prevGameStateRef.current !== 'VICTORY') {
+      const bestKey = `mp_squaredint_personal_best_${getCurrentUserSessionPrefix()}`;
+      let prevBest = 0;
+      try {
+        prevBest = Number(localStorage.getItem(bestKey) || '0') || 0;
+        if (score > prevBest) {
+          localStorage.setItem(bestKey, String(score));
+        }
+      } catch {}
+      triggerVictoryConfetti({
+        isDaily: selectedDateStr === todayDateStr,
+        isNewHighScore: prevBest > 0 && score > prevBest,
+      });
+    }
+    prevGameStateRef.current = gameState;
+  }, [gameState, isOverlay, score, selectedDateStr, todayDateStr]);
+
+  // Load saved progress whenever basePuzzle changes (host mode only; overlay follows host snapshot)
+  useEffect(() => {
+    if (isOverlay) return;
     setRotationSteps(0);
     setActivePath([]);
     setHintedPath(null);
@@ -222,10 +264,11 @@ export default function App() {
     setBonusWords([]);
     setScore(0);
     setRevealedPrefixes(new Map());
-  }, [basePuzzle]);
+  }, [basePuzzle, isOverlay]);
 
   // Persist progress to localStorage
   useEffect(() => {
+    if (isOverlay) return;
     if (foundWords.size === 0 && bonusWords.length === 0 && revealedPrefixes.size === 0) return;
     const storageKey = `missing_piece_save_${getCurrentUserSessionPrefix()}_${basePuzzle.id}`;
     const payload: SavedPuzzleProgress = {
@@ -239,7 +282,7 @@ export default function App() {
     } catch {
       // Ignore quota errors
     }
-  }, [foundWords, bonusWords, score, revealedPrefixes, basePuzzle.id]);
+  }, [foundWords, bonusWords, score, revealedPrefixes, basePuzzle.id, isOverlay]);
 
   const showToast = useCallback(
     (
@@ -391,6 +434,7 @@ export default function App() {
   // Handle incoming chat messages from TikTok LIVE or simulator
   const handleIncomingChatMessage = useCallback(
     async (data: { uniqueId: string; nickname: string; comment: string; profilePictureUrl: string; simulated?: boolean }) => {
+      if (isOverlay && hasReceivedHostSyncRef.current) return;
       if (!isLiveConnectedRef.current && !data.simulated) return;
 
       const {
@@ -681,6 +725,26 @@ export default function App() {
     });
     setSocket(newSocket);
 
+    // Standalone overlay auto-connect if opened directly with ?streamer=handle and no host tab synced
+    let standaloneConnectTimer: ReturnType<typeof setTimeout> | null = null;
+    if (isOverlay && overlayStreamer) {
+      const cleanOverlayStreamer = overlayStreamer.replace(/^@+/, '').trim();
+      if (cleanOverlayStreamer) {
+        standaloneConnectTimer = setTimeout(() => {
+          if (!hasReceivedHostSyncRef.current) {
+            setIsLiveConnected(true);
+            setTiktokUsername(cleanOverlayStreamer);
+            triggerResilientConnect(newSocket, {
+              username: cleanOverlayStreamer,
+              isTestMode: false,
+              gameId: 'squaredint',
+              sessionId: getCurrentUserSessionPrefix(),
+            });
+          }
+        }, 1200);
+      }
+    }
+
     newSocket.on('tiktok-connected', ({ username, roomId: rId, gameId }: { username: string; roomId?: string; gameId?: string }) => {
       if (!gameId || gameId === 'squaredint') {
         setIsLiveConnected(true);
@@ -735,10 +799,11 @@ export default function App() {
     });
 
     return () => {
+      if (standaloneConnectTimer) clearTimeout(standaloneConnectTimer);
       detachBridge();
       newSocket.disconnect();
     };
-  }, [handleIncomingChatMessage, showToast]);
+  }, [handleIncomingChatMessage, showToast, isOverlay, overlayStreamer]);
 
   const handleConnectTikTok = useCallback(
     (username: string, isTestMode?: boolean) => {
@@ -1009,6 +1074,7 @@ export default function App() {
 
   // Keyboard controls for Title Screen & Active Play
   useEffect(() => {
+    if (isOverlay) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isConnectModalOpen) return;
       const activeTag = document.activeElement?.tagName.toLowerCase();
@@ -1087,6 +1153,7 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
+    isOverlay,
     isConnectModalOpen,
     gameState,
     activePath,
@@ -1110,6 +1177,286 @@ export default function App() {
       : 0;
   const rankInfo = getPlayerRank(progressPct);
   const foundFeatured = foundWords.has(basePuzzle.featuredWord);
+
+  interface SquaredOverlaySnapshot {
+    mode: GameModeId;
+    selectedDateStr: string;
+    rotationSteps: number;
+    foundWords: string[];
+    bonusWords: string[];
+    score: number;
+    revealedPrefixes: [string, number][];
+    leaderboard: LeaderboardPlayer[];
+    gameAnswers: GameAnswerItem[];
+    toast: FeedbackToast | null;
+    gameState: GameState;
+    hintedPath: number[] | null;
+    hintedCells: number[];
+    showStartBadges: boolean;
+    boardDarkMode: boolean;
+  }
+
+  const syncedSnapshot = useMemo<SquaredOverlaySnapshot | null>(
+    () =>
+      !isOverlay
+        ? {
+            mode,
+            selectedDateStr,
+            rotationSteps,
+            foundWords: Array.from(foundWords),
+            bonusWords,
+            score,
+            revealedPrefixes: Array.from(revealedPrefixes.entries()),
+            leaderboard,
+            gameAnswers,
+            toast,
+            gameState,
+            hintedPath,
+            hintedCells: Array.from(hintedCells),
+            showStartBadges,
+            boardDarkMode,
+          }
+        : null,
+    [
+      isOverlay,
+      mode,
+      selectedDateStr,
+      rotationSteps,
+      foundWords,
+      bonusWords,
+      score,
+      revealedPrefixes,
+      leaderboard,
+      gameAnswers,
+      toast,
+      gameState,
+      hintedPath,
+      hintedCells,
+      showStartBadges,
+      boardDarkMode,
+    ]
+  );
+
+  useOverlaySync<SquaredOverlaySnapshot>({
+    gameId: 'squaredint',
+    streamer: overlayStreamer || tiktokUsername || undefined,
+    isOverlay,
+    localState: syncedSnapshot,
+    onSyncedState: useCallback((remote) => {
+      if (!remote) return;
+      hasReceivedHostSyncRef.current = true;
+      setMode(remote.mode);
+      setSelectedDateStr(remote.selectedDateStr);
+      setRotationSteps(remote.rotationSteps || 0);
+      setFoundWords(new Set(remote.foundWords || []));
+      setBonusWords(remote.bonusWords || []);
+      setScore(remote.score || 0);
+      setRevealedPrefixes(new Map(remote.revealedPrefixes || []));
+      setLeaderboard(remote.leaderboard || []);
+      setGameAnswers(remote.gameAnswers || []);
+      setToast(remote.toast ?? null);
+      setGameState(remote.gameState === 'VICTORY' ? 'VICTORY' : 'PLAYING');
+      setHintedPath(remote.hintedPath ?? null);
+      setHintedCells(new Set(remote.hintedCells || []));
+      if (typeof remote.showStartBadges === 'boolean') {
+        setShowStartBadges(remote.showStartBadges);
+      }
+      if (typeof remote.boardDarkMode === 'boolean') {
+        setBoardDarkMode(remote.boardDarkMode);
+      }
+    }, []),
+  });
+
+  if (isOverlay) {
+    const topPlayers = leaderboard.slice(0, 5);
+    const recentWords = gameAnswers.slice(0, 4);
+
+    return (
+      <div
+        className={`relative w-full font-sans text-[#F5F3F7] select-none flex flex-col items-center justify-start ${
+          overlayBg === 'transparent'
+            ? 'min-h-0 p-2 sm:p-3 bg-transparent'
+            : 'min-h-screen p-3 sm:p-5 bg-[radial-gradient(circle_at_50%_15%,#44106B_0%,#210536_58%,#11021D_100%)]'
+        }`}
+      >
+        <div className="w-full max-w-[420px] flex flex-col items-center gap-2.5">
+          {/* Compact Progress & Score Strip */}
+          <div className="w-full px-3.5 py-2 rounded-2xl bg-[#170428]/92 border-2 border-[#D4A437]/75 shadow-[0_8px_24px_rgba(0,0,0,0.55)] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-display font-extrabold text-sm text-[#F6C915] tracking-tight whitespace-nowrap">
+                Squared #{basePuzzle.puzzleNumber}
+              </span>
+              <span className="text-[11px] font-mono text-[#D6CBE2] tabular-nums whitespace-nowrap">
+                {foundWords.size}/{requiredWords.size} ({progressPct}%)
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="w-16 h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/15">
+                <div
+                  className="h-full bg-gradient-to-r from-[#D49B27] via-[#F6C915] to-[#FFE566] transition-all duration-300"
+                  style={{ width: `${Math.max(4, progressPct)}%` }}
+                />
+              </div>
+              <span className="font-mono font-extrabold text-xs text-[#F6C915] tabular-nums whitespace-nowrap">
+                {score.toLocaleString()} pts
+              </span>
+            </div>
+          </div>
+
+          {/* Live Word Toast / Banner */}
+          <div className="w-full min-h-[46px] flex items-center justify-center">
+            {toast ? (
+              <div
+                key={toast.id}
+                className={`w-full flex items-center justify-center gap-2.5 px-3.5 py-1.5 rounded-xl border text-center shadow-lg ${
+                  toast.tone === 'gold'
+                    ? 'bg-[#4B1272]/95 border-[#F6C915] text-[#FDE047]'
+                    : toast.tone === 'emerald'
+                    ? 'bg-[#133A2E]/95 border-emerald-400/70 text-emerald-200'
+                    : toast.tone === 'purple'
+                    ? 'bg-[#360E5A]/95 border-[#E6BE5A]/60 text-[#F5F3F7]'
+                    : 'bg-[#170428]/90 border-white/20 text-[#D6CBE2]'
+                }`}
+              >
+                {toast.avatarUrl && (
+                  <img
+                    src={toast.avatarUrl}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    onError={(e) => handleAvatarError(e, toast.text)}
+                    className="w-6 h-6 rounded-full object-cover border border-[#F6C915] shrink-0"
+                  />
+                )}
+                <div className="flex flex-col items-center min-w-0">
+                  <span className="font-display font-bold text-xs sm:text-sm truncate max-w-full">
+                    {toast.text}
+                  </span>
+                  {toast.subtext && (
+                    <span className="text-[10px] font-mono opacity-90 truncate max-w-full">
+                      {toast.subtext}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="w-full px-3.5 py-1.5 rounded-xl bg-[#170428]/88 border border-[#E6BE5A]/35 flex items-center justify-center gap-2 text-xs text-[#D6CBE2] shadow-md">
+                <Sparkles className="w-3.5 h-3.5 text-[#F6C915] shrink-0" />
+                <span>Type 4+ letter words in chat to solve!</span>
+              </div>
+            )}
+          </div>
+
+          {/* Board Frame */}
+          <div className="w-full flex items-center justify-center p-2.5 rounded-2xl bg-[#170428]/90 border-2 border-[#D4A437]/75 shadow-[0_14px_34px_rgba(0,0,0,0.65)]">
+            <WordGridBoard
+              grid={grid}
+              size={basePuzzle.size}
+              activePath={[]}
+              onPathChange={() => {}}
+              onSubmitPath={() => {}}
+              remainingStartsPerCell={remainingStartsPerCell}
+              remainingUsesPerCell={remainingUsesPerCell}
+              showStartBadges={showStartBadges}
+              hintedPath={hintedPath}
+              hintedCells={hintedCells}
+              rotationSteps={rotationSteps}
+              boardDarkMode={boardDarkMode}
+              shakeTrigger={shakeTrigger}
+            />
+          </div>
+
+          {/* Missing Piece Bonus Word Clue Strip */}
+          <div className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-[#19042B]/92 border border-[#E6BE5A]/50 text-xs shadow-md">
+            <div className="flex items-center gap-1.5 font-semibold text-[#E6BE5A]">
+              <Compass className="w-3.5 h-3.5 text-[#F6C915]" />
+              <span>★ Missing Piece Word:</span>
+            </div>
+            <span className="font-mono font-bold tracking-widest text-[#F6C915] tabular-nums">
+              {foundFeatured
+                ? basePuzzle.featuredWord
+                : basePuzzle.featuredWord
+                    .split('')
+                    .map((ch, idx) =>
+                      idx < (revealedPrefixes.get(basePuzzle.featuredWord) || 1) ? ch : '·'
+                    )
+                    .join(' ')}
+            </span>
+          </div>
+
+          {/* Round Complete Banner (No Interactive Buttons) */}
+          {gameState === 'VICTORY' && (
+            <div className="w-full p-3 rounded-2xl bg-gradient-to-r from-[#133A2E]/95 via-[#2B0846]/95 to-[#133A2E]/95 border-2 border-emerald-400/80 shadow-xl text-center">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                Board Solved · {foundWords.size}/{requiredWords.size} Words
+              </div>
+              {leaderboard[0] && (
+                <div className="mt-1 text-sm font-extrabold text-[#F6C915]">
+                  Top Player: {leaderboard[0].nickname} ({leaderboard[0].score.toLocaleString()} pts)
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Compact Top Live Players & Recent Solved Words */}
+          {(topPlayers.length > 0 || recentWords.length > 0) && (
+            <div className="w-full p-2.5 rounded-2xl bg-[#170428]/92 border border-[#E6BE5A]/45 shadow-[0_8px_24px_rgba(0,0,0,0.5)] space-y-2">
+              {topPlayers.length > 0 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#E6BE5A]">
+                    <span className="flex items-center gap-1">
+                      <Trophy className="w-3 h-3 text-[#F6C915]" /> Top Players
+                    </span>
+                    <span className="font-mono tabular-nums text-[#D6CBE2]">
+                      {leaderboard.length} active
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {topPlayers.map((p, idx) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-[#24083C]/90 border border-white/10 text-xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-4 text-center font-mono font-bold text-[#F6C915] tabular-nums">
+                            {idx + 1}
+                          </span>
+                          <img
+                            src={getSafeAvatarUrl(p.profilePictureUrl, p.nickname)}
+                            alt={p.nickname}
+                            referrerPolicy="no-referrer"
+                            onError={(e) => handleAvatarError(e, p.nickname)}
+                            className="w-5 h-5 rounded-full object-cover border border-[#F6C915]/60 shrink-0"
+                          />
+                          <span className="font-bold text-white truncate">{p.nickname}</span>
+                        </div>
+                        <span className="font-mono font-bold text-[#F6C915] tabular-nums shrink-0">
+                          {p.score.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {recentWords.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-white/10">
+                  {recentWords.map((ans) => (
+                    <span
+                      key={ans.id}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#2B0846] border border-[#F6C915]/40 text-[10px] font-mono font-bold text-white"
+                    >
+                      <span className="text-[#F6C915]">{ans.word}</span>
+                      <span className="text-emerald-300">+{ans.points}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-screen h-screen overflow-hidden border-[5px] border-[#D4A437] bg-[radial-gradient(circle_at_50%_15%,#44106B_0%,#210536_58%,#11021D_100%)] text-[#F5F3F7] font-sans flex flex-col select-none">
@@ -1250,8 +1597,14 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right: Mode Switcher, TikTok Connect Button, Board Dark Mode Toggle, Audio Mute & Menu */}
+          {/* Right: Daily Streak, Mode Switcher, TikTok Connect Button, Board Dark Mode Toggle, Audio Mute & Menu */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            <DailyStreakBadge
+              streak={dailyStreak.streak}
+              solvedToday={dailyStreak.solvedToday}
+              variant="gold"
+              compact
+            />
             {/* Mode Quick Switch on Desktop */}
             <div className="hidden xl:flex items-center gap-1 p-1 bg-black/30 rounded-lg border border-white/10 mr-1">
               {(
@@ -1275,6 +1628,15 @@ export default function App() {
                 </button>
               ))}
             </div>
+
+            {/* LIVE Overlay Button */}
+            <LiveOverlayButton
+              gameTitle="Squared Interactive"
+              gameSlug="squaredint"
+              streamerHandle={tiktokUsername}
+              recommendedSize="540 × 820 or 1080 × 1920"
+              label="LIVE Overlay"
+            />
 
             {/* TikTok Stream Connect Button */}
             <button

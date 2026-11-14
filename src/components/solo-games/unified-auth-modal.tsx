@@ -80,9 +80,22 @@ const SOLO_GAME_META: Record<
     shortTitle: 'DeStack',
     subtitle: 'Daily 4-Layer & 6-Layer Word Stack Scores',
   },
+  unolingo: {
+    number: '06',
+    title: 'Unolingo — 26-Letter Crossword',
+    shortTitle: 'Unolingo',
+    subtitle: 'Daily 10×10 Zero-Clue Crossword Scores',
+  },
 };
 
-const ALLOWED_GAMES: SoloGameId[] = ['crossword', 'rebus', 'squared', 'thematix', 'destack'];
+const ALLOWED_GAMES: SoloGameId[] = [
+  'crossword',
+  'rebus',
+  'squared',
+  'thematix',
+  'destack',
+  'unolingo',
+];
 
 export function UnifiedLeaderboardPanel({
   initialGameId = 'crossword',
@@ -105,6 +118,7 @@ export function UnifiedLeaderboardPanel({
     squared: [],
     thematix: [],
     destack: [],
+    unolingo: [],
     cruciverbalist: [],
     crossword: [],
   });
@@ -157,7 +171,7 @@ export function UnifiedLeaderboardPanel({
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1.5 rounded-xl bg-black/35 border border-white/10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 p-1.5 rounded-xl bg-black/35 border border-white/10">
         {ALLOWED_GAMES.map((gId) => {
           const gMeta = SOLO_GAME_META[gId];
           const count = leaderboards[gId]?.length || 0;

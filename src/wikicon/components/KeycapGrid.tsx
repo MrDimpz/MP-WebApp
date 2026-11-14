@@ -241,6 +241,7 @@ export const KeycapGrid: React.FC<KeycapGridProps> = ({
         </svg>
 
         <div
+          key={`${rows}x${cols}:${cells.join('')}`}
           className="grid gap-2 relative z-10"
           style={{
             gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
@@ -249,6 +250,7 @@ export const KeycapGrid: React.FC<KeycapGridProps> = ({
           {cells.map((letter, idx) => {
             const isSelected = activePath.includes(idx);
             const isFlashed = flashedIndices.has(idx);
+            const tileDelayMs = (Math.floor(idx / (cols || 1)) + (idx % (cols || 1))) * 16;
             return (
               <button
                 key={idx}
@@ -260,7 +262,8 @@ export const KeycapGrid: React.FC<KeycapGridProps> = ({
                   soundFX.playKeycapTap(0);
                   setActivePath([idx]);
                 }}
-                className={`aspect-square rounded-xl flex items-center justify-center text-xl sm:text-2xl font-bold cursor-pointer ${
+                style={{ '--tile-delay': `${tileDelayMs}ms` } as React.CSSProperties}
+                className={`puzzle-tile-enter aspect-square rounded-xl flex items-center justify-center text-xl sm:text-2xl font-bold cursor-pointer ${
                   isLightMode ? 'keycap-tile-light' : 'keycap-tile text-[#eaf3f7]'
                 } ${isSelected ? 'active-swipe' : ''} ${isFlashed ? 'found-flash' : ''}`}
               >

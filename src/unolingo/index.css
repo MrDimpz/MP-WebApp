@@ -1,0 +1,63 @@
+/* Unolingo Animations aligned with The Missing Piece design tokens */
+
+@keyframes unolingoTilePop {
+  0% {
+    transform: scale(0.84);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes unolingoTileShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes unolingoFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-unolingo-pop {
+  animation: unolingoTilePop 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-unolingo-shake {
+  animation: unolingoTileShake 300ms ease-in-out;
+}
+
+.animate-unolingo-fade-in {
+  animation: unolingoFadeIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-unolingo-pop,
+  .animate-unolingo-shake,
+  .animate-unolingo-fade-in {
+    animation: none !important;
+  }
+}

@@ -10,6 +10,7 @@ interface StreamOverlaysProps {
   status: string;
   onStartNextRound: () => void;
   onDismissSummary: () => void;
+  hideActions?: boolean;
 }
 
 export const StreamOverlays: React.FC<StreamOverlaysProps> = ({
@@ -19,6 +20,7 @@ export const StreamOverlays: React.FC<StreamOverlaysProps> = ({
   status,
   onStartNextRound,
   onDismissSummary,
+  hideActions = false,
 }) => {
   return (
     <>
@@ -140,6 +142,7 @@ export const StreamOverlays: React.FC<StreamOverlaysProps> = ({
               </div>
             </div>
 
+            {!hideActions && (
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
               <button
                 type="button"
@@ -161,11 +164,12 @@ export const StreamOverlays: React.FC<StreamOverlaysProps> = ({
                 ) : (
                   <>
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Restart from Level 1</span>
+                    <span>Restart Level 1</span>
                   </>
                 )}
               </button>
             </div>
+            )}
           </div>
         </div>
       )}

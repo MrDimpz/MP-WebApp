@@ -116,3 +116,78 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.4),
     0 1px 0 #9a4410;
 }
+
+/* ── Manuscript Auto-Scroll Box: hide scrollbar unless cursor is over box ── */
+.wk-manuscript-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.wk-manuscript-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.wk-manuscript-box:hover .wk-manuscript-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 184, 221, 0.5) transparent;
+}
+
+.wk-manuscript-box:hover .wk-manuscript-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.wk-manuscript-box:hover .wk-manuscript-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wk-manuscript-box:hover .wk-manuscript-scroll::-webkit-scrollbar-thumb {
+  background: rgba(150, 184, 221, 0.45);
+  border-radius: 9999px;
+}
+
+.wk-manuscript-box:hover .wk-manuscript-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 184, 221, 0.72);
+}
+
+.wk-canvas-light .wk-manuscript-box:hover .wk-manuscript-scroll {
+  scrollbar-color: rgba(23, 104, 179, 0.45) transparent;
+}
+
+.wk-canvas-light .wk-manuscript-box:hover .wk-manuscript-scroll::-webkit-scrollbar-thumb {
+  background: rgba(23, 104, 179, 0.42);
+}
+
+.wk-canvas-light .wk-manuscript-box:hover .wk-manuscript-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(23, 104, 179, 0.68);
+}
+
+/* ── Smooth fade-in animation for newly revealed manuscript words ── */
+@keyframes wk-word-fade-in {
+  0% {
+    opacity: 0;
+    filter: brightness(1.35);
+    transform: translateY(2px) scale(0.95);
+  }
+  65% {
+    opacity: 1;
+    filter: brightness(1.12);
+    transform: translateY(0) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+    transform: translateY(0) scale(1);
+  }
+}
+
+.wk-word-reveal {
+  display: inline-block;
+  animation: wk-word-fade-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wk-word-reveal {
+    animation: none;
+  }
+}

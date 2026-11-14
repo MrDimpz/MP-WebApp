@@ -94,7 +94,8 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
             return (
               <div
                 key={colIdx}
-                className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md transition-colors duration-200 bg-[#160224]/60 border border-purple-950/30 opacity-60"
+                style={{ '--tile-delay': `${colIdx * 18}ms` } as React.CSSProperties}
+                className="puzzle-tile-enter w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md transition-colors duration-200 bg-[#160224]/60 border border-purple-950/30 opacity-60"
               />
             );
           }
@@ -120,7 +121,8 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
             <div key={colIdx} className="relative flex items-center">
               <div
                 onClick={() => onSelectThemeCell(colIdx)}
-                className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md font-mono font-black text-[32px] sm:text-[38px] md:text-[45px] leading-none flex items-center justify-center transition-all duration-200 cursor-pointer select-none ${
+                style={{ '--tile-delay': `${colIdx * 18}ms` } as React.CSSProperties}
+                className={`puzzle-tile-enter w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md font-mono font-black text-[32px] sm:text-[38px] md:text-[45px] leading-none flex items-center justify-center transition-all duration-200 cursor-pointer select-none ${
                   isTileWrong
                     ? 'bg-rose-500 text-white shadow-md ring-2 ring-rose-400'
                     : isRevealedByGuess
@@ -186,7 +188,10 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                   return (
                     <div
                       key={colIdx}
-                      className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md transition-colors duration-200 bg-[#160224]/60 border border-purple-950/30 opacity-60"
+                      style={{
+                        '--tile-delay': `${(rowIdx + 1) * 26 + colIdx * 16}ms`,
+                      } as React.CSSProperties}
+                      className="puzzle-tile-enter w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md transition-colors duration-200 bg-[#160224]/60 border border-purple-950/30 opacity-60"
                     />
                   );
                 }
@@ -212,7 +217,10 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                   <div key={colIdx} className="relative flex items-center">
                     <div
                       onClick={() => onSelectCell(rowIdx, colIdx)}
-                      className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md font-mono font-black text-[32px] sm:text-[38px] md:text-[45px] leading-none flex items-center justify-center transition-all duration-200 cursor-pointer select-none ${
+                      style={{
+                        '--tile-delay': `${(rowIdx + 1) * 26 + colIdx * 16}ms`,
+                      } as React.CSSProperties}
+                      className={`puzzle-tile-enter w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md font-mono font-black text-[32px] sm:text-[38px] md:text-[45px] leading-none flex items-center justify-center transition-all duration-200 cursor-pointer select-none ${
                         isTileWrong
                           ? 'bg-rose-500 text-white shadow-md ring-2 ring-rose-400'
                           : isRevealedByGuess

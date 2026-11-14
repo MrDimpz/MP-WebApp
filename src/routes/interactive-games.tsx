@@ -15,6 +15,7 @@ import {
 import { AdminPortalModal } from '@/components/interactive-games/admin-portal-modal';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import { GorillaShackTile } from '@/components/gorilla-shack-tile';
+import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
 
 export function InteractiveGamesPage() {
   const { activeStreamer } = useInteractiveAuthStore();
@@ -210,13 +211,20 @@ export function InteractiveGamesPage() {
               and Ultra tiers while racing to uncover the hidden Wikipedia Article Title. Supports
               Solo Daily, Endless Practice, 4×4 Blitz, and TikTok Live Streamer mode.
             </p>
-            <div className="mt-auto pt-2">
+            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
               <Link className="game-link" to="/interactive-games/wikirec">
                 Play WiKirecTangled{' '}
                 <span>
                   <ArrowUpRight size={22} />
                 </span>
               </Link>
+              <LiveOverlayButton
+                gameTitle="WiKirecTangled"
+                gameSlug="wikirec"
+                streamerHandle={activeStreamer?.username}
+                recommendedSize="560 × 940 or 1080 × 1920"
+                label="LIVE Overlay"
+              />
             </div>
           </article>
 
@@ -244,13 +252,20 @@ export function InteractiveGamesPage() {
               swipe hidden target words on the 3D keycap matrix, or connect your TikTok Live chat so
               viewers can solve the article together in real time.
             </p>
-            <div className="mt-auto pt-2">
+            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
               <Link className="game-link" to="/interactive-games/wikicon">
                 Play WikiContexto{' '}
                 <span>
                   <ArrowUpRight size={22} />
                 </span>
               </Link>
+              <LiveOverlayButton
+                gameTitle="WikiContexto"
+                gameSlug="wikicon"
+                streamerHandle={activeStreamer?.username}
+                recommendedSize="560 × 960 or 1080 × 1920"
+                label="LIVE Overlay"
+              />
             </div>
           </article>
 
@@ -278,13 +293,20 @@ export function InteractiveGamesPage() {
               and bonus words, trigger <code>!rotate</code> and <code>!hint</code> commands, and
               climb the live stream leaderboard.
             </p>
-            <div className="mt-auto pt-2">
+            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
               <Link className="game-link" to="/interactive-games/squaredint">
                 Play Squared Interactive{' '}
                 <span>
                   <ArrowUpRight size={22} />
                 </span>
               </Link>
+              <LiveOverlayButton
+                gameTitle="Squared Interactive"
+                gameSlug="squaredint"
+                streamerHandle={activeStreamer?.username}
+                recommendedSize="540 × 920 or 1080 × 1920"
+                label="LIVE Overlay"
+              />
             </div>
           </article>
 
@@ -312,13 +334,20 @@ export function InteractiveGamesPage() {
               words from dynamic letter pools, score combo multipliers, and discover rare high-value
               vocabulary in real time.
             </p>
-            <div className="mt-auto pt-2">
+            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
               <Link className="game-link" to="/interactive-games/lexi">
                 Play Lexi Tiles{' '}
                 <span>
                   <ArrowUpRight size={22} />
                 </span>
               </Link>
+              <LiveOverlayButton
+                gameTitle="Lexi Tiles"
+                gameSlug="lexi"
+                streamerHandle={activeStreamer?.username}
+                recommendedSize="540 × 860 or 1080 × 1920"
+                label="LIVE Overlay"
+              />
             </div>
           </article>
 
@@ -346,13 +375,20 @@ export function InteractiveGamesPage() {
               5-letter words from exposed top-layer tiles before the auto-reveal timer expires,
               earning speed-bonus points on the running stream scoreboard.
             </p>
-            <div className="mt-auto pt-2">
+            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
               <Link className="game-link" to="/interactive-games/destackint">
                 Play DeStack Interactive{' '}
                 <span>
                   <ArrowUpRight size={22} />
                 </span>
               </Link>
+              <LiveOverlayButton
+                gameTitle="DeStack Interactive"
+                gameSlug="destackint"
+                streamerHandle={activeStreamer?.username}
+                recommendedSize="560 × 940 or 1080 × 1920"
+                label="LIVE Overlay"
+              />
             </div>
           </article>
         </div>

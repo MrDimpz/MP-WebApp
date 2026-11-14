@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Link } from 'react-router';
 import {
@@ -29,8 +29,16 @@ import {
   creditInteractiveScoreByTikTokHandle,
   getCurrentUserSessionPrefix,
 } from '../lib/unified-game-auth';
+import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
+import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
+import {
+  getLocalTodayDateStr,
+  recordDailyPuzzleSolved,
+  useDailyStreak,
+} from '@/lib/daily-streak';
+import { DailyStreakBadge } from '@/components/daily-streak-badge';
+import { triggerVictoryConfetti } from '@/lib/confetti';
 import './index.css';
-import confetti from 'canvas-confetti';
 import {
   GameMode,
   RoundState,
@@ -84,7 +92,7 @@ const INITIAL_PROFILE: UserEconomyProfile = {
   level: 5,
   roundsWon: 4,
   totalWordsFound: 68,
-  dailyStreak: 3,
+  dailyStreak: 0,
   equippedTitle: 'Tycoon Scholar',
   equippedFrame: '#19e4ff',
   equippedTileSkin: 'arcade-teal',
@@ -190,8 +198,10 @@ const INITIAL_PROFILE: UserEconomyProfile = {
 };
 
 export function App() {
+  const { isOverlay, bg: overlayBg, streamer: overlayStreamer } = useOverlayConfig();
+  const hasReceivedHostSyncRef = useRef(false);
 
-  const [activeNav, setActiveNav] = useState<GameMode>('HOME');
+  const [activeNav, setActiveNav] = useState<GameMode>(() => (isOverlay ? 'ONLINE' : 'HOME'));
   const [round, setRound] = useState<RoundState | null>(null);
   const [archiveList, setArchiveList] = useState<ArchivePuzzleItem[]>([]);
 
@@ -228,6 +238,9 @@ export function App() {
   } | null>(null);
   const [showGridInHybrid, setShowGridInHybrid] = useState(false);
   const [isManuscriptAutoScroll, setIsManuscriptAutoScroll] = useState(true);
+
+  const todayDateStr = useMemo(() => getLocalTodayDateStr(), []);
+  const dailyStreak = useDailyStreak('wikicon', todayDateStr);
 
   const [profile, setProfile] = useState<UserEconomyProfile>(() => {
     try {
@@ -342,6 +355,7 @@ export function App() {
   // Connect to backend via Socket.IO (scoped to isolated user session) & initialize isolated per-user round
   useEffect(() => {
     createNewWikiconRound({ mode: 'WIKICONTEXTO', isDaily: true }).then((init) => {
+      if (isOverlay && hasReceivedHostSyncRef.current) return;
       internalRoundRef.current = init;
       setRound(serializeWikiconRound(init));
     });
@@ -359,6 +373,25 @@ export function App() {
     });
     socketRef.current = socket;
     const deduplicator = createEventDeduplicator();
+
+    // Standalone overlay auto-connect if opened directly with ?streamer=handle and no host tab synced
+    let standaloneConnectTimer: ReturnType<typeof setTimeout> | null = null;
+    if (isOverlay && overlayStreamer) {
+      const cleanOverlayStreamer = overlayStreamer.replace(/^@+/, '').trim();
+      if (cleanOverlayStreamer) {
+        standaloneConnectTimer = setTimeout(() => {
+          if (!hasReceivedHostSyncRef.current) {
+            triggerResilientConnect(socket, {
+              username: cleanOverlayStreamer,
+              isTestMode: false,
+              provider: 'tikfinity',
+              gameId: 'wikicon',
+              sessionId: getCurrentUserSessionPrefix(),
+            });
+          }
+        }, 1200);
+      }
+    }
 
     // Exact Socket.IO listeners specified in prompt
     socket.on('tiktok-connected', (data: { username: string; roomId: string; gameId?: string }) => {
@@ -410,8 +443,8 @@ export function App() {
     }) => {
       recordActivity();
       const rawComment = String(data.comment || '');
-      const cleanUniqueId = (data.uniqueId || 'viewer').replace(/^@+/, '');
-      const cleanNickname = (data.nickname || cleanUniqueId || 'Viewer').replace(/^@+/, '');
+      const cleanUniqueId = (data.uniqueId || data.nickname || 'viewer').replace(/^@+/, '');
+      const cleanNickname = (data.nickname || data.uniqueId || 'Viewer').replace(/^@+/, '');
       const rawPfp = (data.profilePictureUrl || '').trim();
       const normalizedPfp = rawPfp.startsWith('//') ? `https:${rawPfp}` : rawPfp;
       const validPfp = normalizedPfp.startsWith('http')
@@ -428,6 +461,10 @@ export function App() {
       };
       // Append all chat messages (even if not part of puzzle, multi-word, or numbers)
       setChatMessages((prev) => [...prev.slice(-199), msg]);
+
+      if (isOverlay && hasReceivedHostSyncRef.current) {
+        return;
+      }
 
       // Evaluate chat message words against the active WikiContexto round
       if (internalRoundRef.current && rawComment.trim()) {
@@ -532,27 +569,43 @@ export function App() {
     });
 
     return () => {
+      if (standaloneConnectTimer) clearTimeout(standaloneConnectTimer);
       detachBridge();
       socket.disconnect();
     };
-  }, [recordActivity, showToast]);
+  }, [recordActivity, showToast, isOverlay, overlayStreamer]);
 
   // Trigger Victory Fanfare & Confetti when round transitions to solved
   useEffect(() => {
     if (round?.solved && !prevSolvedRef.current) {
       soundFX.playVictoryFanfare();
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
+      if (!isOverlay) {
+        const topPlayerScore =
+          round.leaderboard && round.leaderboard.length > 0
+            ? Math.max(...round.leaderboard.map((p) => p.score || 0))
+            : 0;
+        const bestKey = `mp_wikicon_best_score_${getCurrentUserSessionPrefix()}`;
+        let prevBest = 0;
+        try {
+          prevBest = Number(localStorage.getItem(bestKey) || '0') || 0;
+          if (topPlayerScore > prevBest) {
+            localStorage.setItem(bestKey, String(topPlayerScore));
+          }
+        } catch {}
+        triggerVictoryConfetti({
+          isDaily: Boolean(round.isDaily),
+          isNewHighScore: prevBest > 0 && topPlayerScore > prevBest,
         });
-      } catch (_) {}
+      }
+      const updatedStreakState = !isOverlay
+        ? recordDailyPuzzleSolved('wikicon', todayDateStr)
+        : null;
       setProfile((p) => ({
         ...p,
         coins: p.coins + 2500,
         elo: p.elo + 18,
         roundsWon: p.roundsWon + 1,
+        dailyStreak: updatedStreakState ? updatedStreakState.streak : p.dailyStreak,
         completedDailies:
           round.isDaily && round.dailyDate && !p.completedDailies.includes(round.dailyDate)
             ? [...p.completedDailies, round.dailyDate]
@@ -560,7 +613,7 @@ export function App() {
       }));
     }
     prevSolvedRef.current = !!round?.solved;
-  }, [round?.solved, round?.isDaily, round?.dailyDate]);
+  }, [round?.solved, round?.isDaily, round?.dailyDate, isOverlay, todayDateStr]);
 
   // Reset manuscript scroll position on new round
   useEffect(() => {
@@ -954,9 +1007,22 @@ export function App() {
     round && round.topRankCards[i] ? round.topRankCards[i] : null
   );
 
-  const goldPlayer = round?.leaderboard[0] || null;
-  const silverPlayer = round?.leaderboard[1] || null;
-  const bronzePlayer = round?.leaderboard[2] || null;
+  const sortedLeaderboard = useMemo(() => {
+    return [...(round?.leaderboard || [])]
+      .filter((p) => p.score > 0)
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          (b.wordsFound || 0) - (a.wordsFound || 0) ||
+          (b.titleWordsFound || 0) - (a.titleWordsFound || 0) ||
+          (a.bestRank || 9999) - (b.bestRank || 9999) ||
+          (a.displayName || '').localeCompare(b.displayName || '')
+      );
+  }, [round?.leaderboard]);
+
+  const goldPlayer = sortedLeaderboard[0] || null;
+  const silverPlayer = sortedLeaderboard[1] || null;
+  const bronzePlayer = sortedLeaderboard[2] || null;
 
   const renderPlayerAvatar = (
     avatarUrlOrInitials: string | undefined,
@@ -986,18 +1052,97 @@ export function App() {
     );
   };
 
+  const syncedSnapshot = useMemo(
+    () =>
+      !isOverlay && round
+        ? {
+            round,
+            activeNav,
+            showGridInHybrid,
+            showLengthsOnBlocks,
+            feedbackToast,
+            isManuscriptAutoScroll,
+            isLightMode,
+          }
+        : null,
+    [
+      isOverlay,
+      round,
+      activeNav,
+      showGridInHybrid,
+      showLengthsOnBlocks,
+      feedbackToast,
+      isManuscriptAutoScroll,
+      isLightMode,
+    ]
+  );
+
+  useOverlaySync<{
+    round: RoundState | null;
+    activeNav: GameMode;
+    showGridInHybrid: boolean;
+    showLengthsOnBlocks: boolean;
+    feedbackToast: { text: string; tone: 'cyan' | 'gold' | 'green' | 'muted' } | null;
+    isManuscriptAutoScroll: boolean;
+    isLightMode: boolean;
+  }>({
+    gameId: 'wikicon',
+    streamer:
+      overlayStreamer ||
+      connectedUsername ||
+      authenticatedStreamer ||
+      undefined,
+    isOverlay,
+    localState: syncedSnapshot,
+    onSyncedState: useCallback((remote) => {
+      if (!remote || !remote.round) return;
+      hasReceivedHostSyncRef.current = true;
+      setRound(remote.round);
+      const navIsGameplay =
+        remote.activeNav === 'DAILY' ||
+        remote.activeNav === 'SOLO' ||
+        remote.activeNav === 'ONLINE' ||
+        remote.activeNav === 'WIKIREC_GRID' ||
+        remote.activeNav === 'WIKIWORD_QUOTE';
+      setActiveNav(navIsGameplay ? remote.activeNav : 'ONLINE');
+      setShowGridInHybrid(!!remote.showGridInHybrid);
+      setShowLengthsOnBlocks(!!remote.showLengthsOnBlocks);
+      setFeedbackToast(remote.feedbackToast ?? null);
+      if (typeof remote.isManuscriptAutoScroll === 'boolean') {
+        setIsManuscriptAutoScroll(remote.isManuscriptAutoScroll);
+      }
+      if (typeof remote.isLightMode === 'boolean') {
+        setIsLightMode(remote.isLightMode);
+      }
+    }, []),
+  });
+
+  const effectiveNav: GameMode =
+    isOverlay &&
+    activeNav !== 'DAILY' &&
+    activeNav !== 'SOLO' &&
+    activeNav !== 'ONLINE' &&
+    activeNav !== 'WIKIREC_GRID' &&
+    activeNav !== 'WIKIWORD_QUOTE'
+      ? 'ONLINE'
+      : activeNav;
+
   return (
     <div
-      className={`wikicon-root min-h-screen flex flex-col items-center transition-colors duration-200 ${
-        isLightMode
+      className={`wikicon-root ${isOverlay && overlayBg === 'transparent' ? 'min-h-0 py-2 bg-transparent' : 'min-h-screen'} flex flex-col items-center transition-colors duration-200 ${
+        isOverlay && overlayBg === 'transparent'
+          ? isLightMode
+            ? 'text-[#102c4b]'
+            : 'text-[#f3f8ff]'
+          : isLightMode
           ? 'wk-canvas-light text-[#102c4b]'
           : 'wk-canvas-dark text-[#f3f8ff]'
       }`}
     >
       {/* ── Horizontal Flex Wrapper: Live Chat Box on Left (Only when Authorised User Logged In) + 50px Gap + 490px Game Shell ── */}
-      <div className="w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-[50px] px-4">
-        {/* Live Chat Stream Box to the left of the game with 50px gap — ONLY shown if an authorised user logs in */}
-        {authenticatedStreamer && (
+      <div className="w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-[50px] px-2 sm:px-4">
+        {/* Live Chat Stream Box to the left of the game with 50px gap — hidden in LIVE Studio overlay */}
+        {!isOverlay && authenticatedStreamer && (
           <div className="pt-4">
             <LiveChatBox
               messages={chatMessages}
@@ -1008,10 +1153,11 @@ export function App() {
         )}
 
         {/* ── Centered 490px App Shell ── */}
-        <div className="w-full max-w-[490px] min-h-screen flex flex-col shrink-0">
-          {/* ── Top Navigation Bar (490px width, includes Admin link & TikTok Live login gate) ── */}
+        <div className={`w-full max-w-[490px] ${isOverlay ? '' : 'min-h-screen'} flex flex-col shrink-0`}>
+          {/* ── Top Navigation Bar (hidden in LIVE Studio overlay) ── */}
+          {!isOverlay && (
           <header
-            className={`w-full flex items-center justify-between gap-2 px-3.5 py-3 border-b ${
+            className={`w-full flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b ${
               isLightMode
                 ? 'bg-white border-[#6498d2]'
                 : 'bg-[#020a25] border-[#1768b3]'
@@ -1104,8 +1250,22 @@ export function App() {
               </button>
             </nav>
 
-            {/* Zone 3: TikTok Live Button (Requires login with registered @username & key before panel opens) */}
-            <div className="flex items-center shrink-0">
+            {/* Zone 3: Daily Streak + LIVE Overlay + TikTok Live Button */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <DailyStreakBadge
+                streak={dailyStreak.streak}
+                solvedToday={dailyStreak.solvedToday}
+                variant={isLightMode ? 'light' : 'cyan'}
+                compact
+              />
+              <LiveOverlayButton
+                gameTitle="WikiContexto"
+                gameSlug="wikicon"
+                streamerHandle={connectedUsername || authenticatedStreamer}
+                recommendedSize="520 × 920 or 1080 × 1920"
+                label="Overlay"
+                className="!px-2 !py-1.5 !text-[11px] !rounded-xl"
+              />
               <button
                 type="button"
                 onClick={() => setIsStreamModalOpen(true)}
@@ -1128,9 +1288,10 @@ export function App() {
               </button>
             </div>
           </header>
+          )}
 
           {/* ── VIEW 1: WIKICONTEXTO 6-BUBBLE HOME PORTAL (490px width) ── */}
-          {activeNav === 'HOME' && (
+          {!isOverlay && effectiveNav === 'HOME' && (
             <main className="flex-1 w-full px-4 py-6 flex flex-col justify-between">
               {/* Suite Top Subbar */}
               <div className="flex items-center justify-between text-[11px] text-[#96b8dd] gap-2">
@@ -1318,7 +1479,7 @@ export function App() {
           )}
 
           {/* ── VIEW 2: PREVIOUS DAILIES ARCHIVE (490px width) ── */}
-          {activeNav === 'ARCHIVE' && (
+          {!isOverlay && effectiveNav === 'ARCHIVE' && (
             <main className="flex-1 w-full px-4 py-6 space-y-4">
               <div>
                 <h1 className="text-xl font-extrabold">Previous Daily Discoveries</h1>
@@ -1390,7 +1551,7 @@ export function App() {
           )}
 
           {/* ── VIEW 3: WORD TYCOON ECONOMY & COSMETICS HUB (490px width) ── */}
-          {activeNav === 'TYCOON_HUB' && (
+          {!isOverlay && effectiveNav === 'TYCOON_HUB' && (
             <main className="flex-1 w-full">
               <WordTycoonHubView
                 profile={profile}
@@ -1408,14 +1569,15 @@ export function App() {
           )}
 
           {/* ── VIEW 4: ACTIVE GAMEPLAY ARENA (490px Portrait Width) ── */}
-          {(activeNav === 'DAILY' ||
-            activeNav === 'SOLO' ||
-            activeNav === 'ONLINE' ||
-            activeNav === 'WIKIREC_GRID' ||
-            activeNav === 'WIKIWORD_QUOTE') &&
+          {(effectiveNav === 'DAILY' ||
+            effectiveNav === 'SOLO' ||
+            effectiveNav === 'ONLINE' ||
+            effectiveNav === 'WIKIREC_GRID' ||
+            effectiveNav === 'WIKIWORD_QUOTE') &&
             round && (
               <main className="flex-1 w-full px-3.5 py-2.5 space-y-2">
-                {/* Compact Workspace Mode & Utility Toolbar */}
+                {/* Compact Workspace Mode & Utility Toolbar (hidden in LIVE Studio overlay) */}
+                {!isOverlay && (
                 <div className="flex flex-col gap-1.5 p-1.5 rounded-xl bg-[#03142f] border border-[#1768b3]">
                   {/* Row 1: Mode Switcher Tabs */}
                   <div className="grid grid-cols-4 gap-1 p-0.5 rounded-lg bg-[#020a25]">
@@ -1553,6 +1715,7 @@ export function App() {
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* ── Round Complete Overlay Card (Shows Top Player Profile Picture, Display Name, and Score + Current Article Info) ── */}
                 {round.solved && (
@@ -1566,6 +1729,7 @@ export function App() {
                           {round.articleTitle}
                         </h2>
                       </div>
+                      {!isOverlay && (
                       <button
                         type="button"
                         onClick={() =>
@@ -1578,6 +1742,7 @@ export function App() {
                       >
                         <RotateCcw className="w-3.5 h-3.5" /> Next Round
                       </button>
+                      )}
                     </div>
 
                     {round.articleSummaryQuote && (
@@ -1618,7 +1783,7 @@ export function App() {
                 )}
 
                 {/* ── Authentic WikiContexto 2-Column Top Row (Compacted ~25% height) ── */}
-                {activeNav !== 'WIKIWORD_QUOTE' && (
+                {effectiveNav !== 'WIKIWORD_QUOTE' && (
                   <section className="grid grid-cols-12 gap-2 items-stretch">
                     {/* Left Column (5 cols): Title Block + Podium */}
                     <div className="col-span-5 flex flex-col gap-1.5">
@@ -1668,14 +1833,23 @@ export function App() {
                       </div>
 
                       {/* Gold / Silver / Bronze Scoreboard Podium */}
-                      <div className="p-1.5 rounded-xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc] flex items-end justify-center gap-1 min-h-[84px]">
+                      <div className="p-1.5 rounded-xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc] flex items-end justify-center gap-1 min-h-[86px]">
                         {/* Silver #2 */}
-                        <div className="flex-1 min-w-0 h-[64px] rounded-lg border border-[#8ab9f5] bg-gradient-to-br from-[#1b467a] to-[#0d3470] p-1 flex flex-col items-center justify-between text-center">
-                          {renderPlayerAvatar(
-                            silverPlayer?.avatar,
-                            silverPlayer?.displayName || '2',
-                            'w-6 h-6 text-[9px] text-white',
-                            'border border-[#8ab9f5]'
+                        <div className="relative flex-1 min-w-0 h-[66px] rounded-lg border border-[#8ab9f5] bg-gradient-to-br from-[#1b467a] to-[#0d3470] p-1 flex flex-col items-center justify-between text-center">
+                          <span className="absolute -top-1.5 left-1 px-1 rounded bg-[#8ab9f5] text-[#041838] text-[8px] font-black leading-tight">
+                            2nd
+                          </span>
+                          {silverPlayer ? (
+                            renderPlayerAvatar(
+                              silverPlayer.avatar,
+                              silverPlayer.displayName,
+                              'w-6 h-6 text-[9px] text-white mt-0.5',
+                              'border border-[#8ab9f5]'
+                            )
+                          ) : (
+                            <div className="w-6 h-6 mt-0.5 rounded-full border border-[#8ab9f5]/60 bg-[#082046] flex items-center justify-center text-[9px] font-bold text-[#8ab9f5]">
+                              2
+                            </div>
                           )}
                           <div className="text-[9px] font-bold text-[#e6f2ff] truncate w-full leading-tight">
                             {silverPlayer ? silverPlayer.displayName : '—'}
@@ -1686,13 +1860,22 @@ export function App() {
                         </div>
 
                         {/* Gold #1 */}
-                        <div className="relative flex-1 min-w-0 h-[74px] rounded-lg border-2 border-[#ffdd35] bg-gradient-to-br from-[#700432] to-[#270e28] shadow-[0_0_10px_rgba(255,214,48,0.28)] p-1 flex flex-col items-center justify-between text-center">
+                        <div className="relative flex-1 min-w-0 h-[76px] rounded-lg border-2 border-[#ffdd35] bg-gradient-to-br from-[#700432] to-[#270e28] shadow-[0_0_10px_rgba(255,214,48,0.28)] p-1 flex flex-col items-center justify-between text-center">
                           <Crown className="w-3.5 h-3.5 text-[#ffe536] absolute -top-2 -left-0.5 -rotate-12" />
-                          {renderPlayerAvatar(
-                            goldPlayer?.avatar,
-                            goldPlayer?.displayName || '1',
-                            'w-6 h-6 text-[10px] text-[#ffe536]',
-                            'border border-[#ffe536]'
+                          <span className="absolute -top-1.5 right-1 px-1 rounded bg-[#ffe536] text-[#270e28] text-[8px] font-black leading-tight">
+                            1st
+                          </span>
+                          {goldPlayer ? (
+                            renderPlayerAvatar(
+                              goldPlayer.avatar,
+                              goldPlayer.displayName,
+                              'w-6 h-6 text-[10px] text-[#ffe536] mt-0.5',
+                              'border border-[#ffe536]'
+                            )
+                          ) : (
+                            <div className="w-6 h-6 mt-0.5 rounded-full border border-[#ffe536]/70 bg-[#270e28] flex items-center justify-center text-[9px] font-extrabold text-[#ffe536]">
+                              1
+                            </div>
                           )}
                           <div className="text-[9px] font-extrabold text-[#ffe536] truncate w-full leading-tight">
                             {goldPlayer ? goldPlayer.displayName : '—'}
@@ -1703,12 +1886,21 @@ export function App() {
                         </div>
 
                         {/* Bronze #3 */}
-                        <div className="flex-1 min-w-0 h-[58px] rounded-lg border border-[#b07a3d] bg-gradient-to-br from-[#183553] to-[#020c22] p-1 flex flex-col items-center justify-between text-center">
-                          {renderPlayerAvatar(
-                            bronzePlayer?.avatar,
-                            bronzePlayer?.displayName || '3',
-                            'w-5 h-5 text-[9px] text-white',
-                            'border border-[#b07a3d]'
+                        <div className="relative flex-1 min-w-0 h-[60px] rounded-lg border border-[#b07a3d] bg-gradient-to-br from-[#183553] to-[#020c22] p-1 flex flex-col items-center justify-between text-center">
+                          <span className="absolute -top-1.5 left-1 px-1 rounded bg-[#d99b52] text-[#1a0d02] text-[8px] font-black leading-tight">
+                            3rd
+                          </span>
+                          {bronzePlayer ? (
+                            renderPlayerAvatar(
+                              bronzePlayer.avatar,
+                              bronzePlayer.displayName,
+                              'w-5 h-5 text-[9px] text-white mt-0.5',
+                              'border border-[#b07a3d]'
+                            )
+                          ) : (
+                            <div className="w-5 h-5 mt-0.5 rounded-full border border-[#b07a3d]/60 bg-[#0b1f38] flex items-center justify-center text-[8px] font-bold text-[#d99b52]">
+                              3
+                            </div>
                           )}
                           <div className="text-[9px] font-bold text-[#e6f2ff] truncate w-full leading-tight">
                             {bronzePlayer ? bronzePlayer.displayName : '—'}
@@ -1891,8 +2083,8 @@ export function App() {
                 )}
 
                 {/* ── Wikirec 8-Connected Keycap Grid & Target Pyramid ── */}
-                {(activeNav === 'WIKIREC_GRID' ||
-                  activeNav === 'WIKIWORD_QUOTE' ||
+                {(effectiveNav === 'WIKIREC_GRID' ||
+                  effectiveNav === 'WIKIWORD_QUOTE' ||
                   showGridInHybrid) &&
                   round.gridBoard && (
                     <section className="p-3 rounded-2xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc]">
@@ -1906,7 +2098,7 @@ export function App() {
 
                 {/* ── Redacted Wikipedia Article Body Panel (Auto-Scrolling Viewport) ── */}
                 <section
-                  className={`p-3.5 rounded-2xl border-2 border-[#137bcc] shadow-[inset_0_1px_7px_rgba(25,228,255,0.15)] space-y-2.5 ${
+                  className={`wk-manuscript-box p-3.5 rounded-2xl border-2 border-[#137bcc] shadow-[inset_0_1px_7px_rgba(25,228,255,0.15)] space-y-2.5 ${
                     isLightMode
                       ? 'bg-white text-[#102c4b]'
                       : 'bg-gradient-to-br from-[#06244b] to-[#03142f] text-[#f3f8ff]'
@@ -1916,6 +2108,7 @@ export function App() {
                   <div className="flex items-center justify-between border-b border-[#1768b3]/40 pb-1.5 text-[11px] text-[#96b8dd]">
                     <span>Wikipedia Redacted Manuscript</span>
                     <div className="flex items-center gap-2.5">
+                      {!isOverlay && (
                       <button
                         type="button"
                         onClick={() => setIsManuscriptAutoScroll((v) => !v)}
@@ -1937,6 +2130,7 @@ export function App() {
                         )}
                         {isManuscriptAutoScroll ? 'Auto' : 'Paused'}
                       </button>
+                      )}
                       <span className="font-mono tabular-nums">
                         {Math.round((round.revealedWordsCount / Math.max(1, round.totalWords)) * 100)}% Uncovered
                       </span>
@@ -1964,7 +2158,7 @@ export function App() {
                         manuscriptManualPauseUntilRef.current = performance.now() + 3000;
                       }
                     }}
-                    className="max-h-[245px] overflow-y-auto overscroll-contain pr-1.5 space-y-3 leading-7 text-[15px]"
+                    className="wk-manuscript-scroll max-h-[245px] overflow-y-auto overscroll-contain pr-1.5 space-y-3 leading-7 text-[15px]"
                   >
                     {round.paragraphs.map((para, pIdx) => (
                       <p key={pIdx} className="break-words">
@@ -1982,8 +2176,8 @@ export function App() {
                                       ? 'text-[#416890]'
                                       : 'text-[#d8eaff]'
                                     : isLightMode
-                                    ? 'text-[#08724c] font-bold'
-                                    : 'text-[#2bff86] font-bold'
+                                    ? 'text-[#08724c] font-bold wk-word-reveal'
+                                    : 'text-[#2bff86] font-bold wk-word-reveal'
                                 }`}
                               >
                                 {tok.text}
@@ -2022,7 +2216,8 @@ export function App() {
                   </div>
                 </section>
 
-                {/* ── Guess Composer Input Bar (Moved Below Article) ── */}
+                {/* ── Guess Composer Input Bar (hidden in LIVE Studio overlay) ── */}
+                {!isOverlay && (
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -2052,11 +2247,14 @@ export function App() {
                     <Send className="w-3.5 h-3.5" /> Guess
                   </button>
                 </form>
+                )}
               </main>
             )}
         </div>
       </div>
 
+      {!isOverlay && (
+      <>
       {/* ── TikTok Live Stream Connector & Debug Modal ── */}
       <TikTokStreamModal
         isOpen={isStreamModalOpen}
@@ -2093,6 +2291,8 @@ export function App() {
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
       />
+      </>
+      )}
     </div>
   );
 }

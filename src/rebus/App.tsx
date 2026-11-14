@@ -7,6 +7,13 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
 import { getCurrentUserSessionPrefix } from '../lib/unified-game-auth';
 import {
+  getLocalTodayDateStr,
+  recordDailyPuzzleSolved,
+  useDailyStreak,
+} from '@/lib/daily-streak';
+import { triggerVictoryConfetti } from '@/lib/confetti';
+import { DailyStreakBadge } from '@/components/daily-streak-badge';
+import {
   INDIVIDUAL_PUZZLES,
   WORKSHEET_GRIDS,
   RebusChallenge,
@@ -62,6 +69,14 @@ function getRebusStorageKey(): string {
 const THEME_STORAGE_KEY = 'pad_rebus_dark_mode_v1';
 const BRAND_THEME_STORAGE_KEY = 'pad_rebus_brand_theme_v1';
 
+function getDailyRebusPuzzle(dateStr: string): RebusChallenge {
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = (hash * 31 + dateStr.charCodeAt(i)) >>> 0;
+  }
+  return INDIVIDUAL_PUZZLES[hash % INDIVIDUAL_PUZZLES.length] || INDIVIDUAL_PUZZLES[0];
+}
+
 const INITIAL_PROGRESS: GameProgress = {
   solvedIds: {},
   revealedIds: {},
@@ -70,7 +85,7 @@ const INITIAL_PROGRESS: GameProgress = {
   score: 0,
   currentStreak: 0,
   bestStreak: 0,
-  lastPlayedId: INDIVIDUAL_PUZZLES[0]?.id || '',
+  lastPlayedId: getDailyRebusPuzzle(getLocalTodayDateStr())?.id || INDIVIDUAL_PUZZLES[0]?.id || '',
 };
 
 const PUZZLE_CATEGORIES = [
@@ -138,6 +153,9 @@ function getHintTiers(puzzle: RebusChallenge) {
 }
 
 export default function App() {
+  const todayDateStr = useMemo(() => getLocalTodayDateStr(), []);
+  const dailyRebusPuzzle = useMemo(() => getDailyRebusPuzzle(todayDateStr), [todayDateStr]);
+
   const [progress, setProgress] = useState<GameProgress>(() => {
     try {
       const saved = localStorage.getItem(getRebusStorageKey());
@@ -150,6 +168,9 @@ export default function App() {
     }
     return INITIAL_PROGRESS;
   });
+
+  const solvedTodayRebus = Boolean(dailyRebusPuzzle && progress.solvedIds[dailyRebusPuzzle.id]);
+  const dailyStreak = useDailyStreak('rebus', todayDateStr, solvedTodayRebus);
 
   // Dark Mode State
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -279,6 +300,26 @@ export default function App() {
     return () => clearInterval(interval);
   }, [sprintActive, sprintFinished]);
 
+  // Trigger confetti on Sprint completion (and highlight new sprint high scores)
+  const prevSprintFinishedRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (sprintFinished && !prevSprintFinishedRef.current && sprintScore > 0) {
+      const bestSprintKey = `mp_rebus_best_sprint_${getCurrentUserSessionPrefix()}`;
+      let prevBestSprint = 0;
+      try {
+        prevBestSprint = Number(localStorage.getItem(bestSprintKey) || '0') || 0;
+        if (sprintScore > prevBestSprint) {
+          localStorage.setItem(bestSprintKey, String(sprintScore));
+        }
+      } catch {}
+      triggerVictoryConfetti({
+        isDaily: false,
+        isNewHighScore: prevBestSprint > 0 && sprintScore > prevBestSprint,
+      });
+    }
+    prevSprintFinishedRef.current = sprintFinished;
+  }, [sprintFinished, sprintScore]);
+
   // Filtered deck for play navigation
   const activeDeck = useMemo(() => {
     if (sprintActive && sprintQueue.length > 0) {
@@ -384,7 +425,14 @@ export default function App() {
       setFeedbackStatus('correct');
       setFeedbackMessage(`Spot on! +${potentialPoints} points`);
 
-      if (!progress.solvedIds[currentPuzzle.id]) {
+      const isFirstSolveForPuzzle = !progress.solvedIds[currentPuzzle.id];
+      const isNewStreakRecord =
+        isFirstSolveForPuzzle &&
+        progress.currentStreak + 1 > progress.bestStreak &&
+        progress.bestStreak > 0;
+      const isDailyPuzzle = currentPuzzle.id === dailyRebusPuzzle.id;
+
+      if (isFirstSolveForPuzzle) {
         const newStreak = progress.currentStreak + 1;
         setProgress((prev) => ({
           ...prev,
@@ -396,6 +444,17 @@ export default function App() {
         if (sprintActive) {
           setSprintScore((prev) => prev + potentialPoints);
         }
+      }
+
+      if (isDailyPuzzle) {
+        recordDailyPuzzleSolved('rebus', todayDateStr);
+      }
+
+      if (isDailyPuzzle || isNewStreakRecord) {
+        triggerVictoryConfetti({
+          isDaily: isDailyPuzzle,
+          isNewHighScore: isNewStreakRecord,
+        });
       }
 
       // Schedule the 3-second delayed popup prompting Next Puzzle
@@ -660,19 +719,20 @@ export default function App() {
               </button>
             </nav>
 
-            {/* Zone 3: Logo Theme Toggle + Dark Mode Selection Slider + Sprint CTA */}
+            {/* Zone 3: Daily Streak + Logo Theme Toggle + Dark Mode Selection Slider + Sprint CTA */}
             <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+              <DailyStreakBadge
+                streak={dailyStreak.streak}
+                solvedToday={dailyStreak.solvedToday}
+                variant={brandTheme === 'classic' ? 'emerald' : 'light'}
+                compact
+              />
               <div className="hidden xl:flex items-center gap-3 text-xs font-mono text-stone-600 dark:text-stone-400">
                 <span title="Solved Main Game Puzzles">
                   Solved:{' '}
                   <strong className="text-stone-900 dark:text-stone-100">
                     {totalSolvedCount}/{INDIVIDUAL_PUZZLES.length}
                   </strong>
-                </span>
-                <span className="text-stone-300 dark:text-stone-700">·</span>
-                <span className="flex items-center gap-1" title="Current Solve Streak">
-                  <Flame className="w-3.5 h-3.5 text-amber-500" />
-                  <strong className="text-stone-900 dark:text-stone-100">{progress.currentStreak}</strong>
                 </span>
               </div>
 
@@ -959,7 +1019,25 @@ export default function App() {
                         / {activeDeck.length}
                       </span>
 
-                      <div className="flex items-center gap-1 sm:gap-1.5">
+                      <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                        <button
+                          onClick={() => {
+                            setCompletedPuzzleSnapshot(null);
+                            setShowNextPuzzleModal(false);
+                            setSelectedCategory('All');
+                            setUnsolvedOnly(false);
+                            setCurrentPuzzleId(dailyRebusPuzzle.id);
+                          }}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors border cursor-pointer ${
+                            currentPuzzle.id === dailyRebusPuzzle.id
+                              ? 'bg-amber-500/20 border-amber-500/60 text-amber-700 dark:text-amber-300'
+                              : 'bg-[var(--bg-subtle)] hover:opacity-85 text-stone-700 dark:text-stone-200 border-[var(--border-card)]'
+                          }`}
+                          title="Play Today's Daily Rebus Puzzle"
+                        >
+                          <Flame className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Today's Daily</span>
+                        </button>
                         <button
                           onClick={handlePrevPuzzle}
                           className="px-2.5 py-1.5 rounded-lg bg-[var(--bg-subtle)] hover:opacity-85 text-stone-700 dark:text-stone-200 text-xs font-medium flex items-center gap-0.5 transition-colors border border-[var(--border-card)]"

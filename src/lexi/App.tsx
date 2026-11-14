@@ -30,14 +30,22 @@ import {
   Lock,
   Unlock,
   ArrowLeft,
+  Trophy,
 } from 'lucide-react';
+import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
+import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
+import { getLocalTodayDateStr, useDailyStreak } from '@/lib/daily-streak';
+import { triggerVictoryConfetti } from '@/lib/confetti';
+import { DailyStreakBadge } from '@/components/daily-streak-badge';
+import { GameFullState } from './types/game.ts';
+import type { ActiveCelebration, RoundSummaryPayload } from './services/gameClient.ts';
 
 type ActiveRoute = 'game' | 'vertical' | 'overlay' | 'display' | 'leaderboard' | 'admin';
 
 function resolveRouteFromPathname(pathname: string): ActiveRoute {
   const clean = pathname.toLowerCase().replace(/\/+$/, '');
   if (clean === '/vertical') return 'vertical';
-  if (clean === '/overlay') return 'overlay';
+  if (clean === '/overlay' || clean.endsWith('/overlay')) return 'overlay';
   if (clean === '/display') return 'display';
   if (clean === '/leaderboard') return 'leaderboard';
   if (clean === '/admin') return 'admin';
@@ -45,6 +53,9 @@ function resolveRouteFromPathname(pathname: string): ActiveRoute {
 }
 
 export default function App() {
+  const { isOverlay, bg: overlayBg, streamer: overlayStreamer } = useOverlayConfig();
+  const hasReceivedHostSyncRef = React.useRef(false);
+
   const {
     gameState,
     wsConnected,
@@ -72,7 +83,73 @@ export default function App() {
     resolveRouteFromPathname(window.location.pathname)
   );
 
-  const isCleanObsCapture = new URLSearchParams(window.location.search).get('clean') === '1';
+  interface LexiOverlaySnapshot {
+    gameState: GameFullState;
+    lastHighlightedIndices: number[];
+    lastWordBanner: {
+      word: string;
+      finder: string;
+      points: number;
+      isPangram: boolean;
+      comboCount: number;
+    } | null;
+    activeCelebration: ActiveCelebration | null;
+    roundSummary: RoundSummaryPayload | null;
+    submissionFeedback: { type: 'success' | 'error'; message: string } | null;
+  }
+
+  const [syncedPayload, setSyncedPayload] = useState<LexiOverlaySnapshot | null>(null);
+
+  const syncedSnapshot = React.useMemo<LexiOverlaySnapshot | null>(
+    () =>
+      !isOverlay && gameState
+        ? {
+            gameState,
+            lastHighlightedIndices,
+            lastWordBanner,
+            activeCelebration,
+            roundSummary,
+            submissionFeedback,
+          }
+        : null,
+    [
+      isOverlay,
+      gameState,
+      lastHighlightedIndices,
+      lastWordBanner,
+      activeCelebration,
+      roundSummary,
+      submissionFeedback,
+    ]
+  );
+
+  useOverlaySync<LexiOverlaySnapshot>({
+    gameId: 'lexi',
+    streamer: overlayStreamer || gameState?.tiktok?.username || undefined,
+    isOverlay,
+    localState: syncedSnapshot,
+    onSyncedState: React.useCallback((remote) => {
+      if (!remote || !remote.gameState) return;
+      hasReceivedHostSyncRef.current = true;
+      setSyncedPayload(remote);
+    }, []),
+  });
+
+  // Standalone overlay auto-connect if opened directly with ?streamer=handle and no host tab synced
+  useEffect(() => {
+    if (!isOverlay || !overlayStreamer) return;
+    const clean = overlayStreamer.replace(/^@+/, '').trim();
+    if (!clean) return;
+    const timer = window.setTimeout(() => {
+      if (!hasReceivedHostSyncRef.current) {
+        connectTikTok(clean);
+      }
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [isOverlay, overlayStreamer]);
+
+  const isCleanObsCapture =
+    isOverlay || new URLSearchParams(window.location.search).get('clean') === '1';
 
   useEffect(() => {
     const onPopState = () => {
@@ -86,9 +163,63 @@ export default function App() {
     setRoute(targetRoute);
   };
 
-  if (!gameState) {
+  const activeGameState =
+    isOverlay && syncedPayload?.gameState ? syncedPayload.gameState : gameState;
+  const activeHighlights =
+    isOverlay && syncedPayload ? syncedPayload.lastHighlightedIndices : lastHighlightedIndices;
+  const activeBanner =
+    isOverlay && syncedPayload ? syncedPayload.lastWordBanner : lastWordBanner;
+  const activeFeedback =
+    isOverlay && syncedPayload ? syncedPayload.submissionFeedback : submissionFeedback;
+  const activeCelebrationState =
+    isOverlay && syncedPayload ? syncedPayload.activeCelebration : activeCelebration;
+  const activeRoundSummary =
+    isOverlay && syncedPayload ? syncedPayload.roundSummary : roundSummary;
+
+  const todayDateStr = React.useMemo(() => getLocalTodayDateStr(), []);
+  const isRoundWonToday =
+    !isOverlay &&
+    Boolean(
+      roundSummary?.targetReached ||
+        (activeGameState &&
+          activeGameState.board.totalPossibleWords > 0 &&
+          activeGameState.discoveredWords.length >= activeGameState.board.totalPossibleWords)
+    );
+  const dailyStreak = useDailyStreak('lexi', todayDateStr, isRoundWonToday);
+  const lastCelebratedRoundRef = React.useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isOverlay || !roundSummary) return;
+    if (lastCelebratedRoundRef.current === roundSummary.roundNumber) return;
+    lastCelebratedRoundRef.current = roundSummary.roundNumber;
+
+    const bestKey = 'mp_lexi_best_round_score_v1';
+    let prevBest = 0;
+    try {
+      prevBest = Number(localStorage.getItem(bestKey) || '0') || 0;
+      if (roundSummary.roundScore > prevBest) {
+        localStorage.setItem(bestKey, String(roundSummary.roundScore));
+      }
+    } catch {}
+
+    const isNewHighScore = prevBest > 0 && roundSummary.roundScore > prevBest;
+    if (roundSummary.targetReached || isNewHighScore) {
+      triggerVictoryConfetti({
+        isDaily: roundSummary.targetReached,
+        isNewHighScore,
+      });
+    }
+  }, [isOverlay, roundSummary]);
+
+  if (!activeGameState) {
     return (
-      <div className="lexi-root min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
+      <div
+        className={`lexi-root min-h-screen flex items-center justify-center p-6 ${
+          isOverlay && overlayBg === 'transparent'
+            ? 'bg-transparent text-slate-100'
+            : 'bg-slate-950 text-slate-100'
+        }`}
+      >
         <div className="flex flex-col items-center gap-4 text-center">
           <BrandLogo size="xl" />
           <div>
@@ -106,8 +237,179 @@ export default function App() {
 
   const progressPct = Math.min(
     100,
-    Math.round((gameState.roundScore / Math.max(1, gameState.targetScore)) * 100)
+    Math.round((activeGameState.roundScore / Math.max(1, activeGameState.targetScore)) * 100)
   );
+
+  if (isOverlay) {
+    const topContributors = (activeGameState.leaderboards?.round || []).slice(0, 3);
+    return (
+      <div
+        className={`lexi-root flex flex-col items-center justify-start ${
+          overlayBg === 'transparent'
+            ? 'min-h-0 p-2 sm:p-4 bg-transparent text-slate-100'
+            : 'min-h-screen p-3 sm:p-5 bg-slate-950 text-slate-100'
+        }`}
+      >
+        <div className="w-full max-w-2xl mx-auto flex flex-col gap-3">
+          {/* Compact Round Status & Countdown Strip */}
+          <div className="px-4 py-2 rounded-2xl bg-[#190429]/92 border-2 border-amber-400/60 shadow-[0_8px_24px_rgba(0,0,0,0.6)] flex flex-wrap items-center justify-between gap-3 text-xs font-mono tabular-nums">
+            <div className="flex items-center gap-2.5">
+              <BrandLogo size="xs" showText={true} />
+              <span className="text-slate-500">·</span>
+              <span className="font-bold text-white">Round {activeGameState.roundNumber}</span>
+              <span className="text-slate-500">·</span>
+              <span className="capitalize text-amber-300 font-semibold">
+                {activeGameState.difficulty}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-emerald-300 font-bold">
+                {activeGameState.discoveredWords.length}/{activeGameState.board.totalPossibleWords} words
+              </span>
+              <span
+                className={`px-2.5 py-0.5 rounded-lg border font-extrabold flex items-center gap-1 ${
+                  activeGameState.remainingSeconds <= 10 && activeGameState.status === 'ACTIVE'
+                    ? 'bg-rose-950/90 border-rose-500 text-rose-300'
+                    : 'bg-slate-950 border-amber-400/40 text-amber-300'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                {activeGameState.status === 'COUNTDOWN'
+                  ? `${activeGameState.countdownSeconds}s`
+                  : `${Math.floor(activeGameState.remainingSeconds / 60)}:${String(
+                      activeGameState.remainingSeconds % 60
+                    ).padStart(2, '0')}`}
+              </span>
+            </div>
+          </div>
+
+          {/* Arcade Cabinet Game Board + Community Target Bar + Word Slots */}
+          <div className="arcade-board-cabinet relative rounded-3xl p-2 sm:p-3 flex flex-col gap-2 overflow-hidden shadow-[0_14px_34px_rgba(0,0,0,0.65)]">
+            <StreamOverlays
+              celebration={activeCelebrationState}
+              roundSummary={activeRoundSummary}
+              intermissionSeconds={activeGameState.intermissionSeconds}
+              status={activeGameState.status}
+              onStartNextRound={() => {}}
+              onDismissSummary={() => {}}
+              hideActions={true}
+            />
+
+            <LetterBoard
+              letters={activeGameState.board.letters}
+              centerLetter={activeGameState.board.centerLetter}
+              centerIndex={activeGameState.board.centerIndex}
+              modifiers={activeGameState.board.modifiers}
+              discoveredCount={activeGameState.discoveredWords.length}
+              totalPossibleWords={activeGameState.board.totalPossibleWords}
+              roundNumber={activeGameState.roundNumber}
+              status={activeGameState.status}
+              minWordLength={activeGameState.gameConfig.minWordLength}
+              highlightedIndices={activeHighlights}
+              lastWordBanner={activeBanner}
+              submissionFeedback={activeFeedback}
+              onSubmitWord={() => {}}
+              onShuffle={() => {}}
+              onRevealHint={() => {}}
+              hideInteractiveInput={true}
+              middleSlot={
+                <>
+                  {/* Horizontal Progress & 5 Circular Padlock Checkpoints */}
+                  <div className="w-full max-w-2xl mx-auto flex flex-col gap-1.5 pt-1 pb-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] px-2">
+                      <div className="flex items-center gap-2 text-purple-100 font-bold uppercase tracking-wider">
+                        <span>Community Target</span>
+                        {activeGameState.activeMultiplier.multiplier > 1 && (
+                          <span className="text-amber-300 font-mono font-extrabold flex items-center gap-1">
+                            <Flame className="w-3.5 h-3.5 text-amber-400" />
+                            {activeGameState.activeMultiplier.multiplier}X (
+                            {activeGameState.activeMultiplier.remainingSeconds}s)
+                          </span>
+                        )}
+                      </div>
+                      <div className="font-mono font-extrabold text-xs text-amber-300 tabular-nums">
+                        {activeGameState.roundScore} / {activeGameState.targetScore} pts ({progressPct}%)
+                      </div>
+                    </div>
+
+                    <div className="relative w-full h-5 flex items-center">
+                      <div className="w-full h-3.5 rounded-full bg-[#19032b] border-2 border-[#230638] overflow-hidden p-0.5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.9)]">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-300 shadow-[0_0_14px_rgba(52,211,153,0.85)] transition-all duration-300"
+                          style={{ width: `${Math.max(6, progressPct)}%` }}
+                        />
+                      </div>
+
+                      {[20, 40, 60, 80, 100].map((threshold, idx) => {
+                        const isUnlocked = progressPct >= threshold;
+                        const leftPositions = ['16%', '33%', '50%', '67%', '84%'];
+                        return (
+                          <div
+                            key={threshold}
+                            style={{ left: leftPositions[idx] }}
+                            className={`-translate-x-1/2 absolute w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform ${
+                              isUnlocked
+                                ? 'bg-gradient-to-b from-amber-300 to-amber-500 border-white text-[#1e0533] scale-105 shadow-[0_0_12px_rgba(250,204,21,0.8)]'
+                                : 'bg-[#4a1775] border-[#b78ce8] text-amber-300 shadow-[0_3px_0_0_#230638]'
+                            }`}
+                          >
+                            <span className="w-5 h-5 rounded-full bg-[#210638] flex items-center justify-center">
+                              {isUnlocked ? (
+                                <Unlock className="w-3.5 h-3.5 text-emerald-300 stroke-[2.5]" />
+                              ) : (
+                                <Lock className="w-3.5 h-3.5 text-amber-300 stroke-[2.5]" />
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <DiscoveredWordsGrid
+                    discoveredWords={activeGameState.discoveredWords}
+                    totalPossibleWords={activeGameState.board.totalPossibleWords}
+                    revealedHints={activeGameState.revealedHints}
+                    wordSlots={activeGameState.board.wordSlots}
+                    compact={true}
+                  />
+                </>
+              }
+            />
+          </div>
+
+          {/* Compact Top 3 Contributors Strip */}
+          {topContributors.length > 0 && (
+            <div className="px-3.5 py-2 rounded-2xl bg-[#190429]/92 border border-amber-400/50 shadow-lg flex items-center justify-between gap-2 text-xs">
+              <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-amber-300 text-[10px] shrink-0">
+                <Trophy className="w-3.5 h-3.5" /> Top Solvers
+              </span>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {topContributors.map((player, idx) => (
+                  <span
+                    key={player.userId}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#2a0a45] border border-purple-400/35 text-xs"
+                  >
+                    <span className="font-mono font-extrabold text-amber-300">#{idx + 1}</span>
+                    <span className="font-bold text-white truncate max-w-[100px]">
+                      {player.nickname}
+                    </span>
+                    <span className="font-mono text-emerald-300 tabular-nums">
+                      {player.totalPoints}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!gameState) {
+    return null;
+  }
 
   return (
     <div
@@ -203,8 +505,21 @@ export default function App() {
             </a>
           </nav>
 
-          {/* Zone 3: Connect TikTok + New Round actions */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Zone 3: Daily Streak + LIVE Overlay + Connect TikTok + New Round actions */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <DailyStreakBadge
+              streak={dailyStreak.streak}
+              solvedToday={dailyStreak.solvedToday}
+              variant="slate"
+              compact
+            />
+            <LiveOverlayButton
+              gameTitle="Lexi Tiles"
+              gameSlug="lexi"
+              streamerHandle={gameState.tiktok.username}
+              recommendedSize="680 × 1040 or 1080 × 1920"
+              label="LIVE Overlay"
+            />
             <button
               type="button"
               onClick={() => {

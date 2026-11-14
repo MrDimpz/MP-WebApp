@@ -142,6 +142,7 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true }));
 
   const sessions = new Map();
+  const overlaySnapshots = new Map<string, { state: unknown; updatedAt: number }>();
   let globalWebhookCount = 0;
   let lastWebhookTime = 0;
   let lastWebhookProvider = "";
@@ -1388,6 +1389,61 @@ async function startServer() {
     socket.on("gift-event", (giftPayload) => {
       if (giftPayload && typeof giftPayload === "object") {
         pushAndEmitToSession(activeSession, "gift-event", giftPayload);
+      }
+    });
+
+    socket.on("join-overlay", (payload) => {
+      if (!payload || typeof payload !== "object") return;
+      const gameId = String(payload.gameId || "").trim().toLowerCase();
+      const streamer = String(payload.streamer || "")
+        .trim()
+        .replace(/^@+/, "")
+        .toLowerCase();
+      if (!gameId) return;
+
+      const roomKey = `overlay:${gameId}:${streamer || "default"}`;
+      socket.join(roomKey);
+      if (streamer) {
+        socket.join(`streamer:${streamer}`);
+      }
+
+      const snap =
+        overlaySnapshots.get(roomKey) ||
+        overlaySnapshots.get(`overlay:${gameId}:default`);
+      if (snap) {
+        socket.emit("overlay-state-sync", {
+          gameId,
+          streamer,
+          state: snap.state,
+          updatedAt: snap.updatedAt,
+        });
+      }
+    });
+
+    socket.on("overlay-state-update", (payload) => {
+      if (!payload || typeof payload !== "object") return;
+      const gameId = String(payload.gameId || "").trim().toLowerCase();
+      const streamer = String(payload.streamer || "")
+        .trim()
+        .replace(/^@+/, "")
+        .toLowerCase();
+      if (!gameId || payload.state === undefined) return;
+
+      const updatedAt = Date.now();
+      const packet = {
+        gameId,
+        streamer,
+        state: payload.state,
+        updatedAt,
+      };
+      const defaultKey = `overlay:${gameId}:default`;
+      overlaySnapshots.set(defaultKey, { state: payload.state, updatedAt });
+      socket.to(defaultKey).emit("overlay-state-sync", packet);
+
+      if (streamer) {
+        const streamerKey = `overlay:${gameId}:${streamer}`;
+        overlaySnapshots.set(streamerKey, { state: payload.state, updatedAt });
+        socket.to(streamerKey).emit("overlay-state-sync", packet);
       }
     });
   });

@@ -1,0 +1,276 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <clipPath id="unoClip">
+      <rect x="0" y="0" width="1200" height="720" rx="16" />
+    </clipPath>
+    <linearGradient id="unoBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b0d47" />
+      <stop offset="50%" stop-color="#4a1259" />
+      <stop offset="100%" stop-color="#22072b" />
+    </linearGradient>
+    <linearGradient id="unoGoldBtn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <filter id="unoShadow" x="-12%" y="-12%" width="124%" height="128%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#0d0212" flood-opacity="0.55" />
+    </filter>
+    <filter id="unoBoardShadow" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#09010d" flood-opacity="0.6" />
+    </filter>
+  </defs>
+
+  <g clip-path="url(#unoClip)">
+    <!-- Royal Purple Canvas Background -->
+    <rect x="0" y="0" width="1200" height="720" fill="url(#unoBg)" />
+
+    <!-- Browser Top Bar -->
+    <rect x="0" y="0" width="1200" height="40" fill="#12021a" />
+    <circle cx="24" cy="20" r="6" fill="#ff5f56" />
+    <circle cx="44" cy="20" r="6" fill="#ffbd2e" />
+    <circle cx="64" cy="20" r="6" fill="#27c93f" />
+    <rect x="340" y="7" width="520" height="26" rx="6" fill="#230730" stroke="#4c1d6e" stroke-width="1" />
+    <text x="600" y="24" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">themissingpiece.fun/solo-games/unolingo</text>
+
+    <!-- Unolingo Header Bar -->
+    <rect x="0" y="40" width="1200" height="58" fill="#1a0624" stroke="#581c6b" stroke-opacity="0.6" stroke-width="1" />
+    <rect x="24" y="54" width="96" height="30" rx="10" fill="#310d42" stroke="#6b21a8" stroke-width="1" />
+    <text x="72" y="73" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">← Solo Games</text>
+
+    <circle cx="146" cy="69" r="17" fill="#3b0d47" stroke="#fbbf24" stroke-width="2" />
+    <text x="146" y="74" text-anchor="middle" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="14" font-weight="900">AZ</text>
+    <text x="172" y="66" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="18" font-weight="900">Uno<tspan fill="#fbbf24">lingo</tspan></text>
+    <text x="172" y="80" fill="#fcd34d" fill-opacity="0.85" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8.5" font-weight="700" letter-spacing="1.2">THE MISSING PIECE</text>
+
+    <!-- Header Nav -->
+    <text x="415" y="73" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="700">Today's Puzzle</text>
+    <text x="530" y="73" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">📅 Archive ▾</text>
+    <text x="635" y="73" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">🏆 Leaderboard</text>
+    <text x="755" y="73" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">📊 Statistics</text>
+
+    <rect x="920" y="53" width="108" height="32" rx="10" fill="#2d0a3d" stroke="#fbbf24" stroke-opacity="0.6" stroke-width="1.2" />
+    <text x="974" y="73" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">👤 Sign In</text>
+    <rect x="1040" y="53" width="136" height="32" rx="10" fill="url(#unoGoldBtn)" />
+    <text x="1108" y="73" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">Play Today</text>
+
+    <!-- LEFT CARD: Rules & Tile Guide -->
+    <g transform="translate(36, 134)" filter="url(#unoShadow)">
+      <rect x="0" y="0" width="296" height="534" rx="22" fill="#240830" stroke="#6b21a8" stroke-width="1.5" />
+
+      <text x="24" y="36" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.5">PURE DEDUCTION</text>
+      <text x="24" y="62" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">26 Letters, A–Z</text>
+      <text x="24" y="84" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">No clues — deduce every word</text>
+      <text x="24" y="101" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">by placing A–Z into blank tiles.</text>
+
+      <!-- Anchor Tile Legend -->
+      <rect x="20" y="124" width="256" height="64" rx="14" fill="#1a0524" stroke="#581c87" stroke-width="1" />
+      <rect x="34" y="140" width="32" height="32" rx="7" fill="#f4ebd4" stroke="#fcd34d" stroke-width="1.5" />
+      <text x="50" y="162" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="16" font-weight="900">Q</text>
+      <text x="78" y="152" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="800">Anchor Letter Tile</text>
+      <text x="78" y="170" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Fixed cream starting clues</text>
+
+      <!-- Placed Letter Legend -->
+      <rect x="20" y="200" width="256" height="64" rx="14" fill="#1a0524" stroke="#581c87" stroke-width="1" />
+      <rect x="34" y="216" width="32" height="32" rx="7" fill="#ffffff" stroke="#a855f7" stroke-width="1.5" />
+      <text x="50" y="238" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, system-ui, sans-serif" font-size="16" font-weight="900">U</text>
+      <text x="78" y="228" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="800">Placed Letter (1 of 26)</text>
+      <text x="78" y="246" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Every letter A–Z used once</text>
+
+      <!-- Hint Tile Legend -->
+      <rect x="20" y="276" width="256" height="64" rx="14" fill="#1a0524" stroke="#581c87" stroke-width="1" />
+      <rect x="34" y="292" width="32" height="32" rx="7" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" />
+      <text x="50" y="314" text-anchor="middle" fill="#3b0d47" font-family="DejaVu Sans, system-ui, sans-serif" font-size="16" font-weight="900">Z</text>
+      <text x="78" y="304" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="800">Hint-Locked Square</text>
+      <text x="78" y="322" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Revealed &amp; locked in gold</text>
+
+      <!-- Daily Features Box -->
+      <rect x="20" y="362" width="256" height="148" rx="16" fill="#160320" stroke="#fbbf24" stroke-opacity="0.45" stroke-width="1.2" />
+      <text x="36" y="392" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.2">DAILY FEATURES</text>
+      <text x="36" y="420" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="700">✓ 10×10 Zero-Clue Grid</text>
+      <text x="36" y="446" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="700">✓ 183-Day Archive Calendar</text>
+      <text x="36" y="472" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="700">✓ Keyboard + Drag &amp; Drop</text>
+      <text x="36" y="498" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="700">⏱️ London 00:00 Daily Reset</text>
+    </g>
+
+    <!-- CENTER: 10x10 UNOLINGO CROSSWORD BOARD + MINI RACK -->
+    <g transform="translate(382, 120)">
+      <text x="218" y="18" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800" letter-spacing="1.2">18/26 LETTERS PLACED · 02:14</text>
+
+      <!-- Board Container -->
+      <g transform="translate(28, 32)" filter="url(#unoBoardShadow)">
+        <rect x="0" y="0" width="380" height="380" rx="18" fill="#14031e" stroke="#fbbf24" stroke-opacity="0.45" stroke-width="2" />
+
+        <!-- Sample stylized 6x6 interior view scaled crisply as 10x10 cells (10 cols x 35px = 350, offset 15) -->
+        <g transform="translate(15, 15)">
+          <!-- Row 0 -->
+          <rect x="0" y="0" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="16" y="23" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">Q</text>
+          <rect x="35" y="0" width="32" height="32" rx="5" fill="#fffbeb" stroke="#fbbf24" stroke-width="2" />
+          <text x="51" y="23" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">U</text>
+          <rect x="70" y="0" width="32" height="32" rx="5" fill="#f5ebff" />
+          <text x="86" y="23" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">I</text>
+          <rect x="105" y="0" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="121" y="23" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">Z</text>
+          <rect x="210" y="0" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="226" y="23" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">F</text>
+          <rect x="245" y="0" width="32" height="32" rx="5" fill="#ffffff" />
+          <text x="261" y="23" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">O</text>
+          <rect x="280" y="0" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="296" y="23" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">X</text>
+
+          <!-- Row 1 -->
+          <rect x="0" y="35" width="32" height="32" rx="5" fill="#ffffff" />
+          <text x="16" y="58" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">U</text>
+          <rect x="105" y="35" width="32" height="32" rx="5" fill="#ffffff" />
+          <rect x="210" y="35" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="226" y="58" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">L</text>
+          <rect x="280" y="35" width="32" height="32" rx="5" fill="#ffffff" />
+
+          <!-- Row 2 -->
+          <rect x="0" y="70" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="16" y="93" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">A</text>
+          <rect x="70" y="70" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="86" y="93" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">J</text>
+          <rect x="105" y="70" width="32" height="32" rx="5" fill="#ffffff" />
+          <text x="121" y="93" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">A</text>
+          <rect x="140" y="70" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="156" y="93" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">Z</text>
+          <rect x="175" y="70" width="32" height="32" rx="5" fill="#ffffff" />
+          <rect x="210" y="70" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="226" y="93" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">Y</text>
+
+          <!-- Row 3 -->
+          <rect x="0" y="105" width="32" height="32" rx="5" fill="#ffffff" />
+          <text x="16" y="128" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">D</text>
+          <rect x="140" y="105" width="32" height="32" rx="5" fill="#ffffff" />
+          <rect x="280" y="105" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="296" y="128" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">B</text>
+
+          <!-- Row 4 -->
+          <rect x="35" y="140" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="51" y="163" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">S</text>
+          <rect x="70" y="140" width="32" height="32" rx="5" fill="#ffffff" />
+          <text x="86" y="163" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">P</text>
+          <rect x="105" y="140" width="32" height="32" rx="5" fill="#ffffff" />
+          <text x="121" y="163" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">A</text>
+          <rect x="140" y="140" width="32" height="32" rx="5" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" />
+          <text x="156" y="163" text-anchor="middle" fill="#3b0d47" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">R</text>
+          <rect x="175" y="140" width="32" height="32" rx="5" fill="#ffffff" />
+          <text x="191" y="163" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">K</text>
+
+          <!-- Row 5-9 stylized intersecting blocks -->
+          <rect x="175" y="175" width="32" height="32" rx="5" fill="#ffffff" />
+          <text x="191" y="198" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">N</text>
+          <rect x="280" y="140" width="32" height="32" rx="5" fill="#ffffff" />
+          <text x="296" y="163" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">R</text>
+          <rect x="315" y="140" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="331" y="163" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">A</text>
+
+          <rect x="105" y="210" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="121" y="233" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">W</text>
+          <rect x="140" y="210" width="32" height="32" rx="5" fill="#ffffff" />
+          <rect x="175" y="210" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="191" y="233" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">V</text>
+          <rect x="210" y="210" width="32" height="32" rx="5" fill="#ffffff" />
+          <text x="226" y="233" text-anchor="middle" fill="#581c6b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">E</text>
+
+          <rect x="105" y="245" width="32" height="32" rx="5" fill="#ffffff" />
+          <rect x="210" y="245" width="32" height="32" rx="5" fill="#ffffff" />
+          <rect x="315" y="175" width="32" height="32" rx="5" fill="#ffffff" />
+          <rect x="315" y="210" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="331" y="233" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">T</text>
+
+          <rect x="105" y="280" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="121" y="303" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">M</text>
+          <rect x="140" y="280" width="32" height="32" rx="5" fill="#ffffff" />
+          <rect x="175" y="280" width="32" height="32" rx="5" fill="#ffffff" />
+          <rect x="210" y="280" width="32" height="32" rx="5" fill="#f4ebd4" />
+          <text x="226" y="303" text-anchor="middle" fill="#1e062b" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="900">G</text>
+          <rect x="245" y="280" width="32" height="32" rx="5" fill="#ffffff" />
+
+          <rect x="105" y="315" width="32" height="32" rx="5" fill="#ffffff" />
+          <rect x="245" y="315" width="32" height="32" rx="5" fill="#ffffff" />
+        </g>
+      </g>
+
+      <!-- 26-Letter Bank Pill Strip -->
+      <g transform="translate(28, 428)">
+        <rect x="0" y="0" width="380" height="118" rx="16" fill="#240830" stroke="#7e22ce" stroke-width="1.5" />
+        <text x="190" y="22" text-anchor="middle" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800" letter-spacing="1.4">26-LETTER BANK · DRAG OR TAP</text>
+        <!-- Row 1 sample porcelain tiles -->
+        <g transform="translate(18, 34)">
+          <rect x="0" y="0" width="34" height="32" rx="7" fill="#fbf6e8" stroke="#fcd34d" /><text x="17" y="22" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="900">B</text>
+          <rect x="40" y="0" width="34" height="32" rx="7" fill="#fbf6e8" stroke="#fcd34d" /><text x="57" y="22" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="900">C</text>
+          <rect x="80" y="0" width="34" height="32" rx="7" fill="#190425" stroke="#581c87" /><text x="97" y="22" text-anchor="middle" fill="#7e22ce" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="900">D</text>
+          <rect x="120" y="0" width="34" height="32" rx="7" fill="#fbf6e8" stroke="#fcd34d" /><text x="137" y="22" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="900">G</text>
+          <rect x="160" y="0" width="34" height="32" rx="7" fill="#fbf6e8" stroke="#fcd34d" /><text x="177" y="22" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="900">H</text>
+          <rect x="200" y="0" width="34" height="32" rx="7" fill="#fbf6e8" stroke="#fcd34d" /><text x="217" y="22" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="900">J</text>
+          <rect x="240" y="0" width="34" height="32" rx="7" fill="#fbf6e8" stroke="#fcd34d" /><text x="257" y="22" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="900">L</text>
+          <rect x="280" y="0" width="34" height="32" rx="7" fill="#fbf6e8" stroke="#fcd34d" /><text x="297" y="22" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="900">M</text>
+          <rect x="318" y="0" width="30" height="32" rx="7" fill="#190425" stroke="#581c87" /><text x="333" y="22" text-anchor="middle" fill="#7e22ce" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="900">N</text>
+        </g>
+        <!-- Bottom Controls -->
+        <rect x="18" y="76" width="80" height="30" rx="8" fill="#310a3d" stroke="#6b21a8" />
+        <text x="58" y="95" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="700">↺ Undo</text>
+        <rect x="106" y="76" width="90" height="30" rx="8" fill="#310a3d" stroke="#6b21a8" />
+        <text x="151" y="95" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="700">⇄ Across</text>
+        <rect x="204" y="76" width="76" height="30" rx="8" fill="#310a3d" stroke="#6b21a8" />
+        <text x="242" y="95" text-anchor="middle" fill="#4ade80" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="700">✓ Check</text>
+        <rect x="288" y="76" width="74" height="30" rx="8" fill="url(#unoGoldBtn)" />
+        <text x="325" y="95" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="900">💡 Hint</text>
+      </g>
+    </g>
+
+    <!-- RIGHT CARD: Unified Leaderboard & Sync -->
+    <g transform="translate(868, 134)" filter="url(#unoShadow)">
+      <rect x="0" y="0" width="296" height="534" rx="22" fill="#240830" stroke="#6b21a8" stroke-width="1.5" />
+
+      <text x="24" y="36" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.5">PUBLIC LEADERBOARD</text>
+      <text x="24" y="62" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="20" font-weight="900">06 / Unolingo</text>
+      <text x="24" y="84" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">Synced with your Solo Games login</text>
+
+      <g transform="translate(20, 108)">
+        <rect x="0" y="0" width="256" height="54" rx="13" fill="#351058" stroke="#fbbf24" stroke-width="1.5" />
+        <rect x="12" y="13" width="28" height="28" rx="8" fill="#fbbf24" />
+        <text x="26" y="32" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="900">#1</text>
+        <text x="50" y="25" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="800">PangramAce</text>
+        <text x="50" y="42" fill="#d8b4fe" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="600">01:42 · 0 hints</text>
+        <text x="242" y="32" text-anchor="end" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">2,196</text>
+      </g>
+
+      <g transform="translate(20, 174)">
+        <rect x="0" y="0" width="256" height="54" rx="13" fill="#1a0524" stroke="#581c87" stroke-width="1" />
+        <rect x="12" y="13" width="28" height="28" rx="8" fill="#2d0a3d" />
+        <text x="26" y="32" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">#2</text>
+        <text x="50" y="25" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="800">GridWizard</text>
+        <text x="50" y="42" fill="#d8b4fe" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="600">02:11 · 0 hints</text>
+        <text x="242" y="32" text-anchor="end" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">2,138</text>
+      </g>
+
+      <g transform="translate(20, 240)">
+        <rect x="0" y="0" width="256" height="54" rx="13" fill="#1a0524" stroke="#581c87" stroke-width="1" />
+        <rect x="12" y="13" width="28" height="28" rx="8" fill="#2d0a3d" />
+        <text x="26" y="32" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">#3</text>
+        <text x="50" y="25" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="800">CrosswordKate</text>
+        <text x="50" y="42" fill="#d8b4fe" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="600">02:38 · 1 hint</text>
+        <text x="242" y="32" text-anchor="end" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">1,964</text>
+      </g>
+
+      <g transform="translate(20, 306)">
+        <rect x="0" y="0" width="256" height="54" rx="13" fill="#1a0524" stroke="#581c87" stroke-width="1" />
+        <rect x="12" y="13" width="28" height="28" rx="8" fill="#2d0a3d" />
+        <text x="26" y="32" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">#4</text>
+        <text x="50" y="25" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="800">WordWeaver</text>
+        <text x="50" y="42" fill="#d8b4fe" font-family="DejaVu Sans, sans-serif" font-size="10.5" font-weight="600">03:05 · 0 hints</text>
+        <text x="242" y="32" text-anchor="end" fill="#fde047" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="900">2,030</text>
+      </g>
+
+      <rect x="20" y="382" width="256" height="64" rx="14" fill="#160320" stroke="#fbbf24" stroke-opacity="0.5" stroke-width="1.2" />
+      <text x="36" y="408" fill="#fbbf24" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="800">🔥 DAILY STREAK TRACKED</text>
+      <text x="36" y="430" fill="#e9d5ff" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="600">Solve today's grid to extend streak</text>
+
+      <rect x="20" y="462" width="256" height="50" rx="14" fill="url(#unoGoldBtn)" />
+      <text x="148" y="492" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, sans-serif" font-size="13.5" font-weight="900">🏆 View All Leaderboards</text>
+    </g>
+  </g>
+</svg>

@@ -10,6 +10,7 @@ import {
   ChevronRight,
   PlusCircle,
 } from 'lucide-react';
+import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { sound } from '../utils/sound';
 
 interface HeaderProps {
@@ -25,6 +26,8 @@ interface HeaderProps {
   onSelectRandom: () => void;
   hasPrevDate: boolean;
   hasNextDate: boolean;
+  dailyStreak?: number;
+  solvedToday?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -40,6 +43,8 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectRandom,
   hasPrevDate,
   hasNextDate,
+  dailyStreak = 0,
+  solvedToday = false,
 }) => {
   return (
     <header className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-20 shadow-xs">
@@ -96,6 +101,12 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right utility buttons */}
         <div className="flex items-center gap-1 sm:gap-1.5">
+          <DailyStreakBadge
+            streak={dailyStreak}
+            solvedToday={solvedToday}
+            variant="light"
+            compact
+          />
           <button
             type="button"
             onClick={onSelectRandom}

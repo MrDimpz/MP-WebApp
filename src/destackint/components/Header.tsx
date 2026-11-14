@@ -21,6 +21,9 @@ import {
   type UnifiedPlayerUser,
   type User,
 } from '@/lib/unified-game-auth';
+import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
+import { useDailyStreak } from '@/lib/daily-streak';
+import { DailyStreakBadge } from '@/components/daily-streak-badge';
 
 interface HeaderProps {
   currentView: GameState;
@@ -61,6 +64,11 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [archiveDropdownOpen, setArchiveDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const solvedToday = Boolean(
+    stats.completedDays?.[todayDateStr] || stats.completedHardDays?.[todayDateStr]
+  );
+  const dailyStreak = useDailyStreak('destackint', todayDateStr, solvedToday, stats.currentStreak);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -173,8 +181,22 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       </nav>
 
-      {/* Zone 3: Actions (TikTok LIVE Connect, Unified Account, Leaderboards, Archive, Sound, Theme, Play CTA) */}
+      {/* Zone 3: Actions (Daily Streak, TikTok LIVE Overlay, Connect, Unified Account, Leaderboards, Archive, Sound, Theme, Play CTA) */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <DailyStreakBadge
+          streak={dailyStreak.streak}
+          solvedToday={dailyStreak.solvedToday}
+          variant="light"
+          compact
+        />
+        <LiveOverlayButton
+          gameTitle="DeStack Interactive"
+          gameSlug="destackint"
+          streamerHandle={tiktokUsername}
+          recommendedSize="560 × 940 or 1080 × 1920"
+          label="LIVE Overlay"
+        />
+
         {/* TikTok LIVE Settings Button */}
         <button
           type="button"

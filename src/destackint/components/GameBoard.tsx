@@ -11,6 +11,8 @@ import {
   FastForward,
   Zap,
   Sparkles,
+  Trophy,
+  Radio,
 } from 'lucide-react';
 import {
   WordPuzzle,
@@ -24,6 +26,22 @@ import {
 } from '../types';
 import { soundManager } from '../utils/audio';
 import { TikTokLivePanel, SAMPLE_PERSONAS } from './TikTokLivePanel';
+import type { OverlayBackgroundMode } from '@/lib/live-overlay';
+
+export interface DeStackBoardSnapshot {
+  tiles: TileData[];
+  rack: Array<TileData | null>;
+  completedWordLetters: string[] | null;
+  goldFlashKey: number;
+  currentWordIndex: number;
+  wordsFound: string[];
+  showHintText: boolean;
+  currentHint: string;
+  wordTimeLeft: number;
+  isTimerPaused: boolean;
+  isErrorShake: boolean;
+  statusMessage: string | null;
+}
 
 interface GameBoardProps {
   puzzle: WordPuzzle;
@@ -73,6 +91,18 @@ interface GameBoardProps {
   resetSignal: number;
   layoutMode: LayoutMode;
   onChangeLayoutMode: (mode: LayoutMode) => void;
+  isOverlay?: boolean;
+  overlayBg?: OverlayBackgroundMode;
+  hasHostSync?: boolean;
+  syncedBoardState?: DeStackBoardSnapshot | null;
+  onBoardStateChange?: (snapshot: DeStackBoardSnapshot) => void;
+  overlayVictoryData?: {
+    timeSeconds: number;
+    hintsUsed: number;
+    score: number;
+    words: string[];
+    difficulty: DifficultyMode;
+  } | null;
 }
 
 const LAYER_KEY_ITEMS = [
@@ -87,7 +117,7 @@ const LAYER_KEY_ITEMS = [
 const getLayerOutlineClass = (layer: number, isExposed: boolean) => {
   const bgClass = isExposed
     ? 'bg-[#fbf6e8] hover:bg-white text-[#231929] shadow-[0_5px_0_#7c581e,0_8px_15px_rgba(0,0,0,0.38)]'
-    : 'bg-[#bfa97a]/90 dark:bg-[#8f7b53]/95 text-[#2c2233] opacity-95 shadow-[0_4px_0_rgba(0,0,0,0.45)]';
+    : 'bg-[#241136] dark:bg-[#190926] text-[#fff8e7] shadow-[0_4px_0_rgba(0,0,0,0.55)]';
 
   switch (layer) {
     case 0:
@@ -131,6 +161,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   resetSignal,
   layoutMode,
   onChangeLayoutMode,
+  isOverlay = false,
+  overlayBg = 'transparent',
+  hasHostSync = false,
+  syncedBoardState = null,
+  onBoardStateChange,
+  overlayVictoryData = null,
 }) => {
   const [tiles, setTiles] = useState<TileData[]>(() => JSON.parse(JSON.stringify(puzzle.tiles)));
   const [rack, setRack] = useState<Array<TileData | null>>([null, null, null, null, null]);
@@ -144,6 +180,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [timeSeconds, setTimeSeconds] = useState(0);
   const [isErrorShake, setIsErrorShake] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [resetCount, setResetCount] = useState(0);
 
   // Word Reveal Countdown Timer State (30s, 45s, 60s)
   const [wordTimeLeft, setWordTimeLeft] = useState<number>(timerDuration);
@@ -322,6 +359,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   // 1-second interval for total elapsed time AND the 30/45/60s Word Auto-Reveal Countdown
   useEffect(() => {
+    if (isOverlay && hasHostSync) return;
     const timer = setInterval(() => {
       if (isRoundFinishedRef.current) return;
 
@@ -341,10 +379,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [isTimerPaused, timerDuration]);
+  }, [isTimerPaused, timerDuration, isOverlay, hasHostSync]);
 
   // Process incoming chat messages from TikTok LIVE or Simulator
   useEffect(() => {
+    if (isOverlay && hasHostSync) return;
     if (incomingChatQueue.length === 0) return;
 
     incomingChatQueue.forEach((msg) => {
@@ -406,6 +445,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
     onConsumeChatQueue();
   }, [
+    isOverlay,
+    hasHostSync,
     incomingChatQueue,
     targetWord,
     currentWordIndex,
@@ -567,6 +608,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   // Keyboard support: A-Z picks an exposed tile when not typing in an input
   useEffect(() => {
+    if (isOverlay) return;
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (
@@ -604,7 +646,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [tiles, rack, handleTileClick, handleRackClick]);
+  }, [isOverlay, tiles, rack, handleTileClick, handleRackClick]);
 
   // Reveal hint handler
   const revealHint = () => {
@@ -663,14 +705,308 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     wordStartTimestampRef.current = Date.now();
     setCurrentWordSolvers([]);
     isRoundFinishedRef.current = false;
+    setResetCount((prev) => prev + 1);
   };
 
-  const wordsRemaining = puzzle.words.length - wordsFound.length;
+  // Broadcast host board snapshot up to App for live overlay mirroring
+  useEffect(() => {
+    if (isOverlay || !onBoardStateChange) return;
+    onBoardStateChange({
+      tiles,
+      rack,
+      completedWordLetters,
+      goldFlashKey,
+      currentWordIndex,
+      wordsFound,
+      showHintText,
+      currentHint,
+      wordTimeLeft,
+      isTimerPaused,
+      isErrorShake,
+      statusMessage,
+    });
+  }, [
+    isOverlay,
+    onBoardStateChange,
+    tiles,
+    rack,
+    completedWordLetters,
+    goldFlashKey,
+    currentWordIndex,
+    wordsFound,
+    showHintText,
+    currentHint,
+    wordTimeLeft,
+    isTimerPaused,
+    isErrorShake,
+    statusMessage,
+  ]);
+
+  const activeBoard: DeStackBoardSnapshot =
+    isOverlay && hasHostSync && syncedBoardState
+      ? syncedBoardState
+      : {
+          tiles,
+          rack,
+          completedWordLetters,
+          goldFlashKey,
+          currentWordIndex,
+          wordsFound,
+          showHintText,
+          currentHint,
+          wordTimeLeft,
+          isTimerPaused,
+          isErrorShake,
+          statusMessage,
+        };
+
+  const wordsRemaining = Math.max(0, puzzle.words.length - activeBoard.wordsFound.length);
   const isShowingCompletedWord =
-    rack.every((t) => t === null) && completedWordLetters !== null;
+    activeBoard.rack.every((t) => t === null) && activeBoard.completedWordLetters !== null;
   const isHardMode = difficulty === 'hard';
   const tileSizePct = isHardMode ? '11.4%' : '16.2%';
-  const timerPct = Math.max(0, Math.min(100, (wordTimeLeft / timerDuration) * 100));
+  const timerPct = Math.max(0, Math.min(100, (activeBoard.wordTimeLeft / Math.max(1, timerDuration)) * 100));
+  const overlayBoardKey = `ov-${difficulty}-${layoutMode}-${puzzle.words.join(',')}-${resetSignal}`;
+  const hostBoardKey = `${difficulty}-${layoutMode}-${puzzle.words.join(',')}-${resetSignal}-${resetCount}`;
+
+  if (isOverlay) {
+    const topPlayers = scoreboard.slice(0, 5);
+    const isTransparent = overlayBg === 'transparent';
+
+    return (
+      <div
+        className={`relative flex-1 w-full flex flex-col items-center justify-center px-3 py-3 select-none overflow-hidden ${
+          isTransparent ? 'bg-transparent' : 'bg-[#1a0522]'
+        }`}
+      >
+        <div className="relative z-10 w-full max-w-[460px] mx-auto flex flex-col items-center gap-2.5">
+          {/* Compact Round Progress & Word Reveal Countdown */}
+          <div className="w-full px-3.5 py-2.5 rounded-2xl bg-[#240630]/92 border border-purple-300/45 shadow-[0_10px_28px_rgba(0,0,0,0.45)] flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <img
+                  src="/assets/aistudio/3d_logo_944e5372.png"
+                  alt="DeStack"
+                  className="w-6 h-6 rounded-full object-contain shrink-0"
+                />
+                <span className="text-xs font-extrabold uppercase tracking-wider text-purple-100">
+                  <strong className="font-black text-amber-300 tabular-nums">{wordsRemaining}</strong>{' '}
+                  {wordsRemaining === 1 ? 'WORD LEFT' : 'WORDS LEFT'}
+                </span>
+              </div>
+              <div className="mt-0.5 flex items-center gap-2 text-[11px] font-bold text-amber-300/95 tracking-wide">
+                <span className="tabular-nums">
+                  WORD #{Math.min(activeBoard.currentWordIndex + 1, puzzle.words.length)} OF {puzzle.words.length}
+                </span>
+                {activeBoard.isTimerPaused && (
+                  <span className="px-1.5 py-0.2 rounded bg-amber-400/20 border border-amber-300/40 text-[10px] uppercase">
+                    Paused
+                  </span>
+                )}
+                {isLiveConnected && tiktokUsername && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300 font-bold">
+                    <Radio className="w-3 h-3" /> @{tiktokUsername}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="relative w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-300/70 flex items-center justify-center text-amber-300 font-black font-mono text-base tabular-nums shrink-0">
+              {activeBoard.wordTimeLeft}s
+              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 36 36">
+                <path
+                  className="text-amber-500/20"
+                  strokeWidth="3"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  className="text-amber-400 transition-all duration-700"
+                  strokeDasharray={`${timerPct}, 100`}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Recessed Tile Stack Board */}
+          <div className="relative w-full aspect-square bg-[#360b42]/95 border-2 border-purple-300/50 rounded-2xl shadow-[0_14px_32px_rgba(0,0,0,0.48),inset_0_5px_14px_rgba(0,0,0,0.45)] p-[30px] sm:p-[36px] overflow-hidden pt-14 sm:pt-16 pointer-events-none">
+            <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-center gap-1 bg-black/55 backdrop-blur-md px-2 py-1 rounded-xl border border-purple-200/35 text-[10px] text-purple-100 font-bold">
+              <span className="text-amber-300 uppercase tracking-wider text-[9px] font-black shrink-0">Layers:</span>
+              {Array.from({ length: puzzle.totalLayers }).map((_, idx) => (
+                <div key={idx} className="flex items-center gap-1 shrink-0 px-1 py-0.5 rounded bg-white/5 border border-white/25">
+                  <span className={`w-2.5 h-2.5 rounded-full border ${LAYER_KEY_ITEMS[idx]?.color || 'bg-[#ffd166] border-[#fff099]'}`} />
+                  <span>L{idx + 1}</span>
+                </div>
+              ))}
+            </div>
+
+            <div key={overlayBoardKey} className="contents">
+              {activeBoard.tiles.map((tile, idx) => {
+                if (tile.isCleared || tile.inRackIndex !== null) return null;
+                const isExposed = tile.isExposed;
+
+                return (
+                  <div
+                    key={tile.id}
+                    style={{
+                      left: `${tile.x}%`,
+                      top: `${tile.y}%`,
+                      width: tileSizePct,
+                      height: tileSizePct,
+                      zIndex: tile.layer * 10 + (isExposed ? 5 : 0),
+                      '--tile-delay': `${Math.min(idx, 30) * 14}ms`,
+                    } as React.CSSProperties}
+                    className={`puzzle-tile-enter -translate-x-1/2 -translate-y-1/2 absolute rounded-xl flex items-center justify-center font-extrabold ${
+                      isHardMode ? 'text-xs sm:text-[15px]' : 'text-lg sm:text-2xl'
+                    } tracking-tight ${getLayerOutlineClass(tile.layer, isExposed)}`}
+                  >
+                    <span className="select-none">{tile.letter}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Live Status / Word Revealed Toast */}
+          {(activeBoard.statusMessage || isShowingCompletedWord) && (
+            <div className="w-full px-3 py-1.5 rounded-xl bg-[#240630]/92 border border-amber-400/45 text-center shadow-lg">
+              {activeBoard.statusMessage ? (
+                <span className="text-xs font-bold text-amber-200 tracking-wide">
+                  {activeBoard.statusMessage}
+                </span>
+              ) : (
+                <span className="text-xs font-bold text-amber-300 tracking-wider uppercase inline-flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5" /> Word Revealed: {activeBoard.completedWordLetters?.join('')}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* 5-Letter Answer Rack */}
+          <div
+            key={isShowingCompletedWord ? `gold-ov-${activeBoard.goldFlashKey}` : 'active-rack-ov'}
+            className={`w-full grid grid-cols-5 gap-2 px-0.5 pointer-events-none ${
+              activeBoard.isErrorShake ? 'animate-shake' : ''
+            }`}
+          >
+            {[0, 1, 2, 3, 4].map((idx) => {
+              const activeTile = activeBoard.rack[idx];
+              const completedLetter = isShowingCompletedWord ? activeBoard.completedWordLetters?.[idx] : null;
+              const displayLetter = activeTile ? activeTile.letter : completedLetter;
+
+              return (
+                <div
+                  key={idx}
+                  className={`aspect-square rounded-xl flex items-center justify-center font-extrabold text-xl sm:text-2xl ${
+                    isShowingCompletedWord && completedLetter
+                      ? 'bg-gradient-to-b from-[#fffbeb] to-[#fef08a] text-[#2d0938] border-[3px] border-amber-400 animate-gold-flash'
+                      : activeTile
+                      ? 'bg-[#fbf6e8] text-[#231929] border-2 border-[#fff04d] shadow-[0_5px_0_#7c581e]'
+                      : 'bg-[#360b42]/92 border border-purple-300/45 shadow-[inset_0_2px_6px_rgba(0,0,0,0.38)]'
+                  }`}
+                >
+                  {displayLetter ? <span className="-mt-0.5">{displayLetter}</span> : null}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Clue Banner (Only shown when host reveals the hint) */}
+          {activeBoard.showHintText && (
+            <div className="w-full px-4 py-2 rounded-full bg-white text-[#2d0938] border-2 border-amber-400 text-xs font-extrabold text-center shadow-[0_4px_0_rgba(0,0,0,0.35)]">
+              💡 Clue: {activeBoard.currentHint}
+            </div>
+          )}
+
+          {/* Round Complete Banner (Non-interactive) */}
+          {overlayVictoryData && (
+            <div className="w-full rounded-2xl bg-gradient-to-r from-[#2c0938]/95 via-[#3f0e52]/95 to-[#2c0938]/95 border-2 border-amber-400/75 p-3 text-center shadow-xl">
+              <div className="text-xs font-black uppercase tracking-widest text-amber-300">
+                Round Complete!
+              </div>
+              <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+                {overlayVictoryData.words.map((w, idx) => (
+                  <span
+                    key={`${w}-${idx}`}
+                    className="px-2 py-0.5 rounded-md bg-amber-400/20 border border-amber-300/40 text-[11px] font-black tracking-wider text-amber-100"
+                  >
+                    {w}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Compact Top-5 Running Chat Speed Leaderboard */}
+          <div className="w-full rounded-2xl bg-[#240630]/92 border border-purple-300/45 shadow-[0_10px_28px_rgba(0,0,0,0.45)] p-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                <Trophy className="w-3.5 h-3.5" /> Top Chat Solvers
+              </span>
+              <span className="text-[10px] font-bold text-purple-200/80 uppercase tracking-wide">
+                Type the 5-letter word!
+              </span>
+            </div>
+
+            {topPlayers.length === 0 ? (
+              <div className="py-2 text-center text-xs font-semibold text-purple-200/80">
+                Find the exposed 5-letter word &amp; type it in chat to score speed points!
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {topPlayers.map((player, index) => (
+                  <div
+                    key={player.id}
+                    className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-black/30 border border-purple-300/20"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                          index === 0
+                            ? 'bg-amber-400 text-[#2d0938]'
+                            : index === 1
+                            ? 'bg-slate-200 text-slate-900'
+                            : index === 2
+                            ? 'bg-amber-700 text-amber-100'
+                            : 'bg-purple-800/80 text-purple-200'
+                        }`}
+                      >
+                        {index + 1}
+                      </span>
+                      {player.profilePictureUrl ? (
+                        <img
+                          src={player.profilePictureUrl}
+                          alt=""
+                          className="w-6 h-6 rounded-full object-cover border border-amber-300/40 shrink-0"
+                        />
+                      ) : null}
+                      <span className="text-xs font-bold text-white truncate">
+                        {player.nickname}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0 tabular-nums">
+                      <span className="text-[10px] font-bold text-purple-200/85">
+                        {player.wordsSolved}w · {player.bestSpeedSeconds.toFixed(1)}s
+                      </span>
+                      <span className="text-xs font-black text-amber-300">
+                        {player.totalScore.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex-1 w-full bg-[#4a1259] dark:bg-[#22072b] flex flex-col items-center justify-start px-3 py-4 sm:py-6 select-none transition-colors overflow-x-hidden">
@@ -814,38 +1150,41 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               ))}
             </div>
 
-            {tiles.map((tile) => {
-              if (tile.isCleared || tile.inRackIndex !== null) return null;
+            <div key={hostBoardKey} className="contents">
+              {tiles.map((tile, idx) => {
+                if (tile.isCleared || tile.inRackIndex !== null) return null;
 
-              const isExposed = tile.isExposed;
+                const isExposed = tile.isExposed;
 
-              return (
-                <button
-                  key={tile.id}
-                  type="button"
-                  onClick={() => handleTileClick(tile)}
-                  disabled={!isExposed}
-                  aria-label={`Tile ${tile.letter}, layer ${tile.layer + 1}, ${
-                    isExposed ? 'exposed' : 'covered'
-                  }`}
-                  style={{
-                    left: `${tile.x}%`,
-                    top: `${tile.y}%`,
-                    width: tileSizePct,
-                    height: tileSizePct,
-                    zIndex: tile.layer * 10 + (isExposed ? 5 : 0),
-                  }}
-                  className={`-translate-x-1/2 -translate-y-1/2 absolute rounded-xl flex items-center justify-center font-extrabold ${
-                    isHardMode ? 'text-xs sm:text-[15px]' : 'text-lg sm:text-2xl'
-                  } tracking-tight transition-transform duration-150 ${getLayerOutlineClass(
-                    tile.layer,
-                    isExposed
-                  )} ${isExposed ? 'hover:scale-[1.06] active:scale-[0.97] cursor-pointer' : 'cursor-default'}`}
-                >
-                  <span className="select-none">{tile.letter}</span>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={tile.id}
+                    type="button"
+                    onClick={() => handleTileClick(tile)}
+                    disabled={!isExposed}
+                    aria-label={`Tile ${tile.letter}, layer ${tile.layer + 1}, ${
+                      isExposed ? 'exposed' : 'covered'
+                    }`}
+                    style={{
+                      left: `${tile.x}%`,
+                      top: `${tile.y}%`,
+                      width: tileSizePct,
+                      height: tileSizePct,
+                      zIndex: tile.layer * 10 + (isExposed ? 5 : 0),
+                      '--tile-delay': `${Math.min(idx, 30) * 14}ms`,
+                    } as React.CSSProperties}
+                    className={`puzzle-tile-enter -translate-x-1/2 -translate-y-1/2 absolute rounded-xl flex items-center justify-center font-extrabold ${
+                      isHardMode ? 'text-xs sm:text-[15px]' : 'text-lg sm:text-2xl'
+                    } tracking-tight transition-transform duration-150 ${getLayerOutlineClass(
+                      tile.layer,
+                      isExposed
+                    )} ${isExposed ? 'hover:scale-[1.06] active:scale-[0.97] cursor-pointer' : 'cursor-default'}`}
+                  >
+                    <span className="select-none">{tile.letter}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Status Toast if invalid word, chat solve, or word revealed */}

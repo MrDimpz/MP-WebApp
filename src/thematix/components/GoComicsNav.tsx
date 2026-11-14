@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router';
 import { ChevronDown, Clock, Flame, Trophy } from 'lucide-react';
+import { DailyStreakBadge } from '@/components/daily-streak-badge';
 
 interface GoComicsNavProps {
   currentDateStr: string;
@@ -14,6 +15,8 @@ interface GoComicsNavProps {
   isSignedIn?: boolean;
   userDisplayName?: string;
   onResetOrClose?: () => void;
+  dailyStreak?: number;
+  solvedToday?: boolean;
 }
 
 export const GoComicsNav: React.FC<GoComicsNavProps> = ({
@@ -27,6 +30,8 @@ export const GoComicsNav: React.FC<GoComicsNavProps> = ({
   onOpenLeaderboardPopup,
   isSignedIn,
   userDisplayName,
+  dailyStreak = 0,
+  solvedToday = false,
 }) => {
   return (
     <nav className="w-full bg-[#180424] text-white select-none border-b border-[#f5b82e]/25 text-xs sm:text-sm shadow-md">
@@ -67,6 +72,13 @@ export const GoComicsNav: React.FC<GoComicsNavProps> = ({
 
           {/* Center / Navigation Controls */}
           <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+            <DailyStreakBadge
+              streak={dailyStreak}
+              solvedToday={solvedToday}
+              variant="amber-dark"
+              compact
+            />
+
             {/* Help button (?) */}
             <button
               type="button"

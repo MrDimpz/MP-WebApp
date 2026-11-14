@@ -666,7 +666,7 @@ export class WiKirecGame {
 
   private pushTag(tag: RecentTag) {
     this.recentTags.push(tag);
-    if (this.recentTags.length > 18) {
+    if (this.recentTags.length > 60) {
       this.recentTags.shift();
     }
   }
@@ -950,7 +950,7 @@ export class WiKirecGame {
       topPlayers: Array.from(this.playerScores.values())
         .filter((p) => p.score > 0)
         .sort((a, b) => b.score - a.score || b.wordCount - a.wordCount || a.displayName.localeCompare(b.displayName)),
-      recentTags: this.recentTags.slice(-14),
+      recentTags: this.recentTags.slice(-50),
       searchWords: this.getSearchWords(),
       isComplete: this.isComplete(),
       startTime: this.startTime,

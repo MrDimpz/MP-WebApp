@@ -733,7 +733,15 @@ export function serializeWikiconRound(round: InternalWikiconRound): RoundState {
     topRankCards: round.topRankCards,
     recentTicker: round.recentTicker,
     leaderboard: Array.from(round.leaderboard.values())
-      .sort((a, b) => b.score - a.score)
+      .filter((p) => p.score > 0)
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          (b.wordsFound || 0) - (a.wordsFound || 0) ||
+          (b.titleWordsFound || 0) - (a.titleWordsFound || 0) ||
+          (a.bestRank || 9999) - (b.bestRank || 9999) ||
+          (a.displayName || '').localeCompare(b.displayName || '')
+      )
       .slice(0, 15),
     lastAnnouncement: round.lastAnnouncement,
     gridBoard: {
@@ -909,7 +917,11 @@ export function handleWikiconGuess(
     }
   }
 
-  const playerKey = `${player.platform}:${player.username.toLowerCase()}`;
+  const normalizedHandle = (player.username || player.displayName || 'player')
+    .trim()
+    .replace(/^@+/, '')
+    .toLowerCase();
+  const playerKey = `${player.platform}:${normalizedHandle}`;
   const existingPlayer = round.leaderboard.get(playerKey) || {
     id: playerKey,
     username: player.username,
@@ -940,7 +952,9 @@ export function handleWikiconGuess(
   if (rank < existingPlayer.bestRank) {
     existingPlayer.bestRank = rank;
   }
-  round.leaderboard.set(playerKey, existingPlayer);
+  if (existingPlayer.score > 0 || round.leaderboard.has(playerKey)) {
+    round.leaderboard.set(playerKey, existingPlayer);
+  }
 
   const card = {
     word: rawGuess.trim().toUpperCase(),
@@ -1087,9 +1101,11 @@ export function evaluateTikTokChatIntoWikiconRound(
   for (const token of tokens) {
     const norm = normalizeWikiWord(token);
     if (!norm || STOPLIST.has(norm)) continue;
+    const cleanId = (chatData.uniqueId || chatData.nickname || 'tiktok_viewer').replace(/^@+/, '');
+    const cleanNick = (chatData.nickname || chatData.uniqueId || 'Viewer').replace(/^@+/, '');
     handleWikiconGuess(round, token, {
-      username: chatData.uniqueId || 'tiktok_viewer',
-      displayName: chatData.nickname || chatData.uniqueId || 'Viewer',
+      username: cleanId,
+      displayName: cleanNick,
       avatar: chatData.profilePictureUrl || '',
       platform: 'tiktok',
       cosmeticTitle: 'TikTok Live',

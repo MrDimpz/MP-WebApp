@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
   GameState,
@@ -8,12 +8,13 @@ import {
   LayoutMode,
   RunningScoreboardPlayer,
   LiveChatItem,
+  WordPuzzle,
 } from './types';
 import { getLondonDateString, generateDailyPuzzle } from './utils/puzzles';
 import { getSafeAvatarUrl } from './utils/avatar';
 import { Header } from './components/Header';
 import { TitleMenu } from './components/TitleMenu';
-import { GameBoard } from './components/GameBoard';
+import { GameBoard, type DeStackBoardSnapshot } from './components/GameBoard';
 import { RoundScoreboardModal } from './components/RoundScoreboardModal';
 import { TikTokConnectModal } from './components/TikTokConnectModal';
 import { ArchiveModal } from './components/ArchiveModal';
@@ -38,7 +39,27 @@ import {
   triggerResilientConnect,
 } from '@/lib/live-chat-bridge';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
+import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
+import { triggerVictoryConfetti } from '@/lib/confetti';
 import './index.css';
+
+interface DeStackOverlayPayload {
+  puzzle: WordPuzzle;
+  difficulty: DifficultyMode;
+  layoutMode: LayoutMode;
+  timerDuration: TimerDuration;
+  scoreboard: RunningScoreboardPlayer[];
+  victoryData: {
+    timeSeconds: number;
+    hintsUsed: number;
+    score: number;
+    words: string[];
+    difficulty: DifficultyMode;
+  } | null;
+  boardSnapshot: DeStackBoardSnapshot | null;
+  tiktokUsername: string;
+  isLiveConnected: boolean;
+}
 
 const STATS_STORAGE_KEY = 'destackint_game_stats_v1';
 const TIKTOK_USER_STORAGE_KEY = 'missing_piece_tiktok_username';
@@ -55,7 +76,10 @@ const DEFAULT_STATS: GameStats = {
 };
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<GameState>('TITLE');
+  const { isOverlay, bg: overlayBg, streamer: overlayStreamer } = useOverlayConfig();
+  const [currentView, setCurrentView] = useState<GameState>(() =>
+    isOverlay ? 'PLAYING' : 'TITLE'
+  );
   const [todayDateStr] = useState<string>(() => getLondonDateString());
   const [selectedDateStr, setSelectedDateStr] = useState<string>(() => getLondonDateString());
   const [difficulty, setDifficulty] = useState<DifficultyMode>('normal');
@@ -131,23 +155,36 @@ export default function App() {
     difficulty: DifficultyMode;
   } | null>(null);
 
-  // Save stats
+  const [hostBoardSnapshot, setHostBoardSnapshot] = useState<DeStackBoardSnapshot | null>(null);
+  const [syncedOverlayPayload, setSyncedOverlayPayload] = useState<DeStackOverlayPayload | null>(null);
+  const hasReceivedHostSyncRef = useRef<boolean>(false);
+
+  // Force PLAYING view whenever overlay mode is active
   useEffect(() => {
+    if (isOverlay && currentView !== 'PLAYING') {
+      setCurrentView('PLAYING');
+    }
+  }, [isOverlay, currentView]);
+
+  // Save stats (host mode only)
+  useEffect(() => {
+    if (isOverlay) return;
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
       } catch {}
     }
-  }, [stats]);
+  }, [stats, isOverlay]);
 
-  // Sync dark mode class on root html
+  // Sync dark mode class on root html (host mode only)
   useEffect(() => {
+    if (isOverlay) return;
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [isDarkMode]);
+  }, [isDarkMode, isOverlay]);
 
   // Connect to persistent Socket.IO server scoped to isolated streamer session & destackint game
   useEffect(() => {
@@ -164,6 +201,7 @@ export default function App() {
     setSocket(newSocket);
 
     const enqueueChatPayload = (data: any) => {
+      if (isOverlay && hasReceivedHostSyncRef.current) return;
       const commentText = data?.comment ?? data?.text;
       if (!data || !commentText) return;
       touchActiveInteractiveStreamerSession();
@@ -231,7 +269,33 @@ export default function App() {
       detachBridge();
       newSocket.disconnect();
     };
-  }, []);
+  }, [isOverlay]);
+
+  // Standalone overlay auto-connect fallback if no live host snapshot arrives within 1.2s
+  useEffect(() => {
+    if (!isOverlay || !overlayStreamer || !socket) return;
+    const timer = setTimeout(() => {
+      if (hasReceivedHostSyncRef.current) return;
+      setTiktokUsername(overlayStreamer);
+      setIsLiveConnected(true);
+      setRoomId(`LIVE_${overlayStreamer}`);
+      triggerResilientConnect(
+        socket,
+        {
+          username: overlayStreamer,
+          isTestMode: false,
+          gameId: 'destackint',
+          sessionId: getCurrentUserSessionPrefix(),
+        },
+        ({ username: uname, roomId: rId }) => {
+          setIsLiveConnected(true);
+          setTiktokUsername((uname || overlayStreamer).replace(/^@+/, ''));
+          if (rId) setRoomId(rId);
+        }
+      );
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [isOverlay, overlayStreamer, socket]);
 
   const handleConnectTikTok = useCallback(
     (username: string, isTestMode?: boolean) => {
@@ -477,13 +541,90 @@ export default function App() {
     return generateDailyPuzzle(selectedDateStr, difficulty, layoutMode, puzzleRoundNonce);
   }, [selectedDateStr, difficulty, layoutMode, puzzleRoundNonce]);
 
+  const hostOverlayPayload = useMemo<DeStackOverlayPayload>(
+    () => ({
+      puzzle: currentPuzzle,
+      difficulty,
+      layoutMode,
+      timerDuration,
+      scoreboard,
+      victoryData,
+      boardSnapshot: hostBoardSnapshot,
+      tiktokUsername,
+      isLiveConnected,
+    }),
+    [
+      currentPuzzle,
+      difficulty,
+      layoutMode,
+      timerDuration,
+      scoreboard,
+      victoryData,
+      hostBoardSnapshot,
+      tiktokUsername,
+      isLiveConnected,
+    ]
+  );
+
+  const handleSyncedOverlayState = useCallback((state: DeStackOverlayPayload) => {
+    hasReceivedHostSyncRef.current = true;
+    setSyncedOverlayPayload(state);
+  }, []);
+
+  const { isReceivingHostSync } = useOverlaySync<DeStackOverlayPayload>({
+    gameId: 'destackint',
+    streamer: isOverlay ? overlayStreamer || tiktokUsername : tiktokUsername,
+    isOverlay,
+    localState: isOverlay ? null : hostOverlayPayload,
+    onSyncedState: handleSyncedOverlayState,
+  });
+
+  const effectivePuzzle =
+    isOverlay && syncedOverlayPayload?.puzzle ? syncedOverlayPayload.puzzle : currentPuzzle;
+  const effectiveDifficulty =
+    isOverlay && syncedOverlayPayload?.difficulty ? syncedOverlayPayload.difficulty : difficulty;
+  const effectiveLayoutMode =
+    isOverlay && syncedOverlayPayload?.layoutMode ? syncedOverlayPayload.layoutMode : layoutMode;
+  const effectiveTimerDuration =
+    isOverlay && syncedOverlayPayload?.timerDuration
+      ? syncedOverlayPayload.timerDuration
+      : timerDuration;
+  const effectiveScoreboard =
+    isOverlay && syncedOverlayPayload?.scoreboard ? syncedOverlayPayload.scoreboard : scoreboard;
+  const effectiveVictoryData = isOverlay
+    ? syncedOverlayPayload?.victoryData ?? victoryData
+    : victoryData;
+  const effectiveTiktokUsername =
+    isOverlay && syncedOverlayPayload?.tiktokUsername
+      ? syncedOverlayPayload.tiktokUsername
+      : tiktokUsername;
+  const effectiveIsLiveConnected =
+    isOverlay && syncedOverlayPayload !== null
+      ? syncedOverlayPayload.isLiveConnected
+      : isLiveConnected;
+
   const handleVictory = (
     timeSeconds: number,
     hintsUsed: number,
     score: number,
     words: string[]
   ) => {
+    const prevBestScore = Math.max(
+      0,
+      ...Object.values(stats.completedDays || {}).map((d) => d.score || 0),
+      ...Object.values(stats.completedHardDays || {}).map((d) => d.score || 0)
+    );
+    const isNewBestScore = prevBestScore > 0 && score > prevBestScore;
+    const isNewBestTime = stats.bestTimeSeconds < 9999 && timeSeconds < stats.bestTimeSeconds;
+
     setVictoryData({ timeSeconds, hintsUsed, score, words, difficulty });
+
+    if (!isOverlay) {
+      triggerVictoryConfetti({
+        isDaily: selectedDateStr === todayDateStr,
+        isNewHighScore: isNewBestScore || isNewBestTime,
+      });
+    }
 
     void saveUnifiedLeaderboardScore({
       user: currentUser,
@@ -533,6 +674,51 @@ export default function App() {
       };
     });
   };
+
+  if (isOverlay) {
+    return (
+      <div
+        className={`relative min-h-screen flex flex-col font-sans overflow-hidden ${
+          overlayBg === 'transparent'
+            ? 'bg-transparent text-purple-50'
+            : 'bg-[#15041c] text-purple-50'
+        }`}
+      >
+        <main className="relative z-10 flex-1 flex flex-col">
+          <GameBoard
+            puzzle={effectivePuzzle}
+            difficulty={effectiveDifficulty}
+            onChangeDifficulty={(mode) => setDifficulty(mode)}
+            layoutMode={effectiveLayoutMode}
+            onChangeLayoutMode={setLayoutMode}
+            onVictory={handleVictory}
+            setCurrentView={setCurrentView}
+            onOpenHowToPlay={() => {}}
+            timerDuration={effectiveTimerDuration}
+            onChangeTimerDuration={setTimerDuration}
+            tiktokUsername={effectiveTiktokUsername}
+            isLiveConnected={effectiveIsLiveConnected}
+            roomId={roomId}
+            scoreboard={effectiveScoreboard}
+            chatFeed={chatFeed}
+            onRecordCorrectChatAnswer={handleRecordCorrectChatAnswer}
+            onRecordRegularChatMessage={handleRecordRegularChatMessage}
+            onOpenConnectModal={() => {}}
+            onResetScoreboard={handleResetScoreboard}
+            onSimulateChat={handleSimulateChat}
+            incomingChatQueue={incomingChatQueue}
+            onConsumeChatQueue={handleConsumeChatQueue}
+            resetSignal={resetSignal}
+            isOverlay={true}
+            overlayBg={overlayBg}
+            hasHostSync={isReceivingHostSync}
+            syncedBoardState={syncedOverlayPayload?.boardSnapshot || null}
+            overlayVictoryData={effectiveVictoryData}
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-[#faf7fc] dark:bg-[#15041c] text-[#2d0938] dark:text-purple-50 flex flex-col font-sans transition-colors overflow-x-hidden">
@@ -617,6 +803,7 @@ export default function App() {
             incomingChatQueue={incomingChatQueue}
             onConsumeChatQueue={handleConsumeChatQueue}
             resetSignal={resetSignal}
+            onBoardStateChange={setHostBoardSnapshot}
           />
         )}
 

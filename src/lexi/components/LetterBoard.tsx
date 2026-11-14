@@ -487,10 +487,11 @@ export const LetterBoard: React.FC<LetterBoardProps> = ({
 
               return (
                 <button
-                  key={`${idx}-${letter}`}
+                  key={`${roundNumber}-${idx}-${letter}`}
                   type="button"
                   onClick={() => handleTileClick(idx)}
                   disabled={status !== 'ACTIVE' || isLocked || isExposedDecoy}
+                  style={{ animationDelay: `${idx * 35}ms` }}
                   title={
                     isLocked
                       ? `Locked 3D Tile: Discover ${wordsRemainingToUnlock} more word(s) to unlock "${letter}"`

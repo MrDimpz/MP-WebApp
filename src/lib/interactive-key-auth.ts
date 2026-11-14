@@ -106,10 +106,31 @@ export function generateLiveKey(): string {
   return `LIVE-${block()}-${block()}`;
 }
 
+function removeStoredStreamerSessionKeys(): boolean {
+  if (typeof window === 'undefined') return false;
+  let removed = false;
+  try {
+    if (window.sessionStorage.getItem(ACTIVE_STREAMER_KEY) !== null) {
+      window.sessionStorage.removeItem(ACTIVE_STREAMER_KEY);
+      removed = true;
+    }
+    if (window.localStorage.getItem(ACTIVE_STREAMER_KEY) !== null) {
+      window.localStorage.removeItem(ACTIVE_STREAMER_KEY);
+      removed = true;
+    }
+  } catch {}
+  return removed;
+}
+
+let pendingNotifyTimer: ReturnType<typeof setTimeout> | null = null;
+
 function notifyAuthUpdated() {
-  if (typeof window !== 'undefined') {
+  if (typeof window === 'undefined') return;
+  if (pendingNotifyTimer !== null) return;
+  pendingNotifyTimer = setTimeout(() => {
+    pendingNotifyTimer = null;
     window.dispatchEvent(new CustomEvent(SYNC_EVENT_NAME));
-  }
+  }, 0);
 }
 
 export function getInteractiveAdmins(): InteractiveAdminAccount[] {
@@ -459,7 +480,9 @@ export function getActiveInteractiveStreamerSession(): ActiveInteractiveStreamer
     // Check 15-minute inactivity timeout (from user action or incoming chat)
     const lastActive = parsed.lastActivity || parsed.loggedInAt || 0;
     if (Date.now() - lastActive > STREAMER_INACTIVITY_TIMEOUT_MS) {
-      clearActiveInteractiveStreamerSession();
+      if (removeStoredStreamerSessionKeys()) {
+        notifyAuthUpdated();
+      }
       return null;
     }
 
@@ -471,7 +494,9 @@ export function getActiveInteractiveStreamerSession(): ActiveInteractiveStreamer
         normalizeLiveKey(u.key) === normalizeLiveKey(parsed.key)
     );
     if (!stillValid) {
-      clearActiveInteractiveStreamerSession();
+      if (removeStoredStreamerSessionKeys()) {
+        notifyAuthUpdated();
+      }
       return null;
     }
     return {

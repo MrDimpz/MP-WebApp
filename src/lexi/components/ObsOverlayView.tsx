@@ -48,11 +48,9 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
   const baseUrl = window.location.origin;
 
   const obsRoutes = [
-    { label: 'Main Game Interface', path: '/game' },
-    { label: 'Transparent Overlay', path: '/overlay?clean=1' },
-    { label: 'Vertical 9:16 TikTok Layout', path: '/vertical?clean=1' },
-    { label: 'Full-Screen Display', path: '/display?clean=1' },
-    { label: 'Standalone Leaderboard', path: '/leaderboard?clean=1' },
+    { label: 'Main Game Interface', path: '/interactive-games/lexi' },
+    { label: 'TikTok LIVE Transparent Overlay', path: '/interactive-games/lexi/overlay?bg=transparent' },
+    { label: 'TikTok LIVE Dark Backdrop Overlay', path: '/interactive-games/lexi/overlay?bg=dark' },
   ];
 
   const handleCopy = (url: string) => {
