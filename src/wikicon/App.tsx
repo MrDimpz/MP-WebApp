@@ -68,6 +68,8 @@ import {
   Coins,
   CheckCircle2,
   Trophy,
+  Pause,
+  Play,
 } from 'lucide-react';
 
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes of combined user + chat inactivity
@@ -225,6 +227,7 @@ export function App() {
     tone: 'cyan' | 'gold' | 'green' | 'muted';
   } | null>(null);
   const [showGridInHybrid, setShowGridInHybrid] = useState(false);
+  const [isManuscriptAutoScroll, setIsManuscriptAutoScroll] = useState(true);
 
   const [profile, setProfile] = useState<UserEconomyProfile>(() => {
     try {
@@ -239,6 +242,10 @@ export function App() {
   const prevSolvedRef = useRef<boolean>(false);
   const lastActivityRef = useRef<number>(Date.now());
   const processChatEventRef = useRef<((data: any) => void) | null>(null);
+  const manuscriptScrollRef = useRef<HTMLDivElement | null>(null);
+  const manuscriptHoverPausedRef = useRef<boolean>(false);
+  const manuscriptManualPauseUntilRef = useRef<number>(0);
+  const manuscriptScrollPosRef = useRef<number>(0);
 
   const showToast = useCallback((text: string, tone: 'cyan' | 'gold' | 'green' | 'muted' = 'cyan') => {
     setFeedbackToast({ text, tone });
@@ -554,6 +561,59 @@ export function App() {
     }
     prevSolvedRef.current = !!round?.solved;
   }, [round?.solved, round?.isDaily, round?.dailyDate]);
+
+  // Reset manuscript scroll position on new round
+  useEffect(() => {
+    const el = manuscriptScrollRef.current;
+    manuscriptScrollPosRef.current = 0;
+    if (el) {
+      el.scrollTop = 0;
+    }
+  }, [round?.roundId]);
+
+  // Automatically scroll through the Wikipedia Redacted Manuscript
+  useEffect(() => {
+    if (!isManuscriptAutoScroll) return;
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let rafId = 0;
+    let lastTs = performance.now();
+    let holdUntil = performance.now() + 1200;
+
+    const step = (now: number) => {
+      const dt = Math.min(0.1, Math.max(0, (now - lastTs) / 1000));
+      lastTs = now;
+      const el = manuscriptScrollRef.current;
+      if (el) {
+        const maxScroll = el.scrollHeight - el.clientHeight;
+        const isPaused =
+          manuscriptHoverPausedRef.current ||
+          now < manuscriptManualPauseUntilRef.current ||
+          now < holdUntil ||
+          maxScroll <= 4;
+
+        if (!isPaused) {
+          manuscriptScrollPosRef.current += dt * 18;
+          if (manuscriptScrollPosRef.current >= maxScroll) {
+            el.scrollTop = maxScroll;
+            manuscriptScrollPosRef.current = -1; // flag reset on next tick after pause
+            holdUntil = now + 2000;
+          } else {
+            el.scrollTop = manuscriptScrollPosRef.current;
+          }
+        } else if (manuscriptScrollPosRef.current < 0 && now >= holdUntil) {
+          manuscriptScrollPosRef.current = 0;
+          el.scrollTop = 0;
+          holdUntil = now + 1200;
+        }
+      }
+      rafId = requestAnimationFrame(step);
+    };
+
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  }, [isManuscriptAutoScroll, round?.roundId, activeNav]);
 
   // Streamer login via validateInteractiveStreamerKey with Socket.IO backup
   const handleStreamerLogin = (
@@ -1049,6 +1109,8 @@ export function App() {
               <button
                 type="button"
                 onClick={() => setIsStreamModalOpen(true)}
+                aria-haspopup="dialog"
+                title="Open TikTok Live Connection pop-up"
                 className={`px-2.5 py-1.5 text-[11px] font-bold rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5 ${
                   tiktokConnState === 'connected'
                     ? 'bg-[#2bff86] text-[#020a25] shadow-[0_0_16px_rgba(43,255,134,0.35)]'
@@ -1352,11 +1414,11 @@ export function App() {
             activeNav === 'WIKIREC_GRID' ||
             activeNav === 'WIKIWORD_QUOTE') &&
             round && (
-              <main className="flex-1 w-full px-3.5 py-4 space-y-3">
+              <main className="flex-1 w-full px-3.5 py-2.5 space-y-2">
                 {/* Compact Workspace Mode & Utility Toolbar */}
-                <div className="flex flex-col gap-2 p-2.5 rounded-2xl bg-[#03142f] border border-[#1768b3]">
+                <div className="flex flex-col gap-1.5 p-1.5 rounded-xl bg-[#03142f] border border-[#1768b3]">
                   {/* Row 1: Mode Switcher Tabs */}
-                  <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-[#020a25]">
+                  <div className="grid grid-cols-4 gap-1 p-0.5 rounded-lg bg-[#020a25]">
                     <button
                       type="button"
                       onClick={() =>
@@ -1366,7 +1428,7 @@ export function App() {
                           dailyDate: '2026-10-31',
                         })
                       }
-                      className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate ${
+                      className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate ${
                         activeNav === 'DAILY'
                           ? 'bg-[#19e4ff] text-[#020a25]'
                           : 'text-[#96b8dd] hover:text-white'
@@ -1382,7 +1444,7 @@ export function App() {
                           isDaily: false,
                         })
                       }
-                      className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate ${
+                      className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate ${
                         activeNav === 'SOLO'
                           ? 'bg-[#19e4ff] text-[#020a25]'
                           : 'text-[#96b8dd] hover:text-white'
@@ -1398,7 +1460,7 @@ export function App() {
                           isDaily: false,
                         })
                       }
-                      className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate flex items-center justify-center gap-1 ${
+                      className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate flex items-center justify-center gap-1 ${
                         activeNav === 'WIKIREC_GRID'
                           ? 'bg-[#ee7a2c] text-white'
                           : 'text-[#96b8dd] hover:text-white'
@@ -1414,7 +1476,7 @@ export function App() {
                           isDaily: false,
                         })
                       }
-                      className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate flex items-center justify-center gap-1 ${
+                      className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate flex items-center justify-center gap-1 ${
                         activeNav === 'WIKIWORD_QUOTE'
                           ? 'bg-[#2bff86] text-[#020a25]'
                           : 'text-[#96b8dd] hover:text-white'
@@ -1426,11 +1488,11 @@ export function App() {
 
                   {/* Row 2: Game Utilities */}
                   <div className="flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => setShowGridInHybrid((v) => !v)}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer whitespace-nowrap ${
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-colors cursor-pointer whitespace-nowrap ${
                           showGridInHybrid
                             ? 'bg-[#ee7a2c]/20 border-[#ee7a2c] text-[#ee7a2c]'
                             : 'bg-[#061c3d] border-[#1768b3] text-[#d8eaff]'
@@ -1441,7 +1503,7 @@ export function App() {
                       <button
                         type="button"
                         onClick={() => setShowLengthsOnBlocks((v) => !v)}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer whitespace-nowrap ${
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-colors cursor-pointer whitespace-nowrap ${
                           showLengthsOnBlocks
                             ? 'bg-[#19e4ff]/20 border-[#19e4ff] text-[#19e4ff]'
                             : 'bg-[#061c3d] border-[#1768b3] text-[#d8eaff]'
@@ -1453,7 +1515,7 @@ export function App() {
                         type="button"
                         onClick={handleRequestHint}
                         disabled={round.solved}
-                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#061c3d] hover:bg-[#0c2b53] border border-[#ffe536]/60 text-[#ffe536] flex items-center gap-1 cursor-pointer whitespace-nowrap disabled:opacity-40"
+                        className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#061c3d] hover:bg-[#0c2b53] border border-[#ffe536]/60 text-[#ffe536] flex items-center gap-1 cursor-pointer whitespace-nowrap disabled:opacity-40"
                       >
                         <Lightbulb className="w-3 h-3" /> Hint
                       </button>
@@ -1461,7 +1523,7 @@ export function App() {
                         type="button"
                         onClick={handleRevealRound}
                         disabled={round.solved}
-                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#061c3d] hover:bg-[#0c2b53] border border-[#1768b3] text-[#96b8dd] hover:text-white flex items-center gap-1 cursor-pointer whitespace-nowrap disabled:opacity-40"
+                        className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#061c3d] hover:bg-[#0c2b53] border border-[#1768b3] text-[#96b8dd] hover:text-white flex items-center gap-1 cursor-pointer whitespace-nowrap disabled:opacity-40"
                       >
                         <Flag className="w-3 h-3" /> Reveal
                       </button>
@@ -1476,7 +1538,7 @@ export function App() {
                           soundFX.muted = nextMute;
                         }}
                         aria-label="Toggle Sound"
-                        className="p-1.5 rounded-lg bg-[#061c3d] border border-[#1768b3] text-[#d8eaff] hover:text-white cursor-pointer"
+                        className="p-1 rounded-md bg-[#061c3d] border border-[#1768b3] text-[#d8eaff] hover:text-white cursor-pointer"
                       >
                         {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                       </button>
@@ -1484,7 +1546,7 @@ export function App() {
                         type="button"
                         onClick={() => setIsLightMode((v) => !v)}
                         aria-label="Toggle Light/Dark Theme"
-                        className="p-1.5 rounded-lg bg-[#061c3d] border border-[#1768b3] text-[#d8eaff] hover:text-white cursor-pointer"
+                        className="p-1 rounded-md bg-[#061c3d] border border-[#1768b3] text-[#d8eaff] hover:text-white cursor-pointer"
                       >
                         {isLightMode ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
                       </button>
@@ -1555,18 +1617,18 @@ export function App() {
                   </div>
                 )}
 
-                {/* ── Authentic WikiContexto 2-Column Top Row Fitted to 490px Portrait Canvas ── */}
+                {/* ── Authentic WikiContexto 2-Column Top Row (Compacted ~25% height) ── */}
                 {activeNav !== 'WIKIWORD_QUOTE' && (
-                  <section className="grid grid-cols-12 gap-2.5 items-stretch">
+                  <section className="grid grid-cols-12 gap-2 items-stretch">
                     {/* Left Column (5 cols): Title Block + Podium */}
-                    <div className="col-span-5 flex flex-col gap-2.5">
+                    <div className="col-span-5 flex flex-col gap-1.5">
                       {/* Title Block */}
-                      <div className="flex-1 p-3 rounded-2xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc] shadow-[inset_0_1px_7px_rgba(25,228,255,0.16)] flex flex-col justify-between">
-                        <div className="flex items-center justify-between gap-1 mb-2">
+                      <div className="flex-1 p-2 rounded-xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc] shadow-[inset_0_1px_7px_rgba(25,228,255,0.16)] flex flex-col justify-between">
+                        <div className="flex items-center justify-between gap-1 mb-1">
                           <span className="text-[10px] font-bold tracking-wider text-[#96b8dd]">
                             TITLE
                           </span>
-                          <div className="flex items-center gap-2 text-[10px] font-mono tabular-nums text-[#d8eaff]">
+                          <div className="flex items-center gap-1.5 text-[10px] font-mono tabular-nums text-[#d8eaff]">
                             <span className="flex items-center gap-0.5">
                               <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-b from-[#ffec4a] to-[#ffad13] text-[#17210a] font-black text-[9px] inline-flex items-center justify-center">
                                 G
@@ -1583,17 +1645,17 @@ export function App() {
                         </div>
 
                         {/* Title Word Slots */}
-                        <div className="flex flex-wrap items-center gap-1.5 my-1">
+                        <div className="flex flex-wrap items-center gap-1 my-0.5">
                           {round.titleTokens.map((t) => (
                             <div
                               key={t.index}
-                              className={`min-h-[32px] px-2.5 py-1 rounded-xl font-extrabold text-sm flex items-center gap-1 transition-all ${
+                              className={`min-h-[26px] px-2 py-0.5 rounded-lg font-extrabold text-xs flex items-center gap-1 transition-all ${
                                 t.revealed
-                                  ? 'bg-gradient-to-br from-[#64ff54] to-[#22ed3f] text-[#061d0c] shadow-[0_0_12px_rgba(57,255,99,0.3)]'
+                                  ? 'bg-gradient-to-br from-[#64ff54] to-[#22ed3f] text-[#061d0c] shadow-[0_0_10px_rgba(57,255,99,0.3)]'
                                   : 'bg-gradient-to-br from-[#fff780] to-[#ffcf27] text-[#111809] border border-[#ffef86]'
                               }`}
                             >
-                              <span className="truncate max-w-[140px]">
+                              <span className="truncate max-w-[130px]">
                                 {t.revealed
                                   ? t.text
                                   : showLengthsOnBlocks
@@ -1606,52 +1668,52 @@ export function App() {
                       </div>
 
                       {/* Gold / Silver / Bronze Scoreboard Podium */}
-                      <div className="p-2.5 rounded-2xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc] flex items-end justify-center gap-1.5 min-h-[118px]">
+                      <div className="p-1.5 rounded-xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc] flex items-end justify-center gap-1 min-h-[84px]">
                         {/* Silver #2 */}
-                        <div className="flex-1 min-w-0 h-22 rounded-xl border border-[#8ab9f5] bg-gradient-to-br from-[#1b467a] to-[#0d3470] p-1.5 flex flex-col items-center justify-between text-center">
+                        <div className="flex-1 min-w-0 h-[64px] rounded-lg border border-[#8ab9f5] bg-gradient-to-br from-[#1b467a] to-[#0d3470] p-1 flex flex-col items-center justify-between text-center">
                           {renderPlayerAvatar(
                             silverPlayer?.avatar,
                             silverPlayer?.displayName || '2',
-                            'w-7 h-7 text-[10px] text-white',
+                            'w-6 h-6 text-[9px] text-white',
                             'border border-[#8ab9f5]'
                           )}
-                          <div className="text-[9px] font-bold text-[#e6f2ff] truncate w-full">
+                          <div className="text-[9px] font-bold text-[#e6f2ff] truncate w-full leading-tight">
                             {silverPlayer ? silverPlayer.displayName : '—'}
                           </div>
-                          <div className="text-[9px] font-mono tabular-nums text-white font-bold">
+                          <div className="text-[9px] font-mono tabular-nums text-white font-bold leading-tight">
                             {silverPlayer ? silverPlayer.score.toLocaleString() : '0'}
                           </div>
                         </div>
 
                         {/* Gold #1 */}
-                        <div className="relative flex-1 min-w-0 h-25 rounded-xl border-2 border-[#ffdd35] bg-gradient-to-br from-[#700432] to-[#270e28] shadow-[0_0_12px_rgba(255,214,48,0.3)] p-1.5 flex flex-col items-center justify-between text-center">
-                          <Crown className="w-4 h-4 text-[#ffe536] absolute -top-2.5 -left-1 -rotate-12" />
+                        <div className="relative flex-1 min-w-0 h-[74px] rounded-lg border-2 border-[#ffdd35] bg-gradient-to-br from-[#700432] to-[#270e28] shadow-[0_0_10px_rgba(255,214,48,0.28)] p-1 flex flex-col items-center justify-between text-center">
+                          <Crown className="w-3.5 h-3.5 text-[#ffe536] absolute -top-2 -left-0.5 -rotate-12" />
                           {renderPlayerAvatar(
                             goldPlayer?.avatar,
                             goldPlayer?.displayName || '1',
-                            'w-8 h-8 text-[11px] text-[#ffe536]',
+                            'w-6 h-6 text-[10px] text-[#ffe536]',
                             'border border-[#ffe536]'
                           )}
-                          <div className="text-[10px] font-extrabold text-[#ffe536] truncate w-full">
+                          <div className="text-[9px] font-extrabold text-[#ffe536] truncate w-full leading-tight">
                             {goldPlayer ? goldPlayer.displayName : '—'}
                           </div>
-                          <div className="text-[9px] font-mono tabular-nums text-white font-bold">
+                          <div className="text-[9px] font-mono tabular-nums text-white font-bold leading-tight">
                             {goldPlayer ? goldPlayer.score.toLocaleString() : '0'}
                           </div>
                         </div>
 
                         {/* Bronze #3 */}
-                        <div className="flex-1 min-w-0 h-20 rounded-xl border border-[#b07a3d] bg-gradient-to-br from-[#183553] to-[#020c22] p-1.5 flex flex-col items-center justify-between text-center">
+                        <div className="flex-1 min-w-0 h-[58px] rounded-lg border border-[#b07a3d] bg-gradient-to-br from-[#183553] to-[#020c22] p-1 flex flex-col items-center justify-between text-center">
                           {renderPlayerAvatar(
                             bronzePlayer?.avatar,
                             bronzePlayer?.displayName || '3',
-                            'w-6 h-6 text-[9px] text-white',
+                            'w-5 h-5 text-[9px] text-white',
                             'border border-[#b07a3d]'
                           )}
-                          <div className="text-[9px] font-bold text-[#e6f2ff] truncate w-full">
+                          <div className="text-[9px] font-bold text-[#e6f2ff] truncate w-full leading-tight">
                             {bronzePlayer ? bronzePlayer.displayName : '—'}
                           </div>
-                          <div className="text-[9px] font-mono tabular-nums text-white font-bold">
+                          <div className="text-[9px] font-mono tabular-nums text-white font-bold leading-tight">
                             {bronzePlayer ? bronzePlayer.score.toLocaleString() : '0'}
                           </div>
                         </div>
@@ -1659,13 +1721,13 @@ export function App() {
                     </div>
 
                     {/* Right Column (7 cols): Top-6 Semantic Rank Cards Stack */}
-                    <div className="col-span-7 grid grid-rows-6 gap-1.5 min-h-[268px]">
+                    <div className="col-span-7 grid grid-rows-6 gap-1 min-h-[196px]">
                       {paddedRankCards.map((card, idx) => {
                         if (!card) {
                           return (
                             <div
                               key={`empty-${idx}`}
-                              className="rounded-xl bg-[#051630] border border-[#21558a] px-3 flex items-center justify-between text-[11px] text-[#96b8dd]"
+                              className="rounded-lg bg-[#051630] border border-[#21558a] px-2.5 py-0.5 flex items-center justify-between text-[10px] text-[#96b8dd]"
                             >
                               <span>Rank #{idx + 1}</span>
                               <span className="font-mono tabular-nums">—</span>
@@ -1679,13 +1741,13 @@ export function App() {
                         return (
                           <div
                             key={card.norm}
-                            className="relative rounded-xl bg-[#02112a] overflow-hidden flex items-center justify-between px-2.5 py-1.5"
+                            className="relative rounded-lg bg-[#02112a] overflow-hidden flex items-center justify-between px-2 py-0.5"
                             style={{
-                              border: `2px solid hsl(${hue}, 90%, 55%)`,
+                              border: `1.5px solid hsl(${hue}, 90%, 55%)`,
                               boxShadow:
                                 idx === 0
-                                  ? `0 0 12px hsla(${hue}, 90%, 55%, 0.35)`
-                                  : `0 0 5px hsla(${hue}, 90%, 55%, 0.2)`,
+                                  ? `0 0 10px hsla(${hue}, 90%, 55%, 0.3)`
+                                  : `0 0 4px hsla(${hue}, 90%, 55%, 0.18)`,
                             }}
                           >
                             {/* Dynamic HSL Semantic Fill Bar */}
@@ -1698,21 +1760,21 @@ export function App() {
                             />
 
                             {/* Left: Rank Number + Word */}
-                            <div className="relative z-10 flex items-center gap-1.5 min-w-0">
-                              <span className="min-w-[44px] font-mono tabular-nums text-xs font-extrabold text-white flex items-center gap-0.5">
+                            <div className="relative z-10 flex items-center gap-1 min-w-0">
+                              <span className="min-w-[38px] font-mono tabular-nums text-[11px] font-extrabold text-white flex items-center gap-0.5">
                                 {idx === 0 && <span className="text-[#ffe536]">♛</span>}#{card.rank}
                               </span>
-                              <span className="text-sm font-extrabold text-white tracking-wide truncate">
+                              <span className="text-xs font-extrabold text-white tracking-wide truncate">
                                 {card.word}
                               </span>
                             </div>
 
                             {/* Right: Finder Avatar */}
-                            <div className="relative z-10 flex items-center gap-1.5 shrink-0">
+                            <div className="relative z-10 flex items-center gap-1 shrink-0">
                               {renderPlayerAvatar(
                                 card.finder.avatar,
                                 card.finder.displayName,
-                                'w-6 h-6 text-[10px] text-white',
+                                'w-5 h-5 text-[9px] text-white',
                                 'border border-[#ffe536]'
                               )}
                             </div>
@@ -1724,9 +1786,9 @@ export function App() {
                 )}
 
                 {/* ── Full-Width Word Announce Banner + Feedback Toast ── */}
-                <div className="min-h-[46px] rounded-2xl border-2 border-[#ffe13a] bg-gradient-to-r from-[#4b003e] via-[#100621] to-[#25082e] shadow-[0_0_12px_rgba(255,222,53,0.22)] px-3.5 py-2 flex items-center justify-between gap-2">
+                <div className="min-h-[34px] rounded-xl border-2 border-[#ffe13a] bg-gradient-to-r from-[#4b003e] via-[#100621] to-[#25082e] shadow-[0_0_10px_rgba(255,222,53,0.2)] px-2.5 py-1 flex items-center justify-between gap-2">
                   {feedbackToast ? (
-                    <div className="flex items-center justify-between w-full text-xs font-bold gap-2">
+                    <div className="flex items-center justify-between w-full text-[11px] font-bold gap-2">
                       <span
                         className={`truncate ${
                           feedbackToast.tone === 'gold'
@@ -1746,19 +1808,19 @@ export function App() {
                     </div>
                   ) : round.lastAnnouncement ? (
                     <div className="flex items-center justify-between w-full gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         {renderPlayerAvatar(
                           round.lastAnnouncement.avatar,
                           round.lastAnnouncement.displayName,
-                          'w-7 h-7 text-[10px] text-[#ffe536] shrink-0',
+                          'w-5 h-5 text-[9px] text-[#ffe536] shrink-0',
                           'border border-[#ffe536]'
                         )}
-                        <div className="text-xs text-[#d8eaff] truncate">
+                        <div className="text-[11px] text-[#d8eaff] truncate">
                           <strong className="text-white">{round.lastAnnouncement.displayName}</strong>{' '}
                           found <strong className="text-[#ffe536]">{round.lastAnnouncement.word}</strong>
                         </div>
                       </div>
-                      <div className="text-xs font-extrabold font-mono tabular-nums text-[#2bff86] shrink-0">
+                      <div className="text-[11px] font-extrabold font-mono tabular-nums text-[#2bff86] shrink-0">
                         +{round.lastAnnouncement.pointsEarned.toLocaleString()}
                       </div>
                     </div>
@@ -1774,54 +1836,66 @@ export function App() {
                   )}
                 </div>
 
-                {/* ── Horizontal Guess Ticker ── */}
+                {/* ── Scrolling Marquee for Guessed Words ── */}
                 {round.recentTicker.length > 0 && (
-                  <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-2.5 rounded-xl bg-[#03142f] border border-[#1768b3]">
-                    <span className="text-[10px] font-bold text-[#96b8dd] shrink-0">
-                      Recent:
+                  <div
+                    className={`wk-marquee-wrap relative flex items-center overflow-hidden py-1.5 px-2.5 rounded-xl border ${
+                      isLightMode
+                        ? 'bg-white border-[#6498d2] text-[#102c4b]'
+                        : 'bg-[#03142f] border-[#1768b3] text-[#d8eaff]'
+                    }`}
+                  >
+                    <span
+                      className={`text-[10px] font-bold shrink-0 pr-2 mr-2 border-r z-10 ${
+                        isLightMode
+                          ? 'bg-white text-[#416890] border-[#6498d2]/50'
+                          : 'bg-[#03142f] text-[#96b8dd] border-[#1768b3]/60'
+                      }`}
+                    >
+                      Recent
                     </span>
-                    {round.recentTicker.map((item) => (
-                      <span
-                        key={`${item.norm}-${item.timestamp}`}
-                        className="text-[11px] font-mono tabular-nums whitespace-nowrap shrink-0 text-[#d8eaff]"
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <div
+                        className="wk-marquee-track"
+                        style={
+                          {
+                            '--wk-marquee-duration': `${Math.max(10, round.recentTicker.length * 3)}s`,
+                          } as React.CSSProperties
+                        }
                       >
-                        <strong className="text-white">{item.word}</strong>{' '}
-                        <span className="text-[#19e4ff]">#{item.rank}</span>
-                        <span className="mx-1 text-[#1768b3]">·</span>
-                      </span>
-                    ))}
+                        {[0, 1].map((dupIdx) => (
+                          <div
+                            key={dupIdx}
+                            aria-hidden={dupIdx === 1}
+                            className="flex items-center gap-3 pr-3 min-w-full shrink-0"
+                          >
+                            {round.recentTicker.map((item) => (
+                              <span
+                                key={`${dupIdx}-${item.norm}-${item.timestamp}`}
+                                className="text-[11px] font-mono tabular-nums whitespace-nowrap shrink-0"
+                              >
+                                <strong className={isLightMode ? 'text-[#102c4b]' : 'text-white'}>
+                                  {item.word}
+                                </strong>{' '}
+                                <span className={isLightMode ? 'text-[#0e6eb8]' : 'text-[#19e4ff]'}>
+                                  #{item.rank}
+                                </span>
+                                <span className="ml-2 text-[#1768b3]">·</span>
+                              </span>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
-
-                {/* ── Guess Composer Input Bar ── */}
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    submitWordGuess(guessInput);
-                  }}
-                  className="flex items-center gap-2 p-1.5 rounded-2xl bg-[#03142f] border-2 border-[#2186c6] shadow-[0_0_16px_rgba(19,132,211,0.2)]"
-                >
-                  <input
-                    type="text"
-                    value={guessInput}
-                    onChange={(e) => setGuessInput(e.target.value)}
-                    placeholder="Guess a word..."
-                    className="flex-1 min-w-0 px-3.5 py-2 rounded-xl bg-[#020a25] border border-[#286296] text-sm font-bold text-white placeholder-[#96b8dd]/60 focus:outline-none focus:border-[#19e4ff]"
-                  />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-xl bg-gradient-to-b from-[#ffed60] to-[#ffca27] hover:from-[#fff380] hover:to-[#ffd645] text-[#17210a] font-extrabold text-xs border border-[#ffed6c] flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
-                  >
-                    <Send className="w-3.5 h-3.5" /> Guess
-                  </button>
-                </form>
 
                 {/* ── Wikirec 8-Connected Keycap Grid & Target Pyramid ── */}
                 {(activeNav === 'WIKIREC_GRID' ||
                   activeNav === 'WIKIWORD_QUOTE' ||
                   showGridInHybrid) &&
                   round.gridBoard && (
-                    <section className="p-3.5 rounded-2xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc]">
+                    <section className="p-3 rounded-2xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc]">
                       <KeycapGrid
                         gridBoard={round.gridBoard}
                         onWordSubmit={submitWordGuess}
@@ -1830,23 +1904,68 @@ export function App() {
                     </section>
                   )}
 
-                {/* ── Redacted Wikipedia Article Body Panel ── */}
+                {/* ── Redacted Wikipedia Article Body Panel (Auto-Scrolling Viewport) ── */}
                 <section
-                  className={`p-4 rounded-2xl border-2 border-[#137bcc] shadow-[inset_0_1px_7px_rgba(25,228,255,0.15)] space-y-3 ${
+                  className={`p-3.5 rounded-2xl border-2 border-[#137bcc] shadow-[inset_0_1px_7px_rgba(25,228,255,0.15)] space-y-2.5 ${
                     isLightMode
                       ? 'bg-white text-[#102c4b]'
                       : 'bg-gradient-to-br from-[#06244b] to-[#03142f] text-[#f3f8ff]'
                   }`}
                   style={{ fontFamily: 'var(--font-article)' }}
                 >
-                  <div className="flex items-center justify-between border-b border-[#1768b3]/40 pb-2 text-[11px] text-[#96b8dd]">
+                  <div className="flex items-center justify-between border-b border-[#1768b3]/40 pb-1.5 text-[11px] text-[#96b8dd]">
                     <span>Wikipedia Redacted Manuscript</span>
-                    <span className="font-mono tabular-nums">
-                      {Math.round((round.revealedWordsCount / Math.max(1, round.totalWords)) * 100)}% Uncovered
-                    </span>
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setIsManuscriptAutoScroll((v) => !v)}
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+                          isLightMode
+                            ? 'hover:bg-[#eaf4ff] text-[#416890]'
+                            : 'hover:bg-[#0c2b53] text-[#96b8dd]'
+                        }`}
+                        title={
+                          isManuscriptAutoScroll
+                            ? 'Pause automatic manuscript scrolling'
+                            : 'Resume automatic manuscript scrolling'
+                        }
+                      >
+                        {isManuscriptAutoScroll ? (
+                          <Pause className="w-3 h-3" />
+                        ) : (
+                          <Play className="w-3 h-3" />
+                        )}
+                        {isManuscriptAutoScroll ? 'Auto' : 'Paused'}
+                      </button>
+                      <span className="font-mono tabular-nums">
+                        {Math.round((round.revealedWordsCount / Math.max(1, round.totalWords)) * 100)}% Uncovered
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="space-y-3.5 leading-7 text-[15px]">
+                  <div
+                    ref={manuscriptScrollRef}
+                    onMouseEnter={() => {
+                      manuscriptHoverPausedRef.current = true;
+                    }}
+                    onMouseLeave={() => {
+                      manuscriptHoverPausedRef.current = false;
+                    }}
+                    onWheel={() => {
+                      manuscriptManualPauseUntilRef.current = performance.now() + 3000;
+                    }}
+                    onTouchStart={() => {
+                      manuscriptManualPauseUntilRef.current = performance.now() + 3000;
+                    }}
+                    onScroll={(e) => {
+                      const curTop = e.currentTarget.scrollTop;
+                      if (Math.abs(curTop - manuscriptScrollPosRef.current) > 4) {
+                        manuscriptScrollPosRef.current = curTop;
+                        manuscriptManualPauseUntilRef.current = performance.now() + 3000;
+                      }
+                    }}
+                    className="max-h-[245px] overflow-y-auto overscroll-contain pr-1.5 space-y-3 leading-7 text-[15px]"
+                  >
                     {round.paragraphs.map((para, pIdx) => (
                       <p key={pIdx} className="break-words">
                         {para.map((tok) => {
@@ -1902,6 +2021,37 @@ export function App() {
                     ))}
                   </div>
                 </section>
+
+                {/* ── Guess Composer Input Bar (Moved Below Article) ── */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    submitWordGuess(guessInput);
+                  }}
+                  className={`flex items-center gap-2 p-1.5 rounded-2xl border-2 shadow-[0_0_16px_rgba(19,132,211,0.2)] ${
+                    isLightMode
+                      ? 'bg-white border-[#6498d2]'
+                      : 'bg-[#03142f] border-[#2186c6]'
+                  }`}
+                >
+                  <input
+                    type="text"
+                    value={guessInput}
+                    onChange={(e) => setGuessInput(e.target.value)}
+                    placeholder="Guess a word..."
+                    className={`flex-1 min-w-0 px-3.5 py-2 rounded-xl border text-sm font-bold focus:outline-none focus:border-[#19e4ff] ${
+                      isLightMode
+                        ? 'bg-[#eaf4ff] border-[#6498d2] text-[#102c4b] placeholder-[#416890]/60'
+                        : 'bg-[#020a25] border-[#286296] text-white placeholder-[#96b8dd]/60'
+                    }`}
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-b from-[#ffed60] to-[#ffca27] hover:from-[#fff380] hover:to-[#ffd645] text-[#17210a] font-extrabold text-xs border border-[#ffed6c] flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    <Send className="w-3.5 h-3.5" /> Guess
+                  </button>
+                </form>
               </main>
             )}
         </div>

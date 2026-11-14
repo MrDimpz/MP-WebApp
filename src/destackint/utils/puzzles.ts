@@ -290,9 +290,13 @@ export function getLondonDateString(date: Date = new Date()): string {
 export function generateDailyPuzzle(
   dateStr: string,
   difficulty: DifficultyMode = 'normal',
-  layoutMode: LayoutMode = 'daily'
+  layoutMode: LayoutMode = 'daily',
+  roundSeed: number = 0
 ): WordPuzzle {
-  const seedKey = `${dateStr}-${difficulty}-${layoutMode}`;
+  const seedKey =
+    roundSeed > 0
+      ? `${dateStr}-${difficulty}-${layoutMode}-round-${roundSeed}`
+      : `${dateStr}-${difficulty}-${layoutMode}`;
   let hash = 2166136261;
   for (let i = 0; i < seedKey.length; i++) {
     hash ^= seedKey.charCodeAt(i);
@@ -300,7 +304,8 @@ export function generateDailyPuzzle(
   }
   const rng = createPRNG(hash);
 
-  const pattern = getPatternForMode(difficulty, layoutMode, dateStr);
+  const patternSeedDate = roundSeed > 0 ? `${dateStr}-r${roundSeed}` : dateStr;
+  const pattern = getPatternForMode(difficulty, layoutMode, patternSeedDate);
   const wordCount = difficulty === 'hard' ? 10 : 6;
   const totalLayers = difficulty === 'hard' ? 6 : 4;
   const totalSlots = pattern.length;

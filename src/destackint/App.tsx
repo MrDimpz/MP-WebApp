@@ -111,6 +111,7 @@ export default function App() {
     }>
   >([]);
   const [resetSignal, setResetSignal] = useState<number>(0);
+  const [puzzleRoundNonce, setPuzzleRoundNonce] = useState<number>(0);
 
   const [stats, setStats] = useState<GameStats>(() => {
     if (typeof window !== 'undefined') {
@@ -473,8 +474,8 @@ export default function App() {
   }, []);
 
   const currentPuzzle = useMemo(() => {
-    return generateDailyPuzzle(selectedDateStr, difficulty, layoutMode);
-  }, [selectedDateStr, difficulty, layoutMode]);
+    return generateDailyPuzzle(selectedDateStr, difficulty, layoutMode, puzzleRoundNonce);
+  }, [selectedDateStr, difficulty, layoutMode, puzzleRoundNonce]);
 
   const handleVictory = (
     timeSeconds: number,
@@ -684,18 +685,26 @@ export default function App() {
             setVictoryData(null);
             setCurrentView(view);
           }}
+          onAutoAdvance={() => {
+            setVictoryData(null);
+            setPuzzleRoundNonce((prev) => prev + 1);
+            setResetSignal((prev) => prev + 1);
+            setCurrentView('PLAYING');
+          }}
           onPlayAgain={(resetScores) => {
             if (resetScores) {
               setScoreboard([]);
               setChatFeed([]);
             }
             setVictoryData(null);
+            setPuzzleRoundNonce((prev) => prev + 1);
             setResetSignal((prev) => prev + 1);
             setCurrentView('PLAYING');
           }}
           onPlayHardMode={() => {
             setVictoryData(null);
             setDifficulty('hard');
+            setPuzzleRoundNonce((prev) => prev + 1);
             setResetSignal((prev) => prev + 1);
             setCurrentView('PLAYING');
           }}

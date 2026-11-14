@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Crown,
   Medal,
@@ -7,9 +7,11 @@ import {
   Zap,
   CheckCircle2,
   Play,
+  Pause,
   Flame,
   RotateCcw,
   Sparkles,
+  FastForward,
 } from 'lucide-react';
 import { RunningScoreboardPlayer, DifficultyMode, GameState } from '../types';
 import { getSafeAvatarUrl, handleAvatarError } from '../utils/avatar';
@@ -20,9 +22,12 @@ interface RoundScoreboardModalProps {
   words: string[];
   scoreboard: RunningScoreboardPlayer[];
   setCurrentView: (view: GameState) => void;
+  onAutoAdvance: () => void;
   onPlayAgain: (resetScores: boolean) => void;
   onPlayHardMode: () => void;
 }
+
+const AUTO_ADVANCE_SECONDS = 5;
 
 export const RoundScoreboardModal: React.FC<RoundScoreboardModalProps> = ({
   dateStr,
@@ -30,9 +35,33 @@ export const RoundScoreboardModal: React.FC<RoundScoreboardModalProps> = ({
   words,
   scoreboard,
   setCurrentView,
+  onAutoAdvance,
   onPlayAgain,
   onPlayHardMode,
 }) => {
+  const [countdown, setCountdown] = useState<number>(AUTO_ADVANCE_SECONDS);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const autoAdvanceRef = useRef(onAutoAdvance);
+  useEffect(() => {
+    autoAdvanceRef.current = onAutoAdvance;
+  }, [onAutoAdvance]);
+
+  useEffect(() => {
+    if (isPaused) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setTimeout(() => {
+            autoAdvanceRef.current();
+          }, 0);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isPaused]);
   // Top 5 players sorted by totalScore descending, then wordsSolved, then bestSpeedSeconds
   const top5 = [...scoreboard]
     .sort(
@@ -277,6 +306,38 @@ export const RoundScoreboardModal: React.FC<RoundScoreboardModalProps> = ({
           </div>
         </div>
 
+        {/* Auto-Advance Banner */}
+        <div className="mb-4 px-4 py-2.5 rounded-2xl bg-amber-400/15 border border-amber-300/45 flex flex-wrap items-center justify-between gap-2">
+          <div className="text-xs font-bold text-amber-200 flex items-center gap-2">
+            <FastForward className="w-4 h-4 text-amber-300 shrink-0" />
+            {isPaused ? (
+              <span>Auto-advance paused</span>
+            ) : (
+              <span>
+                Loading next puzzle automatically in{' '}
+                <strong className="text-amber-300 font-mono tabular-nums">{countdown}s</strong>...
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsPaused((p) => !p)}
+              className="px-2.5 py-1 rounded-lg bg-black/40 hover:bg-black/60 border border-purple-300/35 text-[11px] font-bold text-purple-100 inline-flex items-center gap-1 cursor-pointer"
+            >
+              {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+              {isPaused ? 'Resume' : 'Pause'}
+            </button>
+            <button
+              type="button"
+              onClick={onAutoAdvance}
+              className="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#2d0938] text-[11px] font-black inline-flex items-center gap-1 cursor-pointer"
+            >
+              Next Now
+            </button>
+          </div>
+        </div>
+
         {/* Action Buttons */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <button
@@ -284,7 +345,7 @@ export const RoundScoreboardModal: React.FC<RoundScoreboardModalProps> = ({
             onClick={() => onPlayAgain(true)}
             className="py-3.5 px-4 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 hover:brightness-105 text-[#2d0938] font-black rounded-2xl shadow-[0_5px_0_#92400e] transition-all flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer"
           >
-            <RotateCcw className="w-4 h-4" /> New Round (Reset Scores)
+            <RotateCcw className="w-4 h-4" /> New Puzzle (Reset Scores)
           </button>
 
           <button
@@ -292,7 +353,7 @@ export const RoundScoreboardModal: React.FC<RoundScoreboardModalProps> = ({
             onClick={() => onPlayAgain(false)}
             className="py-3.5 px-4 bg-purple-800/80 hover:bg-purple-700/80 text-white font-bold rounded-2xl border border-purple-400/40 transition-all flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer"
           >
-            <Play className="w-4 h-4 text-amber-300" /> Replay (Keep Scores)
+            <Play className="w-4 h-4 text-amber-300" /> Next Puzzle (Keep Scores)
           </button>
 
           {difficulty === 'normal' ? (

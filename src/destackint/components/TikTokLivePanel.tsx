@@ -143,9 +143,9 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
   };
 
   return (
-    <div className="w-full flex flex-col rounded-2xl bg-[#2c0938]/95 dark:bg-[#16041c]/95 border border-purple-400/25 shadow-[0_12px_36px_rgba(0,0,0,0.45)] overflow-hidden text-white">
+    <div className="w-full flex flex-col rounded-2xl bg-[#2c0938]/95 dark:bg-[#16041c]/95 border border-purple-300/50 shadow-[0_12px_36px_rgba(0,0,0,0.45)] overflow-hidden text-white">
       {/* Top Status & Connection Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-[#390c47] dark:bg-[#1e0526] border-b border-purple-400/20">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-[#390c47] dark:bg-[#1e0526] border-b border-purple-300/40">
         <div className="flex items-center gap-2.5">
           <button
             type="button"

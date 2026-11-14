@@ -76,12 +76,12 @@ interface GameBoardProps {
 }
 
 const LAYER_KEY_ITEMS = [
-  { label: 'L1', color: 'bg-amber-600 border-amber-500' },
-  { label: 'L2', color: 'bg-emerald-500 border-emerald-400' },
-  { label: 'L3', color: 'bg-cyan-400 border-cyan-300' },
-  { label: 'L4', color: 'bg-purple-400 border-purple-300' },
-  { label: 'L5', color: 'bg-rose-400 border-rose-300' },
-  { label: 'L6', color: 'bg-amber-300 border-amber-200' },
+  { label: 'L1', color: 'bg-[#ffb703] border-[#ffd166]' },
+  { label: 'L2', color: 'bg-[#2bff88] border-[#7dffb3]' },
+  { label: 'L3', color: 'bg-[#19e4ff] border-[#75f0ff]' },
+  { label: 'L4', color: 'bg-[#e08aff] border-[#f0c2ff]' },
+  { label: 'L5', color: 'bg-[#ff5c97] border-[#ff99be]' },
+  { label: 'L6', color: 'bg-[#fff34d] border-[#fff999]' },
 ];
 
 const getLayerOutlineClass = (layer: number, isExposed: boolean) => {
@@ -91,19 +91,19 @@ const getLayerOutlineClass = (layer: number, isExposed: boolean) => {
 
   switch (layer) {
     case 0:
-      return `border-[3px] border-amber-600 ${bgClass}`;
+      return `border-[3px] border-[#ffb703] ${bgClass}`;
     case 1:
-      return `border-[3px] border-emerald-500 ${bgClass}`;
+      return `border-[3px] border-[#2bff88] ${bgClass}`;
     case 2:
-      return `border-[3px] border-cyan-400 ${bgClass}`;
+      return `border-[3px] border-[#19e4ff] ${bgClass}`;
     case 3:
-      return `border-[3px] border-purple-400 ${bgClass}`;
+      return `border-[3px] border-[#e08aff] ${bgClass}`;
     case 4:
-      return `border-[3px] border-rose-400 ${bgClass}`;
+      return `border-[3px] border-[#ff5c97] ${bgClass}`;
     case 5:
-      return `border-[3px] border-amber-300 ${bgClass}`;
+      return `border-[3px] border-[#fff34d] ${bgClass}`;
     default:
-      return `border-[3px] border-amber-400 ${bgClass}`;
+      return `border-[3px] border-[#ffd166] ${bgClass}`;
   }
 };
 
@@ -701,7 +701,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             </button>
 
             {/* Normal (4 Layers) vs Hard Mode (6 Layers) Toggle */}
-            <div className="flex items-center p-0.5 rounded-xl bg-[#360b42] dark:bg-[#16041c] border border-purple-400/25">
+            <div className="flex items-center p-0.5 rounded-xl bg-[#360b42] dark:bg-[#16041c] border border-purple-300/50">
               <button
                 type="button"
                 onClick={() => onChangeDifficulty('normal')}
@@ -802,13 +802,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           </div>
 
           {/* Recessed Square Stack Board — 4-Layer (30 Tiles) or 6-Layer Hard Mode (50 Tiles) */}
-          <div className="relative w-full aspect-square bg-[#360b42] dark:bg-[#16041c] border border-purple-400/15 rounded-2xl shadow-[inset_0_5px_14px_rgba(0,0,0,0.45)] p-[36px] sm:p-[44px] overflow-hidden pt-18 sm:pt-22">
+          <div className="relative w-full aspect-square bg-[#360b42] dark:bg-[#16041c] border-2 border-purple-300/45 rounded-2xl shadow-[inset_0_5px_14px_rgba(0,0,0,0.45)] p-[36px] sm:p-[44px] overflow-hidden pt-18 sm:pt-22">
             {/* Layer Key Bar Above Tiles But On The Board */}
-            <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-center gap-1 sm:gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-xl border border-white/15 text-[10px] text-purple-100 font-bold overflow-x-auto no-scrollbar">
+            <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-center gap-1 sm:gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-xl border border-purple-200/35 text-[10px] text-purple-100 font-bold overflow-x-auto no-scrollbar">
               <span className="text-amber-300 uppercase tracking-wider text-[9px] font-black shrink-0">Layer Key:</span>
               {Array.from({ length: puzzle.totalLayers }).map((_, idx) => (
-                <div key={idx} className="flex items-center gap-1 shrink-0 px-1 py-0.5 rounded bg-white/5 border border-white/10">
-                  <span className={`w-2.5 h-2.5 rounded-full border ${LAYER_KEY_ITEMS[idx]?.color || 'bg-amber-400 border-amber-300'}`} />
+                <div key={idx} className="flex items-center gap-1 shrink-0 px-1 py-0.5 rounded bg-white/5 border border-white/25">
+                  <span className={`w-2.5 h-2.5 rounded-full border ${LAYER_KEY_ITEMS[idx]?.color || 'bg-[#ffd166] border-[#fff099]'}`} />
                   <span>L{idx + 1}</span>
                 </div>
               ))}
@@ -836,13 +836,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                     zIndex: tile.layer * 10 + (isExposed ? 5 : 0),
                   }}
                   className={`-translate-x-1/2 -translate-y-1/2 absolute rounded-xl flex items-center justify-center font-extrabold ${
-                    isHardMode ? 'text-2xl sm:text-3xl' : 'text-4xl sm:text-5xl'
+                    isHardMode ? 'text-xs sm:text-[15px]' : 'text-lg sm:text-2xl'
                   } tracking-tight transition-transform duration-150 ${getLayerOutlineClass(
                     tile.layer,
                     isExposed
                   )} ${isExposed ? 'hover:scale-[1.06] active:scale-[0.97] cursor-pointer' : 'cursor-default'}`}
                 >
-                  <span className="-mt-0.5 select-none">{tile.letter}</span>
+                  <span className="select-none">{tile.letter}</span>
                 </button>
               );
             })}
@@ -885,8 +885,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                     isShowingCompletedWord && completedLetter
                       ? 'bg-gradient-to-b from-[#fffbeb] to-[#fef08a] text-[#2d0938] border-[3px] border-amber-400 animate-gold-flash cursor-default'
                       : activeTile
-                      ? 'bg-[#fbf6e8] hover:bg-white text-[#231929] border-2 border-amber-300 shadow-[0_5px_0_#7c581e] animate-tile-pop cursor-pointer'
-                      : 'bg-[#360b42] dark:bg-[#16041c] border border-purple-400/15 shadow-[inset_0_2px_6px_rgba(0,0,0,0.38)] cursor-default'
+                      ? 'bg-[#fbf6e8] hover:bg-white text-[#231929] border-2 border-[#fff04d] shadow-[0_5px_0_#7c581e] animate-tile-pop cursor-pointer'
+                      : 'bg-[#360b42] dark:bg-[#16041c] border border-purple-300/45 shadow-[inset_0_2px_6px_rgba(0,0,0,0.38)] cursor-default'
                   }`}
                 >
                   {displayLetter ? <span className="-mt-0.5">{displayLetter}</span> : null}
@@ -908,7 +908,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 onPointerMove={handlePointerMoveHint}
                 onPointerUp={handlePointerUpHint}
                 onPointerCancel={handlePointerUpHint}
-                className="relative w-full h-11 rounded-full bg-[#360b42] dark:bg-[#16041c] border border-purple-400/20 shadow-[inset_0_2px_6px_rgba(0,0,0,0.45)] flex items-center justify-center cursor-pointer overflow-hidden touch-none"
+                className="relative w-full h-11 rounded-full bg-[#360b42] dark:bg-[#16041c] border border-purple-300/45 shadow-[inset_0_2px_6px_rgba(0,0,0,0.45)] flex items-center justify-center cursor-pointer overflow-hidden touch-none"
               >
                 <span className="text-[11px] font-bold tracking-widest uppercase text-purple-200/50 pointer-events-none pl-8">
                   SWIPE TO REVEAL CLUE FOR CHAT
@@ -948,9 +948,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           />
 
           {/* Word Reveal Timer & Control Section (Moved below scoreboard and chat box) */}
-          <div className="w-full p-4 rounded-2xl bg-[#2c0938]/95 dark:bg-[#16041c]/95 border border-purple-400/25 shadow-[0_8px_24px_rgba(0,0,0,0.4)] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="w-full p-4 rounded-2xl bg-[#2c0938]/95 dark:bg-[#16041c]/95 border border-purple-300/50 shadow-[0_8px_24px_rgba(0,0,0,0.4)] flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="relative w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-300/40 flex items-center justify-center text-amber-300 font-black font-mono text-lg shrink-0">
+              <div className="relative w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-300/70 flex items-center justify-center text-amber-300 font-black font-mono text-lg shrink-0">
                 {wordTimeLeft}s
                 <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 36 36">
                   <path

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Radio,
   Wifi,
@@ -99,7 +100,16 @@ export const TikTokStreamModal: React.FC<TikTokStreamModalProps> = ({
     }
   }, [authenticatedStreamer]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const ensureLeadingAt = (val: string) => {
     if (!val.startsWith('@')) {
@@ -163,9 +173,18 @@ export const TikTokStreamModal: React.FC<TikTokStreamModalProps> = ({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-      <div className="w-full max-w-[490px] rounded-2xl bg-[#03142f] border-2 border-[#19e4ff] shadow-[0_0_32px_rgba(25,228,255,0.25)] text-[#f3f8ff] overflow-hidden flex flex-col max-h-[90vh]">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="TikTok Live Connection"
+    >
+      <div
+        className="w-full max-w-[490px] rounded-2xl bg-[#03142f] border-2 border-[#19e4ff] shadow-[0_0_32px_rgba(25,228,255,0.25)] text-[#f3f8ff] overflow-hidden flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1768b3]/60 bg-[#061c3d]">
           <div className="flex items-center gap-2.5">
@@ -428,6 +447,7 @@ export const TikTokStreamModal: React.FC<TikTokStreamModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

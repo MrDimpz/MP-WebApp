@@ -9,9 +9,34 @@
   font-family: var(--font-sans);
 }
 
-.wikicon-root > * {
-  position: relative;
-  z-index: 1;
+@keyframes wk-marquee-scroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.wk-marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: wk-marquee-scroll var(--wk-marquee-duration, 18s) linear infinite;
+}
+
+.wk-marquee-wrap:hover .wk-marquee-track,
+.wk-marquee-wrap:focus-within .wk-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wk-marquee-wrap {
+    overflow-x: auto;
+  }
+  .wk-marquee-track {
+    animation: none;
+  }
 }
 
 .wk-canvas-dark {
