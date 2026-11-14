@@ -649,9 +649,47 @@ export default function App() {
       const rawComment = String(data.comment || '').trim();
       if (!rawComment) return;
 
-      const viewerUsername = (data.uniqueId || 'viewer').replace(/^@+/, '');
-      const viewerDisplay = (data.nickname || viewerUsername || 'Viewer').replace(/^@+/, '');
-      const rawPfp = (data.profilePictureUrl || '').trim();
+      const rawObj = data as any;
+      const nestedUser =
+        rawObj.user || rawObj.userDetails || rawObj.author || rawObj.sender || {};
+      const candidateDisplay = String(
+        rawObj.nickname ||
+          rawObj.displayName ||
+          nestedUser.nickname ||
+          nestedUser.displayName ||
+          nestedUser.name ||
+          ''
+      )
+        .trim()
+        .replace(/^@+/, '');
+      const candidateId = String(
+        rawObj.uniqueId ||
+          rawObj.username ||
+          rawObj.userId ||
+          nestedUser.uniqueId ||
+          nestedUser.displayId ||
+          nestedUser.username ||
+          nestedUser.userId ||
+          nestedUser.id ||
+          ''
+      )
+        .trim()
+        .replace(/^@+/, '');
+      const effectiveId =
+        candidateId && candidateId.toLowerCase() !== 'viewer'
+          ? candidateId
+          : candidateDisplay && candidateDisplay.toLowerCase() !== 'viewer'
+          ? candidateDisplay
+          : candidateId || 'viewer';
+      const viewerUsername = effectiveId.toLowerCase() || 'viewer';
+      const viewerDisplay = candidateDisplay || effectiveId || 'Viewer';
+      const rawPfp = String(
+        rawObj.profilePictureUrl ||
+          rawObj.avatar ||
+          nestedUser.profilePictureUrl ||
+          nestedUser.avatar ||
+          ''
+      ).trim();
       const normalizedPfp = rawPfp.startsWith('//') ? `https:${rawPfp}` : rawPfp;
       const viewerAvatar = normalizedPfp.startsWith('http')
         ? normalizedPfp
@@ -709,6 +747,18 @@ export default function App() {
               setFlashedCells(outcome.cells);
               setTimeout(() => setFlashedCells([]), 600);
             }
+          } else if (outcome.rankPoints && outcome.rankPoints > 0) {
+            totalPointsEarned += outcome.rankPoints;
+            if (!matchedWord) matchedWord = outcome.word;
+            if (bestResult === 'chat') bestResult = 'miss_in_article';
+            sfx.playTileStep(2);
+            triggerWordAnnounce(viewerDisplay, outcome.word, outcome.rankPoints);
+            creditInteractiveScoreByTikTokHandle({
+              tiktokUsername: viewerUsername || viewerDisplay,
+              gameId: 'wikirec',
+              pointsEarned: outcome.rankPoints,
+              reason: `WiKirecTangled close guess: ${outcome.word.toUpperCase()}`,
+            });
           } else if (
             outcome.result === 'miss_in_article' &&
             bestResult !== 'correct' &&
@@ -872,6 +922,20 @@ export default function App() {
             setFlashedCells(outcome.cells);
             setTimeout(() => setFlashedCells([]), 600);
           }
+        } else if (outcome.rankPoints && outcome.rankPoints > 0) {
+          sfx.playTileStep(2);
+          triggerWordAnnounce(outcome.finder.displayName, outcome.word, outcome.rankPoints);
+          const activeStreamerHandle =
+            authorizedStreamerRef.current?.username ||
+            getActiveInteractiveStreamerSession()?.username;
+          if (activeStreamerHandle) {
+            creditInteractiveScoreByTikTokHandle({
+              tiktokUsername: activeStreamerHandle,
+              gameId: 'wikirec',
+              pointsEarned: outcome.rankPoints,
+              reason: `WiKirecTangled close guess: ${outcome.word.toUpperCase()}`,
+            });
+          }
         } else if (outcome.result === 'miss_in_article') {
           sfx.playMiss(true);
         } else if (outcome.result === 'incorrect') {
@@ -910,6 +974,10 @@ export default function App() {
     try {
       localStorage.setItem(STORAGE_NAME_KEY, cleaned);
     } catch {}
+    if (localGameRef.current) {
+      localGameRef.current.renamePlayer(sessionIdRef.current, cleaned);
+      setGameState(localGameRef.current.getPublicState());
+    }
   };
 
   // Scrambled order for unrevealed title chips (matching wikirectangled.com's renderTitleChips)
@@ -1044,12 +1112,15 @@ export default function App() {
       if (el) {
         el.scrollTop = el.scrollHeight;
       }
-      chatBottomRef.current?.scrollIntoView({ block: 'end' });
     };
     scrollToLatest();
     const rafId = requestAnimationFrame(scrollToLatest);
-    return () => cancelAnimationFrame(rafId);
-  }, [chatOnlyItems, chatOnlyItems.length]);
+    const timerId = window.setTimeout(scrollToLatest, 60);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.clearTimeout(timerId);
+    };
+  }, [chatOnlyItems, chatOnlyItems.length, authorizedStreamer, tiktokStatus.connected]);
 
   const isSolo = mode === 'daily-solo' || mode === 'practice-solo';
   const showVictoryModal =
@@ -1726,11 +1797,16 @@ export default function App() {
           <div className="players-row" id="players-row">
             {(['first', 'second', 'third'] as const).map((rankClass, i) => {
               const player = topThreePlayers[i];
+              const rankLabel = i === 0 ? '1st' : i === 1 ? '2nd' : '3rd';
               const cleanPlayerName = player
                 ? (player.displayName || 'Player').replace(/^@/, '')
                 : 'Open';
               return (
-                <div key={rankClass} className={`player-card ${rankClass}`}>
+                <div
+                  key={rankClass}
+                  className={`player-card ${rankClass}${player ? '' : ' is-empty'}`}
+                >
+                  <span className="prank-badge">{rankLabel}</span>
                   <div className="pfp">
                     {player ? (
                       <img
@@ -1753,7 +1829,9 @@ export default function App() {
                       i + 1
                     )}
                   </div>
-                  <div className="pname">{cleanPlayerName}</div>
+                  <div className="pname" title={cleanPlayerName}>
+                    {cleanPlayerName}
+                  </div>
                   <div className="pscore">
                     {player ? player.score.toLocaleString() : '0'}
                   </div>

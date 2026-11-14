@@ -135,6 +135,7 @@ export class WiKirecGame {
     }
   > = new Map();
   rankSlotsPaid: Set<number> = new Set();
+  rankSlotPlayerAwarded: Map<string, number> = new Map();
   articleWordSet: Set<string> = new Set();
 
   startTime = Date.now();
@@ -239,6 +240,7 @@ export class WiKirecGame {
           this.rankTarget = tw;
           this.rankedGuesses.clear();
           this.rankSlotsPaid.clear();
+          this.rankSlotPlayerAwarded.clear();
         }
         return;
       }
@@ -337,11 +339,16 @@ export class WiKirecGame {
       const slotIdx = top5.findIndex((c) => c.word === norm);
       if (slotIdx !== -1) {
         const slot = slotIdx + 1;
-        if (!this.rankSlotsPaid.has(slot)) {
-          this.rankSlotsPaid.add(slot);
-          const base = SLOT_BASE[slot] || 0;
-          const mult = Math.max(0.25, 1 - Math.log10(Math.max(1, rank)) / 5);
-          rankPoints = Math.floor(base * mult);
+        this.rankSlotsPaid.add(slot);
+        const base = SLOT_BASE[slot] || 0;
+        const mult = Math.max(0.25, 1 - Math.log10(Math.max(1, rank)) / 5);
+        const potentialPoints = Math.floor(base * mult);
+        const playerKey = this.getPlayerKey(finder);
+        const playerSlotKey = `${playerKey}:${slot}`;
+        const prevAwarded = this.rankSlotPlayerAwarded.get(playerSlotKey) || 0;
+        if (potentialPoints > prevAwarded) {
+          rankPoints = prevAwarded === 0 ? potentialPoints : potentialPoints - prevAwarded;
+          this.rankSlotPlayerAwarded.set(playerSlotKey, potentialPoints);
           rankSlotAwarded = slot;
           const entry = this.rankedGuesses.get(norm);
           if (entry) entry.pointsAwarded = rankPoints;
@@ -355,11 +362,12 @@ export class WiKirecGame {
       if (isUnrevealedTitle) {
         this.revealedTitleWords.set(chipKey, finder);
         const titleBonus = getTitleBonus(this.revealedTitleWords.size - 1);
+        const totalTitlePoints = titleBonus + rankPoints;
         const path = this.targetPaths[chipKey] || [];
         const entry: FoundWordEntry = {
           word: chipKey,
           tier: 'title',
-          points: titleBonus,
+          points: totalTitlePoints,
           displayName: finder.displayName,
           platform: finder.platform,
           platformUserId: finder.platformUserId,
@@ -369,7 +377,7 @@ export class WiKirecGame {
           isTitleWord: true,
         };
         this.foundWords.set(chipKey, entry);
-        this.creditPlayer(finder, titleBonus, 1, true);
+        this.creditPlayer(finder, totalTitlePoints, 1, true);
         this.pushTag({
           id: `tag-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           result: 'correct',
@@ -377,7 +385,7 @@ export class WiKirecGame {
           displayName: finder.displayName,
           platform: finder.platform,
           profileImage: finder.profileImage,
-          points: titleBonus,
+          points: totalTitlePoints,
           tier: 'title',
           rank: 1,
           closeness: 1,
@@ -389,16 +397,20 @@ export class WiKirecGame {
           result: 'correct',
           word: chipKey,
           cells: path,
-          points: titleBonus,
+          points: totalTitlePoints,
           guessCount: gc,
           tierName: 'title',
           isTitleWord: true,
           rank: 1,
           closeness: 1,
           rankSlotAwarded,
-          rankPoints: 0,
+          rankPoints,
           finder,
         };
+      }
+
+      if (rankPoints > 0) {
+        this.creditPlayer(finder, rankPoints, 0, false);
       }
 
       const inArticle = this.articleWordSet.has(norm);
@@ -410,6 +422,7 @@ export class WiKirecGame {
         displayName: finder.displayName,
         platform: finder.platform,
         profileImage: finder.profileImage,
+        points: rankPoints > 0 ? rankPoints : undefined,
         rank,
         closeness,
         guessCount: gc,
@@ -419,14 +432,14 @@ export class WiKirecGame {
         result: resType,
         word: norm,
         cells: [],
-        points: 0,
+        points: rankPoints,
         guessCount: gc,
         tierName: null,
         isTitleWord: false,
         rank,
         closeness,
         rankSlotAwarded,
-        rankPoints: 0,
+        rankPoints,
         finder,
       };
     }
@@ -455,7 +468,7 @@ export class WiKirecGame {
       this.pickNextRankTarget();
     }
 
-    const totalPoints = baseScore + lengthBonus + rarityBonus + titleBonus;
+    const totalPoints = baseScore + lengthBonus + rarityBonus + titleBonus + rankPoints;
     const cells = this.allWords.get(norm) || [];
 
     const entry: FoundWordEntry = {
@@ -596,8 +609,17 @@ export class WiKirecGame {
     return hint;
   }
 
+  private getPlayerKey(user: Pick<FinderInfo, 'platformUserId' | 'displayName'>): string {
+    const raw = String(user.platformUserId || user.displayName || 'player')
+      .trim()
+      .replace(/^@+/, '')
+      .toLowerCase();
+    return raw || 'player';
+  }
+
   recordEngagement(user: FinderInfo, type: 'like' | 'gift', count = 1) {
-    const prev = this.playerScores.get(user.platformUserId);
+    const key = this.getPlayerKey(user);
+    const prev = this.playerScores.get(key);
     if (!prev) return;
     if (type === 'like') {
       prev.likesSent = (prev.likesSent || 0) + count;
@@ -606,12 +628,13 @@ export class WiKirecGame {
       prev.giftsDiamonds = (prev.giftsDiamonds || 0) + count;
       prev.xp += count * 25;
     }
-    this.playerScores.set(user.platformUserId, prev);
+    this.playerScores.set(key, prev);
   }
 
   private creditPlayer(finder: FinderInfo, points: number, wordsFound: number, isTitle: boolean) {
-    const prev = this.playerScores.get(finder.platformUserId) || {
-      platformUserId: finder.platformUserId,
+    const key = this.getPlayerKey(finder);
+    const prev = this.playerScores.get(key) || {
+      platformUserId: key,
       displayName: finder.displayName,
       platform: finder.platform,
       profileImage: finder.profileImage,
@@ -629,7 +652,16 @@ export class WiKirecGame {
     prev.xp += Math.round(points / 10);
     prev.wordCount += wordsFound;
     if (isTitle) prev.titleWordCount += 1;
-    this.playerScores.set(finder.platformUserId, prev);
+    this.playerScores.set(key, prev);
+  }
+
+  renamePlayer(platformUserId: string, displayName: string) {
+    const key = this.getPlayerKey({ platformUserId, displayName });
+    const existing = this.playerScores.get(key) || this.playerScores.get(platformUserId);
+    if (existing) {
+      existing.displayName = displayName;
+      this.playerScores.set(existing.platformUserId, existing);
+    }
   }
 
   private pushTag(tag: RecentTag) {
@@ -916,8 +948,8 @@ export class WiKirecGame {
       activeTierStartCells: this.getActiveTierStartCells(),
       activeCommonCells: this.getActiveCommonCells(),
       topPlayers: Array.from(this.playerScores.values())
-        .filter((p) => p.wordCount > 0 && p.score > 0)
-        .sort((a, b) => b.score - a.score),
+        .filter((p) => p.score > 0)
+        .sort((a, b) => b.score - a.score || b.wordCount - a.wordCount || a.displayName.localeCompare(b.displayName)),
       recentTags: this.recentTags.slice(-14),
       searchWords: this.getSearchWords(),
       isComplete: this.isComplete(),

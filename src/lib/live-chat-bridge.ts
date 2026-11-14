@@ -90,16 +90,42 @@ export function normalizeIncomingChatPayload(raw: any): {
   _seq?: number;
 } | null {
   if (!raw || typeof raw !== "object") return null;
-  const uniqueId = String(
-    raw.uniqueId || raw.username || raw.userId || "viewer",
+  const nested = raw.user || raw.userDetails || raw.author || raw.sender || {};
+  const candidateNick = String(
+    raw.nickname ||
+      raw.displayName ||
+      nested.nickname ||
+      nested.displayName ||
+      nested.name ||
+      "",
   )
     .trim()
     .replace(/^@+/, "");
-  const nickname = String(raw.nickname || uniqueId || "Viewer")
-    .trim()
-    .replace(/^@+/, "");
+  const idCandidates = [
+    raw.uniqueId,
+    raw.username,
+    raw.userId,
+    nested.uniqueId,
+    nested.displayId,
+    nested.username,
+    nested.userId,
+    nested.id,
+  ]
+    .map((v) => String(v || "").trim().replace(/^@+/, ""))
+    .filter(Boolean);
+  const candidateId =
+    idCandidates.find((v) => v.toLowerCase() !== "viewer") || idCandidates[0] || "";
+  const uniqueId =
+    candidateId && candidateId.toLowerCase() !== "viewer"
+      ? candidateId
+      : candidateNick && candidateNick.toLowerCase() !== "viewer"
+        ? candidateNick
+        : candidateId || "viewer";
+  const nickname = candidateNick || uniqueId || "Viewer";
   const comment = String(raw.comment ?? raw.text ?? "").trim();
-  const rawAvatar = String(raw.profilePictureUrl || raw.avatar || "").trim();
+  const rawAvatar = String(
+    raw.profilePictureUrl || raw.avatar || nested.profilePictureUrl || nested.avatar || "",
+  ).trim();
   const profilePictureUrl = rawAvatar.startsWith("//")
     ? `https:${rawAvatar}`
     : rawAvatar.startsWith("http")

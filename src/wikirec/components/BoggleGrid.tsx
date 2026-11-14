@@ -206,10 +206,12 @@ export const BoggleGrid: React.FC<BoggleGridProps> = ({
 
           const isFlashed = flashedSet.has(idx);
           const isHintCell = activeHint?.startCell === idx || activeHint?.secondCell === idx;
-          const isStillActive = activeCommonCells.length === 0 || activeCellSet.has(idx);
+          const isStillActive = activeCellSet.has(idx);
 
           const classes = ['cell'];
-          if (!isStillActive && !isSwiped && !isTyped) {
+          if (isStillActive) {
+            classes.push('in-use');
+          } else if (!isSwiped && !isTyped && !isHintCell) {
             classes.push('dimmed');
           }
           if (isSwiped) {

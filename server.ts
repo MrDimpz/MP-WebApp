@@ -272,16 +272,33 @@ async function startServer() {
     cleanUsername: string,
   ) {
     activeConn.on(WebcastEvent.CHAT, (data: any) => {
-      const uniqueId = String(
-        data?.user?.uniqueId || data?.uniqueId || data?.userId || "viewer",
+      const userObj =
+        data?.user || data?.userDetails || data?.author || data?.sender || {};
+      const nicknameRaw = String(
+        userObj?.nickname || data?.nickname || data?.displayName || "",
       )
         .trim()
         .replace(/^@+/, "");
-      const nickname = String(
-        data?.user?.nickname || data?.nickname || uniqueId || "Viewer",
+      const idRaw = String(
+        userObj?.uniqueId ||
+          userObj?.displayId ||
+          userObj?.username ||
+          userObj?.userId ||
+          userObj?.id ||
+          data?.uniqueId ||
+          data?.username ||
+          data?.userId ||
+          "",
       )
         .trim()
         .replace(/^@+/, "");
+      const uniqueId =
+        idRaw && idRaw.toLowerCase() !== "viewer"
+          ? idRaw
+          : nicknameRaw && nicknameRaw.toLowerCase() !== "viewer"
+            ? nicknameRaw
+            : idRaw || "viewer";
+      const nickname = nicknameRaw || uniqueId || "Viewer";
       const comment = String(data?.comment || data?.content || "").trim();
       if (!comment) return;
 
@@ -611,19 +628,6 @@ async function startServer() {
       payload.author ||
       payload.common?.user ||
       {};
-    const rawUnique =
-      user.uniqueId ||
-      user.displayId ||
-      user.username ||
-      user.handle ||
-      payload.uniqueId ||
-      payload.displayId ||
-      payload.username ||
-      payload.handle ||
-      payload.userId ||
-      "viewer";
-    const uniqueId =
-      String(rawUnique).trim().replace(/^@+/, "") || "viewer";
     const rawNick =
       user.nickname ||
       user.nickName ||
@@ -633,9 +637,29 @@ async function startServer() {
       payload.nickName ||
       payload.displayName ||
       payload.name ||
-      uniqueId;
-    const nickname =
-      String(rawNick).trim().replace(/^@+/, "") || uniqueId;
+      "";
+    const cleanedNick = String(rawNick).trim().replace(/^@+/, "");
+    const rawUnique =
+      user.uniqueId ||
+      user.displayId ||
+      user.username ||
+      user.handle ||
+      user.userId ||
+      user.id ||
+      payload.uniqueId ||
+      payload.displayId ||
+      payload.username ||
+      payload.handle ||
+      payload.userId ||
+      "";
+    const cleanedUnique = String(rawUnique).trim().replace(/^@+/, "");
+    const uniqueId =
+      cleanedUnique && cleanedUnique.toLowerCase() !== "viewer"
+        ? cleanedUnique
+        : cleanedNick && cleanedNick.toLowerCase() !== "viewer"
+          ? cleanedNick
+          : cleanedUnique || "viewer";
+    const nickname = cleanedNick || uniqueId || "Viewer";
     const profilePictureUrl =
       extractProfilePicture(payload) ||
       extractProfilePicture(user) ||
@@ -943,23 +967,50 @@ async function startServer() {
     ) {
       const enrichedPayload = { ...(payload || {}) };
       if (type === "chat-message") {
-        const uId = String(
-          enrichedPayload.uniqueId ||
-            enrichedPayload.userId ||
+        const nestedUser =
+          enrichedPayload.user ||
+          enrichedPayload.userDetails ||
+          enrichedPayload.author ||
+          enrichedPayload.sender ||
+          {};
+        const nick = String(
+          enrichedPayload.nickname ||
+            enrichedPayload.displayName ||
+            nestedUser.nickname ||
+            nestedUser.displayName ||
+            enrichedPayload.uniqueId ||
             enrichedPayload.username ||
-            "viewer",
+            "Viewer",
         )
           .trim()
           .replace(/^@+/, "");
-        const nick = String(enrichedPayload.nickname || uId || "Viewer")
+        const candidateId = String(
+          enrichedPayload.uniqueId ||
+            enrichedPayload.userId ||
+            enrichedPayload.username ||
+            nestedUser.uniqueId ||
+            nestedUser.username ||
+            nestedUser.userId ||
+            "",
+        )
           .trim()
           .replace(/^@+/, "");
+        const uId =
+          candidateId && candidateId.toLowerCase() !== "viewer"
+            ? candidateId
+            : nick && nick.toLowerCase() !== "viewer"
+              ? nick
+              : "viewer";
         const comment = String(
           enrichedPayload.comment || enrichedPayload.text || "",
         ).trim();
         const pfp =
           cleanUrl(
-            enrichedPayload.profilePictureUrl || enrichedPayload.avatar || "",
+            enrichedPayload.profilePictureUrl ||
+              enrichedPayload.avatar ||
+              nestedUser.profilePictureUrl ||
+              nestedUser.avatar ||
+              "",
           ) ||
           `https://i.pravatar.cc/150?u=${encodeURIComponent(uId || nick)}`;
         enrichedPayload.userId = uId;
@@ -1263,24 +1314,51 @@ async function startServer() {
     // Support simulated or client-relayed chat messages into all active listeners
     socket.on("chat-message", (chatPayload) => {
       if (chatPayload && typeof chatPayload === "object") {
-        const uniqueId = String(
-          chatPayload.uniqueId ||
-            chatPayload.userId ||
+        const nestedUser =
+          chatPayload.user ||
+          chatPayload.userDetails ||
+          chatPayload.author ||
+          chatPayload.sender ||
+          {};
+        const nickname = String(
+          chatPayload.nickname ||
+            chatPayload.displayName ||
+            nestedUser.nickname ||
+            nestedUser.displayName ||
+            chatPayload.uniqueId ||
             chatPayload.username ||
-            "viewer",
+            "Viewer",
         )
           .trim()
           .replace(/^@+/, "");
-        const nickname = String(chatPayload.nickname || uniqueId || "Viewer")
+        const candidateId = String(
+          chatPayload.uniqueId ||
+            chatPayload.userId ||
+            chatPayload.username ||
+            nestedUser.uniqueId ||
+            nestedUser.username ||
+            nestedUser.userId ||
+            "",
+        )
           .trim()
           .replace(/^@+/, "");
+        const uniqueId =
+          candidateId && candidateId.toLowerCase() !== "viewer"
+            ? candidateId
+            : nickname && nickname.toLowerCase() !== "viewer"
+              ? nickname
+              : "viewer";
         const comment = String(
           chatPayload.comment || chatPayload.text || "",
         ).trim();
         if (!comment) return;
         const profilePictureUrl =
           cleanUrl(
-            chatPayload.profilePictureUrl || chatPayload.avatar || "",
+            chatPayload.profilePictureUrl ||
+              chatPayload.avatar ||
+              nestedUser.profilePictureUrl ||
+              nestedUser.avatar ||
+              "",
           ) ||
           `https://i.pravatar.cc/150?u=${encodeURIComponent(uniqueId || nickname)}`;
         const payload = {

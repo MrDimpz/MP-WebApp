@@ -17,11 +17,16 @@ export const LiveChatBox: React.FC<LiveChatBoxProps> = ({
 
   // Automatically scroll the chat box to show most recent chat
   useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [messages]);
+    const scrollToBottom = () => {
+      const el = scrollContainerRef.current;
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+      }
+    };
+    scrollToBottom();
+    const rafId = requestAnimationFrame(scrollToBottom);
+    return () => cancelAnimationFrame(rafId);
+  }, [messages, messages.length]);
 
   return (
     <aside
@@ -50,7 +55,7 @@ export const LiveChatBox: React.FC<LiveChatBoxProps> = ({
       {/* Chat Messages Only (No likes/gifts in chat box; shows profile picture + display name, not @ name) */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 p-3 overflow-y-auto space-y-2.5 scroll-smooth"
+        className="flex-1 min-h-0 p-3 overflow-y-auto overscroll-contain space-y-2.5"
       >
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-4 text-xs text-[#96b8dd]">

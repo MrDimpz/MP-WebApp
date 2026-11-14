@@ -118,10 +118,15 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
   const isTestRoom = roomId === 'TEST_SIMULATION_ROOM';
 
   useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-    }
-  }, [chatFeed]);
+    const scrollToLatest = () => {
+      if (chatScrollRef.current) {
+        chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+      }
+    };
+    scrollToLatest();
+    const rafId = requestAnimationFrame(scrollToLatest);
+    return () => cancelAnimationFrame(rafId);
+  }, [chatFeed, chatFeed.length, activeTab]);
 
   const handleSendChat = (e: React.FormEvent) => {
     e.preventDefault();
@@ -411,7 +416,7 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
           </div>
 
           {/* Chat Messages List */}
-          <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-3 space-y-1.5">
+          <div ref={chatScrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-1.5">
             {chatFeed.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-4 text-purple-200/60">
                 <MessageSquare className="w-8 h-8 text-purple-300/30 mb-2" />

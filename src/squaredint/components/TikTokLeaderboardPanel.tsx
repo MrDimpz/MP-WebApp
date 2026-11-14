@@ -178,7 +178,6 @@ export const TikTokLeaderboardPanel: React.FC<TikTokLeaderboardPanelProps> = ({
       if (chatScrollContainerRef.current) {
         chatScrollContainerRef.current.scrollTop = chatScrollContainerRef.current.scrollHeight;
       }
-      chatBottomAnchorRef.current?.scrollIntoView({ block: 'end' });
     };
     scrollToLatest();
     const rafId = requestAnimationFrame(scrollToLatest);
@@ -498,7 +497,7 @@ export const TikTokLeaderboardPanel: React.FC<TikTokLeaderboardPanelProps> = ({
           {/* Scrollable Live Chat Feed (Clean Authentic Stream Chat Layout) */}
           <div
             ref={chatScrollContainerRef}
-            className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 space-y-1.5 font-sans"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar p-3 space-y-1.5 font-sans"
           >
             {chatMessages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-4 space-y-2.5 my-auto">
