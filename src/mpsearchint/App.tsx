@@ -444,6 +444,7 @@ export default function MPSearchInteractiveApp() {
       const finderId = (playerInfo?.id || finderUsername || 'host_player').toLowerCase();
       const finderAvatar =
         playerInfo?.avatar ||
+        (!playerInfo?.username && currentUser?.photoURL ? currentUser.photoURL : '') ||
         `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(finderId)}`;
 
       const nextFoundWords = [...foundWords, normalizedWord];
@@ -634,6 +635,7 @@ export default function MPSearchInteractiveApp() {
       nickname?: string;
       comment?: string;
       text?: string;
+      avatar?: string;
       profilePictureUrl?: string;
     }) => {
       const rawComment = String(data.comment || data.text || '').trim();
@@ -643,6 +645,7 @@ export default function MPSearchInteractiveApp() {
       const nickname = String(data.nickname || handle);
       const avatar =
         data.profilePictureUrl ||
+        data.avatar ||
         `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(handle)}`;
 
       // Tokenize incoming chat comment into candidate uppercase words
@@ -1034,6 +1037,7 @@ export default function MPSearchInteractiveApp() {
             <WordSearchBoard
               puzzle={currentPuzzle}
               foundWords={foundWords}
+              foundWordFinders={foundEntries}
               onWordFound={() => {}}
               hintTargetWord={hintTargetWord}
               hintTier={hintTier}
@@ -1477,6 +1481,7 @@ export default function MPSearchInteractiveApp() {
                 <WordSearchBoard
                   puzzle={currentPuzzle}
                   foundWords={foundWords}
+                  foundWordFinders={foundEntries}
                   onWordFound={(word) => awardWordToPlayer(word)}
                   hintTargetWord={hintTargetWord}
                   hintTier={hintTier}

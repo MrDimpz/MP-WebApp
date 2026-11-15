@@ -3,6 +3,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { CellCoord, DailyPuzzle } from '../utils/puzzleGenerator';
 import { soundFX } from '../utils/sound';
 
+export interface FoundWordFinderInfo {
+  word: string;
+  finderName: string;
+  finderAvatar: string;
+  timestamp?: number;
+}
+
 interface WordSearchBoardProps {
   puzzle: DailyPuzzle;
   foundWords: string[];
@@ -12,6 +19,7 @@ interface WordSearchBoardProps {
   largePrint: boolean;
   disabled?: boolean;
   boardOverlay?: React.ReactNode;
+  foundWordFinders?: FoundWordFinderInfo[];
 }
 
 const COLUMN_HEADERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
@@ -84,6 +92,7 @@ export const WordSearchBoard: React.FC<WordSearchBoardProps> = ({
   largePrint,
   disabled = false,
   boardOverlay,
+  foundWordFinders,
 }) => {
   const [dragStart, setDragStart] = useState<CellCoord | null>(null);
   const [dragCurrent, setDragCurrent] = useState<CellCoord | null>(null);
@@ -96,6 +105,109 @@ export const WordSearchBoard: React.FC<WordSearchBoardProps> = ({
   const [recentBursts, setRecentBursts] = useState<{ word: string; burstId: string }[]>([]);
   const prevPuzzleDateRef = useRef<string>(puzzle.dateKey);
   const prevFoundSetRef = useRef<Set<string>>(new Set(foundWords));
+
+  // Track finder profile pictures shown over the first letter of each newly found word for 5 seconds
+  const [activeFirstLetterAvatars, setActiveFirstLetterAvatars] = useState<
+    {
+      id: string;
+      word: string;
+      row: number;
+      col: number;
+      finderName: string;
+      finderAvatar: string;
+    }[]
+  >([]);
+  const prevAvatarPuzzleDateRef = useRef<string>(puzzle.dateKey);
+  const shownAvatarWordsRef = useRef<Set<string>>(new Set(foundWords));
+  const avatarTimersRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    return () => {
+      avatarTimersRef.current.forEach((t) => window.clearTimeout(t));
+      avatarTimersRef.current = [];
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!foundWordFinders) return;
+
+    if (prevAvatarPuzzleDateRef.current !== puzzle.dateKey || foundWords.length === 0) {
+      prevAvatarPuzzleDateRef.current = puzzle.dateKey;
+      shownAvatarWordsRef.current = new Set(foundWords);
+      avatarTimersRef.current.forEach((t) => window.clearTimeout(t));
+      avatarTimersRef.current = [];
+      setActiveFirstLetterAvatars([]);
+      return;
+    }
+
+    const newlyDiscoveredWithFinder = foundWordFinders.filter(
+      (entry) =>
+        entry.word &&
+        foundWords.includes(entry.word) &&
+        !shownAvatarWordsRef.current.has(entry.word)
+    );
+
+    if (newlyDiscoveredWithFinder.length === 0) return;
+
+    const now = Date.now();
+    const additions: {
+      id: string;
+      word: string;
+      row: number;
+      col: number;
+      finderName: string;
+      finderAvatar: string;
+    }[] = [];
+
+    newlyDiscoveredWithFinder.forEach((entry) => {
+      shownAvatarWordsRef.current.add(entry.word);
+      const pw = puzzle.words.find((w) => w.word === entry.word);
+      if (!pw) return;
+      additions.push({
+        id: `avatar_${pw.word}_${now}_${Math.random().toString(36).slice(2, 6)}`,
+        word: pw.word,
+        row: pw.start.row,
+        col: pw.start.col,
+        finderName: entry.finderName || 'Spotter',
+        finderAvatar:
+          entry.finderAvatar ||
+          `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(
+            entry.finderName || pw.word
+          )}`,
+      });
+    });
+
+    if (additions.length === 0) return;
+
+    setActiveFirstLetterAvatars((prev) => [...prev, ...additions]);
+
+    additions.forEach((added) => {
+      const timerId = window.setTimeout(() => {
+        setActiveFirstLetterAvatars((prev) => prev.filter((item) => item.id !== added.id));
+        avatarTimersRef.current = avatarTimersRef.current.filter((id) => id !== timerId);
+      }, 5000);
+      avatarTimersRef.current.push(timerId);
+    });
+  }, [foundWords, foundWordFinders, puzzle.dateKey, puzzle.words]);
+
+  // Map each first-letter coordinate ("r,c") to the most recent active 5-second finder avatar
+  const firstLetterAvatarMap = React.useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        id: string;
+        word: string;
+        row: number;
+        col: number;
+        finderName: string;
+        finderAvatar: string;
+      }
+    >();
+    activeFirstLetterAvatars.forEach((item) => {
+      map.set(`${item.row},${item.col}`, item);
+    });
+    return map;
+  }, [activeFirstLetterAvatars]);
 
   useEffect(() => {
     // If switching puzzles or resetting the board, sync refs without firing burst animations
@@ -514,6 +626,7 @@ export const WordSearchBoard: React.FC<WordSearchBoardProps> = ({
                     hintedWordObj.start.col === cIdx;
                   const isHintPath = hintPathCellSet.has(key);
                   const burstCell = burstCellMap.get(key);
+                  const firstLetterAvatar = firstLetterAvatarMap.get(key);
 
                   return (
                     <button
@@ -572,7 +685,36 @@ export const WordSearchBoard: React.FC<WordSearchBoardProps> = ({
                         {letter}
                       </motion.span>
 
-                      {isHintStart && (
+                      {/* 5-Second Finder Profile Picture Over the First Letter */}
+                      <AnimatePresence>
+                        {firstLetterAvatar && (
+                          <motion.span
+                            key={firstLetterAvatar.id}
+                            initial={{ opacity: 0, scale: 0.4 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.4 }}
+                            transition={{ duration: 0.25, ease: 'easeOut' }}
+                            title={`Found by ${firstLetterAvatar.finderName}`}
+                            className="pointer-events-none absolute inset-0.5 z-30 flex items-center justify-center rounded-md sm:rounded-lg overflow-hidden ring-2 ring-amber-400 shadow-[0_0_14px_rgba(250,204,21,0.9)] bg-[#1A052A]"
+                          >
+                            <img
+                              src={firstLetterAvatar.finderAvatar}
+                              alt={firstLetterAvatar.finderName}
+                              onError={(e) => {
+                                const fallback = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(
+                                  firstLetterAvatar.finderName || firstLetterAvatar.word
+                                )}`;
+                                if (e.currentTarget.src !== fallback) {
+                                  e.currentTarget.src = fallback;
+                                }
+                              }}
+                              className="w-full h-full object-cover rounded-md sm:rounded-lg"
+                            />
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+
+                      {isHintStart && !firstLetterAvatar && (
                         <span className="absolute -top-1 -right-1 z-20 text-[9px] font-mono tabular-nums font-extrabold px-1 rounded bg-amber-400 text-[#1D0830] leading-tight shadow-2xs">
                           1st
                         </span>
