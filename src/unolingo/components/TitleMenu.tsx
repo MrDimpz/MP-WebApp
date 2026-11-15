@@ -16,6 +16,7 @@ import {
   type UnifiedPlayerUser,
   type User,
 } from '@/lib/unified-game-auth';
+import { UserProfileIcon } from '@/components/user-profile-icon';
 import {
   ARCHIVE_DAYS_COUNT,
   formatCountdown,
@@ -186,10 +187,16 @@ export const TitleMenu: React.FC<TitleMenuProps> = ({
       {/* Unified Solo Games Account & Public Leaderboard Banner */}
       <div className="w-full max-w-3xl mb-6 rounded-2xl bg-gradient-to-r from-[#23063A] via-[#340A54] to-[#23063A] border border-[#D4A437]/70 p-4 text-left text-[#F5F3F7] shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <img
-            src="/assets/aistudio/3d_logo_944e5372.png"
-            alt="The Missing Piece Emblem"
-            className="w-10 h-10 rounded-full object-contain shrink-0 drop-shadow"
+          <UserProfileIcon
+            user={currentUser}
+            imgClassName="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-[#F6C915] shadow-md"
+            fallback={
+              <img
+                src="/assets/aistudio/3d_logo_944e5372.png"
+                alt="The Missing Piece Emblem"
+                className="w-10 h-10 rounded-full object-contain shrink-0 drop-shadow"
+              />
+            }
           />
           <div>
             {currentUser ? (
@@ -227,7 +234,11 @@ export const TitleMenu: React.FC<TitleMenuProps> = ({
             onClick={onOpenSignIn}
             className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#F6C915] hover:bg-[#FFE047] text-[#1D0830] font-extrabold text-xs transition-all cursor-pointer"
           >
-            {currentUser ? <UserIcon className="w-3.5 h-3.5" /> : <LogIn className="w-3.5 h-3.5" />}
+            {currentUser ? (
+              <UserProfileIcon user={currentUser} className="w-4 h-4 shrink-0" />
+            ) : (
+              <LogIn className="w-3.5 h-3.5" />
+            )}
             <span>{currentUser ? 'Account' : 'Sign In'}</span>
           </button>
           <button

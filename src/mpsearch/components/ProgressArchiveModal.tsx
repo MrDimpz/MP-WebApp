@@ -19,6 +19,7 @@ import {
   type UnifiedPlayerUser,
   type User,
 } from '@/lib/unified-game-auth';
+import { UserProfileIcon } from '@/components/user-profile-icon';
 import { DailyPuzzle, formatDuration } from '../utils/puzzleGenerator';
 import { LocalPuzzleProgress } from '../firebase';
 
@@ -229,7 +230,15 @@ export const ProgressArchiveModal: React.FC<ProgressArchiveModalProps> = ({
           {/* Unified Solo Games Account & Public Leaderboard Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-[#23063A] via-[#340A54] to-[#23063A] border border-[#D4A437]/70 text-[#F5F3F7] shadow-md">
             <div className="flex items-center gap-3">
-              <Cloud className="w-5 h-5 text-[#F6C915] shrink-0" />
+              {user ? (
+                <UserProfileIcon
+                  user={user}
+                  imgClassName="w-8 h-8 rounded-full object-cover border border-[#F6C915] shrink-0"
+                  fallback={<Cloud className="w-5 h-5 text-[#F6C915] shrink-0" />}
+                />
+              ) : (
+                <Cloud className="w-5 h-5 text-[#F6C915] shrink-0" />
+              )}
               <div className="text-xs sm:text-sm">
                 {user ? (
                   <div className="flex flex-wrap items-center gap-1.5 text-white">
@@ -262,7 +271,11 @@ export const ProgressArchiveModal: React.FC<ProgressArchiveModalProps> = ({
                 }}
                 className="min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-extrabold text-[#1D0830] bg-[#F6C915] hover:bg-[#FFE047] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
               >
-                {user ? <UserIcon className="w-3.5 h-3.5" /> : <LogIn className="w-3.5 h-3.5" />}
+                {user ? (
+                  <UserProfileIcon user={user} className="w-4 h-4 shrink-0" />
+                ) : (
+                  <LogIn className="w-3.5 h-3.5" />
+                )}
                 <span>{user ? 'Account' : 'Sign In'}</span>
               </button>
               <button

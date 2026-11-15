@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router';
 import { ChevronDown, Clock, Flame, Trophy } from 'lucide-react';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
+import { LoggedInIndicator } from '@/components/logged-in-indicator';
 
 interface GoComicsNavProps {
   currentDateStr: string;
@@ -35,35 +36,35 @@ export const GoComicsNav: React.FC<GoComicsNavProps> = ({
 }) => {
   return (
     <nav className="w-full bg-[#180424] text-white select-none border-b border-[#f5b82e]/25 text-xs sm:text-sm shadow-md">
-      <div className="w-full flex justify-center px-4">
+      <div className="w-full flex justify-center px-2 sm:px-4">
         <div
           style={{ width: containerWidth ? `${containerWidth}px` : undefined }}
-          className="w-full max-w-6xl h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-150"
+          className="w-full max-w-6xl min-h-14 py-2 sm:py-0 sm:h-16 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-150 flex-wrap sm:flex-nowrap"
         >
           {/* Left: Back Button + Brand Logo linking back to Home Screen (/) */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <Link
               to="/solo-games"
-              className="px-2.5 py-1.5 rounded-lg bg-[#2d0a3d] hover:bg-[#3d0e52] border border-[#f5b82e]/50 text-[#f5b82e] font-bold text-xs transition-colors shrink-0"
+              className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-[#2d0a3d] hover:bg-[#3d0e52] border border-[#f5b82e]/50 text-[#f5b82e] font-bold text-xs transition-colors shrink-0"
               title="Back to Solo Games"
             >
               ← Back
             </Link>
             <Link
               to="/"
-              className="flex items-center gap-2.5 sm:gap-3 shrink-0 group"
+              className="flex items-center gap-2 sm:gap-3 shrink-0 group"
               title="Return to Home Screen"
             >
               <img
-                src="/assets/aistudio/3d_logo_944e5372.png"
+                src="/brand-logo.png"
                 alt="The Missing Piece Logo"
-                className="w-9 h-9 sm:w-11 sm:h-11 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+                className="w-7 h-7 sm:w-10 sm:h-10 object-contain rounded-md drop-shadow-md group-hover:scale-105 transition-transform"
               />
               <div className="flex flex-col">
                 <span className="font-black text-xs sm:text-sm tracking-wider text-[#f5b82e] uppercase font-serif leading-tight drop-shadow-xs">
                   The Missing Piece
                 </span>
-                <span className="text-[9px] sm:text-[10px] text-white/70 tracking-widest uppercase font-semibold leading-none">
+                <span className="hidden sm:block text-[9px] sm:text-[10px] text-white/70 tracking-widest uppercase font-semibold leading-none">
                   Find Your Space
                 </span>
               </div>
@@ -71,19 +72,20 @@ export const GoComicsNav: React.FC<GoComicsNavProps> = ({
           </div>
 
           {/* Center / Navigation Controls */}
-          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap justify-end">
             <DailyStreakBadge
               streak={dailyStreak}
               solvedToday={solvedToday}
               variant="amber-dark"
               compact
             />
+            <LoggedInIndicator />
 
             {/* Help button (?) */}
             <button
               type="button"
               onClick={onOpenHowToPlay}
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#f5b82e]/50 hover:border-[#f5b82e] bg-[#2d0a3d] hover:bg-[#3d0e52] text-[#f5b82e] hover:text-white flex items-center justify-center font-bold text-xs sm:text-sm transition-colors cursor-pointer shadow-xs"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#f5b82e]/50 hover:border-[#f5b82e] bg-[#2d0a3d] hover:bg-[#3d0e52] text-[#f5b82e] hover:text-white flex items-center justify-center font-bold text-xs sm:text-sm transition-colors cursor-pointer shadow-xs shrink-0"
               title="How to Play"
             >
               ?
@@ -94,7 +96,7 @@ export const GoComicsNav: React.FC<GoComicsNavProps> = ({
               <button
                 type="button"
                 onClick={onOpenLeaderboardPopup}
-                className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#f5b82e]/50 hover:border-[#f5b82e] bg-[#2d0a3d] hover:bg-[#3d0e52] text-[#f5b82e] hover:text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs"
+                className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#f5b82e]/50 hover:border-[#f5b82e] bg-[#2d0a3d] hover:bg-[#3d0e52] text-[#f5b82e] hover:text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs shrink-0"
                 title={
                   isSignedIn
                     ? `Leaderboards & Account (${userDisplayName || 'Signed In'})`
@@ -112,7 +114,7 @@ export const GoComicsNav: React.FC<GoComicsNavProps> = ({
             <button
               type="button"
               onClick={onToggleHardMode}
-              className={`flex items-center gap-1.5 font-bold text-xs py-1.5 px-3 rounded-full border transition-all cursor-pointer shadow-xs ${
+              className={`flex items-center gap-1 sm:gap-1.5 font-bold text-xs py-1 sm:py-1.5 px-2 sm:px-3 rounded-full border transition-all cursor-pointer shadow-xs shrink-0 ${
                 isHardMode
                   ? 'bg-[#f5b82e] text-[#220536] border-amber-300 shadow-amber-500/20'
                   : 'bg-[#2a073a] hover:bg-[#380c4d] text-white/80 hover:text-[#f5b82e] border-purple-800/60'
@@ -124,18 +126,19 @@ export const GoComicsNav: React.FC<GoComicsNavProps> = ({
                   isHardMode ? 'text-[#220536] fill-[#220536]' : 'text-[#f5b82e]'
                 }`}
               />
-              <span>Hard Mode: {isHardMode ? 'ON' : 'OFF'}</span>
+              <span className="hidden sm:inline">Hard Mode: {isHardMode ? 'ON' : 'OFF'}</span>
+              <span className="sm:hidden">{isHardMode ? 'HM: ON' : 'HM: OFF'}</span>
             </button>
 
-            {/* Date Selector (Saturday, October 31 ⌄) */}
+            {/* Date Selector */}
             <button
               type="button"
               onClick={onOpenArchive}
-              className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-white hover:text-[#f5b82e] py-1.5 px-3 rounded-full bg-[#2a073a] hover:bg-[#380c4d] border border-purple-800/60 transition-colors cursor-pointer shadow-xs"
+              className="flex items-center gap-1 sm:gap-1.5 font-bold text-xs sm:text-sm text-white hover:text-[#f5b82e] py-1 sm:py-1.5 px-2 sm:px-3 rounded-full bg-[#2a073a] hover:bg-[#380c4d] border border-purple-800/60 transition-colors cursor-pointer shadow-xs shrink-0"
               title="Choose Date or Archive"
             >
-              <span>{currentDateStr}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#f5b82e]" />
+              <span className="max-w-[130px] sm:max-w-none truncate">{currentDateStr}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-[#f5b82e] shrink-0" />
             </button>
 
             {/* London UK 00:00 Countdown Pill */}

@@ -49,20 +49,20 @@ export const GameSidebar: React.FC<GameSidebarProps> = ({
 
   return (
     <aside
-      className="w-full max-w-[320px] rounded-3xl p-5 flex flex-col justify-between relative shadow-2xl transition-colors duration-300 min-h-[520px] bg-[#1c042b] border border-[#f5b82e]/25 text-white"
+      className="w-full max-w-sm sm:max-w-[340px] lg:max-w-[320px] rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 flex flex-col justify-between relative shadow-2xl transition-colors duration-300 min-h-0 lg:min-h-[520px] bg-[#1c042b] border border-[#f5b82e]/25 text-white shrink-0"
     >
       {/* Top Banner: 00 GUESSES ribbon & settings icon */}
-      <div className="flex items-start justify-between -mt-5 -mx-5 px-5 pt-0 mb-4 relative">
+      <div className="flex items-start justify-between -mt-3.5 -mx-3.5 sm:-mt-5 sm:-mx-5 px-3.5 sm:px-5 pt-0 mb-3 sm:mb-4 relative">
         <div className="w-6" /> {/* spacer */}
 
         {/* The Hanging Ribbon Badge */}
         <div
-          className="w-24 pt-3 pb-2.5 rounded-b-2xl flex flex-col items-center justify-center shadow-md select-none transition-colors duration-300 bg-[#14021f] text-[#f5b82e] border-x border-b-2 border-[#f5b82e]/80"
+          className="w-20 sm:w-24 pt-2 sm:pt-3 pb-1.5 sm:pb-2.5 rounded-b-xl sm:rounded-b-2xl flex flex-col items-center justify-center shadow-md select-none transition-colors duration-300 bg-[#14021f] text-[#f5b82e] border-x border-b-2 border-[#f5b82e]/80"
         >
-          <span className="text-3xl font-extrabold tracking-tight leading-none font-mono">
+          <span className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-none font-mono">
             {formattedGuesses}
           </span>
-          <span className="text-[10px] font-bold tracking-widest uppercase mt-1 opacity-90 text-[#f5b82e]/90">
+          <span className="text-[9px] sm:text-[10px] font-bold tracking-widest uppercase mt-0.5 sm:mt-1 opacity-90 text-[#f5b82e]/90">
             Guesses
           </span>
         </div>
@@ -71,26 +71,26 @@ export const GameSidebar: React.FC<GameSidebarProps> = ({
         <button
           type="button"
           onClick={onOpenSettings}
-          className="mt-3 p-1.5 rounded-full text-amber-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          className="mt-2 sm:mt-3 p-1.5 rounded-full text-amber-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           title="Game Settings"
         >
-          <Settings className="w-5 h-5" />
+          <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
 
       {/* Main Controls inside Sidebar */}
       {view === 'CHOICE' ? (
         /* View 1: Initial Large Cards Choice (Image 1) */
-        <div className="flex-1 flex flex-col justify-center gap-4 py-2">
+        <div className="flex-1 flex flex-col justify-center gap-3 sm:gap-4 py-2">
           {/* GUESS a letter Card */}
           <button
             type="button"
             onClick={onSelectGuessMode}
-            className="w-full bg-[#3b0f54] hover:bg-[#4a1469] active:scale-[0.98] text-white rounded-2xl p-6 flex flex-col items-center justify-center gap-2 shadow-lg transition-all cursor-pointer group border border-[#f5b82e]/40"
+            className="w-full bg-[#3b0f54] hover:bg-[#4a1469] active:scale-[0.98] text-white rounded-xl sm:rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center gap-2 shadow-lg transition-all cursor-pointer group border border-[#f5b82e]/40"
           >
-            <HelpCircle className="w-12 h-12 stroke-[2.2] text-[#f5b82e] group-hover:scale-110 transition-transform" />
+            <HelpCircle className="w-9 h-9 sm:w-12 sm:h-12 stroke-[2.2] text-[#f5b82e] group-hover:scale-110 transition-transform" />
             <div className="text-center">
-              <div className="text-2xl font-black tracking-wider text-[#f5b82e]">GUESS</div>
+              <div className="text-xl sm:text-2xl font-black tracking-wider text-[#f5b82e]">GUESS</div>
               <div className="text-xs font-medium text-purple-200">a letter</div>
             </div>
           </button>
@@ -145,7 +145,7 @@ export const GameSidebar: React.FC<GameSidebarProps> = ({
                           onTypeLetter(letter);
                         }
                       }}
-                      className={`h-10 sm:h-11 rounded-lg font-black text-base sm:text-lg flex items-center justify-center transition-all cursor-pointer ${keyBg}`}
+                      className={`h-9 sm:h-10 lg:h-11 rounded-lg font-black text-sm sm:text-base lg:text-lg flex items-center justify-center transition-all cursor-pointer ${keyBg}`}
                     >
                       {letter}
                     </button>
@@ -155,7 +155,7 @@ export const GameSidebar: React.FC<GameSidebarProps> = ({
                 {/* Last Row 7: contains Y, Z, empty slot, and Backspace */}
                 {rIdx === 6 && (
                   <>
-                    <div className="h-10 sm:h-11" /> {/* empty 3rd slot */}
+                    <div className="h-9 sm:h-10 lg:h-11" /> {/* empty 3rd slot */}
                     <button
                       type="button"
                       onClick={() => {
@@ -163,10 +163,10 @@ export const GameSidebar: React.FC<GameSidebarProps> = ({
                         onBackspace();
                       }}
                       disabled={isSolved}
-                      className="h-10 sm:h-11 rounded-lg font-bold flex items-center justify-center transition-all cursor-pointer bg-[#491666] hover:bg-[#5b1c7f] text-white border border-purple-900/40"
+                      className="h-9 sm:h-10 lg:h-11 rounded-lg font-bold flex items-center justify-center transition-all cursor-pointer bg-[#491666] hover:bg-[#5b1c7f] text-white border border-purple-900/40"
                       title="Backspace"
                     >
-                      <Delete className="w-5 h-5" />
+                      <Delete className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   </>
                 )}
@@ -175,11 +175,11 @@ export const GameSidebar: React.FC<GameSidebarProps> = ({
           </div>
 
           {/* Mode Switcher Toggle Pill: [? GUESS | ✎ FILL] */}
-          <div className="mt-3 bg-black/30 p-1 rounded-xl flex items-center justify-between border border-purple-900/40">
+          <div className="mt-2.5 sm:mt-3 bg-black/30 p-1 rounded-xl flex items-center justify-between border border-purple-900/40">
             <button
               type="button"
               onClick={onSelectGuessMode}
-              className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 sm:py-2 px-2.5 sm:px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 isGuessMode
                   ? 'bg-[#f5b82e] text-[#220536] font-extrabold shadow-sm'
                   : 'text-purple-300 hover:text-white'
@@ -192,7 +192,7 @@ export const GameSidebar: React.FC<GameSidebarProps> = ({
             <button
               type="button"
               onClick={onSelectFillMode}
-              className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 sm:py-2 px-2.5 sm:px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 !isGuessMode
                   ? 'bg-white text-[#220536] font-extrabold shadow-sm'
                   : 'text-purple-300 hover:text-white'
@@ -206,12 +206,12 @@ export const GameSidebar: React.FC<GameSidebarProps> = ({
       )}
 
       {/* Big Bottom SOLVE Button (always visible) */}
-      <div className="mt-4 pt-1">
+      <div className="mt-3 sm:mt-4 pt-1">
         <button
           type="button"
           onClick={onSolve}
           disabled={view === 'CHOICE' && !isSolved}
-          className={`w-full py-3.5 rounded-xl font-extrabold text-sm sm:text-base tracking-wider uppercase transition-all shadow-lg flex items-center justify-center gap-2 ${
+          className={`w-full py-3 sm:py-3.5 rounded-xl font-extrabold text-sm sm:text-base tracking-wider uppercase transition-all shadow-lg flex items-center justify-center gap-2 ${
             view === 'CHOICE' && !isSolved
               ? 'bg-[#310c44] text-purple-300/30 cursor-not-allowed shadow-none'
               : 'bg-gradient-to-r from-[#f5b82e] via-[#ffd166] to-[#f5b82e] hover:brightness-105 active:scale-[0.98] text-[#220536] font-black shadow-amber-500/25 border border-amber-300 cursor-pointer'

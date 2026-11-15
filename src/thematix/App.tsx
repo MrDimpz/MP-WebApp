@@ -1124,10 +1124,10 @@ export default function App() {
       />
 
       {/* Main Play Area - Centered on screen */}
-      <main className="flex-1 w-full flex items-center justify-center px-4 py-4 sm:py-6 overflow-y-auto">
+      <main className="flex-1 w-full flex items-start lg:items-center justify-center px-2 sm:px-4 py-3 sm:py-6 overflow-y-auto">
         <div
           ref={contentRef}
-          className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 sm:gap-10 lg:gap-12 my-auto"
+          className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-4 sm:gap-8 lg:gap-12 my-auto w-full max-w-full"
         >
           {/* Left Side: Clue, Fillable Theme Word, Divider, 6 Alphabetical Words Grid, Speech Bubble */}
           <ThematikBoard

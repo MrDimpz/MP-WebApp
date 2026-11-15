@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, ArrowUpRight, CheckCircle2, LogIn, LogOut, Trophy, User } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, CheckCircle2, LogIn, LogOut, Trophy } from 'lucide-react';
 import {
   getCleanDisplayName,
   logoutUser,
   useUnifiedAuth,
   type SoloGameId,
 } from '@/lib/unified-game-auth';
+import { UserProfileIcon } from '../user-profile-icon';
 import { UnifiedAuthModal } from './unified-auth-modal';
 import { GorillaShackTile } from '../gorilla-shack-tile';
 
@@ -60,10 +61,16 @@ export function SoloGameList() {
 
       <div className="mb-10 rounded-2xl bg-gradient-to-r from-[#23063A] via-[#340A54] to-[#23063A] border-2 border-[#D4A437] p-4 sm:p-6 text-[#F5F3F7] shadow-[0_14px_34px_rgba(35,6,58,0.22)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3.5">
-          <img
-            src="/assets/aistudio/3d_logo_944e5372.png"
-            alt="The Missing Piece Emblem"
-            className="w-11 h-11 rounded-full object-contain shrink-0 drop-shadow"
+          <UserProfileIcon
+            user={user}
+            imgClassName="w-11 h-11 rounded-full object-cover shrink-0 border-2 border-[#F6C915] shadow-md"
+            fallback={
+              <img
+                src="/assets/aistudio/3d_logo_944e5372.png"
+                alt="The Missing Piece Emblem"
+                className="w-11 h-11 rounded-full object-contain shrink-0 drop-shadow"
+              />
+            }
           />
           <div>
             {user ? (
@@ -105,7 +112,7 @@ export function SoloGameList() {
                 onClick={() => openModal(activeLeaderboardGame, 'account')}
                 className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#F6C915] hover:bg-[#FFE047] text-[#1D0830] font-bold text-xs transition-all cursor-pointer"
               >
-                <User size={15} />
+                <UserProfileIcon user={user} size={15} className="w-4 h-4 shrink-0" />
                 <span>Account &amp; Display Name</span>
               </button>
               <button

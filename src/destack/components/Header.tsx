@@ -24,6 +24,7 @@ import {
 } from '@/lib/unified-game-auth';
 import { useDailyStreak } from '@/lib/daily-streak';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
+import { UserProfileIcon } from '@/components/user-profile-icon';
 
 interface HeaderProps {
   currentView: GameState;
@@ -215,8 +216,16 @@ export const Header: React.FC<HeaderProps> = ({
             title="Account & Display Name"
             className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold transition-colors cursor-pointer"
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse shrink-0" />
-            <UserIcon className="w-3.5 h-3.5 shrink-0" />
+            <UserProfileIcon
+              user={currentUser}
+              className="w-4 h-4 shrink-0"
+              fallback={
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse shrink-0" />
+                  <UserIcon className="w-3.5 h-3.5 shrink-0" />
+                </>
+              }
+            />
             <span className="max-w-[85px] sm:max-w-[120px] truncate">
               {getCleanDisplayName(currentUser)}
             </span>

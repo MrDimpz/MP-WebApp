@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowUpRight, KeyRound, LogIn, User } from 'lucide-react';
+import { ArrowUpRight, KeyRound, LogIn } from 'lucide-react';
 import { getCleanDisplayName, useUnifiedAuth } from '@/lib/unified-game-auth';
 import { LoggedInIndicator } from '@/components/logged-in-indicator';
+import { UserProfileIcon } from '@/components/user-profile-icon';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import { AdminPortalModal } from '@/components/interactive-games/admin-portal-modal';
 
@@ -72,7 +73,7 @@ export function SiteHeader() {
           >
             {user ? (
               <>
-                <User size={15} />
+                <UserProfileIcon user={user} size={18} className="w-4 h-4 shrink-0" />
                 <span>{getCleanDisplayName(user)}</span>
               </>
             ) : (

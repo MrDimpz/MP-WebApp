@@ -19,6 +19,7 @@ import {
 	UnifiedAuthModal,
 	UnifiedLeaderboardPanel,
 } from '@/components/solo-games/unified-auth-modal';
+import { UserProfileIcon } from '@/components/user-profile-icon';
 import { CrosswordCatalog } from '@/components/crossword/crossword-catalog';
 import { CrosswordCreate } from '@/components/crossword/crossword-create';
 import { CrosswordPlay } from '@/components/crossword/crossword-play';
@@ -99,7 +100,7 @@ export function CrosswordGame() {
 						onClick={() => setAuthModalOpen(true)}
 						className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2B0938] text-[#F6C915] border border-[#D4A437] text-xs font-bold shadow-xs hover:opacity-95 transition-opacity cursor-pointer"
 					>
-						{user ? <UserIcon size={15} /> : <LogIn size={15} />}
+						{user ? <UserProfileIcon user={user} size={15} className="w-4 h-4 shrink-0" /> : <LogIn size={15} />}
 						<span>
 							{user
 								? `${getCleanDisplayName(user)} · Solo Pass Active`

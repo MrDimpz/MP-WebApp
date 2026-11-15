@@ -13,6 +13,7 @@ import {
 } from '@/lib/daily-streak';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
+import { LoggedInIndicator } from '@/components/logged-in-indicator';
 import {
   INDIVIDUAL_PUZZLES,
   WORKSHEET_GRIDS,
@@ -727,6 +728,7 @@ export default function App() {
                 variant={brandTheme === 'classic' ? 'emerald' : 'light'}
                 compact
               />
+              <LoggedInIndicator />
               <div className="hidden xl:flex items-center gap-3 text-xs font-mono text-stone-600 dark:text-stone-400">
                 <span title="Solved Main Game Puzzles">
                   Solved:{' '}

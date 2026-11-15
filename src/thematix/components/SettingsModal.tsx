@@ -12,6 +12,8 @@ import {
   Trophy,
   User as UserIcon,
 } from 'lucide-react';
+import { useUnifiedAuth } from '@/lib/unified-game-auth';
+import { UserProfileIcon } from '@/components/user-profile-icon';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -48,6 +50,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onGiveUp,
   isSolved,
 }) => {
+  const { user } = useUnifiedAuth();
   if (!isOpen) return null;
 
   return (
@@ -144,7 +147,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               className="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <UserIcon className="w-5 h-5 text-purple-500" />
+                <UserProfileIcon
+                  user={user}
+                  className="w-5 h-5 text-purple-500 shrink-0"
+                  fallback={<UserIcon className="w-5 h-5 text-purple-500" />}
+                />
                 <span className="font-semibold text-sm">
                   {userDisplayName ? `Account (${userDisplayName})` : 'Sign In (Google / Email)'}
                 </span>

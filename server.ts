@@ -117,12 +117,157 @@ interface ServerRegisteredUser {
   displayName: string;
   tiktokConnected: boolean;
   linkedTikTokHandle: string;
+  tiktokAvatarUrl?: string;
   authProvider: "email" | "google" | "site";
   createdAt: number;
   updatedAt: number;
 }
 
 const REGISTERED_USERS_FILE = path.join(DATA_DIR, "registered_users.json");
+const AVATARS_DIR = path.join(DATA_DIR, "tiktok_avatars");
+
+interface CachedTikTokAvatar {
+  username: string;
+  contentType: string;
+  dataUrl: string;
+  updatedAt: number;
+}
+
+const avatarFetchInFlight = new Map<string, Promise<CachedTikTokAvatar | null>>();
+
+function getCachedTikTokAvatarFromDisk(cleanUsername: string): CachedTikTokAvatar | null {
+  try {
+    const file = path.join(AVATARS_DIR, `${cleanUsername}.json`);
+    if (fs.existsSync(file)) {
+      const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+      if (parsed && typeof parsed.dataUrl === "string" && parsed.dataUrl.startsWith("data:image/")) {
+        return parsed as CachedTikTokAvatar;
+      }
+    }
+  } catch {
+    // ignore read error
+  }
+  return null;
+}
+
+async function downloadTikTokProfileAvatar(
+  rawUsername: unknown,
+  forceRefresh = false,
+): Promise<CachedTikTokAvatar | null> {
+  const cleanUsername = String(rawUsername || "")
+    .trim()
+    .replace(/^@+/, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_.-]/g, "");
+  if (!cleanUsername) return null;
+
+  if (!forceRefresh) {
+    const existing = getCachedTikTokAvatarFromDisk(cleanUsername);
+    // Use disk cache if less than 7 days old
+    if (existing && Date.now() - (existing.updatedAt || 0) < 7 * 24 * 60 * 60 * 1000) {
+      return existing;
+    }
+  }
+
+  const inflight = avatarFetchInFlight.get(cleanUsername);
+  if (inflight) return inflight;
+
+  const task = (async (): Promise<CachedTikTokAvatar | null> => {
+    try {
+      let imageSourceUrl = "";
+
+      // 1. Scrape TikTok profile page for avatarThumb / avatarMedium / avatarLarger
+      try {
+        const pageRes = await fetch(`https://www.tiktok.com/@${encodeURIComponent(cleanUsername)}`, {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+          },
+        });
+        if (pageRes.ok) {
+          const html = await pageRes.text();
+          const thumbMatch =
+            html.match(/"avatarThumb"\s*:\s*"([^"]+)"/) ||
+            html.match(/"avatarMedium"\s*:\s*"([^"]+)"/) ||
+            html.match(/"avatarLarger"\s*:\s*"([^"]+)"/);
+          if (thumbMatch && thumbMatch[1]) {
+            try {
+              imageSourceUrl = JSON.parse(`"${thumbMatch[1]}"`);
+            } catch {
+              imageSourceUrl = thumbMatch[1].replace(/\\u002F/g, "/").replace(/\\u0026/g, "&");
+            }
+          }
+          if (!imageSourceUrl) {
+            const ogMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+            if (ogMatch && ogMatch[1] && !ogMatch[1].includes("tiktok-logo")) {
+              imageSourceUrl = ogMatch[1].replace(/&amp;/g, "&");
+            }
+          }
+        }
+      } catch {
+        // Fallback below
+      }
+
+      // 2. Download the image bytes from TikTok CDN (or fallback to unavatar.io/tiktok)
+      const urlsToTry: string[] = [];
+      if (imageSourceUrl) urlsToTry.push(imageSourceUrl);
+      urlsToTry.push(`https://unavatar.io/tiktok/${encodeURIComponent(cleanUsername)}?fallback=false`);
+
+      for (const candidateUrl of urlsToTry) {
+        try {
+          const imgRes = await fetch(candidateUrl, {
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+              Referer: "https://www.tiktok.com/",
+              Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+            },
+          });
+          if (!imgRes.ok) continue;
+          const ct = (imgRes.headers.get("content-type") || "image/jpeg").split(";")[0].trim();
+          if (!ct.startsWith("image/")) continue;
+          const buf = Buffer.from(await imgRes.arrayBuffer());
+          if (buf.length < 200 || buf.length > 2 * 1024 * 1024) continue;
+
+          const dataUrl = `data:${ct};base64,${buf.toString("base64")}`;
+          const record: CachedTikTokAvatar = {
+            username: `@${cleanUsername}`,
+            contentType: ct,
+            dataUrl,
+            updatedAt: Date.now(),
+          };
+
+          try {
+            if (!fs.existsSync(AVATARS_DIR)) {
+              fs.mkdirSync(AVATARS_DIR, { recursive: true });
+            }
+            fs.writeFileSync(
+              path.join(AVATARS_DIR, `${cleanUsername}.json`),
+              JSON.stringify(record),
+              "utf8",
+            );
+            fs.writeFileSync(path.join(AVATARS_DIR, `${cleanUsername}.jpg`), buf);
+          } catch {
+            // ignore disk write error
+          }
+
+          return record;
+        } catch {
+          // try next candidate
+        }
+      }
+    } finally {
+      avatarFetchInFlight.delete(cleanUsername);
+    }
+
+    return getCachedTikTokAvatarFromDisk(cleanUsername);
+  })();
+
+  avatarFetchInFlight.set(cleanUsername, task);
+  return task;
+}
 
 function normalizeServerTikTokHandle(raw: unknown): string {
   const cleaned = String(raw || "")
@@ -1471,7 +1616,98 @@ async function startServer() {
       return;
     }
     const merged = upsertServerRegisteredUsers(candidates);
+    // Proactively download TikTok profile avatars for any users with a linked TikTok @
+    for (const c of candidates) {
+      if (c.linkedTikTokHandle) {
+        void downloadTikTokProfileAvatar(c.linkedTikTokHandle);
+      }
+    }
     res.json({ ok: true, count: merged.length, users: merged });
+  });
+
+  app.get("/api/tiktok/profile-avatar", async (req, res) => {
+    const rawUsername = req.query.username || req.query.handle || "";
+    const force = req.query.force === "1" || req.query.force === "true";
+    const clean = String(rawUsername || "")
+      .trim()
+      .replace(/^@+/, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9_.-]/g, "");
+    if (!clean) {
+      res.status(400).json({ ok: false, error: "TikTok username required" });
+      return;
+    }
+    const downloaded = await downloadTikTokProfileAvatar(clean, force);
+    if (downloaded && downloaded.dataUrl) {
+      res.json({
+        ok: true,
+        username: `@${clean}`,
+        avatarUrl: downloaded.dataUrl,
+        endpointUrl: `/api/tiktok/avatar/${encodeURIComponent(clean)}`,
+      });
+      return;
+    }
+    res.json({
+      ok: false,
+      username: `@${clean}`,
+      avatarUrl: "",
+      endpointUrl: `/api/tiktok/avatar/${encodeURIComponent(clean)}`,
+    });
+  });
+
+  app.post("/api/tiktok/profile-avatar", async (req, res) => {
+    const rawUsername = req.body?.username || req.body?.handle || "";
+    const force = Boolean(req.body?.force);
+    const clean = String(rawUsername || "")
+      .trim()
+      .replace(/^@+/, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9_.-]/g, "");
+    if (!clean) {
+      res.status(400).json({ ok: false, error: "TikTok username required" });
+      return;
+    }
+    const downloaded = await downloadTikTokProfileAvatar(clean, force);
+    if (downloaded && downloaded.dataUrl) {
+      res.json({
+        ok: true,
+        username: `@${clean}`,
+        avatarUrl: downloaded.dataUrl,
+        endpointUrl: `/api/tiktok/avatar/${encodeURIComponent(clean)}`,
+      });
+      return;
+    }
+    res.json({
+      ok: false,
+      username: `@${clean}`,
+      avatarUrl: "",
+      endpointUrl: `/api/tiktok/avatar/${encodeURIComponent(clean)}`,
+    });
+  });
+
+  app.get("/api/tiktok/avatar/:username", async (req, res) => {
+    const clean = String(req.params.username || "")
+      .trim()
+      .replace(/^@+/, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9_.-]/g, "");
+    if (!clean) {
+      res.status(404).end();
+      return;
+    }
+    const downloaded = await downloadTikTokProfileAvatar(clean, false);
+    if (downloaded && downloaded.dataUrl) {
+      const commaIdx = downloaded.dataUrl.indexOf(",");
+      if (commaIdx > 0) {
+        const base64 = downloaded.dataUrl.slice(commaIdx + 1);
+        const buf = Buffer.from(base64, "base64");
+        res.setHeader("Content-Type", downloaded.contentType || "image/jpeg");
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        res.send(buf);
+        return;
+      }
+    }
+    res.redirect(`https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(clean)}`);
   });
 
   // ============================================================================

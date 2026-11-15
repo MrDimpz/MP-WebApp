@@ -39,6 +39,7 @@ import {
   type UnifiedPlayerUser,
   type User,
 } from '@/lib/unified-game-auth';
+import { UserProfileIcon } from '@/components/user-profile-icon';
 
 const SOLO_GAME_META: Record<
   SoloGameId,
@@ -264,6 +265,11 @@ export function UnifiedLeaderboardPanel({
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center font-mono font-bold shrink-0 bg-black/35 border border-white/10 text-[#F6C915]">
                       {idx === 0 ? <Crown className="w-4 h-4 text-[#F6C915]" /> : `#${idx + 1}`}
                     </div>
+                    <UserProfileIcon
+                      user={{ uid: entry.uid, photoURL: entry.photoURL }}
+                      className="w-6 h-6 shrink-0"
+                      fallback={null}
+                    />
                     <div className="min-w-0">
                       <div className="font-bold text-white truncate flex items-center gap-1.5">
                         <span>{entry.displayName}</span>
@@ -571,7 +577,7 @@ export function UnifiedAuthModal({
                 : 'text-[#D6CBE2] hover:text-white'
             }`}
           >
-            <UserIcon className="w-3.5 h-3.5" />
+            <UserProfileIcon user={user} className="w-4 h-4 shrink-0" />
             <span>
               {user ? `Account (${getCleanDisplayName(user)})` : 'Sign In / Create Account'}
             </span>
@@ -601,17 +607,29 @@ export function UnifiedAuthModal({
           <div className="space-y-4">
             <div className="p-4 rounded-xl bg-[#1E0533] border border-[#E6BE5A]/40 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>The Missing Piece Member Account Active</span>
+                <div className="flex items-center gap-3">
+                  <UserProfileIcon
+                    user={user}
+                    imgClassName="w-11 h-11 rounded-full object-cover border-2 border-[#F6C915] shrink-0 shadow-sm"
+                    className="w-8 h-8 text-[#F6C915] shrink-0"
+                  />
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>The Missing Piece Member Account Active</span>
+                    </div>
+                    <div className="text-base font-extrabold text-white flex items-center gap-2 flex-wrap">
+                      <span>{getCleanDisplayName(user)}</span>
+                      {user.linkedTikTokHandle && (
+                        <span className="px-2 py-0.5 rounded-full bg-[#F6C915]/15 border border-[#F6C915]/40 text-[#F6C915] text-[11px] font-mono">
+                          {normalizeTikTokHandle(user.linkedTikTokHandle)}
+                        </span>
+                      )}
+                    </div>
+                    {cleanEmail && (
+                      <div className="text-xs text-[#B9A8CC] font-mono">{cleanEmail}</div>
+                    )}
                   </div>
-                  <div className="text-base font-extrabold text-white">
-                    {getCleanDisplayName(user)}
-                  </div>
-                  {cleanEmail && (
-                    <div className="text-xs text-[#B9A8CC] font-mono">{cleanEmail}</div>
-                  )}
                 </div>
 
                 <button

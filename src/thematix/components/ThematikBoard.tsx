@@ -57,20 +57,27 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
     isThemeEvaluated ||
     validationStatus.some((s) => s === 'incorrect' || s === 'incomplete');
 
+  const boardStyle = {
+    '--board-cols': maxWordLength,
+    '--tile-sz': `clamp(28px, min(calc((100vw - 36px) / ${maxWordLength} - 5px), 52px), 52px)`,
+    '--tile-font': `clamp(17px, min(calc((100vw - 36px) / ${maxWordLength} * 0.72), 38px), 38px)`,
+  } as React.CSSProperties;
+
   return (
     <div
-      className={`flex flex-col items-start select-none ${
+      style={boardStyle}
+      className={`flex flex-col items-center sm:items-start select-none w-full max-w-full ${
         isHardMode && isAnyEvaluatedWrong ? 'animate-shake' : ''
       }`}
     >
       {/* The Clue (e.g. "___ or treat!") */}
-      <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-wide mb-3 text-left">
+      <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-wide mb-2 sm:mb-3 text-center sm:text-left leading-tight break-words max-w-full">
         {themeClue}
       </h1>
 
       {/* Theme Anchor Word Row (Fillable & affected by Guess and Fill Mode) */}
       <div
-        className={`flex items-center gap-1.5 sm:gap-2 mb-3 ${
+        className={`flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 md:gap-2 mb-2 sm:mb-3 max-w-full overflow-x-auto py-0.5 ${
           !isHardMode && isThemeIncorrect ? 'animate-shake' : ''
         }`}
       >
@@ -94,8 +101,12 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
             return (
               <div
                 key={colIdx}
-                style={{ '--tile-delay': `${colIdx * 18}ms` } as React.CSSProperties}
-                className="puzzle-tile-enter w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md transition-colors duration-200 bg-[#160224]/60 border border-purple-950/30 opacity-60"
+                style={{
+                  width: 'var(--tile-sz)',
+                  height: 'var(--tile-sz)',
+                  '--tile-delay': `${colIdx * 18}ms`,
+                } as React.CSSProperties}
+                className="puzzle-tile-enter shrink-0 rounded-md transition-colors duration-200 bg-[#160224]/60 border border-purple-950/30 opacity-60"
               />
             );
           }
@@ -118,11 +129,16 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
             userChar.trim().toUpperCase() !== targetChar.toUpperCase();
 
           return (
-            <div key={colIdx} className="relative flex items-center">
+            <div key={colIdx} className="relative flex items-center shrink-0">
               <div
                 onClick={() => onSelectThemeCell(colIdx)}
-                style={{ '--tile-delay': `${colIdx * 18}ms` } as React.CSSProperties}
-                className={`puzzle-tile-enter w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md font-mono font-black text-[32px] sm:text-[38px] md:text-[45px] leading-none flex items-center justify-center transition-all duration-200 cursor-pointer select-none ${
+                style={{
+                  width: 'var(--tile-sz)',
+                  height: 'var(--tile-sz)',
+                  fontSize: 'var(--tile-font)',
+                  '--tile-delay': `${colIdx * 18}ms`,
+                } as React.CSSProperties}
+                className={`puzzle-tile-enter shrink-0 rounded-md font-mono font-black leading-none flex items-center justify-center transition-all duration-200 cursor-pointer select-none ${
                   isTileWrong
                     ? 'bg-rose-500 text-white shadow-md ring-2 ring-rose-400'
                     : isRevealedByGuess
@@ -132,7 +148,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                     : 'bg-[#5e1d85] border-2 border-[#f5b82e]/90 shadow-md shadow-black/40 hover:bg-[#6e249b] hover:border-[#f5b82e]'
                 } ${
                   isThemeCellFocused
-                    ? 'ring-4 ring-[#f5b82e] ring-offset-2 ring-offset-[#250838] scale-105 z-10'
+                    ? 'ring-3 sm:ring-4 ring-[#f5b82e] ring-offset-2 ring-offset-[#250838] scale-105 z-10'
                     : ''
                 }`}
               >
@@ -142,7 +158,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                 <div
                   aria-hidden="true"
                   title="Word break"
-                  className="pointer-events-none absolute -top-1 -bottom-1 left-full ml-[1.5px] sm:ml-[2px] w-[3px] sm:w-[4px] rounded-full bg-[#f5b82e] shadow-[0_0_6px_rgba(24,4,36,0.95)] z-20"
+                  className="pointer-events-none absolute -top-1 -bottom-1 left-full ml-[1px] sm:ml-[2px] w-[2.5px] sm:w-[4px] rounded-full bg-[#f5b82e] shadow-[0_0_6px_rgba(24,4,36,0.95)] z-20"
                 />
               )}
             </div>
@@ -150,11 +166,11 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
         })}
       </div>
 
-      {/* Horizontal Divider Line with +20px extra spacing between top clue answer and bottom words */}
-      <div className="w-full h-[3px] bg-gradient-to-r from-amber-400/30 via-[#f5b82e] to-amber-400/30 my-[18px] rounded-full shadow-xs" />
+      {/* Horizontal Divider Line */}
+      <div className="w-full h-[3px] bg-gradient-to-r from-amber-400/30 via-[#f5b82e] to-amber-400/30 my-3 sm:my-[16px] rounded-full shadow-xs" />
 
-      {/* The 6 Word Rows (6 rows x maxWordLength columns) with +20px extra spacing */}
-      <div className="space-y-1.5 sm:space-y-2 mt-[18px]">
+      {/* The 6 Word Rows (6 rows x maxWordLength columns) */}
+      <div className="space-y-1 sm:space-y-1.5 md:space-y-2 mt-1 sm:mt-2 max-w-full">
         {words.map((word, rowIdx) => {
           const wordLen = word.length;
           const userFilled = filledWords[rowIdx] || '';
@@ -166,7 +182,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
           return (
             <div
               key={rowIdx}
-              className={`flex items-center gap-1.5 sm:gap-2 ${
+              className={`flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 md:gap-2 max-w-full overflow-x-auto py-0.5 ${
                 !isHardMode && isRowIncorrect ? 'animate-shake' : ''
               }`}
             >
@@ -189,14 +205,16 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                     <div
                       key={colIdx}
                       style={{
+                        width: 'var(--tile-sz)',
+                        height: 'var(--tile-sz)',
                         '--tile-delay': `${(rowIdx + 1) * 26 + colIdx * 16}ms`,
                       } as React.CSSProperties}
-                      className="puzzle-tile-enter w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md transition-colors duration-200 bg-[#160224]/60 border border-purple-950/30 opacity-60"
+                      className="puzzle-tile-enter shrink-0 rounded-md transition-colors duration-200 bg-[#160224]/60 border border-purple-950/30 opacity-60"
                     />
                   );
                 }
 
-                // Displayed letter: if solved, target; else if revealed by guess, target (overwrites typed); else user typed
+                // Displayed letter
                 const displayChar = isSolved
                   ? targetChar
                   : isRevealedByGuess
@@ -204,7 +222,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                   : userChar.trim();
                 const isFilled = Boolean(displayChar && displayChar.trim().length > 0);
 
-                // Only highlight in red if not in Hard Mode and this specific tile has a wrong typed letter during validation
+                // Highlight wrong letter
                 const isTileWrong =
                   !isHardMode &&
                   isPartOfWord &&
@@ -214,13 +232,16 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                   userChar.trim().toUpperCase() !== targetChar.toUpperCase();
 
                 return (
-                  <div key={colIdx} className="relative flex items-center">
+                  <div key={colIdx} className="relative flex items-center shrink-0">
                     <div
                       onClick={() => onSelectCell(rowIdx, colIdx)}
                       style={{
+                        width: 'var(--tile-sz)',
+                        height: 'var(--tile-sz)',
+                        fontSize: 'var(--tile-font)',
                         '--tile-delay': `${(rowIdx + 1) * 26 + colIdx * 16}ms`,
                       } as React.CSSProperties}
-                      className={`puzzle-tile-enter w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-md font-mono font-black text-[32px] sm:text-[38px] md:text-[45px] leading-none flex items-center justify-center transition-all duration-200 cursor-pointer select-none ${
+                      className={`puzzle-tile-enter shrink-0 rounded-md font-mono font-black leading-none flex items-center justify-center transition-all duration-200 cursor-pointer select-none ${
                         isTileWrong
                           ? 'bg-rose-500 text-white shadow-md ring-2 ring-rose-400'
                           : isRevealedByGuess
@@ -232,7 +253,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                           : 'bg-[#561a7a] border-2 border-amber-200/80 shadow-md shadow-black/40 hover:bg-[#662090] hover:border-white'
                       } ${
                         isFocused
-                          ? 'ring-4 ring-[#f5b82e] ring-offset-2 ring-offset-[#250838] scale-105 z-10'
+                          ? 'ring-3 sm:ring-4 ring-[#f5b82e] ring-offset-2 ring-offset-[#250838] scale-105 z-10'
                           : ''
                       }`}
                     >
@@ -242,7 +263,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                       <div
                         aria-hidden="true"
                         title="Word break"
-                        className="pointer-events-none absolute -top-1 -bottom-1 left-full ml-[1.5px] sm:ml-[2px] w-[3px] sm:w-[4px] rounded-full bg-[#f5b82e] shadow-[0_0_6px_rgba(24,4,36,0.95)] z-20"
+                        className="pointer-events-none absolute -top-1 -bottom-1 left-full ml-[1px] sm:ml-[2px] w-[2.5px] sm:w-[4px] rounded-full bg-[#f5b82e] shadow-[0_0_6px_rgba(24,4,36,0.95)] z-20"
                       />
                     )}
                   </div>
@@ -254,13 +275,13 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
       </div>
 
       {/* Bottom Row beneath the grid: Copied Logo on bottom-left + Authentic Speech Bubble Pointer */}
-      <div className="w-full flex items-center justify-between gap-4 mt-5 relative">
-        {/* Copied Logo & Title below the bottom-left of the grid */}
-        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+      <div className="w-full flex items-center justify-between gap-3 mt-4 sm:mt-5 flex-wrap sm:flex-nowrap">
+        {/* Logo & Title */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           <img
-            src="/assets/aistudio/3d_logo_944e5372.png"
+            src="/brand-logo.png"
             alt="The Missing Piece Logo"
-            className="w-9 h-9 sm:w-11 sm:h-11 object-contain drop-shadow-md hover:scale-105 transition-transform"
+            className="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded-md drop-shadow-md hover:scale-105 transition-transform"
           />
           <div className="flex flex-col">
             <span className="font-black text-xs sm:text-sm tracking-wider text-[#f5b82e] uppercase font-serif leading-tight drop-shadow-xs">
@@ -273,18 +294,18 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
         </div>
 
         {/* Speech Bubble Pointer (tappable on mobile to pop up device keyboard) */}
-        <div className="flex-1 flex justify-center">
+        <div className="flex-1 flex justify-center sm:justify-end">
           <button
             type="button"
             onClick={onOpenMobileKeyboard}
-            className={`relative px-6 py-2.5 rounded-full font-bold text-sm tracking-wide shadow-lg transition-colors duration-200 bg-[#3d0f57] hover:bg-[#4b136b] border border-[#f5b82e]/50 flex items-center gap-2 cursor-pointer ${
+            className={`relative px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm tracking-wide shadow-lg transition-colors duration-200 bg-[#3d0f57] hover:bg-[#4b136b] border border-[#f5b82e]/50 flex items-center gap-2 cursor-pointer ${
               isGuessMode ? 'text-[#f5b82e]' : 'text-white'
             }`}
             title="Tap to open device keyboard"
           >
             {/* Triangular pointer pointing UP */}
-            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-b-8 border-b-[#3d0f57]" />
-            <Keyboard className="w-4 h-4 sm:hidden shrink-0 opacity-85" />
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-x-6 sm:border-x-8 border-x-transparent border-b-6 sm:border-b-8 border-b-[#3d0f57]" />
+            <Keyboard className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-85 shrink-0" />
             <span>{isGuessMode ? 'Guess a letter' : 'Tap any tile to type'}</span>
           </button>
         </div>

@@ -31,6 +31,7 @@ import {
   MAX_DISPLAY_NAME_LENGTH,
 } from '../utils/firebase';
 import { UnifiedLeaderboardPanel } from '@/components/solo-games/unified-auth-modal';
+import { UserProfileIcon } from '@/components/user-profile-icon';
 
 interface AuthHighScoresModalProps {
   isOpen: boolean;
@@ -277,7 +278,7 @@ export const AuthHighScoresModal: React.FC<AuthHighScoresModalProps> = ({
                 : 'text-[#D6CBE2] hover:text-white'
             }`}
           >
-            <UserIcon className="w-3.5 h-3.5" />
+            <UserProfileIcon user={user} className="w-4 h-4 shrink-0" />
             <span>{user ? `Account (${getCleanDisplayName(user)})` : 'Sign In / Register'}</span>
           </button>
         </div>
@@ -342,19 +343,26 @@ export const AuthHighScoresModal: React.FC<AuthHighScoresModalProps> = ({
           <div className="space-y-4">
             {/* Signed-in Profile Strip */}
             <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-[#1E0533] border border-[#E6BE5A]/35">
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>The Missing Piece Member Account Active</span>
-                </div>
-                <div className="font-display font-bold text-sm text-[#F5F3F7] truncate mt-0.5">
-                  {getCleanDisplayName(user)}
-                </div>
-                {cleanEmail && (
-                  <div className="text-[11px] text-[#B9A8CC] font-mono truncate">
-                    {cleanEmail}
+              <div className="flex items-center gap-3 min-w-0">
+                <UserProfileIcon
+                  user={user}
+                  imgClassName="w-10 h-10 rounded-full object-cover border-2 border-[#F6C915] shrink-0"
+                  className="w-7 h-7 text-[#F6C915] shrink-0"
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>The Missing Piece Member Account Active</span>
                   </div>
-                )}
+                  <div className="font-display font-bold text-sm text-[#F5F3F7] truncate mt-0.5">
+                    {getCleanDisplayName(user)}
+                  </div>
+                  {cleanEmail && (
+                    <div className="text-[11px] text-[#B9A8CC] font-mono truncate">
+                      {cleanEmail}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <button

@@ -7,6 +7,7 @@ import {
   type UnifiedPlayerUser,
   type User,
 } from '@/lib/unified-game-auth';
+import { UserProfileIcon } from '@/components/user-profile-icon';
 
 interface LeaderboardModalProps {
   setCurrentView: (view: GameState) => void;
@@ -69,7 +70,11 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             onClick={onOpenSignIn}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#2d0938] text-amber-300 border border-amber-400/40 text-xs font-bold hover:bg-[#3b0d47] transition-colors cursor-pointer"
           >
-            {currentUser ? <UserIcon className="w-3.5 h-3.5" /> : <LogIn className="w-3.5 h-3.5" />}
+            {currentUser ? (
+              <UserProfileIcon user={currentUser} className="w-4 h-4 shrink-0" />
+            ) : (
+              <LogIn className="w-3.5 h-3.5" />
+            )}
             <span>{currentUser ? getCleanDisplayName(currentUser) : 'Sign In / Account'}</span>
           </button>
 

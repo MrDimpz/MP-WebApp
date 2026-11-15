@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { useUnifiedAuth, getCleanDisplayName } from '@/lib/unified-game-auth';
+import { UserProfileIcon } from '@/components/user-profile-icon';
 
 export function LoggedInIndicator() {
   const { user } = useUnifiedAuth();
@@ -8,7 +9,13 @@ export function LoggedInIndicator() {
 
   return (
     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-700 dark:text-emerald-300 text-[11px] sm:text-xs font-semibold whitespace-nowrap shrink-0 shadow-xs">
-      <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse shrink-0" />
+      <UserProfileIcon
+        user={user}
+        className="w-4 h-4 shrink-0"
+        fallback={
+          <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse shrink-0" />
+        }
+      />
       <span className="truncate max-w-[90px] sm:max-w-[140px]">
         {getCleanDisplayName(user)}
       </span>

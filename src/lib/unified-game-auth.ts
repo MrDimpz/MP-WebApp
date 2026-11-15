@@ -175,6 +175,7 @@ const LOCAL_LEADERBOARD_STORAGE_KEY = "mp_unified_solo_leaderboards_v1";
 const LOCAL_ACCOUNTS_STORAGE_KEY = "mp_unified_site_accounts_v1";
 const LOCAL_ACTIVE_SESSION_KEY = "mp_unified_active_session_v1";
 const TIKTOK_LINKS_STORAGE_KEY = "mp_tiktok_handle_links_v1";
+const TIKTOK_AVATARS_CACHE_KEY = "mp_tiktok_avatars_cache_v1";
 const REGISTERED_USERS_DIRECTORY_KEY = "mp_registered_users_directory_v1";
 const INTERACTIVE_SCORES_STORAGE_KEY = "mp_interactive_account_scores_v1";
 const BROWSER_INSTANCE_ID_KEY = "mp_browser_instance_id_v1";
@@ -212,6 +213,156 @@ export interface UnifiedPlayerUser {
 export function normalizeTikTokHandle(raw: string | null | undefined): string {
   const cleaned = (raw || "").trim().replace(/^@+/, "").toLowerCase();
   return cleaned ? `@${cleaned}` : "";
+}
+
+const clientAvatarFetchInFlight = new Map<string, Promise<string>>();
+
+function readTikTokAvatarCache(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(TIKTOK_AVATARS_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeTikTokAvatarCache(cache: Record<string, string>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(TIKTOK_AVATARS_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Ignore quota errors
+  }
+}
+
+export function getCachedTikTokAvatar(rawHandle: string | null | undefined): string {
+  const normalized = normalizeTikTokHandle(rawHandle);
+  if (!normalized) return "";
+  const cache = readTikTokAvatarCache();
+  return cache[normalized] || "";
+}
+
+export async function downloadAndCacheTikTokAvatar(
+  rawHandle: string | null | undefined,
+  forceRefresh = false,
+): Promise<string> {
+  if (typeof window === "undefined") return "";
+  const normalized = normalizeTikTokHandle(rawHandle);
+  if (!normalized) return "";
+  const cleanUsername = normalized.replace(/^@+/, "");
+
+  if (!forceRefresh) {
+    const existing = getCachedTikTokAvatar(normalized);
+    if (existing && existing.startsWith("data:image/")) {
+      return existing;
+    }
+  }
+
+  const inflight = clientAvatarFetchInFlight.get(normalized);
+  if (inflight) return inflight;
+
+  const task = (async (): Promise<string> => {
+    try {
+      const res = await fetch(
+        `/api/tiktok/profile-avatar?username=${encodeURIComponent(cleanUsername)}${forceRefresh ? "&force=1" : ""}`,
+        { cache: "no-store" },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const downloadedUrl =
+          typeof data?.avatarUrl === "string" && data.avatarUrl.startsWith("data:image/")
+            ? data.avatarUrl
+            : typeof data?.endpointUrl === "string"
+              ? data.endpointUrl
+              : "";
+        if (downloadedUrl) {
+          const cache = readTikTokAvatarCache();
+          cache[normalized] = downloadedUrl;
+          writeTikTokAvatarCache(cache);
+
+          // Update stored site accounts that have this TikTok handle
+          const accounts = getStoredAccounts();
+          let accountsChanged = false;
+          const updatedAccounts = accounts.map((acc) => {
+            if (normalizeTikTokHandle(acc.linkedTikTokHandle) === normalized) {
+              accountsChanged = true;
+              return { ...acc, photoURL: downloadedUrl };
+            }
+            return acc;
+          });
+          if (accountsChanged) {
+            saveStoredAccounts(updatedAccounts);
+          }
+
+          // Update active session if it belongs to this TikTok handle
+          try {
+            const rawSession = window.localStorage.getItem(LOCAL_ACTIVE_SESSION_KEY);
+            if (rawSession) {
+              const parsed = JSON.parse(rawSession) as UnifiedPlayerUser;
+              const sessionHandle =
+                getLinkedTikTokHandle(parsed?.uid) ||
+                normalizeTikTokHandle(parsed?.linkedTikTokHandle);
+              if (sessionHandle === normalized && parsed.photoURL !== downloadedUrl) {
+                parsed.photoURL = downloadedUrl;
+                window.localStorage.setItem(
+                  LOCAL_ACTIVE_SESSION_KEY,
+                  JSON.stringify(parsed),
+                );
+              }
+            }
+          } catch {
+            // ignore
+          }
+
+          window.dispatchEvent(new Event("mp-tiktok-avatar-updated"));
+          window.dispatchEvent(new Event("mp-site-auth-updated"));
+          return downloadedUrl;
+        }
+      }
+    } catch {
+      // ignore network error
+    } finally {
+      clientAvatarFetchInFlight.delete(normalized);
+    }
+    return `/api/tiktok/avatar/${encodeURIComponent(cleanUsername)}`;
+  })();
+
+  clientAvatarFetchInFlight.set(normalized, task);
+  return task;
+}
+
+/**
+ * Resolves the profile icon to display in solo games for a user.
+ * If the user has registered/linked a TikTok @ handle, their downloaded
+ * TikTok profile icon is always prioritized over the default icon.
+ */
+export function getUserProfileAvatarUrl(
+  user:
+    | UnifiedPlayerUser
+    | User
+    | { uid?: string; photoURL?: string | null; linkedTikTokHandle?: string | null }
+    | null
+    | undefined,
+): string {
+  if (!user) return "";
+  const uid = (user as { uid?: string }).uid || "";
+  const explicitHandle = (user as { linkedTikTokHandle?: string | null }).linkedTikTokHandle;
+  const linkedHandle = normalizeTikTokHandle(
+    explicitHandle || (uid ? getLinkedTikTokHandle(uid) : ""),
+  );
+
+  if (linkedHandle) {
+    const cached = getCachedTikTokAvatar(linkedHandle);
+    if (cached) return cached;
+    void downloadAndCacheTikTokAvatar(linkedHandle);
+    const clean = linkedHandle.replace(/^@+/, "");
+    return `/api/tiktok/avatar/${encodeURIComponent(clean)}`;
+  }
+
+  return (user as { photoURL?: string | null }).photoURL || "";
 }
 
 export function sanitizePublicIdentity(
@@ -1139,10 +1290,19 @@ export function setLinkedTikTokHandle(
 
   const session = getActiveSiteSession();
   if (session && session.uid === uid) {
+    const nextPhoto = normalized
+      ? getCachedTikTokAvatar(normalized) ||
+        `/api/tiktok/avatar/${encodeURIComponent(normalized.replace(/^@+/, ""))}`
+      : session.photoURL;
     setActiveSiteSession({
       ...session,
+      photoURL: nextPhoto,
       linkedTikTokHandle: normalized || null,
     });
+  }
+
+  if (normalized) {
+    void downloadAndCacheTikTokAvatar(normalized, true);
   }
 
   if (typeof window !== "undefined") {
@@ -1332,13 +1492,22 @@ function getActiveSiteSession(): UnifiedPlayerUser | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as UnifiedPlayerUser;
     if (!parsed || !parsed.uid) return null;
+    const linkedHandle =
+      getLinkedTikTokHandle(parsed.uid) ||
+      normalizeTikTokHandle(parsed.linkedTikTokHandle) ||
+      null;
+    const tiktokAvatar = linkedHandle
+      ? getCachedTikTokAvatar(linkedHandle) ||
+        `/api/tiktok/avatar/${encodeURIComponent(linkedHandle.replace(/^@+/, ""))}`
+      : "";
+    if (linkedHandle && !getCachedTikTokAvatar(linkedHandle)) {
+      void downloadAndCacheTikTokAvatar(linkedHandle);
+    }
     return {
       ...parsed,
       displayName: sanitizePublicIdentity(parsed.displayName, "Player"),
-      linkedTikTokHandle:
-        getLinkedTikTokHandle(parsed.uid) ||
-        normalizeTikTokHandle(parsed.linkedTikTokHandle) ||
-        null,
+      photoURL: tiktokAvatar || parsed.photoURL || null,
+      linkedTikTokHandle: linkedHandle,
     };
   } catch {
     return null;
@@ -1351,15 +1520,21 @@ function setActiveSiteSession(session: UnifiedPlayerUser | null) {
     if (!session) {
       window.localStorage.removeItem(LOCAL_ACTIVE_SESSION_KEY);
     } else {
+      const linkedHandle =
+        getLinkedTikTokHandle(session.uid) ||
+        normalizeTikTokHandle(session.linkedTikTokHandle) ||
+        null;
+      const tiktokAvatar = linkedHandle
+        ? getCachedTikTokAvatar(linkedHandle) ||
+          `/api/tiktok/avatar/${encodeURIComponent(linkedHandle.replace(/^@+/, ""))}`
+        : "";
       window.localStorage.setItem(
         LOCAL_ACTIVE_SESSION_KEY,
         JSON.stringify({
           ...session,
           displayName: sanitizePublicIdentity(session.displayName, "Player"),
-          linkedTikTokHandle:
-            getLinkedTikTokHandle(session.uid) ||
-            normalizeTikTokHandle(session.linkedTikTokHandle) ||
-            null,
+          photoURL: tiktokAvatar || session.photoURL || null,
+          linkedTikTokHandle: linkedHandle,
         }),
       );
     }
@@ -1387,6 +1562,13 @@ function toUnifiedUserFromFirebase(fbUser: User): UnifiedPlayerUser {
     getLinkedTikTokHandle(fbUser.uid) ||
     pendingMatch?.linkedTikTokHandle ||
     "";
+  const tiktokAvatar = linkedTikTok
+    ? getCachedTikTokAvatar(linkedTikTok) ||
+      `/api/tiktok/avatar/${encodeURIComponent(linkedTikTok.replace(/^@+/, ""))}`
+    : "";
+  if (linkedTikTok && !getCachedTikTokAvatar(linkedTikTok)) {
+    void downloadAndCacheTikTokAvatar(linkedTikTok);
+  }
   return {
     uid: fbUser.uid,
     displayName: safeName,
@@ -1394,7 +1576,7 @@ function toUnifiedUserFromFirebase(fbUser: User): UnifiedPlayerUser {
       fbUser.email?.toLowerCase() === HIDDEN_GMAIL_ADDRESS
         ? null
         : fbUser.email,
-    photoURL: fbUser.photoURL,
+    photoURL: tiktokAvatar || fbUser.photoURL,
     linkedTikTokHandle: linkedTikTok || null,
   };
 }
@@ -1823,11 +2005,13 @@ export function useUnifiedAuth() {
 
     window.addEventListener("mp-site-auth-updated", syncLocalSession);
     window.addEventListener("mp-tiktok-link-updated", syncLocalSession);
+    window.addEventListener("mp-tiktok-avatar-updated", syncLocalSession);
     window.addEventListener("storage", syncLocalSession);
     return () => {
       unsub();
       window.removeEventListener("mp-site-auth-updated", syncLocalSession);
       window.removeEventListener("mp-tiktok-link-updated", syncLocalSession);
+      window.removeEventListener("mp-tiktok-avatar-updated", syncLocalSession);
       window.removeEventListener("storage", syncLocalSession);
     };
   }, []);
@@ -1863,7 +2047,7 @@ export async function saveUnifiedLeaderboardScore(params: {
     activeUser?.displayName,
     "Guest Solver",
   );
-  const photoURL = activeUser?.photoURL || "";
+  const photoURL = getUserProfileAvatarUrl(activeUser);
   const entryId = `${normalizedGameId}_${uid}`;
 
   const entry: UnifiedLeaderboardEntry = {
@@ -1969,17 +2153,24 @@ export function subscribeToAllLeaderboards(
     };
     const mergedMap = new Map<string, UnifiedLeaderboardEntry>();
     for (const item of readLocalLeaderboards()) {
-      mergedMap.set(item.id, item);
+      mergedMap.set(item.id, {
+        ...item,
+        photoURL: getUserProfileAvatarUrl({ uid: item.uid, photoURL: item.photoURL }),
+      });
     }
     for (const item of list) {
       const normalizedId: SoloGameId =
         item.gameId === "crossword" ? "cruciverbalist" : item.gameId;
+      const prev = mergedMap.get(item.id);
       const safeItem: UnifiedLeaderboardEntry = {
         ...item,
         gameId: normalizedId,
         displayName: sanitizePublicIdentity(item.displayName, "Player"),
+        photoURL: getUserProfileAvatarUrl({
+          uid: item.uid,
+          photoURL: item.photoURL || prev?.photoURL || "",
+        }),
       };
-      const prev = mergedMap.get(safeItem.id);
       if (!prev || safeItem.score >= prev.score) {
         mergedMap.set(safeItem.id, safeItem);
       }
@@ -1999,12 +2190,15 @@ export function subscribeToAllLeaderboards(
     return grouped;
   };
 
+  let latestRemote: UnifiedLeaderboardEntry[] = [];
   callback(groupEntries([]));
 
   const onLocalUpdate = () => {
-    callback(groupEntries([]));
+    callback(groupEntries(latestRemote));
   };
   window.addEventListener("mp-unified-leaderboard-updated", onLocalUpdate);
+  window.addEventListener("mp-tiktok-avatar-updated", onLocalUpdate);
+  window.addEventListener("mp-tiktok-link-updated", onLocalUpdate);
 
   let unsubFirestore = () => {};
   try {
@@ -2024,11 +2218,12 @@ export function subscribeToAllLeaderboards(
               data.gameId === "crossword"
                 ? "cruciverbalist"
                 : (data.gameId as SoloGameId);
+            const entryUid = String(data.userId || data.uid || "");
             remote.push({
               id: docSnap.id,
-              uid: String(data.userId || data.uid || ""),
+              uid: entryUid,
               displayName: sanitizePublicIdentity(data.displayName, "Player"),
-              photoURL: "",
+              photoURL: getUserProfileAvatarUrl({ uid: entryUid }),
               gameId: gid,
               gameTitle:
                 SOLO_GAME_LABELS[gid]?.title || String(data.puzzleTitle || ""),
@@ -2038,19 +2233,22 @@ export function subscribeToAllLeaderboards(
             });
           }
         });
+        latestRemote = remote;
         callback(groupEntries(remote));
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, "leaderboard");
-        callback(groupEntries([]));
+        callback(groupEntries(latestRemote));
       },
     );
   } catch {
-    callback(groupEntries([]));
+    callback(groupEntries(latestRemote));
   }
 
   return () => {
     window.removeEventListener("mp-unified-leaderboard-updated", onLocalUpdate);
+    window.removeEventListener("mp-tiktok-avatar-updated", onLocalUpdate);
+    window.removeEventListener("mp-tiktok-link-updated", onLocalUpdate);
     unsubFirestore();
   };
 }

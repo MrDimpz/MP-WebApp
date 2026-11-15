@@ -713,6 +713,80 @@ a {
   text-overflow: ellipsis;
 }
 
+/* ------------- solo mode: words being looked for replaces 1-5 target cards ------------- */
+.solo-target-words-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  height: 186px;
+  max-height: 186px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.solo-tw-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--bg-2);
+  border-bottom: 1.5px solid var(--border);
+  flex-shrink: 0;
+}
+
+.solo-tw-title {
+  font-family: Fredoka, Inter, sans-serif;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: var(--text);
+}
+
+.solo-tw-counter {
+  font-family: Fredoka, Inter, sans-serif;
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: var(--accent-green);
+  background: rgba(158, 234, 58, 0.12);
+  border: 1px solid rgba(158, 234, 58, 0.35);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-variant-numeric: tabular-nums;
+}
+
+.solo-tw-body {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-soft) transparent;
+}
+
+.solo-tw-body .tw-chips-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.solo-tw-body .tw-slot {
+  padding: 3px 6px;
+  font-size: 0.72rem;
+}
+
+.solo-tw-body .tw-group {
+  gap: 4px;
+}
+
+.solo-tw-body .tw-group-header {
+  font-size: 0.65rem;
+}
+
 /* ------------- found-words card (3x height board-width single-pass random-height answer stream) ------------- */
 .found-words-card {
   position: relative;

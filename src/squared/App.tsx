@@ -56,6 +56,7 @@ import { TitleScreen, PauseOrVictoryModal } from './components/GameModals';
 import { DateCalendarDropdown } from './components/DateCalendarDropdown';
 import { AuthHighScoresModal } from './components/AuthHighScoresModal';
 import { LoggedInIndicator } from '@/components/logged-in-indicator';
+import { UserProfileIcon } from '@/components/user-profile-icon';
 
 type GameState = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'VICTORY';
 
@@ -726,7 +727,15 @@ export default function App() {
                   : 'Sign In with Google or Email to record High Scores'
               }
             >
-              <Trophy className="w-4 h-4" />
+              {currentUser ? (
+                <UserProfileIcon
+                  user={currentUser}
+                  className="w-4 h-4 shrink-0"
+                  fallback={<Trophy className="w-4 h-4" />}
+                />
+              ) : (
+                <Trophy className="w-4 h-4" />
+              )}
               <span className="hidden md:inline">
                 {currentUser
                   ? currentUser.displayName?.split(' ')[0] || 'Scores'

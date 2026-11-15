@@ -124,6 +124,8 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
     return 'multiplayer';
   });
 
+  const isSoloMode = isSoloRoute || mode === 'daily-solo' || mode === 'practice-solo';
+
   const [gameState, setGameState] = useState<PublicGameState | null>(null);
   const todayDateStr = useMemo(() => getLocalTodayDateStr(), []);
   const dailyStreak = useDailyStreak('wikirec', todayDateStr);
@@ -2095,53 +2097,212 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
           </div>
         </section>
 
-        {/* RIGHT COLUMN: 5 Capsule-in-Capsule Target Cards */}
+        {/* RIGHT COLUMN: Words Being Looked For (in Solo Mode) OR 5 Capsule-in-Capsule Target Cards (in Multiplayer) */}
         <section className="right-col">
-          <div id="target-cards">
-            {(gameState?.targets || []).map((t: TargetCard) => {
-              const isPlaceholder = !t.revealed || !t.word;
-              const isRevealedTarget = !!t.isTarget;
-              const cardColor = getTargetCardHue(
-                t.rank,
-                gameState?.totalRankedWords || 50000
-              );
-              const finderName = t.finder
-                ? (t.finder.displayName || 'Player').replace(/^@/, '')
-                : '';
-
-              return (
-                <div
-                  key={t.position}
-                  className={`tcard ${isRevealedTarget ? 'revealed' : ''} ${
-                    isPlaceholder ? 'placeholder' : ''
-                  }`}
-                >
-                  <div
-                    className="tcard-body"
-                    style={
-                      {
-                        '--card-color': cardColor,
-                        '--close': (t.closeness || 0).toFixed(3),
-                      } as React.CSSProperties
-                    }
-                  >
-                    <div className="tcard-fill" />
-
-                    <div className="tlabel">
-                      <span className="trank">
-                        #{isPlaceholder ? t.position : formatRank(t.rank)}
+          {isSoloMode ? (
+            <div className="solo-target-words-card" id="solo-target-words-card">
+              <div className="solo-tw-header">
+                <span className="solo-tw-title">WORDS BEING LOOKED FOR</span>
+                <span className="solo-tw-counter">
+                  {(gameState?.revealedTitleWordCount || 0) +
+                    (gameState?.foundCommonCount || 0) +
+                    (gameState?.foundRareCount || 0) +
+                    (gameState?.foundUltraCount || 0)}
+                  /
+                  {(gameState?.titleWordCount || 0) +
+                    (gameState?.commonWordTarget || 0) +
+                    (gameState?.rareWordTarget || 0) +
+                    (gameState?.ultraWordTarget || 0)}
+                </span>
+              </div>
+              <div className="solo-tw-body">
+                {/* Title Words Group */}
+                {searchWordGroups.title.length > 0 && (
+                  <div className="tw-group">
+                    <div className="tw-group-header tier-title">
+                      <span className="tw-tier-label">
+                        <span className="badge-dot t">T</span> TITLE WORDS
                       </span>
-                      <span className="tword">
-                        {t.word ? t.word.toUpperCase() : '•••••'}
+                      <span className="tw-tier-count">
+                        {gameState?.revealedTitleWordCount || 0}/{gameState?.titleWordCount || 0}
                       </span>
                     </div>
+                    <div className="tw-chips-grid">
+                      {searchWordGroups.title.map((slot) => (
+                        <div
+                          key={slot.id}
+                          className={`tw-slot ${slot.revealed ? 'found title-found' : 'unfound'}`}
+                          onMouseEnter={() => {
+                            if (slot.revealed && slot.cells?.length) setFlashedCells(slot.cells);
+                          }}
+                          onMouseLeave={() => setFlashedCells([])}
+                        >
+                          <span className="tw-slot-word">
+                            {slot.revealed && slot.word
+                              ? slot.word
+                              : `${slot.startLetter}${'•'.repeat(Math.max(1, slot.length - 1))}`}
+                          </span>
+                          <span className="tw-slot-meta">
+                            {slot.revealed ? '✓' : `${slot.length}L`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                    {t.finder && !isPlaceholder && (
-                      <div className="tfinder">
-                        <div className="tpfp">
-                          <img
-                            src={
-                              t.finder.profileImage && t.finder.profileImage.startsWith('http')
+                {/* Common Words Group */}
+                {searchWordGroups.common.length > 0 && (
+                  <div className="tw-group">
+                    <div className="tw-group-header tier-common">
+                      <span className="tw-tier-label">
+                        <span className="badge-dot c">C</span> COMMON WORDS
+                      </span>
+                      <span className="tw-tier-count">
+                        {gameState?.foundCommonCount || 0}/{gameState?.commonWordTarget || 0}
+                      </span>
+                    </div>
+                    <div className="tw-chips-grid">
+                      {searchWordGroups.common.map((slot) => (
+                        <div
+                          key={slot.id}
+                          className={`tw-slot ${slot.revealed ? 'found common-found' : 'unfound'}`}
+                          onMouseEnter={() => {
+                            if (slot.revealed && slot.cells?.length) setFlashedCells(slot.cells);
+                          }}
+                          onMouseLeave={() => setFlashedCells([])}
+                        >
+                          <span className="tw-slot-word">
+                            {slot.revealed && slot.word
+                              ? slot.word
+                              : `${slot.startLetter}${'•'.repeat(Math.max(1, slot.length - 1))}`}
+                          </span>
+                          <span className="tw-slot-meta">
+                            {slot.revealed ? '✓' : `${slot.length}L`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rare Words Group */}
+                {searchWordGroups.rare.length > 0 && (
+                  <div className="tw-group">
+                    <div className="tw-group-header tier-rare">
+                      <span className="tw-tier-label">
+                        <span className="badge-dot r">R</span> RARE WORDS
+                      </span>
+                      <span className="tw-tier-count">
+                        {gameState?.foundRareCount || 0}/{gameState?.rareWordTarget || 0}
+                      </span>
+                    </div>
+                    <div className="tw-chips-grid">
+                      {searchWordGroups.rare.map((slot) => (
+                        <div
+                          key={slot.id}
+                          className={`tw-slot ${slot.revealed ? 'found rare-found' : 'unfound'}`}
+                          onMouseEnter={() => {
+                            if (slot.revealed && slot.cells?.length) setFlashedCells(slot.cells);
+                          }}
+                          onMouseLeave={() => setFlashedCells([])}
+                        >
+                          <span className="tw-slot-word">
+                            {slot.revealed && slot.word
+                              ? slot.word
+                              : `${slot.startLetter}${'•'.repeat(Math.max(1, slot.length - 1))}`}
+                          </span>
+                          <span className="tw-slot-meta">
+                            {slot.revealed ? '✓' : `${slot.length}L`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Ultra Words Group */}
+                {searchWordGroups.ultra.length > 0 && (
+                  <div className="tw-group">
+                    <div className="tw-group-header tier-ultra">
+                      <span className="tw-tier-label">
+                        <span className="badge-dot u">U</span> ULTRA RARE
+                      </span>
+                      <span className="tw-tier-count">
+                        {gameState?.foundUltraCount || 0}/{gameState?.ultraWordTarget || 0}
+                      </span>
+                    </div>
+                    <div className="tw-chips-grid">
+                      {searchWordGroups.ultra.map((slot) => (
+                        <div
+                          key={slot.id}
+                          className={`tw-slot ${slot.revealed ? 'found ultra-found' : 'unfound'}`}
+                          onMouseEnter={() => {
+                            if (slot.revealed && slot.cells?.length) setFlashedCells(slot.cells);
+                          }}
+                          onMouseLeave={() => setFlashedCells([])}
+                        >
+                          <span className="tw-slot-word">
+                            {slot.revealed && slot.word
+                              ? slot.word
+                              : `${slot.startLetter}${'•'.repeat(Math.max(1, slot.length - 1))}`}
+                          </span>
+                          <span className="tw-slot-meta">
+                            {slot.revealed ? '✓' : `${slot.length}L`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div id="target-cards">
+              {(gameState?.targets || []).map((t: TargetCard) => {
+                const isPlaceholder = !t.revealed || !t.word;
+                const isRevealedTarget = !!t.isTarget;
+                const cardColor = getTargetCardHue(
+                  t.rank,
+                  gameState?.totalRankedWords || 50000
+                );
+                const finderName = t.finder
+                  ? (t.finder.displayName || 'Player').replace(/^@/, '')
+                  : '';
+
+                return (
+                  <div
+                    key={t.position}
+                    className={`tcard ${isRevealedTarget ? 'revealed' : ''} ${
+                      isPlaceholder ? 'placeholder' : ''
+                    }`}
+                  >
+                    <div
+                      className="tcard-body"
+                      style={
+                        {
+                          '--card-color': cardColor,
+                          '--close': (t.closeness || 0).toFixed(3),
+                        } as React.CSSProperties
+                      }
+                    >
+                      <div className="tcard-fill" />
+
+                      <div className="tlabel">
+                        <span className="trank">
+                          #{isPlaceholder ? t.position : formatRank(t.rank)}
+                        </span>
+                        <span className="tword">
+                          {t.word ? t.word.toUpperCase() : '•••••'}
+                        </span>
+                      </div>
+
+                      {t.finder && !isPlaceholder && (
+                        <div className="tfinder">
+                          <div className="tpfp">
+                            <img
+                              src={
+                                t.finder.profileImage && t.finder.profileImage.startsWith('http')
                                 ? t.finder.profileImage
                                 : `https://i.pravatar.cc/150?u=${encodeURIComponent(finderName)}`
                             }
@@ -2164,6 +2325,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
               );
             })}
           </div>
+          )}
         </section>
 
       </main>
@@ -2463,8 +2625,8 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
       )}
         </div>
 
-        {/* RIGHT BOX: WORDS BEING LOOKED FOR (hidden in LIVE Studio overlay) */}
-        {!isOverlay && (
+        {/* RIGHT BOX: WORDS BEING LOOKED FOR (hidden in LIVE Studio overlay and solo route) */}
+        {!isOverlay && !isSoloRoute && (
         <aside className="side-box right-words-box" aria-label="Words Being Looked For">
           <div className="side-box-header">
             <div className="side-box-title">
