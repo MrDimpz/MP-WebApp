@@ -196,7 +196,9 @@ function saveServerRegisteredUsers(list: ServerRegisteredUser[]) {
   }
 }
 
-function upsertServerRegisteredUsers(incoming: ServerRegisteredUser[]): ServerRegisteredUser[] {
+function upsertServerRegisteredUsers(
+  incoming: Array<ServerRegisteredUser & { explicitTikTokUpdate?: boolean }>,
+): ServerRegisteredUser[] {
   const existing = loadServerRegisteredUsers();
   const map = new Map<string, ServerRegisteredUser>();
   for (const user of existing) {
@@ -205,15 +207,31 @@ function upsertServerRegisteredUsers(incoming: ServerRegisteredUser[]): ServerRe
   for (const item of incoming) {
     const prev = map.get(item.uid);
     if (!prev) {
-      map.set(item.uid, item);
-    } else {
-      const useIncoming = item.updatedAt >= prev.updatedAt;
-      const mergedHandle = useIncoming
-        ? item.linkedTikTokHandle
-        : prev.linkedTikTokHandle || item.linkedTikTokHandle;
       map.set(item.uid, {
         uid: item.uid,
-        displayName: useIncoming ? item.displayName : prev.displayName,
+        displayName: item.displayName,
+        linkedTikTokHandle: item.linkedTikTokHandle,
+        tiktokConnected: Boolean(item.linkedTikTokHandle),
+        authProvider: item.authProvider,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      });
+    } else {
+      const useIncoming = item.updatedAt >= prev.updatedAt;
+      const mergedHandle = item.explicitTikTokUpdate
+        ? item.linkedTikTokHandle
+        : item.linkedTikTokHandle || prev.linkedTikTokHandle;
+      const isGenericIncoming =
+        !item.displayName ||
+        item.displayName === "Player" ||
+        item.displayName === "Puzzle Seeker";
+      const mergedName =
+        !isGenericIncoming && (useIncoming || prev.displayName === "Player")
+          ? item.displayName
+          : prev.displayName || item.displayName;
+      map.set(item.uid, {
+        uid: item.uid,
+        displayName: mergedName,
         linkedTikTokHandle: mergedHandle,
         tiktokConnected: Boolean(mergedHandle),
         authProvider:
@@ -1387,20 +1405,66 @@ async function startServer() {
   });
 
   app.get("/api/admin/registered-users", (_req, res) => {
-    res.json({ ok: true, users: loadServerRegisteredUsers() });
+    const registered = loadServerRegisteredUsers();
+    const streamers = loadServerStreamers();
+    const byUid = new Map<string, ServerRegisteredUser>();
+    const handlesPresent = new Set<string>();
+
+    for (const u of registered) {
+      byUid.set(u.uid, u);
+      if (u.linkedTikTokHandle) {
+        handlesPresent.add(normalizeServerTikTokHandle(u.linkedTikTokHandle));
+      }
+    }
+
+    for (const st of streamers) {
+      const handle = normalizeServerTikTokHandle(st.username || st.displayHandle);
+      if (handle && !handlesPresent.has(handle)) {
+        const uid = `streamer_${handle.replace(/^@+/, "")}`;
+        if (!byUid.has(uid)) {
+          const ts = Number(st.createdAt) > 0 ? Number(st.createdAt) : Date.now();
+          byUid.set(uid, {
+            uid,
+            displayName: sanitizeServerDisplayName(st.label || st.username || handle.replace(/^@+/, "")),
+            tiktokConnected: true,
+            linkedTikTokHandle: handle,
+            authProvider: "site",
+            createdAt: ts,
+            updatedAt: ts,
+          });
+        }
+      }
+    }
+
+    const combined = Array.from(byUid.values()).sort(
+      (a, b) => b.updatedAt - a.updatedAt,
+    );
+    res.json({ ok: true, users: combined });
   });
 
   app.post("/api/registered-users/sync", (req, res) => {
-    const candidates: ServerRegisteredUser[] = [];
+    const candidates: Array<ServerRegisteredUser & { explicitTikTokUpdate?: boolean }> = [];
     if (Array.isArray(req.body?.users)) {
       for (const rawItem of req.body.users) {
         const clean = sanitizeRegisteredUserPayload(rawItem);
-        if (clean) candidates.push(clean);
+        if (clean) {
+          candidates.push({
+            ...clean,
+            explicitTikTokUpdate: Boolean(rawItem?.explicitTikTokUpdate),
+          });
+        }
       }
     }
     if (req.body?.user) {
       const clean = sanitizeRegisteredUserPayload(req.body.user);
-      if (clean) candidates.push(clean);
+      if (clean) {
+        candidates.push({
+          ...clean,
+          explicitTikTokUpdate: Boolean(
+            req.body?.explicitTikTokUpdate ?? req.body?.user?.explicitTikTokUpdate,
+          ),
+        });
+      }
     }
     if (candidates.length === 0) {
       res.status(400).json({ ok: false, error: "Valid user record required" });

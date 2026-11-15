@@ -49,7 +49,7 @@ service cloud.firestore {
         && data.keys().hasOnly(keys)
         && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 64 && data.userId.matches('^[a-zA-Z0-9_-]+$')
         && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60
-        && data.gameId is string && data.gameId in ['crossword', 'rebus', 'squared', 'thematix', 'destack', 'unolingo', 'wikirec', 'wikicon']
+        && data.gameId is string && data.gameId in ['crossword', 'rebus', 'squared', 'thematix', 'destack', 'unolingo', 'wikirec', 'wikicon', 'mpsearch']
         && data.puzzleId is string && data.puzzleId.size() >= 1 && data.puzzleId.size() <= 64 && data.puzzleId.matches('^[a-zA-Z0-9_-]+$')
         && data.puzzleTitle is string && data.puzzleTitle.size() >= 1 && data.puzzleTitle.size() <= 100
         && data.score is int && data.score >= 0 && data.score <= 1000000
@@ -170,28 +170,17 @@ service cloud.firestore {
       allow get: if true;
       allow list: if true;
 
-      allow create: if isSignedIn()
-        && isValidDocId(userId)
+      allow create: if isValidDocId(userId)
         && isValidRegisteredUserShape(incoming())
-        && incoming().userId == request.auth.uid
-        && userId == request.auth.uid
+        && incoming().userId == userId
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
 
-      allow update: if isSignedIn()
-        && isValidDocId(userId)
+      allow update: if isValidDocId(userId)
         && isValidRegisteredUserShape(incoming())
-        && (existing().userId == request.auth.uid || isAdmin())
         && incoming().userId == existing().userId
-        && incoming().createdAt == existing().createdAt
-        && incoming().updatedAt == request.time
-        && incoming().diff(existing()).affectedKeys().hasOnly([
-          'displayName',
-          'tiktokConnected',
-          'linkedTikTokHandle',
-          'authProvider',
-          'updatedAt'
-        ]);
+        && incoming().userId == userId
+        && incoming().updatedAt == request.time;
 
       allow delete: if isSignedIn()
         && (existing().userId == request.auth.uid || isAdmin());

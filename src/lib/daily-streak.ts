@@ -12,6 +12,8 @@ export type DailyStreakGameId =
   | 'squaredint'
   | 'wikirec'
   | 'wikicon'
+  | 'mpsearch'
+  | 'mpsearchint'
   | 'lexi'
   | 'crowdle';
 

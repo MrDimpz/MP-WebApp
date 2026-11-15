@@ -3,6 +3,7 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  KeyRound,
   Lock,
   LogOut,
   RefreshCw,
@@ -18,6 +19,7 @@ import {
   verifyInteractiveAdminLogin,
 } from '@/lib/interactive-key-auth';
 import {
+  normalizeTikTokHandle,
   useRegisteredUsersDirectory,
   type RegisteredUserRecord,
 } from '@/lib/unified-game-auth';
@@ -28,7 +30,17 @@ interface AdminPanelModalProps {
   onClose: () => void;
 }
 
-type ConnectionFilter = 'all' | 'connected' | 'not_connected';
+type DirectoryFilter =
+  | 'all'
+  | 'no_key'
+  | 'has_key'
+  | 'connected'
+  | 'not_connected';
+
+interface CombinedRegisteredUser extends RegisteredUserRecord {
+  streamKey: string | null;
+  streamKeyLabel?: string;
+}
 
 function formatRelativeDate(ts: number): string {
   if (!ts || !Number.isFinite(ts)) return 'Recently';
@@ -45,28 +57,85 @@ function formatRelativeDate(ts: number): string {
 
 export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boolean }) {
   const { users, loading, refresh } = useRegisteredUsersDirectory(enabled);
+  const { users: streamKeyUsers } = useInteractiveAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<ConnectionFilter>('all');
+  const [filter, setFilter] = useState<DirectoryFilter>('all');
+
+  const combinedUsers = useMemo<CombinedRegisteredUser[]>(() => {
+    const keyByHandle = new Map<string, { key: string; label?: string; createdAt: number }>();
+    for (const sk of streamKeyUsers) {
+      const cleanHandle = normalizeTikTokHandle(sk.username || sk.displayHandle);
+      if (cleanHandle) {
+        keyByHandle.set(cleanHandle, {
+          key: sk.key,
+          label: sk.label,
+          createdAt: sk.createdAt || Date.now(),
+        });
+      }
+    }
+
+    const matchedHandles = new Set<string>();
+    const result: CombinedRegisteredUser[] = users.map((u) => {
+      const cleanHandle = normalizeTikTokHandle(u.linkedTikTokHandle);
+      const matchedKey = cleanHandle ? keyByHandle.get(cleanHandle) : undefined;
+      if (cleanHandle && matchedKey) {
+        matchedHandles.add(cleanHandle);
+      }
+      return {
+        ...u,
+        streamKey: matchedKey?.key || null,
+        streamKeyLabel: matchedKey?.label,
+      };
+    });
+
+    // Also include any authorized stream key accounts that haven't yet been linked to a profile row
+    for (const sk of streamKeyUsers) {
+      const cleanHandle = normalizeTikTokHandle(sk.username || sk.displayHandle);
+      if (cleanHandle && !matchedHandles.has(cleanHandle)) {
+        matchedHandles.add(cleanHandle);
+        const ts = sk.createdAt || Date.now();
+        result.push({
+          uid: `streamkey_${sk.id || cleanHandle.replace(/^@+/, '')}`,
+          displayName: sk.label || sk.username || cleanHandle.replace(/^@+/, ''),
+          linkedTikTokHandle: cleanHandle,
+          tiktokConnected: true,
+          authProvider: 'site',
+          createdAt: ts,
+          updatedAt: ts,
+          streamKey: sk.key,
+          streamKeyLabel: sk.label,
+        });
+      }
+    }
+
+    return result.sort((a, b) => b.updatedAt - a.updatedAt);
+  }, [users, streamKeyUsers]);
 
   const stats = useMemo(() => {
-    const total = users.length;
-    const connected = users.filter((u) => u.tiktokConnected).length;
+    const total = combinedUsers.length;
+    const withoutKey = combinedUsers.filter((u) => !u.streamKey).length;
+    const withKey = combinedUsers.filter((u) => Boolean(u.streamKey)).length;
+    const connected = combinedUsers.filter((u) => u.tiktokConnected).length;
     const notConnected = total - connected;
-    return { total, connected, notConnected };
-  }, [users]);
+    return { total, withoutKey, withKey, connected, notConnected };
+  }, [combinedUsers]);
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return users.filter((user) => {
+    return combinedUsers.filter((user) => {
+      if (filter === 'no_key' && user.streamKey) return false;
+      if (filter === 'has_key' && !user.streamKey) return false;
       if (filter === 'connected' && !user.tiktokConnected) return false;
       if (filter === 'not_connected' && user.tiktokConnected) return false;
       if (!q) return true;
       return (
         user.displayName.toLowerCase().includes(q) ||
-        user.linkedTikTokHandle.toLowerCase().includes(q)
+        user.linkedTikTokHandle.toLowerCase().includes(q) ||
+        (user.streamKey && user.streamKey.toLowerCase().includes(q)) ||
+        user.authProvider.toLowerCase().includes(q)
       );
     });
-  }, [users, searchQuery, filter]);
+  }, [combinedUsers, searchQuery, filter]);
 
   const providerLabel = (provider: RegisteredUserRecord['authProvider']) => {
     if (provider === 'google') return 'Google · Firebase';
@@ -80,55 +149,71 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          gap: '0.65rem',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
+          gap: '0.6rem',
         }}
       >
         <div
           style={{
-            padding: '0.8rem 0.95rem',
+            padding: '0.75rem 0.9rem',
             borderRadius: '12px',
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         >
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Registered Users
+          <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            All Registered Users
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', marginTop: '0.15rem' }}>
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#ffffff', marginTop: '0.15rem' }}>
             {stats.total}
           </div>
         </div>
 
         <div
           style={{
-            padding: '0.8rem 0.95rem',
+            padding: '0.75rem 0.9rem',
             borderRadius: '12px',
-            backgroundColor: 'rgba(16, 185, 129, 0.08)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
+            backgroundColor: 'rgba(56, 189, 248, 0.08)',
+            border: '1px solid rgba(56, 189, 248, 0.28)',
           }}
         >
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            TikTok Connected
+          <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#7dd3fc', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            No Stream Key
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#34d399', marginTop: '0.15rem' }}>
-            {stats.connected}
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#38bdf8', marginTop: '0.15rem' }}>
+            {stats.withoutKey}
           </div>
         </div>
 
         <div
           style={{
-            padding: '0.8rem 0.95rem',
+            padding: '0.75rem 0.9rem',
             borderRadius: '12px',
-            backgroundColor: 'rgba(245, 158, 11, 0.07)',
-            border: '1px solid rgba(245, 158, 11, 0.28)',
+            backgroundColor: 'rgba(243, 179, 64, 0.08)',
+            border: '1px solid rgba(243, 179, 64, 0.28)',
           }}
         >
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#fcd34d', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Not Connected
+          <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#fcd34d', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            With Stream Key
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fbbf24', marginTop: '0.15rem' }}>
-            {stats.notConnected}
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f3b340', marginTop: '0.15rem' }}>
+            {stats.withKey}
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: '0.75rem 0.9rem',
+            borderRadius: '12px',
+            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+          }}
+        >
+          <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            TikTok Connected
+          </div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#34d399', marginTop: '0.15rem' }}>
+            {stats.connected}
           </div>
         </div>
       </div>
@@ -143,7 +228,7 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
           gap: '0.6rem',
         }}
       >
-        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '180px' }}>
+        <div style={{ position: 'relative', flex: '1 1 210px', minWidth: '170px' }}>
           <Search
             size={14}
             style={{
@@ -159,7 +244,7 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search display name or @tiktok..."
+            placeholder="Search display name, @tiktok, or stream key..."
             style={{
               width: '100%',
               padding: '0.55rem 0.8rem 0.55rem 2.15rem',
@@ -173,12 +258,14 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
           {(
             [
-              { id: 'all', label: `All (${stats.total})` },
-              { id: 'connected', label: `Connected (${stats.connected})` },
-              { id: 'not_connected', label: `Not Connected (${stats.notConnected})` },
+              { id: 'all', label: `All Users (${stats.total})` },
+              { id: 'no_key', label: `No Stream Key (${stats.withoutKey})` },
+              { id: 'has_key', label: `Has Stream Key (${stats.withKey})` },
+              { id: 'connected', label: `TikTok Linked (${stats.connected})` },
+              { id: 'not_connected', label: `No TikTok (${stats.notConnected})` },
             ] as const
           ).map((item) => {
             const active = filter === item.id;
@@ -188,7 +275,7 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
                 type="button"
                 onClick={() => setFilter(item.id)}
                 style={{
-                  padding: '0.45rem 0.72rem',
+                  padding: '0.42rem 0.65rem',
                   borderRadius: '8px',
                   border: active
                     ? '1px solid rgba(243, 179, 64, 0.55)'
@@ -197,7 +284,7 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
                     ? 'rgba(243, 179, 64, 0.16)'
                     : 'rgba(255,255,255,0.03)',
                   color: active ? '#f3b340' : '#cbd5e1',
-                  fontSize: '0.75rem',
+                  fontSize: '0.73rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                 }}
@@ -211,17 +298,17 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
             type="button"
             onClick={() => void refresh()}
             disabled={loading}
-            title="Refresh registered users list"
+            title="Refresh all registered users"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.35rem',
-              padding: '0.45rem 0.72rem',
+              padding: '0.42rem 0.68rem',
               borderRadius: '8px',
               border: '1px solid rgba(255,255,255,0.14)',
               backgroundColor: 'rgba(255,255,255,0.05)',
               color: '#e2e8f0',
-              fontSize: '0.75rem',
+              fontSize: '0.73rem',
               fontWeight: 700,
               cursor: loading ? 'wait' : 'pointer',
               opacity: loading ? 0.7 : 1,
@@ -233,7 +320,7 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* Users Directory List */}
       <div
         style={{
           borderRadius: '12px',
@@ -244,10 +331,10 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
       >
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(90px, 0.7fr)',
-            gap: '0.75rem',
-            padding: '0.65rem 0.95rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.6rem 0.95rem',
             borderBottom: '1px solid rgba(255,255,255,0.08)',
             backgroundColor: 'rgba(255,255,255,0.03)',
             fontSize: '0.68rem',
@@ -255,11 +342,12 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
             color: '#94a3b8',
+            gap: '0.5rem',
+            flexWrap: 'wrap',
           }}
         >
-          <span>Display Name</span>
-          <span>TikTok Account</span>
-          <span style={{ textAlign: 'right' }}>Joined</span>
+          <span>Registered User &amp; Account Type</span>
+          <span>TikTok &amp; Stream Key Status</span>
         </div>
 
         {filteredUsers.length === 0 ? (
@@ -271,48 +359,49 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
               fontSize: '0.84rem',
             }}
           >
-            {users.length === 0
+            {combinedUsers.length === 0
               ? 'No registered website users recorded yet. Users appear here automatically when they sign up, sign in, or link a TikTok account.'
               : 'No registered users match your current search or filter.'}
           </div>
         ) : (
-          <div style={{ maxHeight: '340px', overflowY: 'auto' }}>
+          <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
             {filteredUsers.map((user, idx) => {
               const initial = (user.displayName || 'P').charAt(0).toUpperCase();
               return (
                 <div
                   key={user.uid}
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(90px, 0.7fr)',
-                    gap: '0.75rem',
+                    display: 'flex',
+                    flexWrap: 'wrap',
                     alignItems: 'center',
-                    padding: '0.75rem 0.95rem',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    padding: '0.8rem 0.95rem',
                     borderBottom:
                       idx < filteredUsers.length - 1
                         ? '1px solid rgba(255,255,255,0.06)'
                         : 'none',
                   }}
                 >
-                  {/* Display Name + Provider */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                  {/* Display Name + Provider + Joined */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: '180px', flex: '1 1 200px' }}>
                     <div
                       style={{
-                        width: '32px',
-                        height: '32px',
+                        width: '34px',
+                        height: '34px',
                         borderRadius: '9px',
                         backgroundColor: user.tiktokConnected
                           ? 'rgba(16, 185, 129, 0.16)'
-                          : 'rgba(243, 179, 64, 0.14)',
+                          : 'rgba(56, 189, 248, 0.14)',
                         border: user.tiktokConnected
                           ? '1px solid rgba(16, 185, 129, 0.4)'
-                          : '1px solid rgba(243, 179, 64, 0.35)',
-                        color: user.tiktokConnected ? '#34d399' : '#f3b340',
+                          : '1px solid rgba(56, 189, 248, 0.35)',
+                        color: user.tiktokConnected ? '#34d399' : '#38bdf8',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontWeight: 800,
-                        fontSize: '0.82rem',
+                        fontSize: '0.84rem',
                         flexShrink: 0,
                       }}
                     >
@@ -321,7 +410,7 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
                     <div style={{ minWidth: 0 }}>
                       <div
                         style={{
-                          fontSize: '0.86rem',
+                          fontSize: '0.88rem',
                           fontWeight: 700,
                           color: '#ffffff',
                           whiteSpace: 'nowrap',
@@ -332,54 +421,46 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
                         {user.displayName}
                       </div>
                       <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-                        {providerLabel(user.authProvider)}
+                        {providerLabel(user.authProvider)} · Joined {formatRelativeDate(user.createdAt)}
                       </div>
                     </div>
                   </div>
 
-                  {/* TikTok Connection Status */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', minWidth: 0 }}>
+                  {/* Badges: TikTok Connection Status + Stream Key Status */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      flexWrap: 'wrap',
+                      justifyContent: 'flex-end',
+                    }}
+                  >
                     {user.tiktokConnected ? (
-                      <>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.3rem',
-                            padding: '0.24rem 0.55rem',
-                            borderRadius: '999px',
-                            backgroundColor: 'rgba(16, 185, 129, 0.16)',
-                            border: '1px solid rgba(16, 185, 129, 0.4)',
-                            color: '#34d399',
-                            fontSize: '0.72rem',
-                            fontWeight: 800,
-                          }}
-                        >
-                          <CheckCircle2 size={12} />
-                          Connected
-                        </span>
-                        {user.linkedTikTokHandle && (
-                          <span
-                            style={{
-                              fontSize: '0.76rem',
-                              fontWeight: 700,
-                              color: '#e2e8f0',
-                              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                          >
-                            {user.linkedTikTokHandle}
-                          </span>
-                        )}
-                      </>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.24rem 0.58rem',
+                          borderRadius: '999px',
+                          backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                          border: '1px solid rgba(16, 185, 129, 0.38)',
+                          color: '#34d399',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                        }}
+                      >
+                        <CheckCircle2 size={12} />
+                        {user.linkedTikTokHandle || 'Connected'}
+                      </span>
                     ) : (
                       <span
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '0.3rem',
-                          padding: '0.24rem 0.55rem',
+                          padding: '0.24rem 0.58rem',
                           borderRadius: '999px',
                           backgroundColor: 'rgba(148, 163, 184, 0.1)',
                           border: '1px solid rgba(148, 163, 184, 0.25)',
@@ -389,14 +470,47 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
                         }}
                       >
                         <XCircle size={12} />
-                        Not connected
+                        No TikTok Linked
                       </span>
                     )}
-                  </div>
 
-                  {/* Joined Date */}
-                  <div style={{ textAlign: 'right', fontSize: '0.73rem', color: '#94a3b8' }}>
-                    {formatRelativeDate(user.createdAt)}
+                    {user.streamKey ? (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.24rem 0.58rem',
+                          borderRadius: '999px',
+                          backgroundColor: 'rgba(243, 179, 64, 0.15)',
+                          border: '1px solid rgba(243, 179, 64, 0.42)',
+                          color: '#f3b340',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                        }}
+                      >
+                        <KeyRound size={11} />
+                        {user.streamKey}
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.24rem 0.58rem',
+                          borderRadius: '999px',
+                          backgroundColor: 'rgba(56, 189, 248, 0.11)',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          color: '#7dd3fc',
+                          fontSize: '0.71rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        Website Member · No Stream Key
+                      </span>
+                    )}
                   </div>
                 </div>
               );

@@ -36,6 +36,7 @@ export type SoloGameId =
   | "unolingo"
   | "wikirec"
   | "wikicon"
+  | "mpsearch"
   | "cruciverbalist"
   | "crossword";
 
@@ -45,7 +46,8 @@ export type InteractiveGameId =
   | "squaredint"
   | "lexi"
   | "destackint"
-  | "crowdle";
+  | "crowdle"
+  | "mpsearchint";
 
 export enum OperationType {
   CREATE = "create",
@@ -148,6 +150,7 @@ export const SOLO_GAME_LABELS: Record<
   unolingo: { title: "Unolingo", metric: "26-Letter Crossword Score" },
   wikirec: { title: "WiKirecTangled", metric: "Solo Article & Grid Score" },
   wikicon: { title: "WikiContexto", metric: "Solo Discovery Score" },
+  mpsearch: { title: "MP Search", metric: "Daily 10×10 Word Search Score" },
   cruciverbalist: {
     title: "Cruciverbalist Crossword",
     metric: "Crossword Rating",
@@ -165,6 +168,7 @@ export const INTERACTIVE_GAME_LABELS: Record<InteractiveGameId, string> = {
   lexi: "Lexi Tiles",
   destackint: "DeStack Interactive",
   crowdle: "Crowdle",
+  mpsearchint: "MP Search Interactive",
 };
 
 const LOCAL_LEADERBOARD_STORAGE_KEY = "mp_unified_solo_leaderboards_v1";
@@ -419,65 +423,106 @@ function toMillisSafe(val: unknown, fallback = Date.now()): number {
   return fallback;
 }
 
+const firebaseSyncQueue = new Map<string, Promise<void>>();
+let pendingRegistrationMeta: {
+  email: string;
+  displayName: string;
+  linkedTikTokHandle: string;
+} | null = null;
+
 export async function syncFirebaseRegisteredUser(
   record: RegisteredUserRecord,
   explicitTikTokUpdate = false,
 ): Promise<void> {
   if (typeof window === "undefined") return;
-  const fbUser = auth.currentUser;
-  if (!fbUser || fbUser.uid !== record.uid) return;
-  const uid = record.uid.trim();
+  const uid = String(record.uid || "").trim();
+  if (!uid || uid === "local-guest") return;
   if (!ID_REGEX.test(uid) || uid.length > MAX_ID_LENGTH) return;
 
-  const safeName = sanitizePublicIdentity(record.displayName, "Player").slice(0, 60);
-  const safeHandle = normalizeTikTokHandle(record.linkedTikTokHandle).slice(0, 40);
-  const safeProvider: "email" | "google" | "site" =
-    record.authProvider === "google" || record.authProvider === "email"
-      ? record.authProvider
-      : fbUser.providerData?.some((p) => p?.providerId === "google.com")
-        ? "google"
-        : "email";
+  const previousTask = firebaseSyncQueue.get(uid) || Promise.resolve();
+  const nextTask = previousTask
+    .catch(() => {})
+    .then(async () => {
+      const fbUser = auth.currentUser;
+      const safeName = sanitizePublicIdentity(record.displayName, "Player").slice(
+        0,
+        60,
+      );
+      const safeHandle = normalizeTikTokHandle(record.linkedTikTokHandle).slice(
+        0,
+        40,
+      );
+      const safeProvider: "email" | "google" | "site" =
+        record.authProvider === "google" ||
+        record.authProvider === "email" ||
+        record.authProvider === "site"
+          ? record.authProvider
+          : fbUser &&
+              fbUser.uid === uid &&
+              fbUser.providerData?.some((p) => p?.providerId === "google.com")
+            ? "google"
+            : uid.startsWith("google_")
+              ? "google"
+              : "email";
 
-  const docPath = `registeredUsers/${uid}`;
-  const docRef = doc(db, "registeredUsers", uid);
+      const docPath = `registeredUsers/${uid}`;
+      const docRef = doc(db, "registeredUsers", uid);
 
-  try {
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) {
-      await setDoc(docRef, {
-        userId: uid,
-        displayName: safeName,
-        tiktokConnected: Boolean(safeHandle),
-        linkedTikTokHandle: safeHandle,
-        authProvider: safeProvider,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    } else {
-      const existing = snap.data();
-      const prevHandle = normalizeTikTokHandle(existing?.linkedTikTokHandle);
-      const finalHandle = explicitTikTokUpdate
-        ? safeHandle
-        : safeHandle || prevHandle;
-      const shouldUpdate =
-        existing?.displayName !== safeName ||
-        existing?.linkedTikTokHandle !== finalHandle ||
-        existing?.tiktokConnected !== Boolean(finalHandle) ||
-        existing?.authProvider !== safeProvider;
+      try {
+        const snap = await getDoc(docRef);
+        if (!snap.exists()) {
+          await setDoc(docRef, {
+            userId: uid,
+            displayName: safeName,
+            tiktokConnected: Boolean(safeHandle),
+            linkedTikTokHandle: safeHandle,
+            authProvider: safeProvider,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          const existing = snap.data();
+          const prevHandle = normalizeTikTokHandle(existing?.linkedTikTokHandle);
+          const finalHandle = explicitTikTokUpdate
+            ? safeHandle
+            : safeHandle || prevHandle;
+          const prevName = sanitizePublicIdentity(existing?.displayName, "Player");
+          const isGenericIncoming =
+            safeName === "Player" || safeName === "Puzzle Seeker";
+          const finalName =
+            isGenericIncoming && prevName !== "Player" ? prevName : safeName;
+          const finalProvider: "email" | "google" | "site" =
+            safeProvider !== "site"
+              ? safeProvider
+              : existing?.authProvider === "google" ||
+                  existing?.authProvider === "email"
+                ? existing.authProvider
+                : "site";
 
-      if (shouldUpdate) {
-        await updateDoc(docRef, {
-          displayName: safeName,
-          tiktokConnected: Boolean(finalHandle),
-          linkedTikTokHandle: finalHandle,
-          authProvider: safeProvider,
-          updatedAt: serverTimestamp(),
-        });
+          const shouldUpdate =
+            existing?.displayName !== finalName ||
+            existing?.linkedTikTokHandle !== finalHandle ||
+            existing?.tiktokConnected !== Boolean(finalHandle) ||
+            existing?.authProvider !== finalProvider;
+
+          if (shouldUpdate) {
+            await updateDoc(docRef, {
+              userId: uid,
+              displayName: finalName,
+              tiktokConnected: Boolean(finalHandle),
+              linkedTikTokHandle: finalHandle,
+              authProvider: finalProvider,
+              updatedAt: serverTimestamp(),
+            });
+          }
+        }
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, docPath);
       }
-    }
-  } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, docPath);
-  }
+    });
+
+  firebaseSyncQueue.set(uid, nextTask);
+  return nextTask;
 }
 
 export function recordRegisteredUser(params: {
@@ -490,7 +535,7 @@ export function recordRegisteredUser(params: {
   syncRemote?: boolean;
 }): RegisteredUserRecord | null {
   const uid = String(params.uid || "").trim();
-  if (!uid) return null;
+  if (!uid || uid === "local-guest") return null;
 
   const map = readStoredDirectoryMap();
   const prev = map.get(uid);
@@ -504,10 +549,18 @@ export function recordRegisteredUser(params: {
           prev?.linkedTikTokHandle,
       );
 
-  const resolvedName = sanitizePublicIdentity(
-    params.displayName || prev?.displayName,
-    "Player",
-  );
+  const incomingCleanName = sanitizePublicIdentity(params.displayName, "Player");
+  const prevCleanName = prev?.displayName
+    ? sanitizePublicIdentity(prev.displayName, "Player")
+    : "";
+  const isIncomingGeneric =
+    !params.displayName ||
+    incomingCleanName === "Player" ||
+    incomingCleanName === "Puzzle Seeker";
+  const resolvedName =
+    isIncomingGeneric && prevCleanName && prevCleanName !== "Player"
+      ? prevCleanName
+      : incomingCleanName || prevCleanName || "Player";
 
   const record: RegisteredUserRecord = {
     uid,
@@ -517,7 +570,8 @@ export function recordRegisteredUser(params: {
     authProvider:
       params.authProvider && params.authProvider !== "site"
         ? params.authProvider
-        : prev?.authProvider || "site",
+        : prev?.authProvider ||
+          (uid.startsWith("google_") ? "google" : "site"),
     createdAt:
       prev?.createdAt ||
       (params.createdAt && params.createdAt > 0 ? params.createdAt : now),
@@ -534,7 +588,10 @@ export function recordRegisteredUser(params: {
     fetch("/api/registered-users/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user: record }),
+      body: JSON.stringify({
+        user: record,
+        explicitTikTokUpdate: Boolean(params.explicitTikTokUpdate),
+      }),
     }).catch(() => {});
     void syncFirebaseRegisteredUser(record, Boolean(params.explicitTikTokUpdate));
   }
@@ -885,7 +942,7 @@ export async function fetchRegisteredUsersDirectory(): Promise<
     const upsertCandidate = (rawItem: any) => {
       if (!rawItem || !rawItem.uid) return;
       const uid = String(rawItem.uid).trim();
-      if (!uid) return;
+      if (!uid || uid === "local-guest") return;
       const prev = merged.get(uid);
       const handle =
         normalizeTikTokHandle(rawItem.linkedTikTokHandle) ||
@@ -899,20 +956,29 @@ export async function fetchRegisteredUsersDirectory(): Promise<
         prev?.updatedAt || 0,
         Number(rawItem.updatedAt) || Date.now(),
       );
+      const incomingName = sanitizePublicIdentity(rawItem.displayName, "Player");
+      const prevName = prev?.displayName
+        ? sanitizePublicIdentity(prev.displayName, "Player")
+        : "";
+      const isIncomingGeneric =
+        incomingName === "Player" || incomingName === "Puzzle Seeker";
+      const chosenName =
+        isIncomingGeneric && prevName && prevName !== "Player"
+          ? prevName
+          : (Number(rawItem.updatedAt) || 0) >= (prev?.updatedAt || 0)
+            ? incomingName || prevName || "Player"
+            : prevName || incomingName || "Player";
+
       const candidate: RegisteredUserRecord = {
         uid,
-        displayName: sanitizePublicIdentity(
-          (Number(rawItem.updatedAt) || 0) >= (prev?.updatedAt || 0)
-            ? rawItem.displayName || prev?.displayName
-            : prev?.displayName || rawItem.displayName,
-          "Player",
-        ),
+        displayName: chosenName,
         linkedTikTokHandle: handle,
         tiktokConnected: Boolean(handle),
         authProvider:
           rawItem.authProvider === "google" || rawItem.authProvider === "email"
             ? rawItem.authProvider
-            : prev?.authProvider || "site",
+            : prev?.authProvider ||
+              (uid.startsWith("google_") ? "google" : "site"),
         createdAt:
           createdAt === Number.MAX_SAFE_INTEGER ? Date.now() : createdAt,
         updatedAt,
@@ -936,12 +1002,15 @@ export async function fetchRegisteredUsersDirectory(): Promise<
         REGISTERED_USERS_DIRECTORY_KEY,
         JSON.stringify(sorted),
       );
-      // Sync newly discovered local/Firestore records back to server directory
+      // Sync newly discovered local/Firestore records back to server directory and Firestore
       fetch("/api/registered-users/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ users: sorted }),
       }).catch(() => {});
+      for (const item of localList) {
+        void syncFirebaseRegisteredUser(item, false);
+      }
     }
 
     return sorted;
@@ -1189,6 +1258,7 @@ export function creditInteractiveScoreByTikTokHandle(params: {
       lexi: 0,
       destackint: 0,
       crowdle: 0,
+      mpsearchint: 0,
     },
     recentEvents: [],
     updatedAt: Date.now(),
@@ -1300,11 +1370,23 @@ function setActiveSiteSession(session: UnifiedPlayerUser | null) {
 }
 
 function toUnifiedUserFromFirebase(fbUser: User): UnifiedPlayerUser {
+  const emailLower = (fbUser.email || "").trim().toLowerCase();
+  const pendingMatch =
+    pendingRegistrationMeta &&
+    emailLower &&
+    pendingRegistrationMeta.email === emailLower
+      ? pendingRegistrationMeta
+      : null;
   const safeName = sanitizePublicIdentity(
-    fbUser.displayName || fbUser.email?.split("@")[0],
+    fbUser.displayName ||
+      pendingMatch?.displayName ||
+      fbUser.email?.split("@")[0],
     "Player",
   );
-  const linkedTikTok = getLinkedTikTokHandle(fbUser.uid);
+  const linkedTikTok =
+    getLinkedTikTokHandle(fbUser.uid) ||
+    pendingMatch?.linkedTikTokHandle ||
+    "";
   return {
     uid: fbUser.uid,
     displayName: safeName,
@@ -1479,16 +1561,21 @@ export async function registerWithEmailPassword(
   }
 
   try {
+    pendingRegistrationMeta = {
+      email: cleanEmail,
+      displayName: cleanName,
+      linkedTikTokHandle: cleanTikTok,
+    };
     const cred = await createUserWithEmailAndPassword(
       auth,
       cleanEmail,
       params.password,
     );
-    if (cleanName) {
-      await updateProfile(cred.user, { displayName: cleanName });
-    }
     if (cleanTikTok) {
       setLinkedTikTokHandle(cred.user.uid, cleanName, cleanTikTok);
+    }
+    if (cleanName) {
+      await updateProfile(cred.user, { displayName: cleanName });
     }
     const unified: UnifiedPlayerUser = {
       uid: cred.user.uid,
@@ -1504,8 +1591,10 @@ export async function registerWithEmailPassword(
       linkedTikTokHandle: unified.linkedTikTokHandle,
       authProvider: "email",
     });
+    pendingRegistrationMeta = null;
     return unified;
   } catch (err: unknown) {
+    pendingRegistrationMeta = null;
     const code = (err as { code?: string })?.code || "";
     if (code === "auth/email-already-in-use") {
       throw new Error(
@@ -1669,9 +1758,30 @@ export function useUnifiedAuth() {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Proactively sync any locally stored registered users to server and Firestore
+    const existingLocalUsers = getRegisteredUsersDirectory();
+    if (existingLocalUsers.length > 0) {
+      fetch("/api/registered-users/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ users: existingLocalUsers }),
+      }).catch(() => {});
+      for (const item of existingLocalUsers) {
+        void syncFirebaseRegisteredUser(item, false);
+      }
+    }
+
     const syncLocalSession = () => {
       const localSession = getActiveSiteSession();
       if (localSession) {
+        recordRegisteredUser({
+          uid: localSession.uid,
+          displayName: localSession.displayName,
+          linkedTikTokHandle: localSession.linkedTikTokHandle,
+          authProvider: localSession.uid.startsWith("google_")
+            ? "google"
+            : "email",
+        });
         setUser(localSession);
       } else if (auth.currentUser) {
         setUser(toUnifiedUserFromFirebase(auth.currentUser));
@@ -1695,7 +1805,18 @@ export function useUnifiedAuth() {
         });
         setUser(unified);
       } else {
-        setUser(getActiveSiteSession());
+        const localSession = getActiveSiteSession();
+        if (localSession) {
+          recordRegisteredUser({
+            uid: localSession.uid,
+            displayName: localSession.displayName,
+            linkedTikTokHandle: localSession.linkedTikTokHandle,
+            authProvider: localSession.uid.startsWith("google_")
+              ? "google"
+              : "email",
+          });
+        }
+        setUser(localSession);
       }
       setLoading(false);
     });
@@ -1842,6 +1963,7 @@ export function subscribeToAllLeaderboards(
       unolingo: [],
       wikirec: [],
       wikicon: [],
+      mpsearch: [],
       cruciverbalist: [],
       crossword: [],
     };

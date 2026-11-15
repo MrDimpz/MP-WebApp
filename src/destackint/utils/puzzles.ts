@@ -608,12 +608,18 @@ export function generateDailyPuzzle(
   const words = finalChosenWordBankIndices.map(idx => WORD_BANK[idx].word);
   const hints = finalChosenWordBankIndices.map(idx => WORD_BANK[idx].hint);
 
-  const maxAbsCoord = pattern.reduce(
-    (acc, s) => Math.max(acc, Math.abs(s.gridX), Math.abs(s.gridY)),
+  const maxAbsX = pattern.reduce(
+    (acc, s) => Math.max(acc, Math.abs(s.gridX)),
     2.0
   );
-  const targetHalfSpanPct = difficulty === 'hard' ? 39.0 : 37.0;
-  const stepPct = targetHalfSpanPct / maxAbsCoord;
+  const maxAbsY = pattern.reduce(
+    (acc, s) => Math.max(acc, Math.abs(s.gridY)),
+    2.0
+  );
+  const targetHalfSpanX = difficulty === 'hard' ? 42.0 : 39.5;
+  const targetHalfSpanY = difficulty === 'hard' ? 39.0 : 36.5;
+  const stepPctX = targetHalfSpanX / maxAbsX;
+  const stepPctY = targetHalfSpanY / maxAbsY;
 
   const tiles: TileData[] = pattern.map((slot, idx) => {
     const id = `tile-${dateStr}-${difficulty}-${idx}`;
@@ -621,8 +627,8 @@ export function generateDailyPuzzle(
     return {
       id,
       letter: finalAssignedSlotLetters![idx],
-      x: 50 + slot.gridX * stepPct,
-      y: 56 + slot.gridY * (stepPct * 0.78),
+      x: 50 + slot.gridX * stepPctX,
+      y: 54 + slot.gridY * stepPctY,
       layer: slot.layer,
       coveredBy,
       isExposed: coveredBy.length === 0,
@@ -686,294 +692,296 @@ export function get6MonthsPuzzleDates(): Array<{ dateStr: string; dayIndex: numb
 
 // =========================================================================
 // 5 DISTINCT MULTI-LAYER TILE LAYOUTS FOR NORMAL MODE (4 Layers, 30 Tiles)
+// Every layout uses disjoint integer coords on even layers (0, 2) and
+// disjoint half-integer coords on odd layers (1, 3) so all 30 tiles have
+// unique positions and only overlap diagonally at corners (>=95% letter visibility).
 // =========================================================================
 
 // 1. Classic Diamond (pyramid)
 export const PATTERN_NORMAL_PYRAMID: PatternSlot[] = [
-  // Layer 0 (10 tiles)
-  { gridX: -1.0, gridY: -2.0, layer: 0 }, { gridX: 1.0, gridY: -2.0, layer: 0 },
-  { gridX: -2.0, gridY: -1.0, layer: 0 }, { gridX: -2.0, gridY: 0.0, layer: 0 },
-  { gridX: -2.0, gridY: 1.0, layer: 0 },  { gridX: 2.0, gridY: -1.0, layer: 0 },
-  { gridX: 2.0, gridY: 0.0, layer: 0 },   { gridX: 2.0, gridY: 1.0, layer: 0 },
-  { gridX: -1.0, gridY: 2.0, layer: 0 },  { gridX: 1.0, gridY: 2.0, layer: 0 },
-  // Layer 1 (8 tiles)
-  { gridX: -0.5, gridY: -1.5, layer: 1 }, { gridX: 0.5, gridY: -1.5, layer: 1 },
-  { gridX: -1.5, gridY: -0.5, layer: 1 }, { gridX: -1.5, gridY: 0.5, layer: 1 },
-  { gridX: 1.5, gridY: -0.5, layer: 1 },  { gridX: 1.5, gridY: 0.5, layer: 1 },
-  { gridX: -0.5, gridY: 1.5, layer: 1 },  { gridX: 0.5, gridY: 1.5, layer: 1 },
-  // Layer 2 (8 tiles)
-  { gridX: -1.0, gridY: -1.0, layer: 2 }, { gridX: 0.0, gridY: -1.0, layer: 2 },
-  { gridX: 1.0, gridY: -1.0, layer: 2 },  { gridX: -1.0, gridY: 0.0, layer: 2 },
-  { gridX: 1.0, gridY: 0.0, layer: 2 },   { gridX: -1.0, gridY: 1.0, layer: 2 },
-  { gridX: 0.0, gridY: 1.0, layer: 2 },   { gridX: 1.0, gridY: 1.0, layer: 2 },
-  // Layer 3 (4 tiles)
-  { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX: 0.5, gridY: -0.5, layer: 3 },
-  { gridX: -0.5, gridY: 0.5, layer: 3 },  { gridX: 0.5, gridY: 0.5, layer: 3 },
+  // Layer 0 (10 tiles - integer)
+  { gridX: -1.0, gridY: -2.0, layer: 0 }, { gridX:  1.0, gridY: -2.0, layer: 0 },
+  { gridX: -2.0, gridY: -1.0, layer: 0 }, { gridX: -2.0, gridY:  0.0, layer: 0 },
+  { gridX: -2.0, gridY:  1.0, layer: 0 }, { gridX:  2.0, gridY: -1.0, layer: 0 },
+  { gridX:  2.0, gridY:  0.0, layer: 0 }, { gridX:  2.0, gridY:  1.0, layer: 0 },
+  { gridX: -1.0, gridY:  2.0, layer: 0 }, { gridX:  1.0, gridY:  2.0, layer: 0 },
+  // Layer 1 (8 tiles - half-integer)
+  { gridX: -0.5, gridY: -1.5, layer: 1 }, { gridX:  0.5, gridY: -1.5, layer: 1 },
+  { gridX: -1.5, gridY: -0.5, layer: 1 }, { gridX: -1.5, gridY:  0.5, layer: 1 },
+  { gridX:  1.5, gridY: -0.5, layer: 1 }, { gridX:  1.5, gridY:  0.5, layer: 1 },
+  { gridX: -0.5, gridY:  1.5, layer: 1 }, { gridX:  0.5, gridY:  1.5, layer: 1 },
+  // Layer 2 (8 tiles - integer)
+  { gridX: -1.0, gridY: -1.0, layer: 2 }, { gridX:  0.0, gridY: -1.0, layer: 2 },
+  { gridX:  1.0, gridY: -1.0, layer: 2 }, { gridX: -1.0, gridY:  0.0, layer: 2 },
+  { gridX:  1.0, gridY:  0.0, layer: 2 }, { gridX: -1.0, gridY:  1.0, layer: 2 },
+  { gridX:  0.0, gridY:  1.0, layer: 2 }, { gridX:  1.0, gridY:  1.0, layer: 2 },
+  // Layer 3 (4 tiles - half-integer)
+  { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -0.5, layer: 3 },
+  { gridX: -0.5, gridY:  0.5, layer: 3 }, { gridX:  0.5, gridY:  0.5, layer: 3 },
 ];
 
 // 2. Twin Towers (twin_towers)
 export const PATTERN_NORMAL_TOWERS: PatternSlot[] = [
-  // Layer 0 (10 tiles: 5 left, 5 right)
-  { gridX: -2.0, gridY: -1.5, layer: 0 }, { gridX: -1.0, gridY: -1.5, layer: 0 },
-  { gridX: -2.0, gridY:  0.0, layer: 0 }, { gridX: -2.0, gridY:  1.5, layer: 0 }, { gridX: -1.0, gridY:  1.5, layer: 0 },
-  { gridX:  1.0, gridY: -1.5, layer: 0 }, { gridX:  2.0, gridY: -1.5, layer: 0 },
-  { gridX:  2.0, gridY:  0.0, layer: 0 }, { gridX:  1.0, gridY:  1.5, layer: 0 }, { gridX:  2.0, gridY:  1.5, layer: 0 },
-  // Layer 1 (8 tiles: 4 left, 4 right)
-  { gridX: -1.5, gridY: -1.0, layer: 1 }, { gridX: -1.5, gridY: -0.5, layer: 1 },
-  { gridX: -1.5, gridY:  0.5, layer: 1 }, { gridX: -1.5, gridY:  1.0, layer: 1 },
-  { gridX:  1.5, gridY: -1.0, layer: 1 }, { gridX:  1.5, gridY: -0.5, layer: 1 },
-  { gridX:  1.5, gridY:  0.5, layer: 1 }, { gridX:  1.5, gridY:  1.0, layer: 1 },
-  // Layer 2 (8 tiles: 4 left, 4 right)
-  { gridX: -2.0, gridY: -0.5, layer: 2 }, { gridX: -1.0, gridY: -0.5, layer: 2 },
-  { gridX: -2.0, gridY:  0.5, layer: 2 }, { gridX: -1.0, gridY:  0.5, layer: 2 },
-  { gridX:  1.0, gridY: -0.5, layer: 2 }, { gridX:  2.0, gridY: -0.5, layer: 2 },
-  { gridX:  1.0, gridY:  0.5, layer: 2 }, { gridX:  2.0, gridY:  0.5, layer: 2 },
-  // Layer 3 (Top - 4 tiles: 2 left, 2 right)
+  // Layer 0 (10 tiles: 5 left, 5 right - integer)
+  { gridX: -2.0, gridY: -2.0, layer: 0 }, { gridX: -1.0, gridY: -2.0, layer: 0 },
+  { gridX: -2.0, gridY:  0.0, layer: 0 }, { gridX: -2.0, gridY:  2.0, layer: 0 }, { gridX: -1.0, gridY:  2.0, layer: 0 },
+  { gridX:  1.0, gridY: -2.0, layer: 0 }, { gridX:  2.0, gridY: -2.0, layer: 0 },
+  { gridX:  2.0, gridY:  0.0, layer: 0 }, { gridX:  1.0, gridY:  2.0, layer: 0 }, { gridX:  2.0, gridY:  2.0, layer: 0 },
+  // Layer 1 (8 tiles: 4 left, 4 right - half-integer)
+  { gridX: -2.5, gridY: -1.5, layer: 1 }, { gridX: -0.5, gridY: -1.5, layer: 1 },
+  { gridX: -2.5, gridY:  1.5, layer: 1 }, { gridX: -0.5, gridY:  1.5, layer: 1 },
+  { gridX:  0.5, gridY: -1.5, layer: 1 }, { gridX:  2.5, gridY: -1.5, layer: 1 },
+  { gridX:  0.5, gridY:  1.5, layer: 1 }, { gridX:  2.5, gridY:  1.5, layer: 1 },
+  // Layer 2 (8 tiles: 4 left, 4 right - integer)
+  { gridX: -2.0, gridY: -1.0, layer: 2 }, { gridX: -1.0, gridY: -1.0, layer: 2 },
+  { gridX: -2.0, gridY:  1.0, layer: 2 }, { gridX: -1.0, gridY:  1.0, layer: 2 },
+  { gridX:  1.0, gridY: -1.0, layer: 2 }, { gridX:  2.0, gridY: -1.0, layer: 2 },
+  { gridX:  1.0, gridY:  1.0, layer: 2 }, { gridX:  2.0, gridY:  1.0, layer: 2 },
+  // Layer 3 (Top - 4 tiles: 2 left, 2 right - half-integer)
   { gridX: -1.5, gridY: -0.5, layer: 3 }, { gridX: -1.5, gridY:  0.5, layer: 3 },
   { gridX:  1.5, gridY: -0.5, layer: 3 }, { gridX:  1.5, gridY:  0.5, layer: 3 },
 ];
 
 // 3. Cross Fortress (cross_fortress)
 export const PATTERN_NORMAL_FORTRESS: PatternSlot[] = [
-  // Layer 0 (12 tiles)
-  { gridX: -0.5, gridY: -2.0, layer: 0 }, { gridX:  0.5, gridY: -2.0, layer: 0 },
-  { gridX: -0.5, gridY:  2.0, layer: 0 }, { gridX:  0.5, gridY:  2.0, layer: 0 },
-  { gridX: -2.0, gridY: -0.5, layer: 0 }, { gridX: -2.0, gridY:  0.5, layer: 0 },
-  { gridX:  2.0, gridY: -0.5, layer: 0 }, { gridX:  2.0, gridY:  0.5, layer: 0 },
-  { gridX: -1.0, gridY: -1.0, layer: 0 }, { gridX:  1.0, gridY: -1.0, layer: 0 },
-  { gridX: -1.0, gridY:  1.0, layer: 0 }, { gridX:  1.0, gridY:  1.0, layer: 0 },
-  // Layer 1 (8 tiles)
-  { gridX:  0.0, gridY: -1.5, layer: 1 }, { gridX:  0.0, gridY:  1.5, layer: 1 },
-  { gridX: -1.5, gridY:  0.0, layer: 1 }, { gridX:  1.5, gridY:  0.0, layer: 1 },
-  { gridX: -0.5, gridY: -0.5, layer: 1 }, { gridX:  0.5, gridY: -0.5, layer: 1 },
-  { gridX: -0.5, gridY:  0.5, layer: 1 }, { gridX:  0.5, gridY:  0.5, layer: 1 },
-  // Layer 2 (6 tiles)
-  { gridX: -0.5, gridY: -1.0, layer: 2 }, { gridX:  0.5, gridY: -1.0, layer: 2 },
+  // Layer 0 (12 tiles - integer outer bastions)
+  { gridX: -1.0, gridY: -2.0, layer: 0 }, { gridX:  0.0, gridY: -2.0, layer: 0 }, { gridX:  1.0, gridY: -2.0, layer: 0 },
+  { gridX: -1.0, gridY:  2.0, layer: 0 }, { gridX:  0.0, gridY:  2.0, layer: 0 }, { gridX:  1.0, gridY:  2.0, layer: 0 },
+  { gridX: -2.0, gridY: -1.0, layer: 0 }, { gridX: -2.0, gridY:  0.0, layer: 0 }, { gridX: -2.0, gridY:  1.0, layer: 0 },
+  { gridX:  2.0, gridY: -1.0, layer: 0 }, { gridX:  2.0, gridY:  0.0, layer: 0 }, { gridX:  2.0, gridY:  1.0, layer: 0 },
+  // Layer 1 (8 tiles - half-integer cross wings)
+  { gridX: -0.5, gridY: -1.5, layer: 1 }, { gridX:  0.5, gridY: -1.5, layer: 1 },
+  { gridX: -0.5, gridY:  1.5, layer: 1 }, { gridX:  0.5, gridY:  1.5, layer: 1 },
+  { gridX: -1.5, gridY: -0.5, layer: 1 }, { gridX: -1.5, gridY:  0.5, layer: 1 },
+  { gridX:  1.5, gridY: -0.5, layer: 1 }, { gridX:  1.5, gridY:  0.5, layer: 1 },
+  // Layer 2 (6 tiles - integer inner citadel)
+  { gridX: -1.0, gridY: -1.0, layer: 2 }, { gridX:  1.0, gridY: -1.0, layer: 2 },
   { gridX: -1.0, gridY:  0.0, layer: 2 }, { gridX:  1.0, gridY:  0.0, layer: 2 },
-  { gridX: -0.5, gridY:  1.0, layer: 2 }, { gridX:  0.5, gridY:  1.0, layer: 2 },
-  // Layer 3 (Top - 4 tiles)
+  { gridX: -1.0, gridY:  1.0, layer: 2 }, { gridX:  1.0, gridY:  1.0, layer: 2 },
+  // Layer 3 (Top - 4 tiles - half-integer central keep)
   { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -0.5, layer: 3 },
   { gridX: -0.5, gridY:  0.5, layer: 3 }, { gridX:  0.5, gridY:  0.5, layer: 3 },
 ];
 
 // 4. Hourglass (hourglass)
 export const PATTERN_NORMAL_HOURGLASS: PatternSlot[] = [
-  // Layer 0 (10 tiles wide top/bottom)
-  { gridX: -2.0, gridY: -1.5, layer: 0 }, { gridX: -1.0, gridY: -1.5, layer: 0 },
-  { gridX:  0.0, gridY: -1.5, layer: 0 }, { gridX:  1.0, gridY: -1.5, layer: 0 },
-  { gridX:  2.0, gridY: -1.5, layer: 0 }, { gridX: -2.0, gridY:  1.5, layer: 0 },
-  { gridX: -1.0, gridY:  1.5, layer: 0 }, { gridX:  0.0, gridY:  1.5, layer: 0 },
-  { gridX:  1.0, gridY:  1.5, layer: 0 }, { gridX:  2.0, gridY:  1.5, layer: 0 },
-  // Layer 1 (8 tiles tapering)
-  { gridX: -1.5, gridY: -1.0, layer: 1 }, { gridX: -0.5, gridY: -1.0, layer: 1 },
-  { gridX:  0.5, gridY: -1.0, layer: 1 }, { gridX:  1.5, gridY: -1.0, layer: 1 },
-  { gridX: -1.5, gridY:  1.0, layer: 1 }, { gridX: -0.5, gridY:  1.0, layer: 1 },
-  { gridX:  0.5, gridY:  1.0, layer: 1 }, { gridX:  1.5, gridY:  1.0, layer: 1 },
-  // Layer 2 (8 tiles waist)
-  { gridX: -1.0, gridY: -0.5, layer: 2 }, { gridX:  0.0, gridY: -0.5, layer: 2 },
-  { gridX:  1.0, gridY: -0.5, layer: 2 }, { gridX: -0.5, gridY:  0.0, layer: 2 },
-  { gridX:  0.5, gridY:  0.0, layer: 2 }, { gridX: -1.0, gridY:  0.5, layer: 2 },
-  { gridX:  0.0, gridY:  0.5, layer: 2 }, { gridX:  1.0, gridY:  0.5, layer: 2 },
-  // Layer 3 (4 tiles center waist)
+  // Layer 0 (10 tiles wide top/bottom - integer)
+  { gridX: -2.0, gridY: -2.0, layer: 0 }, { gridX: -1.0, gridY: -2.0, layer: 0 },
+  { gridX:  0.0, gridY: -2.0, layer: 0 }, { gridX:  1.0, gridY: -2.0, layer: 0 },
+  { gridX:  2.0, gridY: -2.0, layer: 0 }, { gridX: -2.0, gridY:  2.0, layer: 0 },
+  { gridX: -1.0, gridY:  2.0, layer: 0 }, { gridX:  0.0, gridY:  2.0, layer: 0 },
+  { gridX:  1.0, gridY:  2.0, layer: 0 }, { gridX:  2.0, gridY:  2.0, layer: 0 },
+  // Layer 1 (8 tiles tapering - half-integer)
+  { gridX: -1.5, gridY: -1.5, layer: 1 }, { gridX: -0.5, gridY: -1.5, layer: 1 },
+  { gridX:  0.5, gridY: -1.5, layer: 1 }, { gridX:  1.5, gridY: -1.5, layer: 1 },
+  { gridX: -1.5, gridY:  1.5, layer: 1 }, { gridX: -0.5, gridY:  1.5, layer: 1 },
+  { gridX:  0.5, gridY:  1.5, layer: 1 }, { gridX:  1.5, gridY:  1.5, layer: 1 },
+  // Layer 2 (8 tiles waist & collar - integer)
+  { gridX: -1.0, gridY: -1.0, layer: 2 }, { gridX:  0.0, gridY: -1.0, layer: 2 },
+  { gridX:  1.0, gridY: -1.0, layer: 2 }, { gridX: -1.0, gridY:  0.0, layer: 2 },
+  { gridX:  1.0, gridY:  0.0, layer: 2 }, { gridX: -1.0, gridY:  1.0, layer: 2 },
+  { gridX:  0.0, gridY:  1.0, layer: 2 }, { gridX:  1.0, gridY:  1.0, layer: 2 },
+  // Layer 3 (4 tiles center waist - half-integer)
   { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -0.5, layer: 3 },
   { gridX: -0.5, gridY:  0.5, layer: 3 }, { gridX:  0.5, gridY:  0.5, layer: 3 },
 ];
 
 // 5. Diagonal Cascade (staircase)
 export const PATTERN_NORMAL_STAIRCASE: PatternSlot[] = [
-  // Layer 0 (12 tiles)
+  // Layer 0 (12 tiles - integer)
   { gridX: -2.0, gridY: -2.0, layer: 0 }, { gridX: -1.0, gridY: -2.0, layer: 0 },
   { gridX:  0.0, gridY: -2.0, layer: 0 }, { gridX: -2.0, gridY: -1.0, layer: 0 },
   { gridX: -2.0, gridY:  0.0, layer: 0 }, { gridX:  2.0, gridY:  0.0, layer: 0 },
   { gridX:  2.0, gridY:  1.0, layer: 0 }, { gridX:  0.0, gridY:  2.0, layer: 0 },
   { gridX:  1.0, gridY:  2.0, layer: 0 }, { gridX:  2.0, gridY:  2.0, layer: 0 },
   { gridX: -1.0, gridY:  1.0, layer: 0 }, { gridX:  1.0, gridY: -1.0, layer: 0 },
-  // Layer 1 (8 tiles)
+  // Layer 1 (8 tiles - half-integer)
   { gridX: -1.5, gridY: -1.5, layer: 1 }, { gridX: -0.5, gridY: -1.5, layer: 1 },
-  { gridX: -1.5, gridY: -0.5, layer: 1 }, { gridX:  0.5, gridY: -0.5, layer: 1 },
-  { gridX: -0.5, gridY:  0.5, layer: 1 }, { gridX:  1.5, gridY:  0.5, layer: 1 },
+  { gridX: -1.5, gridY: -0.5, layer: 1 }, { gridX:  0.5, gridY: -1.5, layer: 1 },
+  { gridX: -0.5, gridY:  1.5, layer: 1 }, { gridX:  1.5, gridY:  0.5, layer: 1 },
   { gridX:  0.5, gridY:  1.5, layer: 1 }, { gridX:  1.5, gridY:  1.5, layer: 1 },
-  // Layer 2 (6 tiles)
+  // Layer 2 (6 tiles - integer)
   { gridX: -1.0, gridY: -1.0, layer: 2 }, { gridX:  0.0, gridY: -1.0, layer: 2 },
   { gridX: -1.0, gridY:  0.0, layer: 2 }, { gridX:  1.0, gridY:  0.0, layer: 2 },
   { gridX:  0.0, gridY:  1.0, layer: 2 }, { gridX:  1.0, gridY:  1.0, layer: 2 },
-  // Layer 3 (Top - 4 tiles core)
+  // Layer 3 (Top - 4 tiles core - half-integer)
   { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -0.5, layer: 3 },
   { gridX: -0.5, gridY:  0.5, layer: 3 }, { gridX:  0.5, gridY:  0.5, layer: 3 },
 ];
 
 // =========================================================================
 // 5 DISTINCT MULTI-LAYER TILE LAYOUTS FOR HARD MODE (6 Layers, 50 Tiles)
+// Every layout uses disjoint integer coords on even layers (0, 2, 4) and
+// disjoint half-integer coords on odd layers (1, 3, 5) so all 50 tiles have
+// unique positions and only overlap diagonally at corners (>=95% letter visibility).
 // =========================================================================
 
 // 1. Classic Diamond (pyramid) Hard
 export const PATTERN_HARD_PYRAMID: PatternSlot[] = [
-  // Layer 0 (8 tiles)
+  // Layer 0 (8 tiles - integer)
   { gridX:  0.0, gridY: -3.0, layer: 0 }, { gridX: -2.0, gridY: -2.0, layer: 0 },
   { gridX:  2.0, gridY: -2.0, layer: 0 }, { gridX: -3.0, gridY:  0.0, layer: 0 },
   { gridX:  3.0, gridY:  0.0, layer: 0 }, { gridX: -2.0, gridY:  2.0, layer: 0 },
   { gridX:  2.0, gridY:  2.0, layer: 0 }, { gridX:  0.0, gridY:  3.0, layer: 0 },
-  // Layer 1 (12 tiles)
+  // Layer 1 (12 tiles - half-integer)
   { gridX: -1.5, gridY: -2.5, layer: 1 }, { gridX: -0.5, gridY: -2.5, layer: 1 },
   { gridX:  0.5, gridY: -2.5, layer: 1 }, { gridX:  1.5, gridY: -2.5, layer: 1 },
   { gridX: -2.5, gridY: -0.5, layer: 1 }, { gridX: -2.5, gridY:  0.5, layer: 1 },
   { gridX:  2.5, gridY: -0.5, layer: 1 }, { gridX:  2.5, gridY:  0.5, layer: 1 },
   { gridX: -1.5, gridY:  2.5, layer: 1 }, { gridX: -0.5, gridY:  2.5, layer: 1 },
   { gridX:  0.5, gridY:  2.5, layer: 1 }, { gridX:  1.5, gridY:  2.5, layer: 1 },
-  // Layer 2 (10 tiles)
+  // Layer 2 (10 tiles - integer)
   { gridX: -1.0, gridY: -2.0, layer: 2 }, { gridX:  1.0, gridY: -2.0, layer: 2 },
   { gridX: -2.0, gridY: -1.0, layer: 2 }, { gridX: -2.0, gridY:  0.0, layer: 2 },
   { gridX: -2.0, gridY:  1.0, layer: 2 }, { gridX:  2.0, gridY: -1.0, layer: 2 },
   { gridX:  2.0, gridY:  0.0, layer: 2 }, { gridX:  2.0, gridY:  1.0, layer: 2 },
   { gridX: -1.0, gridY:  2.0, layer: 2 }, { gridX:  1.0, gridY:  2.0, layer: 2 },
-  // Layer 3 (8 tiles)
+  // Layer 3 (8 tiles - half-integer)
   { gridX: -0.5, gridY: -1.5, layer: 3 }, { gridX:  0.5, gridY: -1.5, layer: 3 },
   { gridX: -1.5, gridY: -0.5, layer: 3 }, { gridX: -1.5, gridY:  0.5, layer: 3 },
   { gridX:  1.5, gridY: -0.5, layer: 3 }, { gridX:  1.5, gridY:  0.5, layer: 3 },
   { gridX: -0.5, gridY:  1.5, layer: 3 }, { gridX:  0.5, gridY:  1.5, layer: 3 },
-  // Layer 4 (8 tiles)
+  // Layer 4 (8 tiles - integer)
   { gridX: -1.0, gridY: -1.0, layer: 4 }, { gridX:  0.0, gridY: -1.0, layer: 4 },
   { gridX:  1.0, gridY: -1.0, layer: 4 }, { gridX: -1.0, gridY:  0.0, layer: 4 },
   { gridX:  1.0, gridY:  0.0, layer: 4 }, { gridX: -1.0, gridY:  1.0, layer: 4 },
   { gridX:  0.0, gridY:  1.0, layer: 4 }, { gridX:  1.0, gridY:  1.0, layer: 4 },
-  // Layer 5 (4 tiles)
+  // Layer 5 (4 tiles - half-integer)
   { gridX: -0.5, gridY: -0.5, layer: 5 }, { gridX:  0.5, gridY: -0.5, layer: 5 },
   { gridX: -0.5, gridY:  0.5, layer: 5 }, { gridX:  0.5, gridY:  0.5, layer: 5 },
 ];
 
 // 2. Twin Towers Hard (twin_towers)
 export const PATTERN_HARD_TOWERS: PatternSlot[] = [
-  // Layer 0 (12 tiles: 6 left, 6 right)
-  { gridX: -2.5, gridY: -2.0, layer: 0 }, { gridX: -1.5, gridY: -2.0, layer: 0 }, { gridX: -0.5, gridY: -2.0, layer: 0 },
-  { gridX: -2.5, gridY:  2.0, layer: 0 }, { gridX: -1.5, gridY:  2.0, layer: 0 }, { gridX: -0.5, gridY:  2.0, layer: 0 },
-  { gridX:  0.5, gridY: -2.0, layer: 0 }, { gridX:  1.5, gridY: -2.0, layer: 0 }, { gridX:  2.5, gridY: -2.0, layer: 0 },
-  { gridX:  0.5, gridY:  2.0, layer: 0 }, { gridX:  1.5, gridY:  2.0, layer: 0 }, { gridX:  2.5, gridY:  2.0, layer: 0 },
-  // Layer 1 (12 tiles: 6 left, 6 right)
-  { gridX: -2.0, gridY: -1.5, layer: 1 }, { gridX: -1.0, gridY: -1.5, layer: 1 },
-  { gridX: -2.5, gridY:  0.0, layer: 1 }, { gridX: -0.5, gridY:  0.0, layer: 1 },
-  { gridX: -2.0, gridY:  1.5, layer: 1 }, { gridX: -1.0, gridY:  1.5, layer: 1 },
-  { gridX:  1.0, gridY: -1.5, layer: 1 }, { gridX:  2.0, gridY: -1.5, layer: 1 },
-  { gridX:  0.5, gridY:  0.0, layer: 1 }, { gridX:  2.5, gridY:  0.0, layer: 1 },
-  { gridX:  1.0, gridY:  1.5, layer: 1 }, { gridX:  2.0, gridY:  1.5, layer: 1 },
-  // Layer 2 (8 tiles: 4 left, 4 right)
-  { gridX: -2.0, gridY: -1.0, layer: 2 }, { gridX: -1.0, gridY: -1.0, layer: 2 },
-  { gridX: -2.0, gridY:  1.0, layer: 2 }, { gridX: -1.0, gridY:  1.0, layer: 2 },
-  { gridX:  1.0, gridY: -1.0, layer: 2 }, { gridX:  2.0, gridY: -1.0, layer: 2 },
-  { gridX:  1.0, gridY:  1.0, layer: 2 }, { gridX:  2.0, gridY:  1.0, layer: 2 },
-  // Layer 3 (8 tiles: 4 left, 4 right)
-  { gridX: -2.0, gridY: -0.5, layer: 3 }, { gridX: -1.0, gridY: -0.5, layer: 3 },
-  { gridX: -2.0, gridY:  0.5, layer: 3 }, { gridX: -1.0, gridY:  0.5, layer: 3 },
-  { gridX:  1.0, gridY: -0.5, layer: 3 }, { gridX:  2.0, gridY: -0.5, layer: 3 },
-  { gridX:  1.0, gridY:  0.5, layer: 3 }, { gridX:  2.0, gridY:  0.5, layer: 3 },
-  // Layer 4 (6 tiles: 3 left, 3 right)
-  { gridX: -1.5, gridY: -1.0, layer: 4 }, { gridX: -1.5, gridY:  0.0, layer: 4 }, { gridX: -1.5, gridY:  1.0, layer: 4 },
-  { gridX:  1.5, gridY: -1.0, layer: 4 }, { gridX:  1.5, gridY:  0.0, layer: 4 }, { gridX:  1.5, gridY:  1.0, layer: 4 },
-  // Layer 5 (4 tiles)
+  // Layer 0 (12 tiles: 6 left, 6 right - integer)
+  { gridX: -3.0, gridY: -3.0, layer: 0 }, { gridX: -2.0, gridY: -3.0, layer: 0 }, { gridX: -1.0, gridY: -3.0, layer: 0 },
+  { gridX: -2.0, gridY:  2.0, layer: 0 }, { gridX: -3.0, gridY:  3.0, layer: 0 }, { gridX: -1.0, gridY:  3.0, layer: 0 },
+  { gridX:  1.0, gridY: -3.0, layer: 0 }, { gridX:  2.0, gridY: -3.0, layer: 0 }, { gridX:  3.0, gridY: -3.0, layer: 0 },
+  { gridX:  2.0, gridY:  2.0, layer: 0 }, { gridX:  1.0, gridY:  3.0, layer: 0 }, { gridX:  3.0, gridY:  3.0, layer: 0 },
+  // Layer 1 (10 tiles: 5 left, 5 right - half-integer)
+  { gridX: -2.5, gridY: -2.5, layer: 1 }, { gridX: -1.5, gridY: -2.5, layer: 1 }, { gridX: -0.5, gridY: -1.5, layer: 1 },
+  { gridX: -2.5, gridY:  2.5, layer: 1 }, { gridX: -1.5, gridY:  2.5, layer: 1 },
+  { gridX:  0.5, gridY: -1.5, layer: 1 }, { gridX:  1.5, gridY: -2.5, layer: 1 }, { gridX:  2.5, gridY: -2.5, layer: 1 },
+  { gridX:  1.5, gridY:  2.5, layer: 1 }, { gridX:  2.5, gridY:  2.5, layer: 1 },
+  // Layer 2 (10 tiles: 5 left, 5 right - integer)
+  { gridX: -3.0, gridY: -2.0, layer: 2 }, { gridX: -2.0, gridY: -2.0, layer: 2 }, { gridX: -1.0, gridY: -2.0, layer: 2 },
+  { gridX: -3.0, gridY:  2.0, layer: 2 }, { gridX: -1.0, gridY:  2.0, layer: 2 },
+  { gridX:  1.0, gridY: -2.0, layer: 2 }, { gridX:  2.0, gridY: -2.0, layer: 2 }, { gridX:  3.0, gridY: -2.0, layer: 2 },
+  { gridX:  1.0, gridY:  2.0, layer: 2 }, { gridX:  3.0, gridY:  2.0, layer: 2 },
+  // Layer 3 (8 tiles: 4 left, 4 right - half-integer)
+  { gridX: -2.5, gridY: -1.5, layer: 3 }, { gridX: -1.5, gridY: -1.5, layer: 3 },
+  { gridX: -2.5, gridY:  1.5, layer: 3 }, { gridX: -1.5, gridY:  1.5, layer: 3 },
+  { gridX:  1.5, gridY: -1.5, layer: 3 }, { gridX:  2.5, gridY: -1.5, layer: 3 },
+  { gridX:  1.5, gridY:  1.5, layer: 3 }, { gridX:  2.5, gridY:  1.5, layer: 3 },
+  // Layer 4 (6 tiles: 3 left, 3 right - integer)
+  { gridX: -2.0, gridY: -1.0, layer: 4 }, { gridX: -2.0, gridY:  0.0, layer: 4 }, { gridX: -2.0, gridY:  1.0, layer: 4 },
+  { gridX:  2.0, gridY: -1.0, layer: 4 }, { gridX:  2.0, gridY:  0.0, layer: 4 }, { gridX:  2.0, gridY:  1.0, layer: 4 },
+  // Layer 5 (4 tiles: 2 left, 2 right - half-integer)
   { gridX: -1.5, gridY: -0.5, layer: 5 }, { gridX: -1.5, gridY:  0.5, layer: 5 },
   { gridX:  1.5, gridY: -0.5, layer: 5 }, { gridX:  1.5, gridY:  0.5, layer: 5 },
 ];
 
 // 3. Cross Fortress Hard (cross_fortress)
 export const PATTERN_HARD_FORTRESS: PatternSlot[] = [
-  // Layer 0 (12 tiles)
-  { gridX: -2.5, gridY: -2.5, layer: 0 }, { gridX: -1.5, gridY: -2.5, layer: 0 },
-  { gridX:  1.5, gridY: -2.5, layer: 0 }, { gridX:  2.5, gridY: -2.5, layer: 0 },
-  { gridX: -2.5, gridY: -1.5, layer: 0 }, { gridX:  2.5, gridY: -1.5, layer: 0 },
-  { gridX: -2.5, gridY:  1.5, layer: 0 }, { gridX:  2.5, gridY:  1.5, layer: 0 },
-  { gridX: -2.5, gridY:  2.5, layer: 0 }, { gridX: -1.5, gridY:  2.5, layer: 0 },
-  { gridX:  1.5, gridY:  2.5, layer: 0 }, { gridX:  2.5, gridY:  2.5, layer: 0 },
-  // Layer 1 (12 tiles)
-  { gridX: -2.0, gridY: -2.0, layer: 1 }, { gridX: -1.0, gridY: -2.0, layer: 1 },
-  { gridX:  1.0, gridY: -2.0, layer: 1 }, { gridX:  2.0, gridY: -2.0, layer: 1 },
-  { gridX: -2.0, gridY: -1.0, layer: 1 }, { gridX:  2.0, gridY: -1.0, layer: 1 },
-  { gridX: -2.0, gridY:  1.0, layer: 1 }, { gridX:  2.0, gridY:  1.0, layer: 1 },
-  { gridX: -2.0, gridY:  2.0, layer: 1 }, { gridX: -1.0, gridY:  2.0, layer: 1 },
-  { gridX:  1.0, gridY:  2.0, layer: 1 }, { gridX:  2.0, gridY:  2.0, layer: 1 },
-  // Layer 2 (8 tiles)
-  { gridX: -1.5, gridY: -1.5, layer: 2 }, { gridX:  0.0, gridY: -1.5, layer: 2 },
-  { gridX:  1.5, gridY: -1.5, layer: 2 }, { gridX: -1.5, gridY:  0.0, layer: 2 },
-  { gridX:  1.5, gridY:  0.0, layer: 2 }, { gridX: -1.5, gridY:  1.5, layer: 2 },
-  { gridX:  0.0, gridY:  1.5, layer: 2 }, { gridX:  1.5, gridY:  1.5, layer: 2 },
-  // Layer 3 (8 tiles)
-  { gridX: -1.0, gridY: -1.0, layer: 3 }, { gridX:  0.0, gridY: -1.0, layer: 3 },
-  { gridX:  1.0, gridY: -1.0, layer: 3 }, { gridX: -1.0, gridY:  0.0, layer: 3 },
-  { gridX:  1.0, gridY:  0.0, layer: 3 }, { gridX: -1.0, gridY:  1.0, layer: 3 },
-  { gridX:  0.0, gridY:  1.0, layer: 3 }, { gridX:  1.0, gridY:  1.0, layer: 3 },
-  // Layer 4 (6 tiles)
-  { gridX: -0.5, gridY: -1.0, layer: 4 }, { gridX:  0.5, gridY: -1.0, layer: 4 },
-  { gridX: -0.5, gridY:  0.0, layer: 4 }, { gridX:  0.5, gridY:  0.0, layer: 4 },
-  { gridX: -0.5, gridY:  1.0, layer: 4 }, { gridX:  0.5, gridY:  1.0, layer: 4 },
-  // Layer 5 (4 tiles)
+  // Layer 0 (12 tiles - integer outer fortress perimeter)
+  { gridX: -2.0, gridY: -2.0, layer: 0 }, { gridX:  2.0, gridY: -2.0, layer: 0 },
+  { gridX: -2.0, gridY:  2.0, layer: 0 }, { gridX:  2.0, gridY:  2.0, layer: 0 },
+  { gridX: -2.0, gridY: -1.0, layer: 0 }, { gridX:  2.0, gridY: -1.0, layer: 0 },
+  { gridX: -2.0, gridY:  1.0, layer: 0 }, { gridX:  2.0, gridY:  1.0, layer: 0 },
+  { gridX:  0.0, gridY: -3.0, layer: 0 }, { gridX:  0.0, gridY:  3.0, layer: 0 },
+  { gridX: -3.0, gridY:  0.0, layer: 0 }, { gridX:  3.0, gridY:  0.0, layer: 0 },
+  // Layer 1 (10 tiles - half-integer corner & wing bastions)
+  { gridX: -1.5, gridY: -1.5, layer: 1 }, { gridX:  1.5, gridY: -1.5, layer: 1 },
+  { gridX: -1.5, gridY:  1.5, layer: 1 }, { gridX:  1.5, gridY:  1.5, layer: 1 },
+  { gridX: -0.5, gridY: -2.5, layer: 1 }, { gridX:  0.5, gridY: -2.5, layer: 1 },
+  { gridX: -0.5, gridY:  2.5, layer: 1 }, { gridX:  0.5, gridY:  2.5, layer: 1 },
+  { gridX: -2.5, gridY: -0.5, layer: 1 }, { gridX:  2.5, gridY:  0.5, layer: 1 },
+  // Layer 2 (8 tiles - integer outer cross)
+  { gridX:  0.0, gridY: -2.0, layer: 2 }, { gridX: -2.0, gridY:  0.0, layer: 2 },
+  { gridX:  2.0, gridY:  0.0, layer: 2 }, { gridX:  0.0, gridY:  2.0, layer: 2 },
+  { gridX: -1.0, gridY: -2.0, layer: 2 }, { gridX:  1.0, gridY: -2.0, layer: 2 },
+  { gridX: -1.0, gridY:  2.0, layer: 2 }, { gridX:  1.0, gridY:  2.0, layer: 2 },
+  // Layer 3 (8 tiles - half-integer cross arms)
+  { gridX: -0.5, gridY: -1.5, layer: 3 }, { gridX:  0.5, gridY: -1.5, layer: 3 },
+  { gridX: -1.5, gridY: -0.5, layer: 3 }, { gridX:  1.5, gridY: -0.5, layer: 3 },
+  { gridX: -1.5, gridY:  0.5, layer: 3 }, { gridX:  1.5, gridY:  0.5, layer: 3 },
+  { gridX: -0.5, gridY:  1.5, layer: 3 }, { gridX:  0.5, gridY:  1.5, layer: 3 },
+  // Layer 4 (8 tiles - integer inner ring)
+  { gridX: -1.0, gridY: -1.0, layer: 4 }, { gridX:  0.0, gridY: -1.0, layer: 4 },
+  { gridX:  1.0, gridY: -1.0, layer: 4 }, { gridX: -1.0, gridY:  0.0, layer: 4 },
+  { gridX:  1.0, gridY:  0.0, layer: 4 }, { gridX: -1.0, gridY:  1.0, layer: 4 },
+  { gridX:  0.0, gridY:  1.0, layer: 4 }, { gridX:  1.0, gridY:  1.0, layer: 4 },
+  // Layer 5 (4 tiles - half-integer central keep)
   { gridX: -0.5, gridY: -0.5, layer: 5 }, { gridX:  0.5, gridY: -0.5, layer: 5 },
   { gridX: -0.5, gridY:  0.5, layer: 5 }, { gridX:  0.5, gridY:  0.5, layer: 5 },
 ];
 
 // 4. Hourglass Hard (hourglass)
 export const PATTERN_HARD_HOURGLASS: PatternSlot[] = [
-  // Layer 0 (10 tiles)
-  { gridX: -2.0, gridY: -2.5, layer: 0 }, { gridX: -1.0, gridY: -2.5, layer: 0 },
-  { gridX:  0.0, gridY: -2.5, layer: 0 }, { gridX:  1.0, gridY: -2.5, layer: 0 },
-  { gridX:  2.0, gridY: -2.5, layer: 0 }, { gridX: -2.0, gridY:  2.5, layer: 0 },
-  { gridX: -1.0, gridY:  2.5, layer: 0 }, { gridX:  0.0, gridY:  2.5, layer: 0 },
-  { gridX:  1.0, gridY:  2.5, layer: 0 }, { gridX:  2.0, gridY:  2.5, layer: 0 },
-  // Layer 1 (10 tiles)
-  { gridX: -1.5, gridY: -2.0, layer: 1 }, { gridX: -0.5, gridY: -2.0, layer: 1 },
-  { gridX:  0.5, gridY: -2.0, layer: 1 }, { gridX:  1.5, gridY: -2.0, layer: 1 },
-  { gridX: -2.0, gridY:  0.0, layer: 1 }, { gridX:  2.0, gridY:  0.0, layer: 1 },
-  { gridX: -1.5, gridY:  2.0, layer: 1 }, { gridX: -0.5, gridY:  2.0, layer: 1 },
-  { gridX:  0.5, gridY:  2.0, layer: 1 }, { gridX:  1.5, gridY:  2.0, layer: 1 },
-  // Layer 2 (10 tiles)
-  { gridX: -1.5, gridY: -1.5, layer: 2 }, { gridX: -0.5, gridY: -1.5, layer: 2 },
-  { gridX:  0.5, gridY: -1.5, layer: 2 }, { gridX:  1.5, gridY: -1.5, layer: 2 },
-  { gridX: -1.5, gridY:  0.0, layer: 2 }, { gridX:  1.5, gridY:  0.0, layer: 2 },
-  { gridX: -1.5, gridY:  1.5, layer: 2 }, { gridX: -0.5, gridY:  1.5, layer: 2 },
-  { gridX:  0.5, gridY:  1.5, layer: 2 }, { gridX:  1.5, gridY:  1.5, layer: 2 },
-  // Layer 3 (10 tiles)
-  { gridX: -1.5, gridY: -1.0, layer: 3 }, { gridX: -0.5, gridY: -1.0, layer: 3 },
-  { gridX:  0.5, gridY: -1.0, layer: 3 }, { gridX:  1.5, gridY: -1.0, layer: 3 },
-  { gridX: -1.0, gridY:  0.0, layer: 3 }, { gridX:  1.0, gridY:  0.0, layer: 3 },
-  { gridX: -1.5, gridY:  1.0, layer: 3 }, { gridX: -0.5, gridY:  1.0, layer: 3 },
-  { gridX:  0.5, gridY:  1.0, layer: 3 }, { gridX:  1.5, gridY:  1.0, layer: 3 },
-  // Layer 4 (6 tiles)
-  { gridX: -1.0, gridY: -0.5, layer: 4 }, { gridX:  0.0, gridY: -0.5, layer: 4 },
-  { gridX:  1.0, gridY: -0.5, layer: 4 }, { gridX: -1.0, gridY:  0.5, layer: 4 },
-  { gridX:  0.0, gridY:  0.5, layer: 4 }, { gridX:  1.0, gridY:  0.5, layer: 4 },
-  // Layer 5 (4 tiles)
+  // Layer 0 (12 tiles - integer outer hourglass caps)
+  { gridX: -3.0, gridY: -3.0, layer: 0 }, { gridX: -2.0, gridY: -3.0, layer: 0 },
+  { gridX: -1.0, gridY: -3.0, layer: 0 }, { gridX:  0.0, gridY: -3.0, layer: 0 },
+  { gridX:  1.0, gridY: -3.0, layer: 0 }, { gridX:  2.0, gridY: -3.0, layer: 0 },
+  { gridX: -2.0, gridY:  3.0, layer: 0 }, { gridX: -1.0, gridY:  3.0, layer: 0 },
+  { gridX:  0.0, gridY:  3.0, layer: 0 }, { gridX:  1.0, gridY:  3.0, layer: 0 },
+  { gridX:  2.0, gridY:  3.0, layer: 0 }, { gridX:  3.0, gridY:  3.0, layer: 0 },
+  // Layer 1 (10 tiles - half-integer wide rims)
+  { gridX: -2.5, gridY: -2.5, layer: 1 }, { gridX: -1.5, gridY: -2.5, layer: 1 },
+  { gridX: -0.5, gridY: -2.5, layer: 1 }, { gridX:  0.5, gridY: -2.5, layer: 1 },
+  { gridX:  1.5, gridY: -2.5, layer: 1 }, { gridX: -1.5, gridY:  2.5, layer: 1 },
+  { gridX: -0.5, gridY:  2.5, layer: 1 }, { gridX:  0.5, gridY:  2.5, layer: 1 },
+  { gridX:  1.5, gridY:  2.5, layer: 1 }, { gridX:  2.5, gridY:  2.5, layer: 1 },
+  // Layer 2 (10 tiles - integer upper & lower flare)
+  { gridX: -2.0, gridY: -2.0, layer: 2 }, { gridX: -1.0, gridY: -2.0, layer: 2 },
+  { gridX:  0.0, gridY: -2.0, layer: 2 }, { gridX:  1.0, gridY: -2.0, layer: 2 },
+  { gridX:  2.0, gridY: -2.0, layer: 2 }, { gridX: -2.0, gridY:  2.0, layer: 2 },
+  { gridX: -1.0, gridY:  2.0, layer: 2 }, { gridX:  0.0, gridY:  2.0, layer: 2 },
+  { gridX:  1.0, gridY:  2.0, layer: 2 }, { gridX:  2.0, gridY:  2.0, layer: 2 },
+  // Layer 3 (8 tiles - half-integer middle flare)
+  { gridX: -1.5, gridY: -1.5, layer: 3 }, { gridX: -0.5, gridY: -1.5, layer: 3 },
+  { gridX:  0.5, gridY: -1.5, layer: 3 }, { gridX:  1.5, gridY: -1.5, layer: 3 },
+  { gridX: -1.5, gridY:  1.5, layer: 3 }, { gridX: -0.5, gridY:  1.5, layer: 3 },
+  { gridX:  0.5, gridY:  1.5, layer: 3 }, { gridX:  1.5, gridY:  1.5, layer: 3 },
+  // Layer 4 (6 tiles - integer inner waist collars)
+  { gridX: -1.0, gridY: -1.0, layer: 4 }, { gridX:  0.0, gridY: -1.0, layer: 4 },
+  { gridX:  1.0, gridY: -1.0, layer: 4 }, { gridX: -1.0, gridY:  1.0, layer: 4 },
+  { gridX:  0.0, gridY:  1.0, layer: 4 }, { gridX:  1.0, gridY:  1.0, layer: 4 },
+  // Layer 5 (4 tiles - half-integer waist)
   { gridX: -0.5, gridY: -0.5, layer: 5 }, { gridX:  0.5, gridY: -0.5, layer: 5 },
   { gridX: -0.5, gridY:  0.5, layer: 5 }, { gridX:  0.5, gridY:  0.5, layer: 5 },
 ];
 
 // 5. Diagonal Cascade Hard (staircase)
 export const PATTERN_HARD_STAIRCASE: PatternSlot[] = [
-  // Layer 0 (12 tiles)
-  { gridX: -2.5, gridY: -2.5, layer: 0 }, { gridX: -1.5, gridY: -2.5, layer: 0 },
-  { gridX: -0.5, gridY: -2.5, layer: 0 }, { gridX: -2.5, gridY: -1.5, layer: 0 },
-  { gridX: -2.5, gridY: -0.5, layer: 0 }, { gridX:  2.5, gridY:  2.5, layer: 0 },
-  { gridX:  1.5, gridY:  2.5, layer: 0 }, { gridX:  0.5, gridY:  2.5, layer: 0 },
-  { gridX:  2.5, gridY:  1.5, layer: 0 }, { gridX:  2.5, gridY:  0.5, layer: 0 },
-  { gridX: -1.5, gridY:  1.5, layer: 0 }, { gridX:  1.5, gridY: -1.5, layer: 0 },
-  // Layer 1 (10 tiles)
-  { gridX: -2.0, gridY: -2.0, layer: 1 }, { gridX: -1.0, gridY: -2.0, layer: 1 },
-  { gridX: -2.0, gridY: -1.0, layer: 1 }, { gridX:  1.0, gridY: -1.0, layer: 1 },
-  { gridX:  2.0, gridY:  2.0, layer: 1 }, { gridX:  1.0, gridY:  2.0, layer: 1 },
-  { gridX:  2.0, gridY:  1.0, layer: 1 }, { gridX: -1.0, gridY:  1.0, layer: 1 },
-  { gridX: -1.0, gridY:  0.0, layer: 1 }, { gridX:  1.0, gridY:  0.0, layer: 1 },
-  // Layer 2 (10 tiles)
-  { gridX: -1.5, gridY: -1.5, layer: 2 }, { gridX: -0.5, gridY: -1.5, layer: 2 },
-  { gridX: -1.5, gridY: -0.5, layer: 2 }, { gridX:  0.5, gridY: -0.5, layer: 2 },
-  { gridX: -0.5, gridY:  0.5, layer: 2 }, { gridX:  1.5, gridY:  0.5, layer: 2 },
-  { gridX:  0.5, gridY:  1.5, layer: 2 }, { gridX:  1.5, gridY:  1.5, layer: 2 },
-  { gridX: -1.5, gridY:  0.5, layer: 2 }, { gridX:  1.5, gridY: -0.5, layer: 2 },
-  // Layer 3 (8 tiles)
-  { gridX: -1.0, gridY: -1.0, layer: 3 }, { gridX:  0.0, gridY: -1.0, layer: 3 },
-  { gridX:  1.0, gridY: -1.0, layer: 3 }, { gridX: -1.0, gridY:  0.0, layer: 3 },
-  { gridX:  1.0, gridY:  0.0, layer: 3 }, { gridX: -1.0, gridY:  1.0, layer: 3 },
-  { gridX:  0.0, gridY:  1.0, layer: 3 }, { gridX:  1.0, gridY:  1.0, layer: 3 },
-  // Layer 4 (6 tiles)
-  { gridX: -0.5, gridY: -1.0, layer: 4 }, { gridX:  0.5, gridY: -1.0, layer: 4 },
-  { gridX: -0.5, gridY:  0.0, layer: 4 }, { gridX:  0.5, gridY:  0.0, layer: 4 },
-  { gridX: -0.5, gridY:  1.0, layer: 4 }, { gridX:  0.5, gridY:  1.0, layer: 4 },
-  // Layer 5 (4 tiles)
+  // Layer 0 (12 tiles - integer outer diagonal crest)
+  { gridX: -3.0, gridY: -3.0, layer: 0 }, { gridX: -2.0, gridY: -3.0, layer: 0 },
+  { gridX: -1.0, gridY: -3.0, layer: 0 }, { gridX:  0.0, gridY: -3.0, layer: 0 },
+  { gridX: -3.0, gridY: -2.0, layer: 0 }, { gridX: -3.0, gridY: -1.0, layer: 0 },
+  { gridX:  3.0, gridY:  1.0, layer: 0 }, { gridX:  3.0, gridY:  2.0, layer: 0 },
+  { gridX:  0.0, gridY:  3.0, layer: 0 }, { gridX:  1.0, gridY:  3.0, layer: 0 },
+  { gridX:  2.0, gridY:  3.0, layer: 0 }, { gridX:  3.0, gridY:  3.0, layer: 0 },
+  // Layer 1 (10 tiles - half-integer outer diagonal cascade)
+  { gridX: -2.5, gridY: -2.5, layer: 1 }, { gridX: -1.5, gridY: -2.5, layer: 1 },
+  { gridX: -0.5, gridY: -2.5, layer: 1 }, { gridX: -2.5, gridY: -1.5, layer: 1 },
+  { gridX:  1.5, gridY: -1.5, layer: 1 }, { gridX: -1.5, gridY:  1.5, layer: 1 },
+  { gridX:  2.5, gridY:  1.5, layer: 1 }, { gridX:  0.5, gridY:  2.5, layer: 1 },
+  { gridX:  1.5, gridY:  2.5, layer: 1 }, { gridX:  2.5, gridY:  2.5, layer: 1 },
+  // Layer 2 (10 tiles - integer diagonal wave)
+  { gridX: -2.0, gridY: -2.0, layer: 2 }, { gridX: -1.0, gridY: -2.0, layer: 2 },
+  { gridX:  0.0, gridY: -2.0, layer: 2 }, { gridX: -2.0, gridY: -1.0, layer: 2 },
+  { gridX:  1.0, gridY: -1.0, layer: 2 }, { gridX: -1.0, gridY:  1.0, layer: 2 },
+  { gridX:  2.0, gridY:  1.0, layer: 2 }, { gridX:  0.0, gridY:  2.0, layer: 2 },
+  { gridX:  1.0, gridY:  2.0, layer: 2 }, { gridX:  2.0, gridY:  2.0, layer: 2 },
+  // Layer 3 (8 tiles - half-integer diagonal middle ridge)
+  { gridX: -1.5, gridY: -1.5, layer: 3 }, { gridX: -0.5, gridY: -1.5, layer: 3 },
+  { gridX: -1.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -1.5, layer: 3 },
+  { gridX: -0.5, gridY:  1.5, layer: 3 }, { gridX:  1.5, gridY:  0.5, layer: 3 },
+  { gridX:  0.5, gridY:  1.5, layer: 3 }, { gridX:  1.5, gridY:  1.5, layer: 3 },
+  // Layer 4 (6 tiles - integer diagonal inner steps)
+  { gridX: -1.0, gridY: -1.0, layer: 4 }, { gridX:  0.0, gridY: -1.0, layer: 4 },
+  { gridX: -1.0, gridY:  0.0, layer: 4 }, { gridX:  1.0, gridY:  0.0, layer: 4 },
+  { gridX:  0.0, gridY:  1.0, layer: 4 }, { gridX:  1.0, gridY:  1.0, layer: 4 },
+  // Layer 5 (4 tiles - half-integer core)
   { gridX: -0.5, gridY: -0.5, layer: 5 }, { gridX:  0.5, gridY: -0.5, layer: 5 },
   { gridX: -0.5, gridY:  0.5, layer: 5 }, { gridX:  0.5, gridY:  0.5, layer: 5 },
 ];

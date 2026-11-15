@@ -5,7 +5,10 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router';
-import { getCurrentUserSessionPrefix } from '../lib/unified-game-auth';
+import {
+  getCurrentUserSessionPrefix,
+  recordRegisteredUser,
+} from '../lib/unified-game-auth';
 import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
@@ -94,6 +97,16 @@ export default function App() {
     const unsub = onAuthStateChanged(auth, (u) => {
       setCurrentUser(u);
       setAuthReady(true);
+      if (u) {
+        const isGoogle = u.providerData?.some(
+          (p) => p?.providerId === 'google.com',
+        );
+        recordRegisteredUser({
+          uid: u.uid,
+          displayName: u.displayName || u.email?.split('@')[0] || 'Player',
+          authProvider: isGoogle ? 'google' : 'email',
+        });
+      }
     });
     return () => unsub();
   }, []);

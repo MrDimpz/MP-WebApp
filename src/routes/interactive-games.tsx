@@ -91,7 +91,7 @@ export function InteractiveGamesPage() {
                       Streamer {activeStreamer.displayHandle}
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                      All 6 interactive games are unlocked. Scores for linked TikTok @ accounts sync
+                      All 7 interactive games are unlocked. Scores for linked TikTok @ accounts sync
                       automatically to their website profile.
                     </p>
                   </>
@@ -105,7 +105,7 @@ export function InteractiveGamesPage() {
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
                       Sign in once below to unlock WiKirecTangled, WikiContexto, Squared Interactive,
-                      Lexi Tiles, DeStack Interactive &amp; Crowdle, or open the Admin Portal to register stream keys.
+                      Lexi Tiles, DeStack Interactive, Crowdle &amp; MP Search Interactive, or open the Admin Portal to register stream keys.
                     </p>
                   </>
                 )}
@@ -439,6 +439,47 @@ export function InteractiveGamesPage() {
                 gameSlug="crowdle"
                 streamerHandle={activeStreamer?.username}
                 recommendedSize="540 × 940 or 1080 × 1920"
+                label="LIVE Overlay"
+              />
+            </div>
+          </article>
+
+          <article className="game-card">
+            <div className="card-top">
+              <span className="category-label">
+                <span className="status-dot" /> NOW PLAYING
+              </span>
+              <span className="card-number">07 /</span>
+            </div>
+            <Link
+              to="/interactive-games/mpsearch"
+              className="game-art game-art-thumb"
+              aria-label="Play MP Search Interactive game"
+            >
+              <img
+                className="game-thumbnail"
+                src="/mpsearch-website-thumbnail.svg"
+                alt="Preview of MP Search Interactive 10×10 word search grid, word-length live scoreboard, and Top 1–5 podium overlay"
+              />
+            </Link>
+            <h3>MP Search Interactive</h3>
+            <p>
+              Live 10×10 crowd word search with no target word bank. Viewers scan the board to spot
+              8 to 12 hidden words per round, earning points by word length toward the Places 1–5
+              podium popup across a 12-month (368-puzzle) random archive.
+            </p>
+            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
+              <Link className="game-link" to="/interactive-games/mpsearch">
+                Play MP Search{' '}
+                <span>
+                  <ArrowUpRight size={22} />
+                </span>
+              </Link>
+              <LiveOverlayButton
+                gameTitle="MP Search Interactive"
+                gameSlug="mpsearch"
+                streamerHandle={activeStreamer?.username}
+                recommendedSize="920 × 640 or 1080 × 1920"
                 label="LIVE Overlay"
               />
             </div>

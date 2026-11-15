@@ -18,12 +18,14 @@ import DeStackPage from '@/routes/destack';
 import UnolingoPage from '@/routes/unolingo';
 import WikiRecSoloPage from '@/routes/wikirec-solo';
 import WikiConSoloPage from '@/routes/wikicon-solo';
+import MPSearchPage from '@/routes/mpsearch';
 import SquaredIntGamePage from '@/routes/squaredint-game';
 import WikirecGamePage from '@/routes/wikirec-game';
 import WikiconGamePage from '@/routes/wikicon-game';
 import LexiGamePage from '@/routes/lexi-game';
 import DeStackIntGamePage from '@/routes/destackint-game';
 import { CrowdleGamePage } from '@/routes/crowdle-game';
+import MPSearchIntGamePage from '@/routes/mpsearchint-game';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'The Missing Piece — TikTok interactive & solo games',
@@ -44,6 +46,10 @@ const PAGE_TITLES: Record<string, string> = {
   '/interactive-games/destackint/overlay': 'DeStack Interactive — TikTok LIVE Studio Overlay',
   '/interactive-games/crowdle': 'Crowdle — TikTok Live Crowd Wordle — The Missing Piece',
   '/interactive-games/crowdle/overlay': 'Crowdle — TikTok LIVE Studio Overlay',
+  '/interactive-games/mpsearch': 'MP Search Interactive — TikTok Live Word Search — The Missing Piece',
+  '/interactive-games/mpsearch/overlay': 'MP Search Interactive — TikTok LIVE Studio Overlay',
+  '/interactive-games/mpsearchint': 'MP Search Interactive — TikTok Live Word Search — The Missing Piece',
+  '/interactive-games/mpsearchint/overlay': 'MP Search Interactive — TikTok LIVE Studio Overlay',
   '/solo-games': 'Solo games — The Missing Piece',
   '/solo-games/rebus': 'Missing Rebus — Solo game — The Missing Piece',
   '/solo-games/squared': 'Squared — Daily Word Grid — The Missing Piece',
@@ -52,6 +58,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/solo-games/unolingo': 'Unolingo — 26-Letter Crossword — The Missing Piece',
   '/solo-games/wikirec': 'WiKirecTangled — Solo Wikipedia Word Grid — The Missing Piece',
   '/solo-games/wikicon': 'WikiContexto — Solo Article Discovery — The Missing Piece',
+  '/solo-games/mpsearch': 'MP Search — Daily 10×10 Word Search — The Missing Piece',
 };
 
 const STANDALONE_GAME_PATHS = new Set([
@@ -62,6 +69,7 @@ const STANDALONE_GAME_PATHS = new Set([
   '/solo-games/unolingo',
   '/solo-games/wikirec',
   '/solo-games/wikicon',
+  '/solo-games/mpsearch',
   '/interactive-games/wikirec',
   '/interactive-games/wikirec/overlay',
   '/interactive-games/wikicon',
@@ -78,6 +86,10 @@ const STANDALONE_GAME_PATHS = new Set([
   '/interactive-games/destackint/overlay',
   '/interactive-games/crowdle',
   '/interactive-games/crowdle/overlay',
+  '/interactive-games/mpsearch',
+  '/interactive-games/mpsearch/overlay',
+  '/interactive-games/mpsearchint',
+  '/interactive-games/mpsearchint/overlay',
 ]);
 
 function AppShell() {
@@ -110,6 +122,7 @@ function AppShell() {
         <Route path="/solo-games/unolingo" element={<UnolingoPage />} />
         <Route path="/solo-games/wikirec" element={<WikiRecSoloPage />} />
         <Route path="/solo-games/wikicon" element={<WikiConSoloPage />} />
+        <Route path="/solo-games/mpsearch" element={<MPSearchPage />} />
         <Route path="/interactive-games/wikirec" element={<WikirecGamePage />} />
         <Route path="/interactive-games/wikirec/overlay" element={<WikirecGamePage />} />
         <Route path="/interactive-games/wikicon" element={<WikiconGamePage />} />
@@ -126,6 +139,10 @@ function AppShell() {
         <Route path="/interactive-games/destackint/overlay" element={<DeStackIntGamePage />} />
         <Route path="/interactive-games/crowdle" element={<CrowdleGamePage />} />
         <Route path="/interactive-games/crowdle/overlay" element={<CrowdleGamePage />} />
+        <Route path="/interactive-games/mpsearch" element={<MPSearchIntGamePage />} />
+        <Route path="/interactive-games/mpsearch/overlay" element={<MPSearchIntGamePage />} />
+        <Route path="/interactive-games/mpsearchint" element={<MPSearchIntGamePage />} />
+        <Route path="/interactive-games/mpsearchint/overlay" element={<MPSearchIntGamePage />} />
       </Routes>
     );
   }
@@ -144,6 +161,8 @@ function AppShell() {
         <Route path="/interactive-games/destack" element={<DeStackIntGamePage />} />
         <Route path="/interactive-games/destackint" element={<DeStackIntGamePage />} />
         <Route path="/interactive-games/crowdle" element={<CrowdleGamePage />} />
+        <Route path="/interactive-games/mpsearch" element={<MPSearchIntGamePage />} />
+        <Route path="/interactive-games/mpsearchint" element={<MPSearchIntGamePage />} />
         <Route path="/solo-games" element={<SoloGamesPage />} />
       </Routes>
       <SiteFooter />

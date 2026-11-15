@@ -29,6 +29,7 @@ import {
   verifyInteractiveAdminLogin,
 } from '../../lib/interactive-key-auth';
 import { RegisteredUsersDirectoryView } from '../admin-panel-modal';
+import { useRegisteredUsersDirectory } from '../../lib/unified-game-auth';
 
 interface AdminPortalModalProps {
   open?: boolean;
@@ -39,6 +40,9 @@ interface AdminPortalModalProps {
 export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProps) {
   const isModalOpen = Boolean(open ?? isOpen);
   const { admins, users, authenticatedAdmin } = useInteractiveAuthStore();
+  const { users: registeredUsers } = useRegisteredUsersDirectory(
+    isModalOpen && Boolean(authenticatedAdmin),
+  );
 
   // Admin Login State
   const [loginUsername, setLoginUsername] = useState('');
@@ -58,8 +62,8 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
     text: string;
   } | null>(null);
 
-  // Existing Users Key Visibility & Copy State
-  const [revealedUserKeys, setRevealedUserKeys] = useState<Record<string, boolean>>({});
+  // Existing Users Key Visibility & Copy State (visible by default so keys show immediately on mobile & desktop)
+  const [hiddenUserKeys, setHiddenUserKeys] = useState<Record<string, boolean>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Add Extra Admin State
@@ -154,7 +158,7 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
       createdBy: authenticatedAdmin?.username || 'MPAdmin',
     });
     if (res.ok) {
-      setRevealedUserKeys((prev) => ({ ...prev, [res.user.id]: true }));
+      setHiddenUserKeys((prev) => ({ ...prev, [res.user.id]: false }));
       setUserFormFeedback({
         type: 'ok',
         text: `Regenerated new key ${res.user.key} for ${res.user.displayHandle}.`,
@@ -528,6 +532,7 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
               flexDirection: 'column',
               overflow: 'hidden',
               flex: 1,
+              minHeight: 0,
             }}
           >
             {/* Navigation Tabs */}
@@ -536,22 +541,23 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '0.75rem 1.4rem',
+                padding: '0.65rem 1rem',
                 borderBottom: '1px solid rgba(255,255,255,0.08)',
                 backgroundColor: '#0e1017',
                 flexWrap: 'wrap',
-                gap: '0.6rem',
+                gap: '0.5rem',
+                flexShrink: 0,
               }}
             >
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => setActiveTab('users')}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.45rem',
-                    padding: '0.5rem 0.95rem',
+                    gap: '0.4rem',
+                    padding: '0.45rem 0.78rem',
                     borderRadius: '9px',
                     border:
                       activeTab === 'users'
@@ -562,39 +568,13 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                         ? 'rgba(243, 179, 64, 0.16)'
                         : 'rgba(255,255,255,0.03)',
                     color: activeTab === 'users' ? '#f3b340' : '#94a3b8',
-                    fontSize: '0.8rem',
+                    fontSize: '0.76rem',
                     fontWeight: 800,
                     cursor: 'pointer',
                   }}
                 >
-                  <KeyRound size={15} />
-                  User Keys & Existing Users ({users.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('admins')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.45rem',
-                    padding: '0.5rem 0.95rem',
-                    borderRadius: '9px',
-                    border:
-                      activeTab === 'admins'
-                        ? '1px solid rgba(56, 189, 248, 0.55)'
-                        : '1px solid rgba(255,255,255,0.1)',
-                    backgroundColor:
-                      activeTab === 'admins'
-                        ? 'rgba(56, 189, 248, 0.16)'
-                        : 'rgba(255,255,255,0.03)',
-                    color: activeTab === 'admins' ? '#38bdf8' : '#94a3b8',
-                    fontSize: '0.8rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Shield size={15} />
-                  Manage Admins ({admins.length})
+                  <KeyRound size={14} />
+                  Stream Keys &amp; Users ({users.length})
                 </button>
                 <button
                   type="button"
@@ -602,8 +582,8 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.45rem',
-                    padding: '0.5rem 0.95rem',
+                    gap: '0.4rem',
+                    padding: '0.45rem 0.78rem',
                     borderRadius: '9px',
                     border:
                       activeTab === 'registered'
@@ -614,17 +594,43 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                         ? 'rgba(16, 185, 129, 0.16)'
                         : 'rgba(255,255,255,0.03)',
                     color: activeTab === 'registered' ? '#34d399' : '#94a3b8',
-                    fontSize: '0.8rem',
+                    fontSize: '0.76rem',
                     fontWeight: 800,
                     cursor: 'pointer',
                   }}
                 >
-                  <Users size={15} />
-                  Registered Users
+                  <Users size={14} />
+                  All Registered Users ({registeredUsers.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('admins')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.45rem 0.78rem',
+                    borderRadius: '9px',
+                    border:
+                      activeTab === 'admins'
+                        ? '1px solid rgba(56, 189, 248, 0.55)'
+                        : '1px solid rgba(255,255,255,0.1)',
+                    backgroundColor:
+                      activeTab === 'admins'
+                        ? 'rgba(56, 189, 248, 0.16)'
+                        : 'rgba(255,255,255,0.03)',
+                    color: activeTab === 'admins' ? '#38bdf8' : '#94a3b8',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Shield size={14} />
+                  Manage Admins ({admins.length})
                 </button>
               </div>
 
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
                 Signed in as{' '}
                 <strong style={{ color: '#f3b340' }}>{authenticatedAdmin.username}</strong>
               </div>
@@ -633,30 +639,308 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
             {/* Tab Content */}
             <div
               style={{
-                padding: '1.25rem 1.4rem',
+                padding: '1rem',
                 overflowY: 'auto',
+                WebkitOverflowScrolling: 'touch',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '1.25rem',
+                gap: '1.1rem',
+                flex: 1,
+                minHeight: 0,
               }}
             >
               {activeTab === 'registered' ? (
-                <RegisteredUsersDirectoryView
-                  enabled={isModalOpen && Boolean(authenticatedAdmin) && activeTab === 'registered'}
-                />
+                <div style={{ flexShrink: 0 }}>
+                  <RegisteredUsersDirectoryView
+                    enabled={isModalOpen && Boolean(authenticatedAdmin)}
+                  />
+                </div>
               ) : activeTab === 'users' ? (
                 <>
+                  {/* Existing Stream Keys List — placed at top & flexShrink: 0 so keys are always visible on mobile */}
+                  <div
+                    style={{
+                      borderRadius: '14px',
+                      border: '1px solid rgba(243, 179, 64, 0.3)',
+                      backgroundColor: 'rgba(255,255,255,0.025)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '0.8rem 1rem',
+                        borderBottom: '1px solid rgba(255,255,255,0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '0.45rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <KeyRound size={16} color="#f3b340" />
+                        <span
+                          style={{
+                            fontSize: '0.8rem',
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.07em',
+                            color: '#f3b340',
+                          }}
+                        >
+                          Existing Stream Keys ({users.length})
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.71rem', color: '#94a3b8' }}>
+                        Active across all Interactive Games
+                      </span>
+                    </div>
+
+                    {users.length === 0 ? (
+                      <div
+                        style={{
+                          padding: '1.5rem 1rem',
+                          textAlign: 'center',
+                          color: '#94a3b8',
+                          fontSize: '0.84rem',
+                        }}
+                      >
+                        No stream keys generated yet. Use the form below to generate a LIVE-xxxx-xxxx stream key.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {users.map((u, idx) => {
+                          const isHidden = !!hiddenUserKeys[u.id];
+                          const isCopied = copiedId === u.id;
+                          return (
+                            <div
+                              key={u.id}
+                              style={{
+                                padding: '0.8rem 1rem',
+                                borderBottom:
+                                  idx < users.length - 1
+                                    ? '1px solid rgba(255,255,255,0.06)'
+                                    : 'none',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.55rem',
+                              }}
+                            >
+                              {/* Top Row: Handle + Label + Added By */}
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  flexWrap: 'wrap',
+                                  gap: '0.4rem',
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.45rem',
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      fontSize: '0.92rem',
+                                      fontWeight: 800,
+                                      color: '#ffffff',
+                                      fontFamily: 'monospace',
+                                    }}
+                                  >
+                                    {u.displayHandle}
+                                  </span>
+                                  {u.label && (
+                                    <span
+                                      style={{
+                                        fontSize: '0.69rem',
+                                        padding: '0.14rem 0.48rem',
+                                        borderRadius: '6px',
+                                        backgroundColor: 'rgba(255,255,255,0.07)',
+                                        color: '#cbd5e1',
+                                      }}
+                                    >
+                                      {u.label}
+                                    </span>
+                                  )}
+                                </div>
+                                <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                                  Added by {u.createdBy || 'Admin'}
+                                </span>
+                              </div>
+
+                              {/* Bottom Row: Stream Key Code + Mobile-Friendly Action Buttons */}
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  flexWrap: 'wrap',
+                                  gap: '0.45rem',
+                                }}
+                              >
+                                <code
+                                  style={{
+                                    padding: '0.38rem 0.68rem',
+                                    borderRadius: '8px',
+                                    backgroundColor: '#090a0f',
+                                    border: '1px solid rgba(243, 179, 64, 0.45)',
+                                    color: '#f3b340',
+                                    fontSize: '0.84rem',
+                                    fontWeight: 800,
+                                    letterSpacing: '0.05em',
+                                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                                  }}
+                                >
+                                  {isHidden ? 'LIVE-••••-••••' : u.key}
+                                </code>
+
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.38rem',
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyText(u.id, u.key)}
+                                    title="Copy LIVE-xxxx-xxxx key"
+                                    style={{
+                                      padding: '0.38rem 0.62rem',
+                                      borderRadius: '7px',
+                                      border: '1px solid rgba(255,255,255,0.14)',
+                                      backgroundColor: isCopied
+                                        ? 'rgba(16, 185, 129, 0.2)'
+                                        : 'rgba(255,255,255,0.05)',
+                                      color: isCopied ? '#6ee7b7' : '#e2e8f0',
+                                      fontSize: '0.73rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.3rem',
+                                    }}
+                                  >
+                                    {isCopied ? <Check size={13} /> : <Copy size={13} />}
+                                    {isCopied ? 'Copied' : 'Copy Key'}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setHiddenUserKeys((prev) => ({
+                                        ...prev,
+                                        [u.id]: !prev[u.id],
+                                      }))
+                                    }
+                                    title={isHidden ? 'Show key' : 'Hide key'}
+                                    style={{
+                                      padding: '0.38rem 0.5rem',
+                                      borderRadius: '7px',
+                                      border: '1px solid rgba(255,255,255,0.12)',
+                                      backgroundColor: 'rgba(255,255,255,0.04)',
+                                      color: '#cbd5e1',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.25rem',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {isHidden ? <Eye size={13} /> : <EyeOff size={13} />}
+                                    {isHidden ? 'Show' : 'Hide'}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRegenerateUserKey(u.username, u.label)}
+                                    title="Generate a new LIVE-xxxx-xxxx key for this user"
+                                    style={{
+                                      padding: '0.38rem 0.58rem',
+                                      borderRadius: '7px',
+                                      border: '1px solid rgba(243, 179, 64, 0.3)',
+                                      backgroundColor: 'rgba(243, 179, 64, 0.1)',
+                                      color: '#f3b340',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.28rem',
+                                    }}
+                                  >
+                                    <RefreshCw size={12} />
+                                    New Key
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteUser(u.id, u.displayHandle)}
+                                    title="Remove user key"
+                                    style={{
+                                      padding: '0.38rem 0.45rem',
+                                      borderRadius: '7px',
+                                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                      color: '#fca5a5',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                    }}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {userFormFeedback && (
+                    <div
+                      style={{
+                        padding: '0.7rem 0.95rem',
+                        borderRadius: '10px',
+                        backgroundColor:
+                          userFormFeedback.type === 'ok'
+                            ? 'rgba(16, 185, 129, 0.14)'
+                            : 'rgba(239, 68, 68, 0.14)',
+                        border:
+                          userFormFeedback.type === 'ok'
+                            ? '1px solid rgba(16, 185, 129, 0.4)'
+                            : '1px solid rgba(239, 68, 68, 0.4)',
+                        color: userFormFeedback.type === 'ok' ? '#6ee7b7' : '#fca5a5',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {userFormFeedback.text}
+                    </div>
+                  )}
+
                   {/* Generate Key for a New User */}
                   <form
                     onSubmit={handleAddUserWithKey}
                     style={{
-                      padding: '1.1rem',
+                      padding: '1rem',
                       borderRadius: '14px',
                       backgroundColor: 'rgba(255,255,255,0.03)',
                       border: '1px solid rgba(243, 179, 64, 0.28)',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '0.9rem',
+                      gap: '0.85rem',
+                      flexShrink: 0,
                     }}
                   >
                     <div
@@ -672,27 +956,26 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                         <UserPlus size={16} color="#f3b340" />
                         <span
                           style={{
-                            fontSize: '0.82rem',
+                            fontSize: '0.8rem',
                             fontWeight: 800,
                             textTransform: 'uppercase',
                             letterSpacing: '0.07em',
                             color: '#f3b340',
                           }}
                         >
-                          Generate Key for a New User
+                          Generate Stream Key for a User
                         </span>
                       </div>
-                      <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-                        Format: <code style={{ color: '#f3b340' }}>LIVE-xxxx-xxxx</code> · Works on
-                        WiKirecTangled, WikiContexto & Squared Interactive
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        Format: <code style={{ color: '#f3b340' }}>LIVE-xxxx-xxxx</code>
                       </span>
                     </div>
 
                     <div
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-                        gap: '0.75rem',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                        gap: '0.7rem',
                       }}
                     >
                       <div>
@@ -716,12 +999,12 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                           placeholder="@streamer_handle"
                           style={{
                             width: '100%',
-                            padding: '0.6rem 0.75rem',
+                            padding: '0.58rem 0.75rem',
                             borderRadius: '9px',
                             border: '1px solid rgba(255,255,255,0.15)',
                             backgroundColor: '#0b0c12',
                             color: '#ffffff',
-                            fontSize: '0.86rem',
+                            fontSize: '0.85rem',
                           }}
                         />
                       </div>
@@ -748,14 +1031,14 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                             placeholder="LIVE-XXXX-XXXX"
                             style={{
                               flex: 1,
-                              padding: '0.6rem 0.75rem',
+                              padding: '0.58rem 0.75rem',
                               borderRadius: '9px',
                               border: '1px solid rgba(243, 179, 64, 0.45)',
                               backgroundColor: '#0b0c12',
                               color: '#f3b340',
                               fontFamily: 'monospace',
                               fontWeight: 700,
-                              fontSize: '0.86rem',
+                              fontSize: '0.85rem',
                             }}
                           />
                           <button
@@ -800,12 +1083,12 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                           placeholder="e.g. Creator Live Host"
                           style={{
                             width: '100%',
-                            padding: '0.6rem 0.75rem',
+                            padding: '0.58rem 0.75rem',
                             borderRadius: '9px',
                             border: '1px solid rgba(255,255,255,0.15)',
                             backgroundColor: '#0b0c12',
                             color: '#ffffff',
-                            fontSize: '0.86rem',
+                            fontSize: '0.85rem',
                           }}
                         />
                       </div>
@@ -827,12 +1110,12 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '0.4rem',
-                          padding: '0.5rem 0.85rem',
+                          padding: '0.48rem 0.82rem',
                           borderRadius: '8px',
                           border: '1px solid rgba(255,255,255,0.15)',
                           backgroundColor: 'rgba(255,255,255,0.04)',
                           color: '#cbd5e1',
-                          fontSize: '0.78rem',
+                          fontSize: '0.76rem',
                           fontWeight: 700,
                           cursor: 'pointer',
                         }}
@@ -847,268 +1130,66 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '0.45rem',
-                          padding: '0.6rem 1.15rem',
+                          padding: '0.55rem 1.1rem',
                           borderRadius: '9px',
                           border: 'none',
                           background: 'linear-gradient(135deg, #f3b340, #d99b26)',
                           color: '#111218',
-                          fontSize: '0.82rem',
+                          fontSize: '0.8rem',
                           fontWeight: 800,
                           cursor: 'pointer',
                         }}
                       >
                         <Plus size={15} />
-                        Generate & Save User Key
+                        Generate &amp; Save User Key
                       </button>
                     </div>
                   </form>
 
-                  {userFormFeedback && (
-                    <div
-                      style={{
-                        padding: '0.7rem 0.95rem',
-                        borderRadius: '10px',
-                        backgroundColor:
-                          userFormFeedback.type === 'ok'
-                            ? 'rgba(16, 185, 129, 0.14)'
-                            : 'rgba(239, 68, 68, 0.14)',
-                        border:
-                          userFormFeedback.type === 'ok'
-                            ? '1px solid rgba(16, 185, 129, 0.4)'
-                            : '1px solid rgba(239, 68, 68, 0.4)',
-                        color: userFormFeedback.type === 'ok' ? '#6ee7b7' : '#fca5a5',
-                        fontSize: '0.82rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {userFormFeedback.text}
-                    </div>
-                  )}
-
-                  {/* Existing Users List */}
+                  {/* All Registered Users Section (shows all registered users, including those without stream keys) */}
                   <div
                     style={{
+                      padding: '1rem',
                       borderRadius: '14px',
-                      border: '1px solid rgba(255,255,255,0.1)',
                       backgroundColor: 'rgba(255,255,255,0.02)',
-                      overflow: 'hidden',
+                      border: '1px solid rgba(16, 185, 129, 0.28)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.85rem',
+                      flexShrink: 0,
                     }}
                   >
                     <div
                       style={{
-                        padding: '0.85rem 1.1rem',
-                        borderBottom: '1px solid rgba(255,255,255,0.08)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '0.5rem',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Users size={16} color="#38bdf8" />
+                        <Users size={16} color="#34d399" />
                         <span
                           style={{
                             fontSize: '0.8rem',
                             fontWeight: 800,
                             textTransform: 'uppercase',
                             letterSpacing: '0.07em',
-                            color: '#e2e8f0',
+                            color: '#34d399',
                           }}
                         >
-                          Existing Authorized Users ({users.length})
+                          All Registered Website Users ({registeredUsers.length})
                         </span>
                       </div>
                       <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                        Valid across WiKirecTangled, WikiContexto & Squared Interactive
+                        Includes all registered accounts with or without stream keys
                       </span>
                     </div>
 
-                    {users.length === 0 ? (
-                      <div
-                        style={{
-                          padding: '2rem',
-                          textAlign: 'center',
-                          color: '#64748b',
-                          fontSize: '0.85rem',
-                        }}
-                      >
-                        No users registered yet. Generate a key above to authorize a user.
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        {users.map((u) => {
-                          const isShown = !!revealedUserKeys[u.id];
-                          const isCopied = copiedId === u.id;
-                          return (
-                            <div
-                              key={u.id}
-                              style={{
-                                padding: '0.85rem 1.1rem',
-                                borderBottom: '1px solid rgba(255,255,255,0.06)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                flexWrap: 'wrap',
-                                gap: '0.75rem',
-                              }}
-                            >
-                              <div style={{ minWidth: '180px' }}>
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      fontSize: '0.95rem',
-                                      fontWeight: 800,
-                                      color: '#ffffff',
-                                      fontFamily: 'monospace',
-                                    }}
-                                  >
-                                    {u.displayHandle}
-                                  </span>
-                                  {u.label && (
-                                    <span
-                                      style={{
-                                        fontSize: '0.7rem',
-                                        padding: '0.15rem 0.5rem',
-                                        borderRadius: '6px',
-                                        backgroundColor: 'rgba(255,255,255,0.06)',
-                                        color: '#cbd5e1',
-                                      }}
-                                    >
-                                      {u.label}
-                                    </span>
-                                  )}
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: '0.7rem',
-                                    color: '#64748b',
-                                    marginTop: '0.15rem',
-                                  }}
-                                >
-                                  Added by {u.createdBy || 'Admin'}
-                                </div>
-                              </div>
-
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.45rem',
-                                  flexWrap: 'wrap',
-                                }}
-                              >
-                                <code
-                                  style={{
-                                    padding: '0.35rem 0.65rem',
-                                    borderRadius: '7px',
-                                    backgroundColor: '#090a0f',
-                                    border: '1px solid rgba(243, 179, 64, 0.35)',
-                                    color: '#f3b340',
-                                    fontSize: '0.82rem',
-                                    fontWeight: 700,
-                                    letterSpacing: '0.05em',
-                                  }}
-                                >
-                                  {isShown ? u.key : 'LIVE-••••-••••'}
-                                </code>
-
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setRevealedUserKeys((prev) => ({
-                                      ...prev,
-                                      [u.id]: !prev[u.id],
-                                    }))
-                                  }
-                                  title={isShown ? 'Hide key' : 'Show key'}
-                                  style={{
-                                    padding: '0.4rem',
-                                    borderRadius: '7px',
-                                    border: '1px solid rgba(255,255,255,0.12)',
-                                    backgroundColor: 'rgba(255,255,255,0.04)',
-                                    color: '#cbd5e1',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                  }}
-                                >
-                                  {isShown ? <EyeOff size={14} /> : <Eye size={14} />}
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleCopyText(u.id, u.key)}
-                                  title="Copy LIVE-xxxx-xxxx key"
-                                  style={{
-                                    padding: '0.4rem 0.6rem',
-                                    borderRadius: '7px',
-                                    border: '1px solid rgba(255,255,255,0.12)',
-                                    backgroundColor: isCopied
-                                      ? 'rgba(16, 185, 129, 0.2)'
-                                      : 'rgba(255,255,255,0.04)',
-                                    color: isCopied ? '#6ee7b7' : '#cbd5e1',
-                                    fontSize: '0.73rem',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.3rem',
-                                  }}
-                                >
-                                  {isCopied ? <Check size={13} /> : <Copy size={13} />}
-                                  {isCopied ? 'Copied' : 'Copy'}
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleRegenerateUserKey(u.username, u.label)}
-                                  title="Generate a new LIVE-xxxx-xxxx key for this user"
-                                  style={{
-                                    padding: '0.4rem 0.6rem',
-                                    borderRadius: '7px',
-                                    border: '1px solid rgba(243, 179, 64, 0.3)',
-                                    backgroundColor: 'rgba(243, 179, 64, 0.1)',
-                                    color: '#f3b340',
-                                    fontSize: '0.73rem',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.3rem',
-                                  }}
-                                >
-                                  <RefreshCw size={12} />
-                                  New Key
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteUser(u.id, u.displayHandle)}
-                                  title="Remove user"
-                                  style={{
-                                    padding: '0.4rem',
-                                    borderRadius: '7px',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                    color: '#fca5a5',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                  }}
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <RegisteredUsersDirectoryView
+                      enabled={isModalOpen && Boolean(authenticatedAdmin)}
+                    />
                   </div>
                 </>
               ) : (

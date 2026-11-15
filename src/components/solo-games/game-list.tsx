@@ -42,7 +42,8 @@ export function SoloGameList() {
           Solo games to play on your own and weave into your creator content. Explore our daily
           20×20 &amp; 8×8 crosswords, 733+ visual rebus challenges, tactile daily word grids,
           daily word association puzzles, 3D layered word unstacking towers, 26-letter zero-clue
-          crosswords, 8-connected Wikipedia word grids, and redacted Wikipedia article discovery.
+          crosswords, 8-connected Wikipedia word grids, redacted Wikipedia article discovery, and
+          daily 10×10 word searches.
         </p>
         <div className="mt-4">
           <a
@@ -76,7 +77,7 @@ export function SoloGameList() {
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
                   Your Google / Email login is synced across Crossword, Missing Rebus, Squared,
-                  Thematix, DeStack, Unolingo, WiKirecTangled &amp; WikiContexto.
+                  Thematix, DeStack, Unolingo, WiKirecTangled, WikiContexto &amp; MP Search.
                 </p>
               </>
             ) : (
@@ -88,7 +89,7 @@ export function SoloGameList() {
                   Sign in with Google or Email &amp; Password
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                  Use a single account across all 8 solo games to record your high scores and
+                  Use a single account across all 9 solo games to record your high scores and
                   compete on the visitor leaderboards.
                 </p>
               </>
@@ -488,6 +489,49 @@ export function SoloGameList() {
             <button
               type="button"
               onClick={() => openModal('wikicon', 'leaderboards')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
+            >
+              <Trophy size={13} />
+              <span>Leaderboard</span>
+            </button>
+          </div>
+        </article>
+
+        <article className="game-card">
+          <div className="card-top">
+            <span className="category-label">
+              <span className="status-dot" /> NOW PLAYING
+            </span>
+            <span className="card-number">09 /</span>
+          </div>
+          <Link
+            to="/solo-games/mpsearch"
+            className="game-art game-art-thumb"
+            aria-label="Open MP Search Daily 10x10 Word Search"
+          >
+            <img
+              className="game-thumbnail"
+              src="/mpsearch-website-thumbnail.svg"
+              alt="MP Search — Daily 10×10 Word Search website thumbnail"
+              referrerPolicy="no-referrer"
+            />
+          </Link>
+          <h3>MP Search — Daily Word Search</h3>
+          <p>
+            Discover 8 to 12 randomized thematic words hidden across a tactile 10×10 letterpress
+            grid—horizontally, vertically, diagonally, and backwards with intersecting crossings.
+            Features a 4-tier progressive hint system and a full 12-month (368-day) playable archive.
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-2">
+            <Link className="game-link flex-1" to="/solo-games/mpsearch">
+              Play MP Search{' '}
+              <span>
+                <ArrowUpRight size={22} />
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => openModal('mpsearch', 'leaderboards')}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
             >
               <Trophy size={13} />

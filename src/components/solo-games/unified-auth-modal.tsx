@@ -98,6 +98,12 @@ const SOLO_GAME_META: Record<
     shortTitle: 'WikiContexto',
     subtitle: 'Daily & Solo Redacted Wikipedia Article Scores',
   },
+  mpsearch: {
+    number: '09',
+    title: 'MP Search — Daily 10×10 Word Search',
+    shortTitle: 'MP Search',
+    subtitle: 'Daily 10×10 Word Search & 6-Month Archive High Scores',
+  },
 };
 
 const ALLOWED_GAMES: SoloGameId[] = [
@@ -109,6 +115,7 @@ const ALLOWED_GAMES: SoloGameId[] = [
   'unolingo',
   'wikirec',
   'wikicon',
+  'mpsearch',
 ];
 
 export function UnifiedLeaderboardPanel({
@@ -135,6 +142,7 @@ export function UnifiedLeaderboardPanel({
     unolingo: [],
     wikirec: [],
     wikicon: [],
+    mpsearch: [],
     cruciverbalist: [],
     crossword: [],
   });

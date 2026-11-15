@@ -814,7 +814,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const isShowingCompletedWord =
     activeBoard.rack.every((t) => t === null) && activeBoard.completedWordLetters !== null;
   const isHardMode = difficulty === 'hard';
-  const tileSizePct = isHardMode ? '11.4%' : '16.2%';
+  const tileSizePct = isHardMode ? '10.2%' : '13.6%';
   const timerPct = Math.max(0, Math.min(100, (activeBoard.wordTimeLeft / Math.max(1, timerDuration)) * 100));
   const overlayBoardKey = `ov-${difficulty}-${layoutMode}-${puzzle.words.join(',')}-${resetSignal}`;
   const hostBoardKey = `${difficulty}-${layoutMode}-${puzzle.words.join(',')}-${resetSignal}-${resetCount}`;
