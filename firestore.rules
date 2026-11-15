@@ -20,6 +20,14 @@ service cloud.firestore {
       return resource.data;
     }
 
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == 'Phreakfrog@gmail.com' && request.auth.token.email_verified == true) ||
+        (request.auth.token.email == 'phreakfrog@gmail.com' && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
     function isValidDocId(id) {
       return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$');
     }
@@ -41,7 +49,7 @@ service cloud.firestore {
         && data.keys().hasOnly(keys)
         && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 64 && data.userId.matches('^[a-zA-Z0-9_-]+$')
         && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60
-        && data.gameId is string && data.gameId in ['crossword', 'rebus', 'squared', 'thematix']
+        && data.gameId is string && data.gameId in ['crossword', 'rebus', 'squared', 'thematix', 'destack', 'unolingo']
         && data.puzzleId is string && data.puzzleId.size() >= 1 && data.puzzleId.size() <= 64 && data.puzzleId.matches('^[a-zA-Z0-9_-]+$')
         && data.puzzleTitle is string && data.puzzleTitle.size() >= 1 && data.puzzleTitle.size() <= 100
         && data.score is int && data.score >= 0 && data.score <= 1000000
@@ -81,6 +89,27 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidRegisteredUserShape(data) {
+      let keys = [
+        'userId',
+        'displayName',
+        'tiktokConnected',
+        'linkedTikTokHandle',
+        'authProvider',
+        'createdAt',
+        'updatedAt'
+      ];
+      return data.keys().hasAll(keys)
+        && data.keys().hasOnly(keys)
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_-]+$')
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60
+        && data.tiktokConnected is bool
+        && data.linkedTikTokHandle is string && data.linkedTikTokHandle.size() <= 40 && data.linkedTikTokHandle.matches('^(@[a-zA-Z0-9_.-]+)?$')
+        && data.authProvider is string && data.authProvider in ['email', 'google', 'site']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
     // Unified Solo Games Leaderboard (publicly readable by visitors; contains no PII)
     match /leaderboard/{entryId} {
       allow get: if true;
@@ -105,7 +134,7 @@ service cloud.firestore {
         && incoming().score >= existing().score;
 
       allow delete: if isSignedIn()
-        && existing().userId == request.auth.uid;
+        && (existing().userId == request.auth.uid || isAdmin());
     }
 
     // Squared Detailed High Scores (publicly readable by visitors; contains no PII)
@@ -133,7 +162,39 @@ service cloud.firestore {
         && incoming().score >= existing().score;
 
       allow delete: if isSignedIn()
-        && existing().userId == request.auth.uid;
+        && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // Non-PII Registered Users Directory (stores only public displayName & TikTok connection state; zero email/PII)
+    match /registeredUsers/{userId} {
+      allow get: if true;
+      allow list: if true;
+
+      allow create: if isSignedIn()
+        && isValidDocId(userId)
+        && isValidRegisteredUserShape(incoming())
+        && incoming().userId == request.auth.uid
+        && userId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isSignedIn()
+        && isValidDocId(userId)
+        && isValidRegisteredUserShape(incoming())
+        && (existing().userId == request.auth.uid || isAdmin())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName',
+          'tiktokConnected',
+          'linkedTikTokHandle',
+          'authProvider',
+          'updatedAt'
+        ]);
+
+      allow delete: if isSignedIn()
+        && (existing().userId == request.auth.uid || isAdmin());
     }
   }
 }

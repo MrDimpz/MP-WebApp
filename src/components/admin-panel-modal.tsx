@@ -69,9 +69,9 @@ export function RegisteredUsersDirectoryView({ enabled = true }: { enabled?: boo
   }, [users, searchQuery, filter]);
 
   const providerLabel = (provider: RegisteredUserRecord['authProvider']) => {
-    if (provider === 'google') return 'Google Account';
-    if (provider === 'email') return 'Email Account';
-    return 'Site Account';
+    if (provider === 'google') return 'Google · Firebase';
+    if (provider === 'email') return 'Email · Firebase / Site';
+    return 'Firebase / Site Account';
   };
 
   return (

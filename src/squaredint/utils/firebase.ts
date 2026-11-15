@@ -1,6 +1,4 @@
-import { initializeApp } from 'firebase/app';
 import {
-  getAuth,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -12,7 +10,6 @@ import {
   User,
 } from 'firebase/auth';
 import {
-  getFirestore,
   doc,
   getDoc,
   getDocFromServer,
@@ -26,11 +23,11 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import firebaseConfig from '../../../firebase-applet-config.json';
+import { auth, db } from '@/firebase';
+import { recordRegisteredUser } from '@/lib/unified-game-auth';
 import { GameModeId } from './puzzleGenerator';
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const auth = getAuth(app);
+export { db, auth };
 
 // Validate connection to Firestore on boot as required
 async function testConnection() {
@@ -42,7 +39,7 @@ async function testConnection() {
     }
   }
 }
-testConnection();
+void testConnection();
 
 export enum OperationType {
   CREATE = 'create',
@@ -120,13 +117,25 @@ export interface HighScoreRecord {
 
 const googleProvider = new GoogleAuthProvider();
 
+export function syncSquaredIntFirebaseUser(usr: User | null): void {
+  if (!usr?.uid) return;
+  const isGoogle = usr.providerData?.some((p) => p?.providerId === 'google.com');
+  recordRegisteredUser({
+    uid: usr.uid,
+    displayName: usr.displayName || usr.email?.split('@')[0] || 'Puzzle Seeker',
+    authProvider: isGoogle ? 'google' : 'email',
+  });
+}
+
 export async function signInWithGooglePopup(): Promise<User> {
   const res = await signInWithPopup(auth, googleProvider);
+  syncSquaredIntFirebaseUser(res.user);
   return res.user;
 }
 
 export async function loginWithEmailPassword(email: string, password: string): Promise<User> {
   const res = await signInWithEmailAndPassword(auth, email.trim(), password);
+  syncSquaredIntFirebaseUser(res.user);
   return res.user;
 }
 
@@ -138,6 +147,11 @@ export async function registerWithEmailPassword(
   const res = await createUserWithEmailAndPassword(auth, email.trim(), password);
   const cleanName = displayName.trim().slice(0, MAX_DISPLAY_NAME_LENGTH) || 'Puzzle Seeker';
   await updateProfile(res.user, { displayName: cleanName });
+  recordRegisteredUser({
+    uid: res.user.uid,
+    displayName: cleanName,
+    authProvider: 'email',
+  });
   return res.user;
 }
 

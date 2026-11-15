@@ -56,6 +56,7 @@ import {
   HighScoreRecord,
   subscribeToUserHighScores,
   saveHighScoreToFirestore,
+  syncSquaredIntFirebaseUser,
 } from './utils/firebase';
 import { getSafeAvatarUrl, handleAvatarError } from './utils/avatar';
 import { io, Socket } from 'socket.io-client';
@@ -146,6 +147,7 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (usr) => {
       setCurrentUser(usr);
+      syncSquaredIntFirebaseUser(usr);
     });
     return () => unsubscribe();
   }, []);

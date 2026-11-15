@@ -12,11 +12,15 @@ import {
 import {
   collection,
   doc,
+  getDoc,
+  getDocs,
   limit,
   onSnapshot,
   orderBy,
   query,
+  serverTimestamp,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { triggerNewHighScoreConfetti } from "./confetti";
@@ -54,12 +58,46 @@ export const MAX_ID_LENGTH = 128;
 export const MAX_PUZZLE_ID_LENGTH = 60;
 export const MAX_DISPLAY_NAME_LENGTH = 40;
 
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
 export function handleFirestoreError(
   error: unknown,
   operationType: OperationType,
   path: string | null,
 ): void {
-  console.warn(`Firestore ${operationType} fallback on ${path ?? "unknown"}:`, error);
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo:
+        auth.currentUser?.providerData?.map((provider) => ({
+          providerId: provider.providerId,
+          email: provider.email,
+        })) || [],
+    },
+    operationType,
+    path,
+  };
+  console.warn("Firestore Error:", JSON.stringify(errInfo));
 }
 
 export interface UnifiedLeaderboardEntry {
@@ -348,6 +386,94 @@ function saveStoredDirectoryList(list: RegisteredUserRecord[]) {
   }
 }
 
+function toMillisSafe(val: unknown, fallback = Date.now()): number {
+  if (typeof val === "number" && Number.isFinite(val) && val > 0) return val;
+  if (val && typeof val === "object") {
+    const maybe = val as {
+      toMillis?: () => number;
+      seconds?: number;
+      nanoseconds?: number;
+    };
+    if (typeof maybe.toMillis === "function") {
+      try {
+        const ms = maybe.toMillis();
+        if (Number.isFinite(ms) && ms > 0) return ms;
+      } catch {
+        // ignore
+      }
+    }
+    if (typeof maybe.seconds === "number") {
+      return maybe.seconds * 1000;
+    }
+  }
+  if (typeof val === "string") {
+    const parsed = Date.parse(val);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return fallback;
+}
+
+export async function syncFirebaseRegisteredUser(
+  record: RegisteredUserRecord,
+  explicitTikTokUpdate = false,
+): Promise<void> {
+  if (typeof window === "undefined") return;
+  const fbUser = auth.currentUser;
+  if (!fbUser || fbUser.uid !== record.uid) return;
+  const uid = record.uid.trim();
+  if (!ID_REGEX.test(uid) || uid.length > MAX_ID_LENGTH) return;
+
+  const safeName = sanitizePublicIdentity(record.displayName, "Player").slice(0, 60);
+  const safeHandle = normalizeTikTokHandle(record.linkedTikTokHandle).slice(0, 40);
+  const safeProvider: "email" | "google" | "site" =
+    record.authProvider === "google" || record.authProvider === "email"
+      ? record.authProvider
+      : fbUser.providerData?.some((p) => p?.providerId === "google.com")
+        ? "google"
+        : "email";
+
+  const docPath = `registeredUsers/${uid}`;
+  const docRef = doc(db, "registeredUsers", uid);
+
+  try {
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      await setDoc(docRef, {
+        userId: uid,
+        displayName: safeName,
+        tiktokConnected: Boolean(safeHandle),
+        linkedTikTokHandle: safeHandle,
+        authProvider: safeProvider,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      const existing = snap.data();
+      const prevHandle = normalizeTikTokHandle(existing?.linkedTikTokHandle);
+      const finalHandle = explicitTikTokUpdate
+        ? safeHandle
+        : safeHandle || prevHandle;
+      const shouldUpdate =
+        existing?.displayName !== safeName ||
+        existing?.linkedTikTokHandle !== finalHandle ||
+        existing?.tiktokConnected !== Boolean(finalHandle) ||
+        existing?.authProvider !== safeProvider;
+
+      if (shouldUpdate) {
+        await updateDoc(docRef, {
+          displayName: safeName,
+          tiktokConnected: Boolean(finalHandle),
+          linkedTikTokHandle: finalHandle,
+          authProvider: safeProvider,
+          updatedAt: serverTimestamp(),
+        });
+      }
+    }
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, docPath);
+  }
+}
+
 export function recordRegisteredUser(params: {
   uid: string;
   displayName?: string | null;
@@ -404,6 +530,7 @@ export function recordRegisteredUser(params: {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user: record }),
     }).catch(() => {});
+    void syncFirebaseRegisteredUser(record, Boolean(params.explicitTikTokUpdate));
   }
 
   return record;
@@ -516,7 +643,213 @@ export function getRegisteredUsersDirectory(): RegisteredUserRecord[] {
     // ignore
   }
 
+  // Backfill any previously signed-in users recorded in local solo leaderboards or Squared high scores
+  try {
+    for (const lbEntry of readLocalLeaderboards()) {
+      const uid = String(lbEntry.uid || "").trim();
+      if (!uid || uid === "local-guest") continue;
+      if (!map.has(uid)) {
+        const linkRec = linksByUid.get(uid);
+        const handle = normalizeTikTokHandle(linkRec?.tiktokHandle);
+        const ts = Number(lbEntry.updatedAt) || Date.now();
+        map.set(uid, {
+          uid,
+          displayName: sanitizePublicIdentity(lbEntry.displayName, "Player"),
+          linkedTikTokHandle: handle,
+          tiktokConnected: Boolean(handle),
+          authProvider: uid.startsWith("google_") ? "google" : "site",
+          createdAt: ts,
+          updatedAt: Math.max(ts, linkRec?.updatedAt || 0),
+        });
+      }
+    }
+
+    const rawSquared = window.localStorage.getItem("mp_squared_highscores_local_v1");
+    if (rawSquared) {
+      const parsedSquared = JSON.parse(rawSquared);
+      if (Array.isArray(parsedSquared)) {
+        for (const item of parsedSquared) {
+          const uid = String(item?.userId || "").trim();
+          if (!uid || uid === "local-guest") continue;
+          if (!map.has(uid)) {
+            const linkRec = linksByUid.get(uid);
+            const handle = normalizeTikTokHandle(linkRec?.tiktokHandle);
+            const now = Date.now();
+            map.set(uid, {
+              uid,
+              displayName: sanitizePublicIdentity(item.displayName, "Player"),
+              linkedTikTokHandle: handle,
+              tiktokConnected: Boolean(handle),
+              authProvider: uid.startsWith("google_") ? "google" : "site",
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
   return Array.from(map.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export async function fetchRegisteredUsersFromFirestore(): Promise<
+  RegisteredUserRecord[]
+> {
+  if (typeof window === "undefined") return [];
+
+  const byUid = new Map<string, RegisteredUserRecord>();
+  const links = getTikTokHandleLinks();
+  const linksByUid = new Map<string, TikTokAccountLinkRecord>();
+  for (const link of Object.values(links)) {
+    if (link?.uid) {
+      linksByUid.set(link.uid, link);
+    }
+  }
+
+  const mergeDocUser = (raw: {
+    uid: string;
+    displayName: unknown;
+    linkedTikTokHandle?: unknown;
+    authProvider?: unknown;
+    createdAt?: unknown;
+    updatedAt?: unknown;
+    fromProfileCollection?: boolean;
+  }) => {
+    const uid = String(raw.uid || "").trim();
+    if (!uid || uid === "local-guest") return;
+
+    const prev = byUid.get(uid);
+    const localLink = linksByUid.get(uid);
+    const rawHandleStr =
+      typeof raw.linkedTikTokHandle === "string" ? raw.linkedTikTokHandle : "";
+    const rawNameStr =
+      typeof raw.displayName === "string" ? raw.displayName : "";
+    const docHandle = normalizeTikTokHandle(rawHandleStr);
+    const resolvedHandle =
+      docHandle ||
+      (prev?.linkedTikTokHandle ?? "") ||
+      normalizeTikTokHandle(localLink?.tiktokHandle);
+    const createdAt = Math.min(
+      prev?.createdAt || Number.MAX_SAFE_INTEGER,
+      toMillisSafe(raw.createdAt, Date.now()),
+    );
+    const updatedAt = Math.max(
+      prev?.updatedAt || 0,
+      toMillisSafe(raw.updatedAt, Date.now()),
+    );
+    const provider: "email" | "google" | "site" =
+      raw.authProvider === "google" || raw.authProvider === "email"
+        ? raw.authProvider
+        : prev?.authProvider || "site";
+
+    byUid.set(uid, {
+      uid,
+      displayName: sanitizePublicIdentity(
+        raw.fromProfileCollection
+          ? rawNameStr || prev?.displayName
+          : prev?.displayName || rawNameStr,
+        "Player",
+      ),
+      linkedTikTokHandle: resolvedHandle,
+      tiktokConnected: Boolean(resolvedHandle),
+      authProvider: provider,
+      createdAt:
+        createdAt === Number.MAX_SAFE_INTEGER ? Date.now() : createdAt,
+      updatedAt,
+    });
+  };
+
+  const [profilesRes, highscoresRes, leaderboardRes] = await Promise.allSettled([
+    getDocs(query(collection(db, "registeredUsers"), limit(500))),
+    getDocs(query(collection(db, "highscores"), limit(500))),
+    getDocs(query(collection(db, "leaderboard"), limit(500))),
+  ]);
+
+  if (profilesRes.status === "fulfilled") {
+    profilesRes.value.forEach((docSnap) => {
+      const d = docSnap.data();
+      mergeDocUser({
+        uid: String(d?.userId || docSnap.id || ""),
+        displayName: d?.displayName,
+        linkedTikTokHandle: d?.linkedTikTokHandle,
+        authProvider: d?.authProvider,
+        createdAt: d?.createdAt,
+        updatedAt: d?.updatedAt,
+        fromProfileCollection: true,
+      });
+    });
+  } else {
+    handleFirestoreError(
+      profilesRes.reason,
+      OperationType.LIST,
+      "registeredUsers",
+    );
+  }
+
+  if (highscoresRes.status === "fulfilled") {
+    highscoresRes.value.forEach((docSnap) => {
+      const d = docSnap.data();
+      if (d?.userId) {
+        mergeDocUser({
+          uid: String(d.userId),
+          displayName: d.displayName,
+          createdAt: d.createdAt,
+          updatedAt: d.updatedAt,
+        });
+      }
+    });
+  } else {
+    handleFirestoreError(
+      highscoresRes.reason,
+      OperationType.LIST,
+      "highscores",
+    );
+  }
+
+  if (leaderboardRes.status === "fulfilled") {
+    leaderboardRes.value.forEach((docSnap) => {
+      const d = docSnap.data();
+      const uid = String(d?.userId || d?.uid || "");
+      if (uid) {
+        mergeDocUser({
+          uid,
+          displayName: d.displayName,
+          createdAt: d.createdAt,
+          updatedAt: d.updatedAt,
+        });
+      }
+    });
+  } else {
+    handleFirestoreError(
+      leaderboardRes.reason,
+      OperationType.LIST,
+      "leaderboard",
+    );
+  }
+
+  // Also ensure the currently active Firebase Auth user is represented immediately
+  if (auth.currentUser?.uid) {
+    const fb = auth.currentUser;
+    const isGoogle = fb.providerData?.some(
+      (p) => p?.providerId === "google.com",
+    );
+    mergeDocUser({
+      uid: fb.uid,
+      displayName: sanitizePublicIdentity(
+        fb.displayName || fb.email?.split("@")[0],
+        "Player",
+      ),
+      linkedTikTokHandle: getLinkedTikTokHandle(fb.uid),
+      authProvider: isGoogle ? "google" : "email",
+      createdAt: fb.metadata?.creationTime || Date.now(),
+      updatedAt: fb.metadata?.lastSignInTime || Date.now(),
+    });
+  }
+
+  return Array.from(byUid.values()).sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 export async function fetchRegisteredUsersDirectory(): Promise<
@@ -526,61 +859,85 @@ export async function fetchRegisteredUsersDirectory(): Promise<
   if (typeof window === "undefined") return localList;
 
   try {
-    // Push any local backfill records to server directory if present
-    if (localList.length > 0) {
-      await fetch("/api/registered-users/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ users: localList }),
-      }).catch(() => {});
-    }
-
-    const res = await fetch("/api/admin/registered-users", {
-      cache: "no-store",
-    });
-    const ct = res.headers.get("content-type") || "";
-    if (!res.ok || !ct.includes("application/json")) {
-      return localList;
-    }
-    const data = await res.json();
-    if (!Array.isArray(data?.users)) {
-      return localList;
-    }
+    const [serverRes, firestoreUsers] = await Promise.all([
+      fetch("/api/admin/registered-users", { cache: "no-store" })
+        .then(async (res) => {
+          const ct = res.headers.get("content-type") || "";
+          if (!res.ok || !ct.includes("application/json")) return [];
+          const data = await res.json();
+          return Array.isArray(data?.users) ? data.users : [];
+        })
+        .catch(() => []),
+      fetchRegisteredUsersFromFirestore().catch(() => []),
+    ]);
 
     const merged = new Map<string, RegisteredUserRecord>();
     for (const item of localList) {
       merged.set(item.uid, item);
     }
-    for (const rawItem of data.users) {
-      if (!rawItem || !rawItem.uid) continue;
+
+    const upsertCandidate = (rawItem: any) => {
+      if (!rawItem || !rawItem.uid) return;
       const uid = String(rawItem.uid).trim();
-      if (!uid) continue;
-      const handle = normalizeTikTokHandle(rawItem.linkedTikTokHandle);
-      const remote: RegisteredUserRecord = {
+      if (!uid) return;
+      const prev = merged.get(uid);
+      const handle =
+        normalizeTikTokHandle(rawItem.linkedTikTokHandle) ||
+        prev?.linkedTikTokHandle ||
+        "";
+      const createdAt = Math.min(
+        prev?.createdAt || Number.MAX_SAFE_INTEGER,
+        Number(rawItem.createdAt) || Date.now(),
+      );
+      const updatedAt = Math.max(
+        prev?.updatedAt || 0,
+        Number(rawItem.updatedAt) || Date.now(),
+      );
+      const candidate: RegisteredUserRecord = {
         uid,
-        displayName: sanitizePublicIdentity(rawItem.displayName, "Player"),
+        displayName: sanitizePublicIdentity(
+          (Number(rawItem.updatedAt) || 0) >= (prev?.updatedAt || 0)
+            ? rawItem.displayName || prev?.displayName
+            : prev?.displayName || rawItem.displayName,
+          "Player",
+        ),
         linkedTikTokHandle: handle,
         tiktokConnected: Boolean(handle),
         authProvider:
           rawItem.authProvider === "google" || rawItem.authProvider === "email"
             ? rawItem.authProvider
-            : "site",
-        createdAt: Number(rawItem.createdAt) || Date.now(),
-        updatedAt: Number(rawItem.updatedAt) || Date.now(),
+            : prev?.authProvider || "site",
+        createdAt:
+          createdAt === Number.MAX_SAFE_INTEGER ? Date.now() : createdAt,
+        updatedAt,
       };
-      const prev = merged.get(uid);
-      if (!prev || remote.updatedAt >= prev.updatedAt) {
-        merged.set(uid, remote);
-      }
+      merged.set(uid, candidate);
+    };
+
+    for (const rawItem of serverRes) {
+      upsertCandidate(rawItem);
+    }
+    for (const fbItem of firestoreUsers) {
+      upsertCandidate(fbItem);
     }
 
     const sorted = Array.from(merged.values()).sort(
       (a, b) => b.updatedAt - a.updatedAt,
     );
-    window.localStorage.setItem(
-      REGISTERED_USERS_DIRECTORY_KEY,
-      JSON.stringify(sorted),
-    );
+
+    if (sorted.length > 0) {
+      window.localStorage.setItem(
+        REGISTERED_USERS_DIRECTORY_KEY,
+        JSON.stringify(sorted),
+      );
+      // Sync newly discovered local/Firestore records back to server directory
+      fetch("/api/registered-users/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ users: sorted }),
+      }).catch(() => {});
+    }
+
     return sorted;
   } catch {
     return localList;
@@ -1401,11 +1758,62 @@ export async function saveUnifiedLeaderboardScore(params: {
 
   if (!auth.currentUser) return result;
 
-  try {
-    const docRef = doc(db, "leaderboards", entryId);
-    await setDoc(docRef, entry, { merge: true });
-  } catch {
-    // Fallback to local storage if Firestore rules block or offline
+  const safeUid = auth.currentUser.uid
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 64);
+  const safePuzzleId = String(params.puzzleId || normalizedGameId)
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 64);
+  const safeDocId = `${normalizedGameId}_${safeUid}`.slice(0, MAX_ID_LENGTH);
+
+  if (ID_REGEX.test(safeUid) && ID_REGEX.test(safePuzzleId) && ID_REGEX.test(safeDocId)) {
+    const docPath = `leaderboard/${safeDocId}`;
+    const docRef = doc(db, "leaderboard", safeDocId);
+    try {
+      const snap = await getDoc(docRef);
+      const safeTitle = String(params.puzzleTitle || meta.title).slice(0, 100);
+      const safeMetric = String(metricLabel || meta.metric).slice(0, 60);
+      const safeSubMetric = String(params.subMetricLabel || meta.metric).slice(0, 80);
+      const safeScore = Math.max(0, Math.min(1000000, Math.round(score)));
+      const safeDisplayName = displayName.slice(0, 60) || "Player";
+      const firestoreGameId =
+        normalizedGameId === "cruciverbalist" ? "crossword" : normalizedGameId;
+
+      if (!snap.exists()) {
+        await setDoc(docRef, {
+          userId: auth.currentUser.uid,
+          displayName: safeDisplayName,
+          gameId: firestoreGameId,
+          puzzleId: safePuzzleId,
+          puzzleTitle: safeTitle,
+          score: safeScore,
+          metricLabel: safeMetric,
+          subMetricLabel: safeSubMetric,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        const existingData = snap.data();
+        const prevScore =
+          typeof existingData?.score === "number" ? existingData.score : 0;
+        if (safeScore >= prevScore) {
+          await updateDoc(docRef, {
+            userId: existingData.userId,
+            displayName: safeDisplayName,
+            gameId: existingData.gameId,
+            puzzleId: existingData.puzzleId,
+            puzzleTitle: safeTitle,
+            score: safeScore,
+            metricLabel: safeMetric,
+            subMetricLabel: safeSubMetric,
+            createdAt: existingData.createdAt,
+            updatedAt: serverTimestamp(),
+          });
+        }
+      }
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, docPath);
+    }
   }
 
   return result;
@@ -1470,7 +1878,7 @@ export function subscribeToAllLeaderboards(
   let unsubFirestore = () => {};
   try {
     const q = query(
-      collection(db, "leaderboards"),
+      collection(db, "leaderboard"),
       orderBy("score", "desc"),
       limit(60),
     );
@@ -1479,14 +1887,30 @@ export function subscribeToAllLeaderboards(
       (snap) => {
         const remote: UnifiedLeaderboardEntry[] = [];
         snap.forEach((docSnap) => {
-          const data = docSnap.data() as UnifiedLeaderboardEntry;
+          const data = docSnap.data();
           if (data && data.gameId && typeof data.score === "number") {
-            remote.push(data);
+            const gid =
+              data.gameId === "crossword"
+                ? "cruciverbalist"
+                : (data.gameId as SoloGameId);
+            remote.push({
+              id: docSnap.id,
+              uid: String(data.userId || data.uid || ""),
+              displayName: sanitizePublicIdentity(data.displayName, "Player"),
+              photoURL: "",
+              gameId: gid,
+              gameTitle:
+                SOLO_GAME_LABELS[gid]?.title || String(data.puzzleTitle || ""),
+              score: data.score,
+              metricLabel: String(data.metricLabel || `${data.score} pts`),
+              updatedAt: toMillisSafe(data.updatedAt),
+            });
           }
         });
         callback(groupEntries(remote));
       },
-      () => {
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, "leaderboard");
         callback(groupEntries([]));
       },
     );
