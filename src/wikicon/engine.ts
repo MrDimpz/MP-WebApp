@@ -19,8 +19,125 @@ export function normalizeWikiWord(s: string): string {
     .replace(/[^\p{L}\p{N}]/gu, '');
 }
 
+const HTML_NAMED_ENTITIES: Record<string, string> = {
+  nbsp: ' ',
+  amp: '&',
+  quot: '"',
+  apos: "'",
+  lt: '<',
+  gt: '>',
+  ndash: '–',
+  mdash: '—',
+  horbar: '—',
+  minus: '-',
+  hyphen: '-',
+  dash: '-',
+  lsquo: "'",
+  rsquo: "'",
+  sbquo: "'",
+  prime: "'",
+  ldquo: '"',
+  rdquo: '"',
+  bdquo: '"',
+  Prime: '"',
+  hellip: '...',
+  laquo: '«',
+  raquo: '»',
+  lsaquo: '‹',
+  rsaquo: '›',
+  bull: '•',
+  middot: '·',
+  deg: '°',
+  plusmn: '±',
+  times: '×',
+  divide: '÷',
+  frac12: '1/2',
+  frac14: '1/4',
+  frac34: '3/4',
+  sect: '§',
+  para: '¶',
+  copy: '©',
+  reg: '®',
+  trade: '™',
+  euro: '€',
+  pound: '£',
+  yen: '¥',
+  cent: '¢',
+  thinsp: ' ',
+  ensp: ' ',
+  emsp: ' ',
+  shy: '',
+  zwj: '',
+  zwnj: '',
+  lrm: '',
+  rlm: '',
+  lbrack: '[',
+  rbrack: ']',
+  lsqb: '[',
+  rsqb: ']',
+  lparen: '(',
+  rparen: ')',
+  ast: '*',
+  midast: '*',
+  colon: ':',
+  semi: ';',
+  commat: '@',
+  num: '#',
+  percnt: '%',
+  sol: '/',
+  bsol: '\\',
+};
+
+export function decodeHtmlEntities(input: string): string {
+  if (!input) return '';
+  let str = String(input);
+
+  for (let pass = 0; pass < 2; pass++) {
+    if (!str.includes('&')) break;
+    str = str
+      .replace(/&#(\d+);?/g, (match, dec) => {
+        const code = parseInt(dec, 10);
+        if (Number.isNaN(code) || code < 0 || code > 0x10ffff) return match;
+        try {
+          return String.fromCodePoint(code);
+        } catch {
+          return match;
+        }
+      })
+      .replace(/&#x([0-9a-fA-F]+);?/gi, (match, hex) => {
+        const code = parseInt(hex, 16);
+        if (Number.isNaN(code) || code < 0 || code > 0x10ffff) return match;
+        try {
+          return String.fromCodePoint(code);
+        } catch {
+          return match;
+        }
+      })
+      .replace(/&([a-zA-Z0-9]+);/g, (match, name) => {
+        if (Object.prototype.hasOwnProperty.call(HTML_NAMED_ENTITIES, name)) {
+          return HTML_NAMED_ENTITIES[name];
+        }
+        const lower = name.toLowerCase();
+        if (Object.prototype.hasOwnProperty.call(HTML_NAMED_ENTITIES, lower)) {
+          return HTML_NAMED_ENTITIES[lower];
+        }
+        return match;
+      });
+  }
+
+  return str
+    .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
+    .replace(/[\u00AD\u200B-\u200F\u2060\uFEFF]/g, '')
+    .replace(/[\u2018\u2019\u201A\u201B\u2032\u02BC]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"')
+    .replace(/\u2026/g, '...')
+    .replace(/\u2212/g, '-');
+}
+
 function stripDisambiguator(s: string): string {
-  return String(s || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+  return decodeHtmlEntities(String(s || ''))
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .trim();
 }
 
 interface CuratedArticle {
@@ -451,13 +568,8 @@ async function fetchWikipediaArticle(titleOrRandom?: string): Promise<{
           let m: RegExpExecArray | null;
           let totalChars = 0;
           while ((m = pRe.exec(cleaned)) !== null) {
-            const text = m[1]
-              .replace(/<[^>]+>/g, '')
-              .replace(/&nbsp;/gi, ' ')
-              .replace(/&amp;/gi, '&')
-              .replace(/&quot;/gi, '"')
-              .replace(/&#39;/gi, "'")
-              .replace(/\[\d+\]/g, '')
+            const text = decodeHtmlEntities(m[1].replace(/<[^>]+>/g, ''))
+              .replace(/\[\s*(?:\d+|[a-z]|citation needed|note \d+|update|clarification needed|when\??|who\??)\s*\]/gi, '')
               .replace(/\s+/g, ' ')
               .trim();
             if (text.length < 60) continue;
@@ -471,8 +583,12 @@ async function fetchWikipediaArticle(titleOrRandom?: string): Promise<{
             markRandomArticleUsed(cleanTitle);
             return {
               title: cleanTitle,
-              category: curated?.category || candidate.category || 'Wikipedia Featured Discovery',
-              quote: curated?.quote || paragraphs[0].split('. ').slice(0, 2).join('. ') + '.',
+              category: decodeHtmlEntities(
+                curated?.category || candidate.category || 'Wikipedia Featured Discovery'
+              ),
+              quote: decodeHtmlEntities(
+                curated?.quote || paragraphs[0].split('. ').slice(0, 2).join('. ') + '.'
+              ),
               paragraphs,
             };
           }
@@ -495,7 +611,10 @@ async function fetchWikipediaArticle(titleOrRandom?: string): Promise<{
           extract?: string;
           description?: string;
         };
-        const rawExtract = String(data.extract || '').trim();
+        const rawExtract = decodeHtmlEntities(String(data.extract || ''))
+          .replace(/\[\s*(?:\d+|[a-z]|citation needed|note \d+|update)\s*\]/gi, '')
+          .replace(/\s+/g, ' ')
+          .trim();
         if (rawExtract.length >= 120) {
           const cleanTitle = stripDisambiguator(data.title || targetTitle);
           const sentences = rawExtract.match(/[^.!?]+[.!?]+/g) || [rawExtract];
@@ -510,11 +629,14 @@ async function fetchWikipediaArticle(titleOrRandom?: string): Promise<{
           markRandomArticleUsed(cleanTitle);
           return {
             title: cleanTitle,
-            category:
+            category: decodeHtmlEntities(
               curated?.category ||
-              candidate.category ||
-              (data.description ? data.description.slice(0, 48) : 'Wikipedia Featured Discovery'),
-            quote: curated?.quote || sentences.slice(0, 2).join(' ').trim(),
+                candidate.category ||
+                (data.description ? data.description.slice(0, 48) : 'Wikipedia Featured Discovery')
+            ),
+            quote: decodeHtmlEntities(
+              curated?.quote || sentences.slice(0, 2).join(' ').trim()
+            ),
             paragraphs: paragraphs.length > 0 ? paragraphs : [rawExtract],
           };
         }
@@ -854,7 +976,11 @@ export async function createNewWikiconRound(opts: {
 
   const paragraphs = sourceParagraphs.map((paraText) => {
     const tokens: InternalWikiconRound['paragraphs'][0] = [];
-    const collapsed = paraText.replace(/(\d),(?=\d)/g, '$1');
+    const decodedPara = decodeHtmlEntities(paraText)
+      .replace(/\[\s*(?:\d+|[a-z]|citation needed|note \d+|update|clarification needed|when\??|who\??)\s*\]/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const collapsed = decodedPara.replace(/(\d),(?=\d)/g, '$1');
     const re = /([\p{L}\p{N}\p{M}]+(?:'[\p{L}]+)?)|([^\p{L}\p{N}\p{M}]+)/gu;
     let m: RegExpExecArray | null;
     while ((m = re.exec(collapsed)) !== null) {
@@ -983,12 +1109,14 @@ export function serializeWikiconRound(round: InternalWikiconRound): RoundState {
     mode: round.mode,
     isDaily: round.isDaily,
     dailyDate: round.dailyDate,
-    articleTitle: round.solved ? round.articleTitle : 'REDACTED ARTICLE',
-    articleCategory: round.articleCategory,
-    articleSummaryQuote: round.solved ? round.articleSummaryQuote : undefined,
+    articleTitle: round.solved ? decodeHtmlEntities(round.articleTitle) : 'REDACTED ARTICLE',
+    articleCategory: decodeHtmlEntities(round.articleCategory),
+    articleSummaryQuote: round.solved && round.articleSummaryQuote
+      ? decodeHtmlEntities(round.articleSummaryQuote)
+      : undefined,
     titleTokens: round.titleTokens.map((t) => ({
       index: t.index,
-      text: t.revealed || round.solved ? t.text : '•'.repeat(Math.min(Math.max(t.length, 4), 9)),
+      text: t.revealed || round.solved ? decodeHtmlEntities(t.text) : '•'.repeat(Math.min(Math.max(t.length, 4), 9)),
       norm: t.revealed || round.solved ? t.norm : '',
       length: t.length,
       revealed: t.revealed || round.solved,
@@ -998,7 +1126,7 @@ export function serializeWikiconRound(round: InternalWikiconRound): RoundState {
       para.map((tok) => ({
         id: tok.id,
         type: tok.type,
-        text: tok.revealed || round.solved ? tok.text : '',
+        text: tok.revealed || round.solved ? decodeHtmlEntities(tok.text) : '',
         norm: tok.revealed || round.solved ? tok.norm : '',
         length: tok.length,
         isStop: tok.isStop,

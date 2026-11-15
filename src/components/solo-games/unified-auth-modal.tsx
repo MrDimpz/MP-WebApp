@@ -86,6 +86,18 @@ const SOLO_GAME_META: Record<
     shortTitle: 'Unolingo',
     subtitle: 'Daily 10×10 Zero-Clue Crossword Scores',
   },
+  wikirec: {
+    number: '07',
+    title: 'WiKirecTangled — Solo Wikipedia Grid',
+    shortTitle: 'WiKirecTangled',
+    subtitle: 'Daily & Practice Solo Wikipedia Word Grid Scores',
+  },
+  wikicon: {
+    number: '08',
+    title: 'WikiContexto — Solo Article Discovery',
+    shortTitle: 'WikiContexto',
+    subtitle: 'Daily & Solo Redacted Wikipedia Article Scores',
+  },
 };
 
 const ALLOWED_GAMES: SoloGameId[] = [
@@ -95,6 +107,8 @@ const ALLOWED_GAMES: SoloGameId[] = [
   'thematix',
   'destack',
   'unolingo',
+  'wikirec',
+  'wikicon',
 ];
 
 export function UnifiedLeaderboardPanel({
@@ -119,6 +133,8 @@ export function UnifiedLeaderboardPanel({
     thematix: [],
     destack: [],
     unolingo: [],
+    wikirec: [],
+    wikicon: [],
     cruciverbalist: [],
     crossword: [],
   });

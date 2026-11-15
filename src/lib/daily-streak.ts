@@ -12,7 +12,8 @@ export type DailyStreakGameId =
   | 'squaredint'
   | 'wikirec'
   | 'wikicon'
-  | 'lexi';
+  | 'lexi'
+  | 'crowdle';
 
 export interface StoredGameStreak {
   solvedDates: string[];

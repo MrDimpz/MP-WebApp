@@ -37,6 +37,7 @@ import {
 import {
   creditInteractiveScoreByTikTokHandle,
   getCurrentUserSessionPrefix,
+  saveUnifiedLeaderboardScore,
 } from '../lib/unified-game-auth';
 import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
@@ -106,12 +107,18 @@ interface MarqueeDanmakuItem {
   travelPx: number;
 }
 
-export default function App() {
-  const { isOverlay, bg: overlayBg, streamer: overlayStreamer } = useOverlayConfig();
+export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
+  const { isOverlay: rawIsOverlay, bg: overlayBg, streamer: overlayStreamer } = useOverlayConfig();
+  const isSoloRoute =
+    soloOnly ||
+    (typeof window !== 'undefined' &&
+      (window.location.pathname === '/solo' ||
+        window.location.pathname.startsWith('/solo-games')));
+  const isOverlay = isSoloRoute ? false : rawIsOverlay;
   const hasReceivedHostSyncRef = useRef(false);
 
   const [mode, setMode] = useState<GameMode>(() => {
-    if (typeof window !== 'undefined' && window.location.pathname === '/solo') {
+    if (isSoloRoute) {
       return 'daily-solo';
     }
     return 'multiplayer';
@@ -612,6 +619,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (isSoloRoute) return;
     const socket = io({
       path: '/socket.io',
       transports: ['polling', 'websocket'],
@@ -945,16 +953,17 @@ export default function App() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [triggerWordAnnounce, isOverlay, overlayStreamer]);
+  }, [triggerWordAnnounce, isOverlay, overlayStreamer, isSoloRoute]);
 
   const switchMode = useCallback(
     (nextMode: GameMode) => {
-      setMode(nextMode);
+      const targetMode = isSoloRoute && nextMode === 'multiplayer' ? 'daily-solo' : nextMode;
+      setMode(targetMode);
       setGuessInput('');
       setDismissedRoundId(null);
-      initLocalGame(nextMode);
+      initLocalGame(targetMode);
     },
-    [initLocalGame]
+    [initLocalGame, isSoloRoute]
   );
 
   const submitWordGuess = useCallback(
@@ -990,6 +999,13 @@ export default function App() {
                 localStorage.setItem(bestKey, String(topScore));
               }
             } catch {}
+            if (topScore > 0) {
+              saveUnifiedLeaderboardScore({
+                gameId: 'wikirec',
+                score: topScore,
+                metricLabel: `${topScore.toLocaleString()} pts`,
+              }).catch(() => {});
+            }
             triggerVictoryConfetti({
               isDaily: mode === 'daily-solo',
               isNewHighScore: prevBest > 0 && topScore > prevBest,
@@ -1005,16 +1021,27 @@ export default function App() {
             setTimeout(() => setFlashedCells([]), 900);
           }
           triggerWordAnnounce(outcome.finder.displayName, outcome.word, outcome.points);
-          const activeStreamerHandle =
-            authorizedStreamerRef.current?.username ||
-            getActiveInteractiveStreamerSession()?.username;
-          if (activeStreamerHandle && outcome.points && outcome.points > 0) {
-            creditInteractiveScoreByTikTokHandle({
-              tiktokUsername: activeStreamerHandle,
-              gameId: 'wikirec',
-              pointsEarned: outcome.points,
-              reason: `WiKirecTangled word: ${outcome.word.toUpperCase()}`,
-            });
+          if (isSoloRoute) {
+            const topScore = nextState.topPlayers?.[0]?.score || 0;
+            if (topScore > 0) {
+              saveUnifiedLeaderboardScore({
+                gameId: 'wikirec',
+                score: topScore,
+                metricLabel: `${topScore.toLocaleString()} pts`,
+              }).catch(() => {});
+            }
+          } else {
+            const activeStreamerHandle =
+              authorizedStreamerRef.current?.username ||
+              getActiveInteractiveStreamerSession()?.username;
+            if (activeStreamerHandle && outcome.points && outcome.points > 0) {
+              creditInteractiveScoreByTikTokHandle({
+                tiktokUsername: activeStreamerHandle,
+                gameId: 'wikirec',
+                pointsEarned: outcome.points,
+                reason: `WiKirecTangled word: ${outcome.word.toUpperCase()}`,
+              });
+            }
           }
         } else if (outcome.result === 'already_found') {
           sfx.playAlreadyFound();
@@ -1279,7 +1306,7 @@ export default function App() {
 
   const syncedSnapshot = useMemo(
     () =>
-      !isOverlay && gameState
+      !isOverlay && !isSoloRoute && gameState
         ? {
             gameState,
             flashedCells,
@@ -1287,7 +1314,7 @@ export default function App() {
             dismissedRoundId,
           }
         : null,
-    [isOverlay, gameState, flashedCells, wordAnnounce, dismissedRoundId]
+    [isOverlay, isSoloRoute, gameState, flashedCells, wordAnnounce, dismissedRoundId]
   );
 
   useOverlaySync<{
@@ -1383,7 +1410,7 @@ export default function App() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Link to="/interactive-games" className="back-games-btn" style={{ textDecoration: 'none', fontSize: '12px', fontWeight: 700, color: 'var(--text-dim)', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: '8px', padding: '4px 10px' }}>
+          <Link to={isSoloRoute ? '/solo-games' : '/interactive-games'} className="back-games-btn" style={{ textDecoration: 'none', fontSize: '12px', fontWeight: 700, color: 'var(--text-dim)', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: '8px', padding: '4px 10px' }}>
             ← Back
           </Link>
           <Link
@@ -1414,20 +1441,22 @@ export default function App() {
           </Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <LiveOverlayButton
-            gameTitle="WiKirecTangled"
-            gameSlug="wikirec"
-            streamerHandle={authorizedStreamer?.username || tiktokStatus.username}
-            recommendedSize="540 × 1080 or 1080 × 1920"
-          />
+          {!isSoloRoute && (
+            <LiveOverlayButton
+              gameTitle="WiKirecTangled"
+              gameSlug="wikirec"
+              streamerHandle={authorizedStreamer?.username || tiktokStatus.username}
+              recommendedSize="540 × 1080 or 1080 × 1920"
+            />
+          )}
           <LoggedInIndicator />
         </div>
       </div>
       )}
 
       <div className="app-stage">
-        {/* LEFT BOX: TIKTOK LIVE CONNECT & LIVE CHAT STREAM (Always visible in host view) */}
-        {!isOverlay && (
+        {/* LEFT BOX: TIKTOK LIVE CONNECT & LIVE CHAT STREAM (Hidden in overlay & solo games mode) */}
+        {!isOverlay && !isSoloRoute && (
         <aside className="side-box left-chat-box" aria-label="TikTok Live Connect & Chat Stream">
           <div className="side-box-header">
             <div className="side-box-title">
@@ -1828,7 +1857,7 @@ export default function App() {
               href="/"
               onClick={(e) => {
                 e.preventDefault();
-                switchMode('multiplayer');
+                switchMode(isSoloRoute ? 'daily-solo' : 'multiplayer');
               }}
               className="logo-text"
               id="logo"
@@ -1897,6 +1926,7 @@ export default function App() {
                 </button>
 
                 {/* TikTok Live Chat & Streamer Relay Button */}
+                {!isSoloRoute && (
                 <button
                   type="button"
                   onClick={handleOpenTikTokLive}
@@ -1918,6 +1948,7 @@ export default function App() {
                     <span>({tiktokStatus.guessesFromChat})</span>
                   )}
                 </button>
+                )}
 
                 {/* Sound Mute Toggle */}
                 <button
@@ -2367,21 +2398,25 @@ export default function App() {
             </button>
           </>
         )}
-        {' · '}
-        <button
-          type="button"
-          className={`link-btn ${mode === 'multiplayer' ? 'active-mode' : ''}`}
-          onClick={() => switchMode('multiplayer')}
-        >
-          Multiplayer →
-        </button>
+        {!isSoloRoute && (
+          <>
+            {' · '}
+            <button
+              type="button"
+              className={`link-btn ${mode === 'multiplayer' ? 'active-mode' : ''}`}
+              onClick={() => switchMode('multiplayer')}
+            >
+              Multiplayer →
+            </button>
+          </>
+        )}
         {' · '}
         <button
           type="button"
           className={`link-btn ${mode === 'daily-solo' ? 'active-mode' : ''}`}
           onClick={() => switchMode('daily-solo')}
         >
-          Solo →
+          Daily Solo →
         </button>
         {' · '}
         <button
@@ -2395,22 +2430,34 @@ export default function App() {
 
       {/* LEGAL FOOTER */}
       <footer className="wt-legal-footer">
-        <button type="button" onClick={() => switchMode('multiplayer')}>
-          Multiplayer
-        </button>{' '}
-        &middot;{' '}
+        {!isSoloRoute && (
+          <>
+            <button type="button" onClick={() => switchMode('multiplayer')}>
+              Multiplayer
+            </button>{' '}
+            &middot;{' '}
+          </>
+        )}
         <button type="button" onClick={() => switchMode('daily-solo')}>
           Daily Solo
         </button>{' '}
         &middot;{' '}
-        <button
-          type="button"
-          onClick={handleOpenAdmin}
-          title="Open Streamer Access Administration"
-        >
-          Admin
+        <button type="button" onClick={() => switchMode('practice-solo')}>
+          Practice
         </button>{' '}
-        &middot; <span>&copy; 2026 Word Tycoon</span>
+        {!isSoloRoute && (
+          <>
+            &middot;{' '}
+            <button
+              type="button"
+              onClick={handleOpenAdmin}
+              title="Open Streamer Access Administration"
+            >
+              Admin
+            </button>{' '}
+          </>
+        )}
+        &middot; <span>&copy; 2026 The Missing Piece</span>
       </footer>
       </>
       )}
@@ -2697,7 +2744,7 @@ export default function App() {
         </div>
       )}
 
-      {!isOverlay && (
+      {!isOverlay && !isSoloRoute && (
       <>
       {/* TIKTOK LIVE INTERACTIVITY DRAWER */}
       <TikTokLivePanel

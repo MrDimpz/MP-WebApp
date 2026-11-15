@@ -1,0 +1,25 @@
+.crowdle-perspective-1000 {
+  perspective: 1000px;
+}
+
+.crowdle-preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.crowdle-backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@keyframes crowdle-marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-crowdle-marquee {
+  animation: crowdle-marquee 14s linear infinite;
+}

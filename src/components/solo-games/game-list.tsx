@@ -41,8 +41,8 @@ export function SoloGameList() {
         <p>
           Solo games to play on your own and weave into your creator content. Explore our daily
           20×20 &amp; 8×8 crosswords, 733+ visual rebus challenges, tactile daily word grids,
-          daily word association puzzles, 3D layered word unstacking towers, and 26-letter zero-clue
-          crosswords.
+          daily word association puzzles, 3D layered word unstacking towers, 26-letter zero-clue
+          crosswords, 8-connected Wikipedia word grids, and redacted Wikipedia article discovery.
         </p>
         <div className="mt-4">
           <a
@@ -76,7 +76,7 @@ export function SoloGameList() {
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
                   Your Google / Email login is synced across Crossword, Missing Rebus, Squared,
-                  Thematix, DeStack &amp; Unolingo.
+                  Thematix, DeStack, Unolingo, WiKirecTangled &amp; WikiContexto.
                 </p>
               </>
             ) : (
@@ -88,7 +88,7 @@ export function SoloGameList() {
                   Sign in with Google or Email &amp; Password
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                  Use a single account across all 6 solo games to record your high scores and
+                  Use a single account across all 8 solo games to record your high scores and
                   compete on the visitor leaderboards.
                 </p>
               </>
@@ -402,6 +402,92 @@ export function SoloGameList() {
             <button
               type="button"
               onClick={() => openModal('unolingo', 'leaderboards')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
+            >
+              <Trophy size={13} />
+              <span>Leaderboard</span>
+            </button>
+          </div>
+        </article>
+
+        <article className="game-card">
+          <div className="card-top">
+            <span className="category-label">
+              <span className="status-dot" /> NOW PLAYING
+            </span>
+            <span className="card-number">07 /</span>
+          </div>
+          <Link
+            to="/solo-games/wikirec"
+            className="game-art game-art-thumb"
+            aria-label="Open WiKirecTangled Solo Wikipedia Word Grid"
+          >
+            <img
+              className="game-thumbnail"
+              src="/wikirec-website-thumbnail.svg"
+              alt="WiKirecTangled — Solo Wikipedia Word Grid website thumbnail"
+              referrerPolicy="no-referrer"
+            />
+          </Link>
+          <h3>WiKirecTangled</h3>
+          <p>
+            Trace 8-connected word paths across a tactile 3D keycap board to unlock Common, Rare,
+            and Ultra tiers while uncovering the hidden Wikipedia Article Title. Play Daily Solo
+            and Endless Practice rounds at your own pace.
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-2">
+            <Link className="game-link flex-1" to="/solo-games/wikirec">
+              Play WiKirecTangled{' '}
+              <span>
+                <ArrowUpRight size={22} />
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => openModal('wikirec', 'leaderboards')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
+            >
+              <Trophy size={13} />
+              <span>Leaderboard</span>
+            </button>
+          </div>
+        </article>
+
+        <article className="game-card">
+          <div className="card-top">
+            <span className="category-label">
+              <span className="status-dot" /> NOW PLAYING
+            </span>
+            <span className="card-number">08 /</span>
+          </div>
+          <Link
+            to="/solo-games/wikicon"
+            className="game-art game-art-thumb"
+            aria-label="Open WikiContexto Solo Redacted Article Discovery"
+          >
+            <img
+              className="game-thumbnail"
+              src="/wikicon-website-thumbnail.svg"
+              alt="WikiContexto — Solo Redacted Wikipedia Article Discovery website thumbnail"
+              referrerPolicy="no-referrer"
+            />
+          </Link>
+          <h3>WikiContexto</h3>
+          <p>
+            Uncover a redacted Wikipedia article word-by-word using semantic closeness rankings,
+            explore Daily Puzzles and the Previous Dailies Archive, or swipe hidden target words on
+            the 7×7 Keycap Grid &amp; 5×7 Quote modes in solo play.
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-2">
+            <Link className="game-link flex-1" to="/solo-games/wikicon">
+              Play WikiContexto{' '}
+              <span>
+                <ArrowUpRight size={22} />
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => openModal('wikicon', 'leaderboards')}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
             >
               <Trophy size={13} />

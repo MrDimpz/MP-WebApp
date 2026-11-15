@@ -91,7 +91,7 @@ export function InteractiveGamesPage() {
                       Streamer {activeStreamer.displayHandle}
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                      All 5 interactive games are unlocked. Scores for linked TikTok @ accounts sync
+                      All 6 interactive games are unlocked. Scores for linked TikTok @ accounts sync
                       automatically to their website profile.
                     </p>
                   </>
@@ -105,7 +105,7 @@ export function InteractiveGamesPage() {
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
                       Sign in once below to unlock WiKirecTangled, WikiContexto, Squared Interactive,
-                      Lexi Tiles &amp; DeStack Interactive, or open the Admin Portal to register stream keys.
+                      Lexi Tiles, DeStack Interactive &amp; Crowdle, or open the Admin Portal to register stream keys.
                     </p>
                   </>
                 )}
@@ -398,6 +398,47 @@ export function InteractiveGamesPage() {
                 gameSlug="destackint"
                 streamerHandle={activeStreamer?.username}
                 recommendedSize="560 × 940 or 1080 × 1920"
+                label="LIVE Overlay"
+              />
+            </div>
+          </article>
+
+          <article className="game-card">
+            <div className="card-top">
+              <span className="category-label">
+                <span className="status-dot" /> NOW PLAYING
+              </span>
+              <span className="card-number">06 /</span>
+            </div>
+            <Link
+              to="/interactive-games/crowdle"
+              className="game-art game-art-thumb"
+              aria-label="Play Crowdle interactive game"
+            >
+              <img
+                className="game-thumbnail"
+                src="/crowdle-website-thumbnail.svg"
+                alt="Preview of Crowdle live crowd-voted Wordle grid, Decision Sync timer, and streak progression"
+              />
+            </Link>
+            <h3>Crowdle</h3>
+            <p>
+              Crowd-voted Wordle built for TikTok Live. Viewers cast votes in chat during the
+              Decision Sync timer to lock in the #1 consensus word across 5- to 8-letter stages,
+              Endless Chain mode, and First-to-Find bonuses.
+            </p>
+            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
+              <Link className="game-link" to="/interactive-games/crowdle">
+                Play Crowdle{' '}
+                <span>
+                  <ArrowUpRight size={22} />
+                </span>
+              </Link>
+              <LiveOverlayButton
+                gameTitle="Crowdle"
+                gameSlug="crowdle"
+                streamerHandle={activeStreamer?.username}
+                recommendedSize="540 × 940 or 1080 × 1920"
                 label="LIVE Overlay"
               />
             </div>

@@ -9,6 +9,7 @@ import {
   revealEntireWikiconRound,
   getArchiveList,
   serializeWikiconRound,
+  decodeHtmlEntities,
   type InternalWikiconRound,
 } from './engine';
 import {
@@ -29,9 +30,11 @@ import {
 import {
   creditInteractiveScoreByTikTokHandle,
   getCurrentUserSessionPrefix,
+  saveUnifiedLeaderboardScore,
 } from '../lib/unified-game-auth';
 import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
+import { LoggedInIndicator } from '@/components/logged-in-indicator';
 import {
   getLocalTodayDateStr,
   recordDailyPuzzleSolved,
@@ -198,8 +201,12 @@ const INITIAL_PROFILE: UserEconomyProfile = {
   ],
 };
 
-export function App() {
-  const { isOverlay, bg: overlayBg, streamer: overlayStreamer } = useOverlayConfig();
+export function App({ soloOnly = false }: { soloOnly?: boolean }) {
+  const { isOverlay: rawIsOverlay, bg: overlayBg, streamer: overlayStreamer } = useOverlayConfig();
+  const isSoloRoute =
+    soloOnly ||
+    (typeof window !== 'undefined' && window.location.pathname.startsWith('/solo-games'));
+  const isOverlay = isSoloRoute ? false : rawIsOverlay;
   const hasReceivedHostSyncRef = useRef(false);
 
   const [activeNav, setActiveNav] = useState<GameMode>(() => (isOverlay ? 'ONLINE' : 'HOME'));
@@ -380,6 +387,8 @@ export function App() {
       });
     }
     setArchiveList(getArchiveList());
+
+    if (isSoloRoute) return;
 
     const socket = io({
       path: '/socket.io',
@@ -601,7 +610,7 @@ export function App() {
       detachBridge();
       socket.disconnect();
     };
-  }, [recordActivity, showToast, isOverlay, overlayStreamer]);
+  }, [recordActivity, showToast, isOverlay, overlayStreamer, isSoloRoute]);
 
   // Trigger Victory Fanfare & Confetti when round transitions to solved
   useEffect(() => {
@@ -620,6 +629,13 @@ export function App() {
             localStorage.setItem(bestKey, String(topPlayerScore));
           }
         } catch {}
+        if (topPlayerScore > 0) {
+          saveUnifiedLeaderboardScore({
+            gameId: 'wikicon',
+            score: topPlayerScore,
+            metricLabel: `${topPlayerScore.toLocaleString()} pts`,
+          }).catch(() => {});
+        }
         triggerVictoryConfetti({
           isDaily: Boolean(round.isDaily),
           isNewHighScore: prevBest > 0 && topPlayerScore > prevBest,
@@ -881,7 +897,8 @@ export function App() {
     let remaining = 15;
     setAutoNextCountdown(remaining);
     const currentRoundMode = round.mode;
-    const nextNav: GameMode = activeNav === 'DAILY' ? 'ONLINE' : activeNav;
+    const defaultModeNav: GameMode = isSoloRoute ? 'SOLO' : 'ONLINE';
+    const nextNav: GameMode = activeNav === 'DAILY' ? defaultModeNav : activeNav;
 
     const timer = setInterval(() => {
       remaining -= 1;
@@ -898,7 +915,7 @@ export function App() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [round?.solved, round?.roundId, round?.mode, activeNav, isAutoNextRound, isOverlay, startModeRound]);
+  }, [round?.solved, round?.roundId, round?.mode, activeNav, isAutoNextRound, isOverlay, isSoloRoute, startModeRound]);
 
   // Submit a word guess (from input bar or 8-connected KeycapGrid swipe)
   const submitWordGuess = async (rawWord: string) => {
@@ -961,15 +978,30 @@ export function App() {
         );
       }
 
-      const activeStreamerHandle =
-        authenticatedStreamer || getActiveInteractiveStreamerSession()?.username;
-      if (activeStreamerHandle && pointsEarned > 0) {
-        creditInteractiveScoreByTikTokHandle({
-          tiktokUsername: activeStreamerHandle,
-          gameId: 'wikicon',
-          pointsEarned,
-          reason: `WikiContexto word: ${clean.toUpperCase()}`,
-        });
+      if (isSoloRoute) {
+        const nextSnap = serializeWikiconRound(internalRoundRef.current);
+        const topScore =
+          nextSnap.leaderboard && nextSnap.leaderboard.length > 0
+            ? Math.max(...nextSnap.leaderboard.map((p) => p.score || 0))
+            : 0;
+        if (topScore > 0) {
+          saveUnifiedLeaderboardScore({
+            gameId: 'wikicon',
+            score: topScore,
+            metricLabel: `${topScore.toLocaleString()} pts`,
+          }).catch(() => {});
+        }
+      } else {
+        const activeStreamerHandle =
+          authenticatedStreamer || getActiveInteractiveStreamerSession()?.username;
+        if (activeStreamerHandle && pointsEarned > 0) {
+          creditInteractiveScoreByTikTokHandle({
+            tiktokUsername: activeStreamerHandle,
+            gameId: 'wikicon',
+            pointsEarned,
+            reason: `WikiContexto word: ${clean.toUpperCase()}`,
+          });
+        }
       }
 
       setProfile((p) => ({
@@ -1119,7 +1151,7 @@ export function App() {
 
   const syncedSnapshot = useMemo(
     () =>
-      !isOverlay && round
+      !isOverlay && !isSoloRoute && round
         ? {
             round,
             activeNav,
@@ -1134,6 +1166,7 @@ export function App() {
         : null,
     [
       isOverlay,
+      isSoloRoute,
       round,
       activeNav,
       showGridInHybrid,
@@ -1217,8 +1250,8 @@ export function App() {
     >
       {/* ── Horizontal Flex Wrapper: Live Chat Box on Left (Only when Authorised User Logged In) + 50px Gap + 490px Game Shell ── */}
       <div className="w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-[50px] px-2 sm:px-4">
-        {/* Live Chat Stream Box to the left of the game with 50px gap — hidden in LIVE Studio overlay */}
-        {!isOverlay && authenticatedStreamer && (
+        {/* Live Chat Stream Box to the left of the game with 50px gap — hidden in LIVE Studio overlay & Solo Games mode */}
+        {!isOverlay && !isSoloRoute && authenticatedStreamer && (
           <div className="pt-4">
             <LiveChatBox
               messages={chatMessages}
@@ -1242,9 +1275,9 @@ export function App() {
             {/* Zone 1: Brand Wordmark (Links back to Home Screen /) + Back Link */}
             <div className="flex items-center gap-2 shrink-0">
               <Link
-                to="/interactive-games"
+                to={isSoloRoute ? '/solo-games' : '/interactive-games'}
                 className="px-2 py-1 rounded-lg text-xs font-bold bg-[#0e1d3b] hover:bg-[#152e5c] text-[#8ab4f8] hover:text-white border border-[#234b88] transition-all flex items-center gap-1 shrink-0"
-                title="Back to Interactive Games"
+                title={isSoloRoute ? 'Back to Solo Games' : 'Back to Interactive Games'}
               >
                 ← Back
               </Link>
@@ -1282,17 +1315,18 @@ export function App() {
               <button
                 type="button"
                 onClick={() => {
+                  const defaultNav: GameMode = isSoloRoute ? 'SOLO' : 'ONLINE';
                   if (round && !round.isDaily) {
                     setActiveNav((prev) =>
                       prev === 'SOLO' ||
-                      prev === 'ONLINE' ||
+                      (!isSoloRoute && prev === 'ONLINE') ||
                       prev === 'WIKIREC_GRID' ||
                       prev === 'WIKIWORD_QUOTE'
                         ? prev
-                        : 'ONLINE'
+                        : defaultNav
                     );
                   } else {
-                    startModeRound('ONLINE', {
+                    startModeRound(defaultNav, {
                       mode: 'WIKICONTEXTO',
                       isDaily: false,
                     });
@@ -1325,18 +1359,20 @@ export function App() {
               >
                 Past Dailies
               </button>
-              <button
-                type="button"
-                onClick={() => setIsAdminModalOpen(true)}
-                className={`hover:text-[#ffe536] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  isLightMode ? 'text-[#163a61]' : 'text-[#d8eaff]'
-                }`}
-              >
-                Admin
-              </button>
+              {!isSoloRoute && (
+                <button
+                  type="button"
+                  onClick={() => setIsAdminModalOpen(true)}
+                  className={`hover:text-[#ffe536] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    isLightMode ? 'text-[#163a61]' : 'text-[#d8eaff]'
+                  }`}
+                >
+                  Admin
+                </button>
+              )}
             </nav>
 
-            {/* Zone 3: Daily Streak + LIVE Overlay + TikTok Live Button */}
+            {/* Zone 3: Daily Streak + LIVE Overlay / TikTok Live or Solo Account Indicator */}
             <div className="flex items-center gap-1.5 shrink-0">
               <DailyStreakBadge
                 streak={dailyStreak.streak}
@@ -1344,34 +1380,40 @@ export function App() {
                 variant={isLightMode ? 'light' : 'cyan'}
                 compact
               />
-              <LiveOverlayButton
-                gameTitle="WikiContexto"
-                gameSlug="wikicon"
-                streamerHandle={connectedUsername || authenticatedStreamer}
-                recommendedSize="520 × 920 or 1080 × 1920"
-                label="Overlay"
-                className="!px-2 !py-1.5 !text-[11px] !rounded-xl"
-              />
-              <button
-                type="button"
-                onClick={() => setIsStreamModalOpen(true)}
-                aria-haspopup="dialog"
-                title="Open TikTok Live Connection pop-up"
-                className={`px-2.5 py-1.5 text-[11px] font-bold rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                  tiktokConnState === 'connected'
-                    ? 'bg-[#2bff86] text-[#020a25] shadow-[0_0_16px_rgba(43,255,134,0.35)]'
-                    : authenticatedStreamer
-                    ? 'bg-[#ffe536] text-[#020a25]'
-                    : 'bg-[#19e4ff] hover:bg-[#5cecff] text-[#020a25] shadow-[0_0_14px_rgba(25,228,255,0.28)]'
-                }`}
-              >
-                <Radio className="w-3.5 h-3.5" />
-                {tiktokConnState === 'connected' && connectedUsername
-                  ? `@${connectedUsername}`
-                  : authenticatedStreamer
-                  ? authenticatedStreamer
-                  : 'TikTok Live'}
-              </button>
+              {isSoloRoute ? (
+                <LoggedInIndicator />
+              ) : (
+                <>
+                  <LiveOverlayButton
+                    gameTitle="WikiContexto"
+                    gameSlug="wikicon"
+                    streamerHandle={connectedUsername || authenticatedStreamer}
+                    recommendedSize="520 × 920 or 1080 × 1920"
+                    label="Overlay"
+                    className="!px-2 !py-1.5 !text-[11px] !rounded-xl"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsStreamModalOpen(true)}
+                    aria-haspopup="dialog"
+                    title="Open TikTok Live Connection pop-up"
+                    className={`px-2.5 py-1.5 text-[11px] font-bold rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                      tiktokConnState === 'connected'
+                        ? 'bg-[#2bff86] text-[#020a25] shadow-[0_0_16px_rgba(43,255,134,0.35)]'
+                        : authenticatedStreamer
+                        ? 'bg-[#ffe536] text-[#020a25]'
+                        : 'bg-[#19e4ff] hover:bg-[#5cecff] text-[#020a25] shadow-[0_0_14px_rgba(25,228,255,0.28)]'
+                    }`}
+                  >
+                    <Radio className="w-3.5 h-3.5" />
+                    {tiktokConnState === 'connected' && connectedUsername
+                      ? `@${connectedUsername}`
+                      : authenticatedStreamer
+                      ? authenticatedStreamer
+                      : 'TikTok Live'}
+                  </button>
+                </>
+              )}
             </div>
           </header>
           )}
@@ -1409,7 +1451,9 @@ export function App() {
                   </h1>
                 </div>
                 <p className="text-xs text-[#96b8dd] mt-1.5 leading-relaxed">
-                  One hidden Wikipedia article. Semantic rank cards, 8-connected arcade keycaps, and live TikTok stream play.
+                  {isSoloRoute
+                    ? 'One hidden Wikipedia article. Semantic rank cards, 8-connected arcade keycaps, daily puzzles, and word tycoon progression.'
+                    : 'One hidden Wikipedia article. Semantic rank cards, 8-connected arcade keycaps, and live TikTok stream play.'}
                 </p>
               </section>
 
@@ -1440,30 +1484,53 @@ export function App() {
                   </span>
                 </button>
 
-                {/* Bubble 2: Online + TikTok Stream */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    startModeRound('ONLINE', {
-                      mode: 'WIKICONTEXTO',
-                      isDaily: false,
-                    });
-                    if (!authenticatedStreamer) {
-                      setIsStreamModalOpen(true);
+                {/* Bubble 2: WikiWord Quote (in Solo mode) OR Online + TikTok Stream (in Interactive mode) */}
+                {isSoloRoute ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      startModeRound('WIKIWORD_QUOTE', {
+                        mode: 'WIKIWORD_QUOTE',
+                        isDaily: false,
+                      })
                     }
-                  }}
-                  className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#2bff86]/70 hover:border-[#2bff86] shadow-[0_0_20px_rgba(43,255,134,0.15)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
-                >
-                  <div className="w-11 h-11 rounded-2xl bg-[#2bff86]/15 text-[#2bff86] flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Globe className="w-5 h-5" />
-                  </div>
-                  <span className="text-sm font-extrabold text-white whitespace-nowrap">
-                    Online &amp; TikTok
-                  </span>
-                  <span className="text-[11px] text-[#96b8dd]">
-                    Discover together live
-                  </span>
-                </button>
+                    className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#2bff86]/70 hover:border-[#2bff86] shadow-[0_0_20px_rgba(43,255,134,0.15)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
+                  >
+                    <div className="w-11 h-11 rounded-2xl bg-[#2bff86]/15 text-[#2bff86] flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <Quote className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-extrabold text-white whitespace-nowrap">
+                      WikiWord 5×7
+                    </span>
+                    <span className="text-[11px] text-[#96b8dd]">
+                      Quote &amp; 5×7 keycaps
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      startModeRound('ONLINE', {
+                        mode: 'WIKICONTEXTO',
+                        isDaily: false,
+                      });
+                      if (!authenticatedStreamer) {
+                        setIsStreamModalOpen(true);
+                      }
+                    }}
+                    className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#2bff86]/70 hover:border-[#2bff86] shadow-[0_0_20px_rgba(43,255,134,0.15)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
+                  >
+                    <div className="w-11 h-11 rounded-2xl bg-[#2bff86]/15 text-[#2bff86] flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <Globe className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-extrabold text-white whitespace-nowrap">
+                      Online &amp; TikTok
+                    </span>
+                    <span className="text-[11px] text-[#96b8dd]">
+                      Discover together live
+                    </span>
+                  </button>
+                )}
 
                 {/* Bubble 3: Daily Puzzle */}
                 <button
@@ -1666,23 +1733,25 @@ export function App() {
                 {!isOverlay && (
                 <div className="flex flex-col gap-1.5 p-1.5 rounded-xl bg-[#03142f] border border-[#1768b3]">
                   {/* Row 1: Mode Switcher Tabs */}
-                  <div className="grid grid-cols-5 gap-1 p-0.5 rounded-lg bg-[#020a25]">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        startModeRound('ONLINE', {
-                          mode: 'WIKICONTEXTO',
-                          isDaily: false,
-                        })
-                      }
-                      className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate ${
-                        activeNav === 'ONLINE'
-                          ? 'bg-[#2bff86] text-[#020a25]'
-                          : 'text-[#96b8dd] hover:text-white'
-                      }`}
-                    >
-                      Online
-                    </button>
+                  <div className={`grid ${isSoloRoute ? 'grid-cols-4' : 'grid-cols-5'} gap-1 p-0.5 rounded-lg bg-[#020a25]`}>
+                    {!isSoloRoute && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          startModeRound('ONLINE', {
+                            mode: 'WIKICONTEXTO',
+                            isDaily: false,
+                          })
+                        }
+                        className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate ${
+                          activeNav === 'ONLINE'
+                            ? 'bg-[#2bff86] text-[#020a25]'
+                            : 'text-[#96b8dd] hover:text-white'
+                        }`}
+                      >
+                        Online
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() =>
@@ -1757,7 +1826,7 @@ export function App() {
                         type="button"
                         onClick={() =>
                           startModeRound(
-                            activeNav === 'DAILY' ? 'ONLINE' : activeNav,
+                            activeNav === 'DAILY' ? (isSoloRoute ? 'SOLO' : 'ONLINE') : activeNav,
                             {
                               mode: round.mode,
                               isDaily: false,
@@ -1894,7 +1963,7 @@ export function App() {
                               type="button"
                               onClick={() =>
                                 startModeRound(
-                                  activeNav === 'DAILY' ? 'ONLINE' : activeNav,
+                                  activeNav === 'DAILY' ? (isSoloRoute ? 'SOLO' : 'ONLINE') : activeNav,
                                   {
                                     mode: round.mode,
                                     isDaily: false,
@@ -2336,7 +2405,7 @@ export function App() {
                       <p key={pIdx} className="break-words">
                         {para.map((tok) => {
                           if (tok.type === 'space') {
-                            return <span key={tok.id}>{tok.text}</span>;
+                            return <span key={tok.id}>{decodeHtmlEntities(tok.text)}</span>;
                           }
                           if (tok.revealed) {
                             return (
@@ -2352,7 +2421,7 @@ export function App() {
                                     : 'text-[#2bff86] font-bold wk-word-reveal'
                                 }`}
                               >
-                                {tok.text}
+                                {decodeHtmlEntities(tok.text)}
                               </span>
                             );
                           }
@@ -2431,7 +2500,7 @@ export function App() {
         </div>
       </div>
 
-      {!isOverlay && (
+      {!isOverlay && !isSoloRoute && (
       <>
       {/* ── TikTok Live Stream Connector & Debug Modal ── */}
       <TikTokStreamModal

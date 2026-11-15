@@ -16,11 +16,14 @@ import SquaredPage from '@/routes/squared';
 import ThematixPage from '@/routes/thematix';
 import DeStackPage from '@/routes/destack';
 import UnolingoPage from '@/routes/unolingo';
+import WikiRecSoloPage from '@/routes/wikirec-solo';
+import WikiConSoloPage from '@/routes/wikicon-solo';
 import SquaredIntGamePage from '@/routes/squaredint-game';
 import WikirecGamePage from '@/routes/wikirec-game';
 import WikiconGamePage from '@/routes/wikicon-game';
 import LexiGamePage from '@/routes/lexi-game';
 import DeStackIntGamePage from '@/routes/destackint-game';
+import { CrowdleGamePage } from '@/routes/crowdle-game';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'The Missing Piece — TikTok interactive & solo games',
@@ -39,12 +42,16 @@ const PAGE_TITLES: Record<string, string> = {
   '/interactive-games/destack/overlay': 'DeStack Interactive — TikTok LIVE Studio Overlay',
   '/interactive-games/destackint': 'DeStack Interactive — TikTok Live Game — The Missing Piece',
   '/interactive-games/destackint/overlay': 'DeStack Interactive — TikTok LIVE Studio Overlay',
+  '/interactive-games/crowdle': 'Crowdle — TikTok Live Crowd Wordle — The Missing Piece',
+  '/interactive-games/crowdle/overlay': 'Crowdle — TikTok LIVE Studio Overlay',
   '/solo-games': 'Solo games — The Missing Piece',
   '/solo-games/rebus': 'Missing Rebus — Solo game — The Missing Piece',
   '/solo-games/squared': 'Squared — Daily Word Grid — The Missing Piece',
   '/solo-games/thematix': 'Thematix — Word Association — The Missing Piece',
   '/solo-games/destack': 'DeStack — Word Unstacking — The Missing Piece',
   '/solo-games/unolingo': 'Unolingo — 26-Letter Crossword — The Missing Piece',
+  '/solo-games/wikirec': 'WiKirecTangled — Solo Wikipedia Word Grid — The Missing Piece',
+  '/solo-games/wikicon': 'WikiContexto — Solo Article Discovery — The Missing Piece',
 };
 
 const STANDALONE_GAME_PATHS = new Set([
@@ -53,6 +60,8 @@ const STANDALONE_GAME_PATHS = new Set([
   '/solo-games/thematix',
   '/solo-games/destack',
   '/solo-games/unolingo',
+  '/solo-games/wikirec',
+  '/solo-games/wikicon',
   '/interactive-games/wikirec',
   '/interactive-games/wikirec/overlay',
   '/interactive-games/wikicon',
@@ -67,6 +76,8 @@ const STANDALONE_GAME_PATHS = new Set([
   '/interactive-games/destack/overlay',
   '/interactive-games/destackint',
   '/interactive-games/destackint/overlay',
+  '/interactive-games/crowdle',
+  '/interactive-games/crowdle/overlay',
 ]);
 
 function AppShell() {
@@ -97,6 +108,8 @@ function AppShell() {
         <Route path="/solo-games/thematix" element={<ThematixPage />} />
         <Route path="/solo-games/destack" element={<DeStackPage />} />
         <Route path="/solo-games/unolingo" element={<UnolingoPage />} />
+        <Route path="/solo-games/wikirec" element={<WikiRecSoloPage />} />
+        <Route path="/solo-games/wikicon" element={<WikiConSoloPage />} />
         <Route path="/interactive-games/wikirec" element={<WikirecGamePage />} />
         <Route path="/interactive-games/wikirec/overlay" element={<WikirecGamePage />} />
         <Route path="/interactive-games/wikicon" element={<WikiconGamePage />} />
@@ -111,6 +124,8 @@ function AppShell() {
         <Route path="/interactive-games/destack/overlay" element={<DeStackIntGamePage />} />
         <Route path="/interactive-games/destackint" element={<DeStackIntGamePage />} />
         <Route path="/interactive-games/destackint/overlay" element={<DeStackIntGamePage />} />
+        <Route path="/interactive-games/crowdle" element={<CrowdleGamePage />} />
+        <Route path="/interactive-games/crowdle/overlay" element={<CrowdleGamePage />} />
       </Routes>
     );
   }
@@ -128,6 +143,7 @@ function AppShell() {
         <Route path="/interactive-games/lexi" element={<LexiGamePage />} />
         <Route path="/interactive-games/destack" element={<DeStackIntGamePage />} />
         <Route path="/interactive-games/destackint" element={<DeStackIntGamePage />} />
+        <Route path="/interactive-games/crowdle" element={<CrowdleGamePage />} />
         <Route path="/solo-games" element={<SoloGamesPage />} />
       </Routes>
       <SiteFooter />

@@ -34,6 +34,8 @@ export type SoloGameId =
   | "thematix"
   | "destack"
   | "unolingo"
+  | "wikirec"
+  | "wikicon"
   | "cruciverbalist"
   | "crossword";
 
@@ -42,7 +44,8 @@ export type InteractiveGameId =
   | "wikicon"
   | "squaredint"
   | "lexi"
-  | "destackint";
+  | "destackint"
+  | "crowdle";
 
 export enum OperationType {
   CREATE = "create",
@@ -143,6 +146,8 @@ export const SOLO_GAME_LABELS: Record<
   thematix: { title: "Thematix", metric: "Total Campaign Score" },
   destack: { title: "DeStack", metric: "Daily Stack Score" },
   unolingo: { title: "Unolingo", metric: "26-Letter Crossword Score" },
+  wikirec: { title: "WiKirecTangled", metric: "Solo Article & Grid Score" },
+  wikicon: { title: "WikiContexto", metric: "Solo Discovery Score" },
   cruciverbalist: {
     title: "Cruciverbalist Crossword",
     metric: "Crossword Rating",
@@ -159,6 +164,7 @@ export const INTERACTIVE_GAME_LABELS: Record<InteractiveGameId, string> = {
   squaredint: "Squared Interactive",
   lexi: "Lexi Tiles",
   destackint: "DeStack Interactive",
+  crowdle: "Crowdle",
 };
 
 const LOCAL_LEADERBOARD_STORAGE_KEY = "mp_unified_solo_leaderboards_v1";
@@ -1182,6 +1188,7 @@ export function creditInteractiveScoreByTikTokHandle(params: {
       squaredint: 0,
       lexi: 0,
       destackint: 0,
+      crowdle: 0,
     },
     recentEvents: [],
     updatedAt: Date.now(),
@@ -1833,6 +1840,8 @@ export function subscribeToAllLeaderboards(
       thematix: [],
       destack: [],
       unolingo: [],
+      wikirec: [],
+      wikicon: [],
       cruciverbalist: [],
       crossword: [],
     };
