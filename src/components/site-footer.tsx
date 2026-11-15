@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowUpRight, Download, KeyRound, LoaderCircle } from 'lucide-react';
+import { ArrowUpRight, Download, KeyRound, LoaderCircle, Users } from 'lucide-react';
 import { openCookiePreferences } from '@/lib/cookie-consent';
 import { AdminPortalModal } from '@/components/interactive-games/admin-portal-modal';
+import { AdminPanelModal } from '@/components/admin-panel-modal';
 
 export function SiteFooter() {
   const [downloadingZip, setDownloadingZip] = useState(false);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
 
   const showHostingerDownload =
     typeof window !== 'undefined' &&
@@ -81,6 +83,17 @@ export function SiteFooter() {
             >
               <KeyRound size={11} /> Admin keys
             </button>
+            <button
+              type="button"
+              onClick={() => setAdminPanelOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <Users size={11} /> Admin panel
+            </button>
             {showHostingerDownload && (
               <a
                 href="/the-missing-piece-hostinger.zip"
@@ -119,6 +132,10 @@ export function SiteFooter() {
       <AdminPortalModal
         open={adminModalOpen}
         onClose={() => setAdminModalOpen(false)}
+      />
+      <AdminPanelModal
+        open={adminPanelOpen}
+        onClose={() => setAdminPanelOpen(false)}
       />
     </>
   );

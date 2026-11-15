@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, ArrowUpRight, CheckCircle2, KeyRound, LogOut, User } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, CheckCircle2, KeyRound, LogOut, User, Users } from 'lucide-react';
 import {
   clearActiveInteractiveStreamerSession,
   useInteractiveAuthStore,
@@ -13,6 +13,7 @@ import {
   useUnifiedAuth,
 } from '@/lib/unified-game-auth';
 import { AdminPortalModal } from '@/components/interactive-games/admin-portal-modal';
+import { AdminPanelModal } from '@/components/admin-panel-modal';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import { GorillaShackTile } from '@/components/gorilla-shack-tile';
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
@@ -26,6 +27,7 @@ export function InteractiveGamesPage() {
   const [streamKeyInput, setStreamKeyInput] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
@@ -134,6 +136,15 @@ export function InteractiveGamesPage() {
               >
                 <KeyRound size={15} />
                 <span>Admin Portal (Register Keys)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAdminPanel(true)}
+                className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs transition-all cursor-pointer"
+              >
+                <Users size={15} />
+                <span>Admin Panel</span>
               </button>
 
               {activeStreamer && (
@@ -417,6 +428,10 @@ export function InteractiveGamesPage() {
         <AdminPortalModal
           open={showAdminModal}
           onClose={() => setShowAdminModal(false)}
+        />
+        <AdminPanelModal
+          open={showAdminPanel}
+          onClose={() => setShowAdminPanel(false)}
         />
         <UnifiedAuthModal
           isOpen={showProfileModal}

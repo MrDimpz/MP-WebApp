@@ -112,6 +112,124 @@ function saveServerStreamers(list: any[]) {
   }
 }
 
+interface ServerRegisteredUser {
+  uid: string;
+  displayName: string;
+  tiktokConnected: boolean;
+  linkedTikTokHandle: string;
+  authProvider: "email" | "google" | "site";
+  createdAt: number;
+  updatedAt: number;
+}
+
+const REGISTERED_USERS_FILE = path.join(DATA_DIR, "registered_users.json");
+
+function normalizeServerTikTokHandle(raw: unknown): string {
+  const cleaned = String(raw || "")
+    .trim()
+    .replace(/^@+/, "")
+    .toLowerCase();
+  return cleaned ? `@${cleaned}` : "";
+}
+
+function sanitizeServerDisplayName(raw: unknown): string {
+  const text = String(raw || "").trim();
+  if (!text) return "Player";
+  if (text.toLowerCase().includes("phreakfrog")) return "Missing Piece Host";
+  if (text.includes("@")) {
+    return (text.split("@")[0] || "Player").slice(0, 40);
+  }
+  return text.slice(0, 40);
+}
+
+function sanitizeRegisteredUserPayload(raw: any): ServerRegisteredUser | null {
+  if (!raw || typeof raw !== "object") return null;
+  const uid = String(raw.uid || "").trim().slice(0, 128);
+  if (!uid) return null;
+  const linkedTikTokHandle = normalizeServerTikTokHandle(raw.linkedTikTokHandle);
+  const authProvider =
+    raw.authProvider === "google" || raw.authProvider === "email"
+      ? raw.authProvider
+      : "site";
+  const now = Date.now();
+  return {
+    uid,
+    displayName: sanitizeServerDisplayName(raw.displayName),
+    tiktokConnected: Boolean(linkedTikTokHandle),
+    linkedTikTokHandle,
+    authProvider,
+    createdAt: Number(raw.createdAt) > 0 ? Number(raw.createdAt) : now,
+    updatedAt: Number(raw.updatedAt) > 0 ? Number(raw.updatedAt) : now,
+  };
+}
+
+function loadServerRegisteredUsers(): ServerRegisteredUser[] {
+  try {
+    if (fs.existsSync(REGISTERED_USERS_FILE)) {
+      const raw = fs.readFileSync(REGISTERED_USERS_FILE, "utf8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map(sanitizeRegisteredUserPayload)
+          .filter((u): u is ServerRegisteredUser => Boolean(u))
+          .sort((a, b) => b.updatedAt - a.updatedAt);
+      }
+    }
+  } catch {
+    // ignore read error
+  }
+  return [];
+}
+
+function saveServerRegisteredUsers(list: ServerRegisteredUser[]) {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(
+      REGISTERED_USERS_FILE,
+      JSON.stringify(list, null, 2),
+      "utf8",
+    );
+  } catch {
+    // ignore write error on read-only fs
+  }
+}
+
+function upsertServerRegisteredUsers(incoming: ServerRegisteredUser[]): ServerRegisteredUser[] {
+  const existing = loadServerRegisteredUsers();
+  const map = new Map<string, ServerRegisteredUser>();
+  for (const user of existing) {
+    map.set(user.uid, user);
+  }
+  for (const item of incoming) {
+    const prev = map.get(item.uid);
+    if (!prev) {
+      map.set(item.uid, item);
+    } else {
+      const useIncoming = item.updatedAt >= prev.updatedAt;
+      const mergedHandle = useIncoming
+        ? item.linkedTikTokHandle
+        : prev.linkedTikTokHandle || item.linkedTikTokHandle;
+      map.set(item.uid, {
+        uid: item.uid,
+        displayName: useIncoming ? item.displayName : prev.displayName,
+        linkedTikTokHandle: mergedHandle,
+        tiktokConnected: Boolean(mergedHandle),
+        authProvider:
+          item.authProvider !== "site" ? item.authProvider : prev.authProvider,
+        createdAt: Math.min(prev.createdAt, item.createdAt),
+        updatedAt: Math.max(prev.updatedAt, item.updatedAt),
+      });
+    }
+  }
+  const merged = Array.from(map.values()).sort(
+    (a, b) => b.updatedAt - a.updatedAt,
+  );
+  saveServerRegisteredUsers(merged);
+  return merged;
+}
+
 async function startServer() {
   const app = express();
   const httpServer = createServer(app);
@@ -1130,6 +1248,30 @@ async function startServer() {
       return;
     }
     res.status(401).json({ ok: false, error: "Invalid admin credentials" });
+  });
+
+  app.get("/api/admin/registered-users", (_req, res) => {
+    res.json({ ok: true, users: loadServerRegisteredUsers() });
+  });
+
+  app.post("/api/registered-users/sync", (req, res) => {
+    const candidates: ServerRegisteredUser[] = [];
+    if (Array.isArray(req.body?.users)) {
+      for (const rawItem of req.body.users) {
+        const clean = sanitizeRegisteredUserPayload(rawItem);
+        if (clean) candidates.push(clean);
+      }
+    }
+    if (req.body?.user) {
+      const clean = sanitizeRegisteredUserPayload(req.body.user);
+      if (clean) candidates.push(clean);
+    }
+    if (candidates.length === 0) {
+      res.status(400).json({ ok: false, error: "Valid user record required" });
+      return;
+    }
+    const merged = upsertServerRegisteredUsers(candidates);
+    res.json({ ok: true, count: merged.length, users: merged });
   });
 
   // ============================================================================

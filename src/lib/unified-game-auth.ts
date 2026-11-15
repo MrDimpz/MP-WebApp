@@ -127,8 +127,19 @@ const LOCAL_LEADERBOARD_STORAGE_KEY = "mp_unified_solo_leaderboards_v1";
 const LOCAL_ACCOUNTS_STORAGE_KEY = "mp_unified_site_accounts_v1";
 const LOCAL_ACTIVE_SESSION_KEY = "mp_unified_active_session_v1";
 const TIKTOK_LINKS_STORAGE_KEY = "mp_tiktok_handle_links_v1";
+const REGISTERED_USERS_DIRECTORY_KEY = "mp_registered_users_directory_v1";
 const INTERACTIVE_SCORES_STORAGE_KEY = "mp_interactive_account_scores_v1";
 const BROWSER_INSTANCE_ID_KEY = "mp_browser_instance_id_v1";
+
+export interface RegisteredUserRecord {
+  uid: string;
+  displayName: string;
+  tiktokConnected: boolean;
+  linkedTikTokHandle: string;
+  authProvider: "email" | "google" | "site";
+  createdAt: number;
+  updatedAt: number;
+}
 
 export const HIDDEN_GMAIL_ADDRESS = "phreakfrog@gmail.com";
 
@@ -291,6 +302,336 @@ function saveTikTokHandleLinks(links: Record<string, TikTokAccountLinkRecord>) {
   }
 }
 
+function readStoredDirectoryMap(): Map<string, RegisteredUserRecord> {
+  const map = new Map<string, RegisteredUserRecord>();
+  if (typeof window === "undefined") return map;
+  try {
+    const raw = window.localStorage.getItem(REGISTERED_USERS_DIRECTORY_KEY);
+    if (!raw) return map;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return map;
+    for (const item of parsed) {
+      if (!item || !item.uid) continue;
+      const uid = String(item.uid).trim();
+      if (!uid) continue;
+      const handle = normalizeTikTokHandle(item.linkedTikTokHandle);
+      const now = Date.now();
+      map.set(uid, {
+        uid,
+        displayName: sanitizePublicIdentity(item.displayName, "Player"),
+        tiktokConnected: Boolean(handle),
+        linkedTikTokHandle: handle,
+        authProvider:
+          item.authProvider === "google" || item.authProvider === "email"
+            ? item.authProvider
+            : "site",
+        createdAt: Number(item.createdAt) > 0 ? Number(item.createdAt) : now,
+        updatedAt: Number(item.updatedAt) > 0 ? Number(item.updatedAt) : now,
+      });
+    }
+  } catch {
+    // Ignore storage read errors
+  }
+  return map;
+}
+
+function saveStoredDirectoryList(list: RegisteredUserRecord[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      REGISTERED_USERS_DIRECTORY_KEY,
+      JSON.stringify(list),
+    );
+    window.dispatchEvent(new Event("mp-registered-users-updated"));
+  } catch {
+    // Ignore storage write errors
+  }
+}
+
+export function recordRegisteredUser(params: {
+  uid: string;
+  displayName?: string | null;
+  linkedTikTokHandle?: string | null;
+  authProvider?: "email" | "google" | "site";
+  createdAt?: number;
+  explicitTikTokUpdate?: boolean;
+  syncRemote?: boolean;
+}): RegisteredUserRecord | null {
+  const uid = String(params.uid || "").trim();
+  if (!uid) return null;
+
+  const map = readStoredDirectoryMap();
+  const prev = map.get(uid);
+  const now = Date.now();
+
+  const resolvedHandle = params.explicitTikTokUpdate
+    ? normalizeTikTokHandle(params.linkedTikTokHandle)
+    : normalizeTikTokHandle(
+        params.linkedTikTokHandle ||
+          getLinkedTikTokHandle(uid) ||
+          prev?.linkedTikTokHandle,
+      );
+
+  const resolvedName = sanitizePublicIdentity(
+    params.displayName || prev?.displayName,
+    "Player",
+  );
+
+  const record: RegisteredUserRecord = {
+    uid,
+    displayName: resolvedName,
+    linkedTikTokHandle: resolvedHandle,
+    tiktokConnected: Boolean(resolvedHandle),
+    authProvider:
+      params.authProvider && params.authProvider !== "site"
+        ? params.authProvider
+        : prev?.authProvider || "site",
+    createdAt:
+      prev?.createdAt ||
+      (params.createdAt && params.createdAt > 0 ? params.createdAt : now),
+    updatedAt: now,
+  };
+
+  map.set(uid, record);
+  const sorted = Array.from(map.values()).sort(
+    (a, b) => b.updatedAt - a.updatedAt,
+  );
+  saveStoredDirectoryList(sorted);
+
+  if (typeof window !== "undefined" && params.syncRemote !== false) {
+    fetch("/api/registered-users/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user: record }),
+    }).catch(() => {});
+  }
+
+  return record;
+}
+
+export function getRegisteredUsersDirectory(): RegisteredUserRecord[] {
+  if (typeof window === "undefined") return [];
+
+  const map = readStoredDirectoryMap();
+  const links = getTikTokHandleLinks();
+  const linksByUid = new Map<string, TikTokAccountLinkRecord>();
+  for (const link of Object.values(links)) {
+    if (link?.uid) {
+      const existing = linksByUid.get(link.uid);
+      if (!existing || (link.updatedAt || 0) >= (existing.updatedAt || 0)) {
+        linksByUid.set(link.uid, link);
+      }
+    }
+  }
+
+  // Backfill any accounts registered via local accounts store
+  for (const acc of getStoredAccounts()) {
+    if (!acc?.uid) continue;
+    const prev = map.get(acc.uid);
+    const linkRec = linksByUid.get(acc.uid);
+    const handle = normalizeTikTokHandle(
+      linkRec?.tiktokHandle ||
+        acc.linkedTikTokHandle ||
+        prev?.linkedTikTokHandle,
+    );
+    const createdAt = acc.createdAt || prev?.createdAt || Date.now();
+    const updatedAt = Math.max(
+      prev?.updatedAt || 0,
+      linkRec?.updatedAt || 0,
+      createdAt,
+    );
+    map.set(acc.uid, {
+      uid: acc.uid,
+      displayName: sanitizePublicIdentity(
+        prev?.displayName || acc.displayName,
+        "Player",
+      ),
+      linkedTikTokHandle: handle,
+      tiktokConnected: Boolean(handle),
+      authProvider:
+        prev?.authProvider && prev.authProvider !== "site"
+          ? prev.authProvider
+          : "email",
+      createdAt,
+      updatedAt,
+    });
+  }
+
+  // Ensure any TikTok link record has a corresponding user row
+  for (const link of linksByUid.values()) {
+    if (!link?.uid) continue;
+    const prev = map.get(link.uid);
+    const handle = normalizeTikTokHandle(link.tiktokHandle);
+    if (!prev) {
+      map.set(link.uid, {
+        uid: link.uid,
+        displayName: sanitizePublicIdentity(link.displayName, "Player"),
+        linkedTikTokHandle: handle,
+        tiktokConnected: Boolean(handle),
+        authProvider: "site",
+        createdAt: link.updatedAt || Date.now(),
+        updatedAt: link.updatedAt || Date.now(),
+      });
+    } else if (handle && !prev.linkedTikTokHandle) {
+      map.set(link.uid, {
+        ...prev,
+        linkedTikTokHandle: handle,
+        tiktokConnected: true,
+        updatedAt: Math.max(prev.updatedAt, link.updatedAt || 0),
+      });
+    }
+  }
+
+  // Ensure active session user appears if not yet recorded
+  try {
+    const rawSession = window.localStorage.getItem(LOCAL_ACTIVE_SESSION_KEY);
+    if (rawSession) {
+      const parsed = JSON.parse(rawSession) as UnifiedPlayerUser;
+      if (parsed?.uid) {
+        const prev = map.get(parsed.uid);
+        const linkRec = linksByUid.get(parsed.uid);
+        const handle = normalizeTikTokHandle(
+          linkRec?.tiktokHandle ||
+            parsed.linkedTikTokHandle ||
+            prev?.linkedTikTokHandle,
+        );
+        const now = Date.now();
+        map.set(parsed.uid, {
+          uid: parsed.uid,
+          displayName: sanitizePublicIdentity(
+            parsed.displayName || prev?.displayName,
+            "Player",
+          ),
+          linkedTikTokHandle: handle,
+          tiktokConnected: Boolean(handle),
+          authProvider:
+            prev?.authProvider ||
+            (parsed.uid.startsWith("google_") ? "google" : "site"),
+          createdAt: prev?.createdAt || now,
+          updatedAt: prev?.updatedAt || now,
+        });
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return Array.from(map.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export async function fetchRegisteredUsersDirectory(): Promise<
+  RegisteredUserRecord[]
+> {
+  const localList = getRegisteredUsersDirectory();
+  if (typeof window === "undefined") return localList;
+
+  try {
+    // Push any local backfill records to server directory if present
+    if (localList.length > 0) {
+      await fetch("/api/registered-users/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ users: localList }),
+      }).catch(() => {});
+    }
+
+    const res = await fetch("/api/admin/registered-users", {
+      cache: "no-store",
+    });
+    const ct = res.headers.get("content-type") || "";
+    if (!res.ok || !ct.includes("application/json")) {
+      return localList;
+    }
+    const data = await res.json();
+    if (!Array.isArray(data?.users)) {
+      return localList;
+    }
+
+    const merged = new Map<string, RegisteredUserRecord>();
+    for (const item of localList) {
+      merged.set(item.uid, item);
+    }
+    for (const rawItem of data.users) {
+      if (!rawItem || !rawItem.uid) continue;
+      const uid = String(rawItem.uid).trim();
+      if (!uid) continue;
+      const handle = normalizeTikTokHandle(rawItem.linkedTikTokHandle);
+      const remote: RegisteredUserRecord = {
+        uid,
+        displayName: sanitizePublicIdentity(rawItem.displayName, "Player"),
+        linkedTikTokHandle: handle,
+        tiktokConnected: Boolean(handle),
+        authProvider:
+          rawItem.authProvider === "google" || rawItem.authProvider === "email"
+            ? rawItem.authProvider
+            : "site",
+        createdAt: Number(rawItem.createdAt) || Date.now(),
+        updatedAt: Number(rawItem.updatedAt) || Date.now(),
+      };
+      const prev = merged.get(uid);
+      if (!prev || remote.updatedAt >= prev.updatedAt) {
+        merged.set(uid, remote);
+      }
+    }
+
+    const sorted = Array.from(merged.values()).sort(
+      (a, b) => b.updatedAt - a.updatedAt,
+    );
+    window.localStorage.setItem(
+      REGISTERED_USERS_DIRECTORY_KEY,
+      JSON.stringify(sorted),
+    );
+    return sorted;
+  } catch {
+    return localList;
+  }
+}
+
+export function useRegisteredUsersDirectory(enabled = true) {
+  const [users, setUsers] = useState<RegisteredUserRecord[]>(() =>
+    getRegisteredUsersDirectory(),
+  );
+  const [loading, setLoading] = useState(false);
+
+  const refresh = async () => {
+    setUsers(getRegisteredUsersDirectory());
+    setLoading(true);
+    try {
+      const merged = await fetchRegisteredUsersDirectory();
+      setUsers(merged);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!enabled) return;
+    let active = true;
+
+    const handleSync = () => {
+      if (active) {
+        setUsers(getRegisteredUsersDirectory());
+      }
+    };
+
+    refresh();
+    window.addEventListener("mp-registered-users-updated", handleSync);
+    window.addEventListener("mp-tiktok-link-updated", handleSync);
+    window.addEventListener("mp-site-auth-updated", handleSync);
+    window.addEventListener("storage", handleSync);
+
+    return () => {
+      active = false;
+      window.removeEventListener("mp-registered-users-updated", handleSync);
+      window.removeEventListener("mp-tiktok-link-updated", handleSync);
+      window.removeEventListener("mp-site-auth-updated", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, [enabled]);
+
+  return { users, loading, refresh };
+}
+
 export function getLinkedTikTokHandle(uid: string | null | undefined): string {
   if (!uid) return "";
   const accounts = getStoredAccounts();
@@ -314,6 +655,7 @@ export function setLinkedTikTokHandle(
 ): string {
   const normalized = normalizeTikTokHandle(rawHandle);
   const accounts = getStoredAccounts();
+  const clearedUids: string[] = [];
   const updatedAccounts = accounts.map((acc) => {
     if (acc.uid === uid) {
       return { ...acc, linkedTikTokHandle: normalized || undefined };
@@ -322,6 +664,7 @@ export function setLinkedTikTokHandle(
       normalized &&
       normalizeTikTokHandle(acc.linkedTikTokHandle) === normalized
     ) {
+      clearedUids.push(acc.uid);
       return { ...acc, linkedTikTokHandle: undefined };
     }
     return acc;
@@ -331,6 +674,9 @@ export function setLinkedTikTokHandle(
   const links = getTikTokHandleLinks();
   for (const [key, val] of Object.entries(links)) {
     if (val.uid === uid || key === normalized) {
+      if (val.uid !== uid && !clearedUids.includes(val.uid)) {
+        clearedUids.push(val.uid);
+      }
       delete links[key];
     }
   }
@@ -343,6 +689,21 @@ export function setLinkedTikTokHandle(
     };
   }
   saveTikTokHandleLinks(links);
+
+  for (const clearedUid of clearedUids) {
+    recordRegisteredUser({
+      uid: clearedUid,
+      linkedTikTokHandle: "",
+      explicitTikTokUpdate: true,
+    });
+  }
+
+  recordRegisteredUser({
+    uid,
+    displayName: sanitizePublicIdentity(displayName, "Player"),
+    linkedTikTokHandle: normalized,
+    explicitTikTokUpdate: true,
+  });
 
   const session = getActiveSiteSession();
   if (session && session.uid === uid) {
@@ -654,6 +1015,12 @@ export async function signInToUnifiedGames(): Promise<UnifiedPlayerUser | null> 
   const result = await signInWithPopup(auth, provider);
   const unified = toUnifiedUserFromFirebase(result.user);
   setActiveSiteSession(unified);
+  recordRegisteredUser({
+    uid: unified.uid,
+    displayName: unified.displayName,
+    linkedTikTokHandle: unified.linkedTikTokHandle,
+    authProvider: "google",
+  });
   return unified;
 }
 
@@ -668,6 +1035,12 @@ export async function signInWithGooglePopup(
     const result = await signInWithPopup(auth, provider);
     const unified = toUnifiedUserFromFirebase(result.user);
     setActiveSiteSession(unified);
+    recordRegisteredUser({
+      uid: unified.uid,
+      displayName: unified.displayName,
+      linkedTikTokHandle: unified.linkedTikTokHandle,
+      authProvider: "google",
+    });
     return unified;
   } catch (err) {
     const errorObj = new Error("Inline Google fallback");
@@ -697,6 +1070,12 @@ export async function signInWithGoogleEmailFallback(
     linkedTikTokHandle: getLinkedTikTokHandle(uid) || null,
   };
   setActiveSiteSession(unified);
+  recordRegisteredUser({
+    uid: unified.uid,
+    displayName: unified.displayName,
+    linkedTikTokHandle: unified.linkedTikTokHandle,
+    authProvider: "google",
+  });
   return unified;
 }
 
@@ -755,6 +1134,12 @@ export async function registerWithEmailPassword(
       linkedTikTokHandle: cleanTikTok || null,
     };
     setActiveSiteSession(unified);
+    recordRegisteredUser({
+      uid: unified.uid,
+      displayName: unified.displayName,
+      linkedTikTokHandle: unified.linkedTikTokHandle,
+      authProvider: "email",
+    });
     return unified;
   } catch (err: unknown) {
     const code = (err as { code?: string })?.code || "";
@@ -792,6 +1177,13 @@ export async function registerWithEmailPassword(
       linkedTikTokHandle: cleanTikTok || null,
     };
     setActiveSiteSession(unified);
+    recordRegisteredUser({
+      uid: unified.uid,
+      displayName: unified.displayName,
+      linkedTikTokHandle: unified.linkedTikTokHandle,
+      authProvider: "email",
+      createdAt: newAccount.createdAt,
+    });
     return unified;
   }
 }
@@ -818,6 +1210,12 @@ export async function signInWithEmailPassword(
     );
     const unified = toUnifiedUserFromFirebase(cred.user);
     setActiveSiteSession(unified);
+    recordRegisteredUser({
+      uid: unified.uid,
+      displayName: unified.displayName,
+      linkedTikTokHandle: unified.linkedTikTokHandle,
+      authProvider: "email",
+    });
     return unified;
   } catch {
     const accounts = getStoredAccounts();
@@ -839,6 +1237,13 @@ export async function signInWithEmailPassword(
       linkedTikTokHandle: linkedTikTok || null,
     };
     setActiveSiteSession(unified);
+    recordRegisteredUser({
+      uid: unified.uid,
+      displayName: unified.displayName,
+      linkedTikTokHandle: unified.linkedTikTokHandle,
+      authProvider: "email",
+      createdAt: found.createdAt,
+    });
     return unified;
   }
 }
@@ -915,6 +1320,15 @@ export function useUnifiedAuth() {
       if (fbUser) {
         const unified = toUnifiedUserFromFirebase(fbUser);
         setActiveSiteSession(unified);
+        const isGoogle = fbUser.providerData?.some(
+          (p) => p?.providerId === "google.com",
+        );
+        recordRegisteredUser({
+          uid: unified.uid,
+          displayName: unified.displayName,
+          linkedTikTokHandle: unified.linkedTikTokHandle,
+          authProvider: isGoogle ? "google" : "email",
+        });
         setUser(unified);
       } else {
         setUser(getActiveSiteSession());

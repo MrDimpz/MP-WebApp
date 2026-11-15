@@ -231,6 +231,7 @@ export function verifyInteractiveAdminLogin(
           loggedInAt: Date.now(),
         })
       );
+      notifyAuthUpdated();
     } catch {}
   }
 
@@ -537,13 +538,34 @@ export function clearActiveInteractiveStreamerSession(): void {
   notifyAuthUpdated();
 }
 
-export function isInteractiveAdminAuthenticated(): boolean {
-  if (typeof window === 'undefined') return false;
+export function getAuthenticatedInteractiveAdmin(): InteractiveAdminAccount | null {
+  if (typeof window === 'undefined') return null;
   try {
-    return Boolean(window.sessionStorage.getItem(ACTIVE_ADMIN_SESSION_KEY));
+    const raw = window.sessionStorage.getItem(ACTIVE_ADMIN_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { username?: string };
+    const cleanUser = String(parsed?.username || '').trim();
+    if (!cleanUser) return null;
+    const admins = getInteractiveAdmins();
+    return (
+      admins.find((a) => a.username.toLowerCase() === cleanUser.toLowerCase()) ||
+      null
+    );
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function logoutInteractiveAdmin(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(ACTIVE_ADMIN_SESSION_KEY);
+    notifyAuthUpdated();
+  } catch {}
+}
+
+export function isInteractiveAdminAuthenticated(): boolean {
+  return Boolean(getAuthenticatedInteractiveAdmin());
 }
 
 export function useInteractiveAuthStore() {
@@ -552,8 +574,8 @@ export function useInteractiveAuthStore() {
   const [activeStreamer, setActiveStreamer] = useState<ActiveInteractiveStreamerSession | null>(() =>
     getActiveInteractiveStreamerSession()
   );
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() =>
-    isInteractiveAdminAuthenticated()
+  const [authenticatedAdmin, setAuthenticatedAdmin] = useState<InteractiveAdminAccount | null>(() =>
+    getAuthenticatedInteractiveAdmin()
   );
 
   useEffect(() => {
@@ -561,7 +583,7 @@ export function useInteractiveAuthStore() {
       setAdmins(getInteractiveAdmins());
       setUsers(getInteractiveStreamerUsers());
       setActiveStreamer(getActiveInteractiveStreamerSession());
-      setIsAdminAuthenticated(isInteractiveAdminAuthenticated());
+      setAuthenticatedAdmin(getAuthenticatedInteractiveAdmin());
     };
     window.addEventListener(SYNC_EVENT_NAME, refresh);
     window.addEventListener('storage', refresh);
@@ -614,7 +636,8 @@ export function useInteractiveAuthStore() {
     admins,
     users,
     activeStreamer,
-    isAdminAuthenticated,
+    authenticatedAdmin,
+    isAdminAuthenticated: Boolean(authenticatedAdmin),
   };
 }
 

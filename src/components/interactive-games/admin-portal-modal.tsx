@@ -21,13 +21,14 @@ import {
   addOrUpdateInteractiveStreamerUser,
   generateLiveKey,
   isValidLiveKeyFormat,
+  logoutInteractiveAdmin,
   normalizeLiveKey,
   removeInteractiveAdmin,
   removeInteractiveStreamerUser,
   useInteractiveAuthStore,
   verifyInteractiveAdminLogin,
-  type InteractiveAdminAccount,
 } from '../../lib/interactive-key-auth';
+import { RegisteredUsersDirectoryView } from '../admin-panel-modal';
 
 interface AdminPortalModalProps {
   open?: boolean;
@@ -37,17 +38,16 @@ interface AdminPortalModalProps {
 
 export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProps) {
   const isModalOpen = Boolean(open ?? isOpen);
-  const { admins, users } = useInteractiveAuthStore();
+  const { admins, users, authenticatedAdmin } = useInteractiveAuthStore();
 
   // Admin Login State
-  const [authenticatedAdmin, setAuthenticatedAdmin] = useState<InteractiveAdminAccount | null>(null);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Active Tab inside Admin Portal
-  const [activeTab, setActiveTab] = useState<'users' | 'admins'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'admins' | 'registered'>('users');
 
   // Generate Key for New User State
   const [newUserHandle, setNewUserHandle] = useState('');
@@ -94,13 +94,12 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
       setLoginError(res.error);
       return;
     }
-    setAuthenticatedAdmin(res.admin);
     setLoginUsername('');
     setLoginPassword('');
   };
 
   const handleLogoutAdmin = () => {
-    setAuthenticatedAdmin(null);
+    logoutInteractiveAdmin();
     setLoginUsername('');
     setLoginPassword('');
     setLoginError(null);
@@ -597,6 +596,32 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                   <Shield size={15} />
                   Manage Admins ({admins.length})
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('registered')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.5rem 0.95rem',
+                    borderRadius: '9px',
+                    border:
+                      activeTab === 'registered'
+                        ? '1px solid rgba(16, 185, 129, 0.55)'
+                        : '1px solid rgba(255,255,255,0.1)',
+                    backgroundColor:
+                      activeTab === 'registered'
+                        ? 'rgba(16, 185, 129, 0.16)'
+                        : 'rgba(255,255,255,0.03)',
+                    color: activeTab === 'registered' ? '#34d399' : '#94a3b8',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Users size={15} />
+                  Registered Users
+                </button>
               </div>
 
               <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
@@ -615,7 +640,11 @@ export function AdminPortalModal({ open, isOpen, onClose }: AdminPortalModalProp
                 gap: '1.25rem',
               }}
             >
-              {activeTab === 'users' ? (
+              {activeTab === 'registered' ? (
+                <RegisteredUsersDirectoryView
+                  enabled={isModalOpen && Boolean(authenticatedAdmin) && activeTab === 'registered'}
+                />
+              ) : activeTab === 'users' ? (
                 <>
                   {/* Generate Key for a New User */}
                   <form
