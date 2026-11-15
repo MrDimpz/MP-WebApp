@@ -103,6 +103,7 @@ interface GameBoardProps {
     words: string[];
     difficulty: DifficultyMode;
   } | null;
+  onRoundReset?: () => void;
 }
 
 const LAYER_KEY_ITEMS = [
@@ -167,6 +168,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   syncedBoardState = null,
   onBoardStateChange,
   overlayVictoryData = null,
+  onRoundReset,
 }) => {
   const [tiles, setTiles] = useState<TileData[]>(() => JSON.parse(JSON.stringify(puzzle.tiles)));
   const [rack, setRack] = useState<Array<TileData | null>>([null, null, null, null, null]);
@@ -704,8 +706,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     setWordTimeLeft(timerDuration);
     wordStartTimestampRef.current = Date.now();
     setCurrentWordSolvers([]);
+    setStatusMessage(null);
     isRoundFinishedRef.current = false;
     setResetCount((prev) => prev + 1);
+    onRoundReset?.();
   };
 
   // Broadcast host board snapshot up to App for live overlay mirroring
@@ -743,7 +747,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   ]);
 
   const activeBoard: DeStackBoardSnapshot =
-    isOverlay && hasHostSync && syncedBoardState
+    isOverlay && syncedBoardState
       ? syncedBoardState
       : {
           tiles,

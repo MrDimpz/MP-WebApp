@@ -114,6 +114,18 @@ export function useGameClient() {
             next.roundNumber = payload.roundNumber;
             next.countdownSeconds = payload.countdownSeconds;
             setRoundSummary(null);
+            setActiveCelebration(null);
+            setLastHighlightedIndices([]);
+            setLastWordBanner(null);
+            setSubmissionFeedback(null);
+            if (highlightTimeoutRef.current) {
+              window.clearTimeout(highlightTimeoutRef.current);
+              highlightTimeoutRef.current = null;
+            }
+            if (celebrationTimeoutRef.current) {
+              window.clearTimeout(celebrationTimeoutRef.current);
+              celebrationTimeoutRef.current = null;
+            }
             soundEngine.play('countdown', payload.countdownSeconds <= 1 ? 1 : 0);
             break;
 
@@ -130,6 +142,11 @@ export function useGameClient() {
             };
             next.targetScore = payload.targetScore;
             if (payload.difficulty) next.difficulty = payload.difficulty;
+            setRoundSummary(null);
+            setActiveCelebration(null);
+            setLastHighlightedIndices([]);
+            setLastWordBanner(null);
+            setSubmissionFeedback(null);
             break;
 
           case 'board:modifier_updated':
@@ -175,6 +192,18 @@ export function useGameClient() {
               };
             }
             setRoundSummary(null);
+            setActiveCelebration(null);
+            setLastHighlightedIndices([]);
+            setLastWordBanner(null);
+            setSubmissionFeedback(null);
+            if (highlightTimeoutRef.current) {
+              window.clearTimeout(highlightTimeoutRef.current);
+              highlightTimeoutRef.current = null;
+            }
+            if (celebrationTimeoutRef.current) {
+              window.clearTimeout(celebrationTimeoutRef.current);
+              celebrationTimeoutRef.current = null;
+            }
             soundEngine.play('gameStart');
             break;
 
@@ -196,6 +225,19 @@ export function useGameClient() {
             break;
 
           case 'game:reset':
+            setRoundSummary(null);
+            setActiveCelebration(null);
+            setLastHighlightedIndices([]);
+            setLastWordBanner(null);
+            setSubmissionFeedback(null);
+            if (highlightTimeoutRef.current) {
+              window.clearTimeout(highlightTimeoutRef.current);
+              highlightTimeoutRef.current = null;
+            }
+            if (celebrationTimeoutRef.current) {
+              window.clearTimeout(celebrationTimeoutRef.current);
+              celebrationTimeoutRef.current = null;
+            }
             return { ...prev, ...payload };
 
           case 'word:accepted': {
@@ -350,6 +392,7 @@ export function useGameClient() {
 
           case 'round:ended':
             next.status = payload.status;
+            next.remainingSeconds = 0;
             next.leaderboards = payload.leaderboards || next.leaderboards;
             if (payload.difficulty) next.difficulty = payload.difficulty;
             if (payload.performanceMetrics) next.performanceMetrics = payload.performanceMetrics;

@@ -541,6 +541,12 @@ export default function App() {
     return generateDailyPuzzle(selectedDateStr, difficulty, layoutMode, puzzleRoundNonce);
   }, [selectedDateStr, difficulty, layoutMode, puzzleRoundNonce]);
 
+  useEffect(() => {
+    if (isOverlay) return;
+    setVictoryData(null);
+    setHostBoardSnapshot(null);
+  }, [isOverlay, selectedDateStr, difficulty, layoutMode, puzzleRoundNonce, resetSignal]);
+
   const hostOverlayPayload = useMemo<DeStackOverlayPayload>(
     () => ({
       puzzle: currentPuzzle,
@@ -592,7 +598,9 @@ export default function App() {
   const effectiveScoreboard =
     isOverlay && syncedOverlayPayload?.scoreboard ? syncedOverlayPayload.scoreboard : scoreboard;
   const effectiveVictoryData = isOverlay
-    ? syncedOverlayPayload?.victoryData ?? victoryData
+    ? syncedOverlayPayload
+      ? syncedOverlayPayload.victoryData
+      : victoryData
     : victoryData;
   const effectiveTiktokUsername =
     isOverlay && syncedOverlayPayload?.tiktokUsername
@@ -804,6 +812,7 @@ export default function App() {
             onConsumeChatQueue={handleConsumeChatQueue}
             resetSignal={resetSignal}
             onBoardStateChange={setHostBoardSnapshot}
+            onRoundReset={() => setVictoryData(null)}
           />
         )}
 

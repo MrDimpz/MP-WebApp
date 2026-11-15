@@ -170,6 +170,7 @@ export interface RoundState {
   topRankCards: RankCard[];
   recentTicker: RankCard[];
   leaderboard: PlayerScore[];
+  topPlayer?: PlayerScore | null;
   lastAnnouncement: WordAnnouncement | null;
   gridBoard?: GridBoard;
   startedAt: number;

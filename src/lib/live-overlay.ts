@@ -78,6 +78,13 @@ interface UseOverlaySyncOptions<T> {
   onSyncedState: (state: T) => void;
 }
 
+interface OverlaySyncPacket<T> {
+  state?: T;
+  streamer?: string;
+  hostSessionId?: string;
+  seq?: number;
+}
+
 /**
  * Syncs live host game state to TikTok LIVE Studio Browser Source overlays via:
  * 1) Same-origin BroadcastChannel (zero latency when host & overlay share browser)
@@ -106,6 +113,11 @@ export function useOverlaySync<T>({
   const channelRef = useRef<BroadcastChannel | null>(null);
   const lastEmitAtRef = useRef<number>(0);
   const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hostSessionIdRef = useRef<string>(
+    `host_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+  );
+  const seqRef = useRef<number>(0);
+  const lastRemoteMetaRef = useRef<{ hostSessionId: string; seq: number } | null>(null);
 
   useEffect(() => {
     const channelName = `mp_overlay_${gameId}`;
@@ -122,57 +134,128 @@ export function useOverlaySync<T>({
     const socket = io({
       path: '/socket.io',
       transports: ['polling', 'websocket'],
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,
       query: { gameId: `${gameId}-overlay` },
     });
     socketRef.current = socket;
+
+    const pushHostSnapshotNow = (forceSocket = true) => {
+      if (isOverlay || localStateRef.current === null) return;
+      const seq = ++seqRef.current;
+      const hostSessionId = hostSessionIdRef.current;
+      lastEmitAtRef.current = performance.now();
+
+      if (bc) {
+        try {
+          bc.postMessage({
+            type: 'state-sync',
+            streamer: cleanStreamer,
+            state: localStateRef.current,
+            hostSessionId,
+            seq,
+          });
+        } catch {}
+      }
+
+      if (forceSocket && socket.connected) {
+        socket.emit('overlay-state-update', {
+          gameId,
+          streamer: cleanStreamer,
+          state: localStateRef.current,
+          hostSessionId,
+          seq,
+        });
+      }
+    };
+
+    const acceptRemotePacket = (packet: OverlaySyncPacket<T> | null | undefined) => {
+      if (!packet || packet.state === undefined) return;
+      if (cleanStreamer && packet.streamer && packet.streamer !== cleanStreamer) {
+        return;
+      }
+      if (packet.hostSessionId && typeof packet.seq === 'number') {
+        const prev = lastRemoteMetaRef.current;
+        if (prev && prev.hostSessionId === packet.hostSessionId && packet.seq < prev.seq) {
+          return;
+        }
+        lastRemoteMetaRef.current = {
+          hostSessionId: packet.hostSessionId,
+          seq: packet.seq,
+        };
+      }
+      setIsReceivingHostSync(true);
+      onSyncedRef.current(packet.state);
+    };
 
     if (isOverlay) {
       socket.emit('join-overlay', { gameId, streamer: cleanStreamer });
       socket.on('connect', () => {
         socket.emit('join-overlay', { gameId, streamer: cleanStreamer });
-      });
-      socket.on('overlay-state-sync', (packet: { state?: T; streamer?: string }) => {
-        if (!packet || packet.state === undefined) return;
-        if (
-          cleanStreamer &&
-          packet.streamer &&
-          packet.streamer !== cleanStreamer
-        ) {
-          return;
+        if (bc) {
+          try {
+            bc.postMessage({ type: 'request-state', streamer: cleanStreamer });
+          } catch {}
         }
-        setIsReceivingHostSync(true);
-        onSyncedRef.current(packet.state);
+      });
+      socket.on('overlay-state-sync', (packet: OverlaySyncPacket<T>) => {
+        acceptRemotePacket(packet);
       });
 
       if (bc) {
         bc.onmessage = (ev) => {
           const msg = ev.data;
-          if (!msg || msg.type !== 'state-sync' || msg.state === undefined) return;
-          if (cleanStreamer && msg.streamer && msg.streamer !== cleanStreamer) {
-            return;
-          }
-          setIsReceivingHostSync(true);
-          onSyncedRef.current(msg.state);
+          if (!msg || msg.type !== 'state-sync') return;
+          acceptRemotePacket(msg);
         };
         bc.postMessage({ type: 'request-state', streamer: cleanStreamer });
       }
-    } else if (bc) {
-      bc.onmessage = (ev) => {
-        if (ev.data?.type === 'request-state' && localStateRef.current !== null) {
-          bc?.postMessage({
-            type: 'state-sync',
-            streamer: cleanStreamer,
-            state: localStateRef.current,
-          });
-        }
+    } else {
+      const announceAndPushHostState = () => {
+        socket.emit('register-overlay-host', {
+          gameId,
+          streamer: cleanStreamer,
+          hostSessionId: hostSessionIdRef.current,
+        });
+        pushHostSnapshotNow(true);
       };
+
+      if (socket.connected) {
+        announceAndPushHostState();
+      }
+      socket.on('connect', announceAndPushHostState);
+
+      socket.on('overlay-request-state', (req: { gameId?: string; streamer?: string }) => {
+        if (req?.gameId && req.gameId !== gameId) return;
+        if (req?.streamer && cleanStreamer && req.streamer !== cleanStreamer) return;
+        pushHostSnapshotNow(true);
+      });
+
+      if (bc) {
+        bc.onmessage = (ev) => {
+          if (ev.data?.type === 'request-state' && localStateRef.current !== null) {
+            bc?.postMessage({
+              type: 'state-sync',
+              streamer: cleanStreamer,
+              state: localStateRef.current,
+              hostSessionId: hostSessionIdRef.current,
+              seq: ++seqRef.current,
+            });
+          }
+        };
+      }
     }
 
     return () => {
       if (pendingTimerRef.current) {
         clearTimeout(pendingTimerRef.current);
         pendingTimerRef.current = null;
+      }
+      if (!isOverlay && socket.connected) {
+        socket.emit('overlay-host-leave', {
+          gameId,
+          streamer: cleanStreamer,
+          hostSessionId: hostSessionIdRef.current,
+        });
       }
       if (bc) {
         try {
@@ -190,13 +273,18 @@ export function useOverlaySync<T>({
     if (isOverlay || localState === null) return;
 
     const pushNow = () => {
+      pendingTimerRef.current = null;
       lastEmitAtRef.current = performance.now();
+      const seq = ++seqRef.current;
+      const hostSessionId = hostSessionIdRef.current;
       if (channelRef.current) {
         try {
           channelRef.current.postMessage({
             type: 'state-sync',
             streamer: cleanStreamer,
             state: localStateRef.current,
+            hostSessionId,
+            seq,
           });
         } catch {}
       }
@@ -205,12 +293,18 @@ export function useOverlaySync<T>({
           gameId,
           streamer: cleanStreamer,
           state: localStateRef.current,
+          hostSessionId,
+          seq,
         });
       }
     };
 
     const elapsed = performance.now() - lastEmitAtRef.current;
     if (elapsed >= 60) {
+      if (pendingTimerRef.current) {
+        clearTimeout(pendingTimerRef.current);
+        pendingTimerRef.current = null;
+      }
       pushNow();
     } else {
       if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);

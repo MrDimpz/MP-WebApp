@@ -24,6 +24,7 @@ import {
   emitResilientEvent,
   createEventDeduplicator,
   attachResilientChatListeners,
+  normalizeIncomingChatPayload,
 } from '@/lib/live-chat-bridge';
 import {
   creditInteractiveScoreByTikTokHandle,
@@ -354,7 +355,7 @@ export function App() {
 
   // Connect to backend via Socket.IO (scoped to isolated user session) & initialize isolated per-user round
   useEffect(() => {
-    createNewWikiconRound({ mode: 'WIKICONTEXTO', isDaily: true }).then((init) => {
+    createNewWikiconRound({ mode: 'WIKICONTEXTO', isDaily: false }).then((init) => {
       if (isOverlay && hasReceivedHostSyncRef.current) return;
       internalRoundRef.current = init;
       setRound(serializeWikiconRound(init));
@@ -435,29 +436,27 @@ export function App() {
       }
     });
 
-    const processChatEvent = (data: {
-      uniqueId?: string;
-      nickname?: string;
-      comment?: string;
-      profilePictureUrl?: string;
-    }) => {
+    const processChatEvent = (rawData: any) => {
       recordActivity();
-      const rawComment = String(data.comment || '');
-      const cleanUniqueId = (data.uniqueId || data.nickname || 'viewer').replace(/^@+/, '');
-      const cleanNickname = (data.nickname || data.uniqueId || 'Viewer').replace(/^@+/, '');
-      const rawPfp = (data.profilePictureUrl || '').trim();
+      const normalized = normalizeIncomingChatPayload(rawData);
+      if (!normalized) return;
+
+      const rawComment = String(normalized.comment || '');
+      const cleanUniqueId = (normalized.uniqueId || normalized.nickname || 'viewer').replace(/^@+/, '');
+      const cleanNickname = (normalized.nickname || normalized.uniqueId || 'Viewer').replace(/^@+/, '');
+      const rawPfp = (normalized.profilePictureUrl || '').trim();
       const normalizedPfp = rawPfp.startsWith('//') ? `https:${rawPfp}` : rawPfp;
       const validPfp = normalizedPfp.startsWith('http')
         ? normalizedPfp
         : `https://i.pravatar.cc/150?u=${encodeURIComponent(cleanUniqueId || cleanNickname)}`;
 
       const msg: TikTokChatMessage = {
-        id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: normalized.id || `chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         uniqueId: cleanUniqueId,
         nickname: cleanNickname,
         comment: rawComment,
         profilePictureUrl: validPfp,
-        timestamp: Date.now(),
+        timestamp: normalized.timestamp || Date.now(),
       };
       // Append all chat messages (even if not part of puzzle, multi-word, or numbers)
       setChatMessages((prev) => [...prev.slice(-199), msg]);
@@ -466,8 +465,8 @@ export function App() {
         return;
       }
 
-      // Evaluate chat message words against the active WikiContexto round
-      if (internalRoundRef.current && rawComment.trim()) {
+      // Evaluate chat message words against the active WikiContexto round (frozen once solved)
+      if (internalRoundRef.current && !internalRoundRef.current.solved && rawComment.trim()) {
         if (rawComment.trim().toLowerCase() === '!hint') {
           const hintWord = revealWikiconHint(internalRoundRef.current);
           if (hintWord) {
@@ -513,7 +512,11 @@ export function App() {
         }
       }
     };
-    processChatEventRef.current = processChatEvent;
+    processChatEventRef.current = (data: any) => {
+      if (deduplicator.shouldProcess('chat', data)) {
+        processChatEvent(data);
+      }
+    };
 
     const processLikeEvent = (data: TikTokLikeEvent) => {
       recordActivity();
@@ -525,7 +528,7 @@ export function App() {
       if (data.repeatEnd === false) return;
       const count = Number(data.repeatCount) || 1;
       setTotalGiftsCount((prev) => prev + count);
-      if (internalRoundRef.current) {
+      if (internalRoundRef.current && !internalRoundRef.current.solved) {
         const hintWord = revealWikiconHint(internalRoundRef.current);
         setRound(serializeWikiconRound(internalRoundRef.current));
         soundFX.playWordHit('UNCOMMON');
@@ -535,7 +538,7 @@ export function App() {
           }`,
           'gold'
         );
-      } else {
+      } else if (!internalRoundRef.current) {
         showToast(
           `${data.nickname || 'Viewer'} sent ${count}× ${data.giftName || 'Gift'}! Hint unlocked!`,
           'gold'
@@ -721,6 +724,18 @@ export function App() {
     setConnectedUsername(cleaned);
     setConnectedRoomId(isTestMode ? 'TEST_SIMULATION_ROOM' : 'LIVE_RELAY');
     setTiktokError(null);
+    setActiveNav((prev) => (prev === 'HOME' || prev === 'DAILY' ? 'ONLINE' : prev));
+    if (!internalRoundRef.current || internalRoundRef.current.isDaily) {
+      createNewWikiconRound({
+        mode: internalRoundRef.current?.mode || 'WIKICONTEXTO',
+        isDaily: false,
+      })
+        .then((fresh) => {
+          internalRoundRef.current = fresh;
+          setRound(serializeWikiconRound(fresh));
+        })
+        .catch(() => {});
+    }
     showToast(`Connected to TikTok Live @${cleaned}`, 'green');
 
     triggerResilientConnect(
@@ -807,6 +822,7 @@ export function App() {
     }
   ) => {
     recordActivity();
+    setFeedbackToast(null);
     setActiveNav(targetNav);
     setShowGridInHybrid(opts.mode !== 'WIKICONTEXTO');
     
@@ -833,6 +849,10 @@ export function App() {
     setGuessInput('');
 
     if (internalRoundRef.current) {
+      if (internalRoundRef.current.solved) {
+        showToast('Round complete! Start Next Round to keep guessing.', 'muted');
+        return;
+      }
       const r = handleWikiconGuess(internalRoundRef.current, clean, {
         username: profile.username,
         displayName: profile.displayName,
@@ -907,6 +927,7 @@ export function App() {
 
   const handleRequestHint = async () => {
     recordActivity();
+    if (internalRoundRef.current?.solved) return;
     if (internalRoundRef.current) {
       const hintWord = revealWikiconHint(internalRoundRef.current);
       if (hintWord) {
@@ -915,20 +936,6 @@ export function App() {
         showToast(`Hint revealed word: "${hintWord.toUpperCase()}"`, 'gold');
       }
     }
-    try {
-      const res = await fetch('/api/round/hint', { method: 'POST' });
-      const data = await res.json();
-      if (data && data.ok && data.round) {
-        soundFX.playWordHit('UNCOMMON');
-        setRound(data.round);
-        showToast(
-          data.revealedWord
-            ? `Hint revealed word: "${data.revealedWord}"`
-            : 'Hint revealed a letter in the Target Pyramid!',
-          'gold'
-        );
-      }
-    } catch (_) {}
   };
 
   const handleRevealRound = async () => {
@@ -939,14 +946,6 @@ export function App() {
       soundFX.playVictoryFanfare();
       showToast(`Article revealed: "${internalRoundRef.current.articleTitle}"`, 'gold');
     }
-    try {
-      const res = await fetch('/api/round/reveal', { method: 'POST' });
-      const data = await res.json();
-      if (data && data.ok && data.round) {
-        setRound(data.round);
-        showToast(`Article revealed: "${data.round.articleTitle}"`, 'gold');
-      }
-    } catch (_) {}
   };
 
   const handleUpgradeBusiness = (businessId: string) => {
@@ -1009,20 +1008,27 @@ export function App() {
 
   const sortedLeaderboard = useMemo(() => {
     return [...(round?.leaderboard || [])]
-      .filter((p) => p.score > 0)
+      .filter((p) => (Number(p.score) || 0) > 0)
       .sort(
         (a, b) =>
-          b.score - a.score ||
-          (b.wordsFound || 0) - (a.wordsFound || 0) ||
+          (Number(b.score) || 0) - (Number(a.score) || 0) ||
           (b.titleWordsFound || 0) - (a.titleWordsFound || 0) ||
+          (b.wordsFound || 0) - (a.wordsFound || 0) ||
           (a.bestRank || 9999) - (b.bestRank || 9999) ||
           (a.displayName || '').localeCompare(b.displayName || '')
       );
   }, [round?.leaderboard]);
 
-  const goldPlayer = sortedLeaderboard[0] || null;
-  const silverPlayer = sortedLeaderboard[1] || null;
-  const bronzePlayer = sortedLeaderboard[2] || null;
+  const goldPlayer =
+    round?.solved && round.topPlayer
+      ? round.topPlayer
+      : sortedLeaderboard[0] || null;
+  const remainingPodiumPlayers = useMemo(() => {
+    if (!goldPlayer) return sortedLeaderboard;
+    return sortedLeaderboard.filter((p) => p.id !== goldPlayer.id);
+  }, [sortedLeaderboard, goldPlayer]);
+  const silverPlayer = remainingPodiumPlayers[0] || null;
+  const bronzePlayer = remainingPodiumPlayers[1] || null;
 
   const renderPlayerAvatar = (
     avatarUrlOrInitials: string | undefined,
@@ -1205,13 +1211,23 @@ export function App() {
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  startModeRound('DAILY', {
-                    mode: 'WIKICONTEXTO',
-                    isDaily: true,
-                    dailyDate: '2026-10-31',
-                  })
-                }
+                onClick={() => {
+                  if (round && !round.isDaily) {
+                    setActiveNav((prev) =>
+                      prev === 'SOLO' ||
+                      prev === 'ONLINE' ||
+                      prev === 'WIKIREC_GRID' ||
+                      prev === 'WIKIWORD_QUOTE'
+                        ? prev
+                        : 'ONLINE'
+                    );
+                  } else {
+                    startModeRound('ONLINE', {
+                      mode: 'WIKICONTEXTO',
+                      isDaily: false,
+                    });
+                  }
+                }}
                 className={`hover:text-[#19e4ff] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   activeNav === 'DAILY' ||
                   activeNav === 'SOLO' ||
@@ -1580,23 +1596,22 @@ export function App() {
                 {!isOverlay && (
                 <div className="flex flex-col gap-1.5 p-1.5 rounded-xl bg-[#03142f] border border-[#1768b3]">
                   {/* Row 1: Mode Switcher Tabs */}
-                  <div className="grid grid-cols-4 gap-1 p-0.5 rounded-lg bg-[#020a25]">
+                  <div className="grid grid-cols-5 gap-1 p-0.5 rounded-lg bg-[#020a25]">
                     <button
                       type="button"
                       onClick={() =>
-                        startModeRound('DAILY', {
+                        startModeRound('ONLINE', {
                           mode: 'WIKICONTEXTO',
-                          isDaily: true,
-                          dailyDate: '2026-10-31',
+                          isDaily: false,
                         })
                       }
                       className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate ${
-                        activeNav === 'DAILY'
-                          ? 'bg-[#19e4ff] text-[#020a25]'
+                        activeNav === 'ONLINE'
+                          ? 'bg-[#2bff86] text-[#020a25]'
                           : 'text-[#96b8dd] hover:text-white'
                       }`}
                     >
-                      Daily
+                      Online
                     </button>
                     <button
                       type="button"
@@ -1613,6 +1628,23 @@ export function App() {
                       }`}
                     >
                       Solo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        startModeRound('DAILY', {
+                          mode: 'WIKICONTEXTO',
+                          isDaily: true,
+                          dailyDate: '2026-10-31',
+                        })
+                      }
+                      className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate ${
+                        activeNav === 'DAILY'
+                          ? 'bg-[#ffe536] text-[#020a25]'
+                          : 'text-[#96b8dd] hover:text-white'
+                      }`}
+                    >
+                      Daily
                     </button>
                     <button
                       type="button"
@@ -1650,7 +1682,23 @@ export function App() {
 
                   {/* Row 2: Game Utilities */}
                   <div className="flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          startModeRound(
+                            activeNav === 'DAILY' ? 'ONLINE' : activeNav,
+                            {
+                              mode: round.mode,
+                              isDaily: false,
+                            }
+                          )
+                        }
+                        title="Start a new random Wikipedia article round"
+                        className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#061c3d] hover:bg-[#0c2b53] border border-[#2bff86]/60 text-[#2bff86] flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                      >
+                        <RotateCcw className="w-3 h-3" /> New Round
+                      </button>
                       <button
                         type="button"
                         onClick={() => setShowGridInHybrid((v) => !v)}
@@ -1733,10 +1781,13 @@ export function App() {
                       <button
                         type="button"
                         onClick={() =>
-                          startModeRound(activeNav, {
-                            mode: round.mode,
-                            isDaily: false,
-                          })
+                          startModeRound(
+                            activeNav === 'DAILY' ? 'ONLINE' : activeNav,
+                            {
+                              mode: round.mode,
+                              isDaily: false,
+                            }
+                          )
                         }
                         className="px-3.5 py-2 rounded-xl bg-[#2bff86] hover:bg-[#5effa3] text-[#020a25] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
                       >
@@ -2233,8 +2284,13 @@ export function App() {
                     type="text"
                     value={guessInput}
                     onChange={(e) => setGuessInput(e.target.value)}
-                    placeholder="Guess a word..."
-                    className={`flex-1 min-w-0 px-3.5 py-2 rounded-xl border text-sm font-bold focus:outline-none focus:border-[#19e4ff] ${
+                    disabled={round.solved}
+                    placeholder={
+                      round.solved
+                        ? 'Round complete — start Next Round to keep guessing...'
+                        : 'Guess a word...'
+                    }
+                    className={`flex-1 min-w-0 px-3.5 py-2 rounded-xl border text-sm font-bold focus:outline-none focus:border-[#19e4ff] disabled:opacity-60 ${
                       isLightMode
                         ? 'bg-[#eaf4ff] border-[#6498d2] text-[#102c4b] placeholder-[#416890]/60'
                         : 'bg-[#020a25] border-[#286296] text-white placeholder-[#96b8dd]/60'
@@ -2242,7 +2298,8 @@ export function App() {
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-xl bg-gradient-to-b from-[#ffed60] to-[#ffca27] hover:from-[#fff380] hover:to-[#ffd645] text-[#17210a] font-extrabold text-xs border border-[#ffed6c] flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                    disabled={round.solved}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-b from-[#ffed60] to-[#ffca27] hover:from-[#fff380] hover:to-[#ffd645] text-[#17210a] font-extrabold text-xs border border-[#ffed6c] flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Send className="w-3.5 h-3.5" /> Guess
                   </button>
@@ -2271,8 +2328,13 @@ export function App() {
         onDisconnectTikTok={handleDisconnectTikTok}
         onSimulateChat={(data) => {
           recordActivity();
-          processChatEventRef.current?.(data);
-          emitResilientEvent(socketRef.current, 'chat-message', { ...data, gameId: 'wikicon' });
+          const payload = {
+            ...data,
+            id: `sim_chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            gameId: 'wikicon',
+          };
+          processChatEventRef.current?.(payload);
+          emitResilientEvent(socketRef.current, 'chat-message', payload);
         }}
         onSimulateLike={(data) => {
           recordActivity();

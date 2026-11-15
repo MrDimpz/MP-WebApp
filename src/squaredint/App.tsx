@@ -246,16 +246,21 @@ export default function App() {
     setHintedCells(new Set());
     setInspectedWord(null);
     setSelectedWordDef(null);
+    setToast(null);
 
     const storageKey = `missing_piece_save_${getCurrentUserSessionPrefix()}_${basePuzzle.id}`;
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
         const parsed: SavedPuzzleProgress = JSON.parse(raw);
-        setFoundWords(new Set(parsed.foundWords || []));
+        const loadedFound = new Set(parsed.foundWords || []);
+        setFoundWords(loadedFound);
         setBonusWords(parsed.bonusWords || []);
         setScore(parsed.score || 0);
         setRevealedPrefixes(new Map(parsed.revealedPrefixes || []));
+        if (basePuzzle.requiredWords.size === 0 || loadedFound.size < basePuzzle.requiredWords.size) {
+          setGameState((prev) => (prev === 'VICTORY' ? 'PLAYING' : prev));
+        }
         return;
       }
     } catch {
@@ -266,6 +271,7 @@ export default function App() {
     setBonusWords([]);
     setScore(0);
     setRevealedPrefixes(new Map());
+    setGameState((prev) => (prev === 'VICTORY' ? 'PLAYING' : prev));
   }, [basePuzzle, isOverlay]);
 
   // Persist progress to localStorage
@@ -1569,7 +1575,10 @@ export default function App() {
               selectedDateStr={selectedDateStr}
               todayDateStr={todayDateStr}
               currentMode={mode}
-              onSelectDate={(dateStr) => setSelectedDateStr(dateStr)}
+              onSelectDate={(dateStr) => {
+                setSelectedDateStr(dateStr);
+                setGameState((prev) => (prev === 'VICTORY' ? 'PLAYING' : prev));
+              }}
             />
           </div>
 
@@ -1619,7 +1628,10 @@ export default function App() {
                 <button
                   key={m.id}
                   type="button"
-                  onClick={() => setMode(m.id)}
+                  onClick={() => {
+                    setMode(m.id);
+                    setGameState((prev) => (prev === 'VICTORY' ? 'PLAYING' : prev));
+                  }}
                   className={`px-2.5 py-1 rounded text-xs font-mono font-bold transition-colors cursor-pointer ${
                     mode === m.id
                       ? 'bg-[#F6C915] text-[#1D0830] shadow-xs'
@@ -1807,7 +1819,10 @@ export default function App() {
             <button
               key={m.id}
               type="button"
-              onClick={() => setMode(m.id)}
+              onClick={() => {
+                setMode(m.id);
+                setGameState((prev) => (prev === 'VICTORY' ? 'PLAYING' : prev));
+              }}
               className={`px-2 py-1 rounded text-xs font-mono font-bold cursor-pointer ${
                 mode === m.id
                   ? 'bg-[#E6BE5A] text-[#1D0830]'

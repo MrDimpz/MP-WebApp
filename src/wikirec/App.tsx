@@ -131,6 +131,9 @@ export default function App() {
 
   const initLocalGame = useCallback(async (selectedMode: GameMode) => {
     if (isOverlay && hasReceivedHostSyncRef.current) return;
+    setFlashedCells([]);
+    setWordAnnounce({ word: '', points: 0, finderName: '', visible: false });
+    prevCompleteRef.current = false;
     try {
       const game = await createNewGameInstance(selectedMode);
       if (isOverlay && hasReceivedHostSyncRef.current) return;
@@ -1059,6 +1062,8 @@ export default function App() {
   const handleNewRound = (_forceNewArticle = true) => {
     setDismissedRoundId(null);
     prevCompleteRef.current = false;
+    setFlashedCells([]);
+    setWordAnnounce({ word: '', points: 0, finderName: '', visible: false });
     initLocalGame(modeRef.current);
   };
 
@@ -1278,9 +1283,10 @@ export default function App() {
             gameState,
             flashedCells,
             wordAnnounce,
+            dismissedRoundId,
           }
         : null,
-    [isOverlay, gameState, flashedCells, wordAnnounce]
+    [isOverlay, gameState, flashedCells, wordAnnounce, dismissedRoundId]
   );
 
   useOverlaySync<{
@@ -1292,6 +1298,7 @@ export default function App() {
       finderName: string;
       visible: boolean;
     };
+    dismissedRoundId: string | null;
   }>({
     gameId: 'wikirec',
     streamer:
@@ -1305,6 +1312,10 @@ export default function App() {
       if (!remote || !remote.gameState) return;
       hasReceivedHostSyncRef.current = true;
       setGameState(remote.gameState);
+      if (!remote.gameState.isComplete) {
+        prevCompleteRef.current = false;
+      }
+      setDismissedRoundId(remote.dismissedRoundId ?? null);
       if (Array.isArray(remote.flashedCells)) {
         setFlashedCells(remote.flashedCells);
       }

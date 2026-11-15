@@ -186,86 +186,350 @@ export function getArchiveList(): ArchivePuzzleItem[] {
   }));
 }
 
+const RANDOM_WIKI_ARTICLES: Array<{ title: string; category: string }> = [
+  { title: 'Aurora', category: 'Planetary Physics & Space' },
+  { title: 'Octopus', category: 'Marine Biology' },
+  { title: 'Espresso', category: 'Culinary Arts & Chemistry' },
+  { title: 'Lighthouse', category: 'Maritime Architecture' },
+  { title: 'Golden Gate Bridge', category: 'Civil Engineering' },
+  { title: 'Photosynthesis', category: 'Biochemistry & Botany' },
+  { title: 'Black Hole', category: 'Astrophysics & Relativity' },
+  { title: 'Origami', category: 'Traditional Arts & Geometry' },
+  { title: 'Volcano', category: 'Geology & Earth Science' },
+  { title: 'Solar System', category: 'Astronomy & Space' },
+  { title: 'Great Barrier Reef', category: 'Marine Ecology' },
+  { title: 'Chameleon', category: 'Zoology & Reptiles' },
+  { title: 'Submarine', category: 'Naval Engineering' },
+  { title: 'Tornado', category: 'Meteorology & Weather' },
+  { title: 'Eiffel Tower', category: 'World Landmarks' },
+  { title: 'Diamond', category: 'Mineralogy & Gems' },
+  { title: 'Compass', category: 'Navigation & Inventions' },
+  { title: 'Samurai', category: 'World History' },
+  { title: 'Glacier', category: 'Glaciology & Earth' },
+  { title: 'Milky Way', category: 'Astrophysics & Galaxies' },
+  { title: 'Lightning', category: 'Atmospheric Physics' },
+  { title: 'Taj Mahal', category: 'World Architecture' },
+  { title: 'Platypus', category: 'Mammalogy & Nature' },
+  { title: 'Avalanche', category: 'Natural Phenomena' },
+  { title: 'Supernova', category: 'Stellar Astronomy' },
+  { title: 'Colosseum', category: 'Ancient History' },
+  { title: 'Jellyfish', category: 'Marine Invertebrates' },
+  { title: 'Mount Everest', category: 'World Geography' },
+  { title: 'Telescope', category: 'Optical Instruments' },
+  { title: 'Bonsai', category: 'Botanical Arts' },
+  { title: 'Stonehenge', category: 'Prehistoric Monuments' },
+  { title: 'Hummingbird', category: 'Ornithology & Birds' },
+  { title: 'Gravity', category: 'Fundamental Physics' },
+  { title: 'Machu Picchu', category: 'Archaeology & History' },
+  { title: 'Narwhal', category: 'Arctic Marine Life' },
+  { title: 'Cinnamon', category: 'Botany & Spices' },
+  { title: 'Laser', category: 'Quantum Optics' },
+  { title: 'Parthenon', category: 'Classical Antiquity' },
+  { title: 'Emperor Penguin', category: 'Antarctic Wildlife' },
+  { title: 'Meteorite', category: 'Planetary Science' },
+  { title: 'Grand Canyon', category: 'Geology & Landforms' },
+  { title: 'Violin', category: 'Musical Instruments' },
+  { title: 'Bioluminescence', category: 'Biological Phenomena' },
+  { title: 'Silk Road', category: 'Ancient Trade & History' },
+  { title: 'Geyser', category: 'Hydrogeology' },
+  { title: 'Dragonfly', category: 'Entomology & Insects' },
+  { title: 'Printing Press', category: 'History of Technology' },
+  { title: 'Kaleidoscope', category: 'Optics & Toys' },
+  { title: 'Mariana Trench', category: 'Oceanography' },
+  { title: 'Echolocation', category: 'Sensory Biology' },
+  { title: 'Obsidian', category: 'Volcanic Glass & Geology' },
+  { title: 'Monarch Butterfly', category: 'Insects & Migration' },
+  { title: 'Steam Engine', category: 'Industrial Revolution' },
+  { title: 'Rosetta Stone', category: 'Egyptology & Linguistics' },
+  { title: 'Pendulum', category: 'Classical Mechanics' },
+  { title: 'Polar Bear', category: 'Arctic Wildlife' },
+  { title: 'Amethyst', category: 'Minerals & Gemstones' },
+  { title: 'Amazon River', category: 'World Rivers' },
+  { title: 'Sundial', category: 'Horology & Timekeeping' },
+  { title: 'Cheetah', category: 'Wildlife & Mammals' },
+  { title: 'Firefly', category: 'Bioluminescent Insects' },
+  { title: 'Permafrost', category: 'Cryosphere & Climate' },
+  { title: 'Tsunami', category: 'Oceanography & Geophysics' },
+  { title: 'Albatross', category: 'Seabirds & Nature' },
+  { title: 'Aqueduct', category: 'Roman Engineering' },
+  { title: 'Komodo Dragon', category: 'Reptiles & Islands' },
+  { title: 'Amber', category: 'Fossils & Paleontology' },
+  { title: 'Stained Glass', category: 'Decorative Arts' },
+  { title: 'Constellation', category: 'Celestial Cartography' },
+  { title: 'Axolotl', category: 'Amphibians & Biology' },
+  { title: 'Windmill', category: 'Mechanical Engineering' },
+  { title: 'Mirage', category: 'Atmospheric Optics' },
+  { title: 'Saffron', category: 'Culinary Botany' },
+  { title: 'Nautilus', category: 'Cephalopods & Shells' },
+  { title: 'Observatory', category: 'Astronomy & Research' },
+  { title: 'Flamingo', category: 'Ornithology' },
+  { title: 'Igloo', category: 'Arctic Architecture' },
+  { title: 'Labyrinth', category: 'Mythology & Architecture' },
+  { title: 'Saturn', category: 'Planetary Astronomy' },
+  { title: 'Jupiter', category: 'Gas Giant Planets' },
+  { title: 'Mars', category: 'Terrestrial Planets' },
+  { title: 'Solar Eclipse', category: 'Celestial Events' },
+  { title: 'Hurricane', category: 'Tropical Cyclones' },
+  { title: 'Earthquake', category: 'Seismology' },
+  { title: 'Mammoth', category: 'Ice Age Megafauna' },
+  { title: 'Dolphin', category: 'Marine Mammals' },
+  { title: 'Orca', category: 'Ocean Predators' },
+  { title: 'Great White Shark', category: 'Marine Biology' },
+  { title: 'Bald Eagle', category: 'Birds of Prey' },
+  { title: 'Snowy Owl', category: 'Arctic Birds' },
+  { title: 'Gray Wolf', category: 'Carnivorans' },
+  { title: 'Bengal Tiger', category: 'Big Cats' },
+  { title: 'African Elephant', category: 'Terrestrial Mammals' },
+  { title: 'Giraffe', category: 'African Wildlife' },
+  { title: 'Kangaroo', category: 'Marsupials' },
+  { title: 'Koala', category: 'Australian Wildlife' },
+  { title: 'Giant Panda', category: 'Conservation & Wildlife' },
+  { title: 'Sloth', category: 'Rainforest Animals' },
+  { title: 'Toucan', category: 'Tropical Birds' },
+  { title: 'Peacock', category: 'Avian Biology' },
+  { title: 'Seahorse', category: 'Marine Fish' },
+  { title: 'Starfish', category: 'Echinoderms' },
+  { title: 'Cactus', category: 'Desert Botany' },
+  { title: 'Bamboo', category: 'Botany & Grasses' },
+  { title: 'Orchid', category: 'Flowering Plants' },
+  { title: 'Sunflower', category: 'Agriculture & Botany' },
+  { title: 'Truffle', category: 'Mycology & Gastronomy' },
+  { title: 'Chocolate', category: 'Food History & Science' },
+  { title: 'Vanilla', category: 'Spices & Botany' },
+  { title: 'Croissant', category: 'Baking & Culinary Arts' },
+  { title: 'Honey', category: 'Apiculture & Nature' },
+  { title: 'Maple Syrup', category: 'Food & Forestry' },
+  { title: 'Quartz', category: 'Crystals & Geology' },
+  { title: 'Emerald', category: 'Precious Gemstones' },
+  { title: 'Sapphire', category: 'Mineralogy' },
+  { title: 'Pearl', category: 'Marine Gemology' },
+  { title: 'Porcelain', category: 'Ceramic Engineering' },
+  { title: 'Microscope', category: 'Scientific Instruments' },
+  { title: 'Helicopter', category: 'Aerospace Engineering' },
+  { title: 'Locomotive', category: 'Railway Transport' },
+  { title: 'Parachute', category: 'Aerodynamics' },
+  { title: 'Satellite', category: 'Spaceflight' },
+  { title: 'Prism', category: 'Light & Optics' },
+  { title: 'Statue of Liberty', category: 'Monuments & History' },
+  { title: 'Acropolis of Athens', category: 'Ancient Greece' },
+  { title: 'Petra', category: 'Archaeological Wonders' },
+  { title: 'Angkor Wat', category: 'World Heritage Sites' },
+  { title: 'Mount Fuji', category: 'Volcanoes & Geography' },
+  { title: 'Mount Kilimanjaro', category: 'African Geography' },
+  { title: 'Sahara', category: 'World Deserts' },
+  { title: 'Antarctica', category: 'Polar Continents' },
+  { title: 'Niagara Falls', category: 'Waterfalls & Hydrology' },
+  { title: 'Vikings', category: 'Norse History' },
+  { title: 'Gladiator', category: 'Roman History' },
+  { title: 'Pharaoh', category: 'Ancient Egypt' },
+  { title: 'Trojan Horse', category: 'Classical Mythology' },
+  { title: 'Chess', category: 'Strategy Games' },
+  { title: 'Marathon', category: 'Athletics & History' },
+  { title: 'Piano', category: 'Musical Instruments' },
+  { title: 'Saxophone', category: 'Woodwind Instruments' },
+  { title: 'Symphony', category: 'Classical Music' },
+  { title: 'Mosaic', category: 'Visual Arts' },
+];
+
+const RECENT_RANDOM_STORAGE_KEY = 'wk_recent_random_articles_v1';
+const memoryRecentArticles: string[] = [];
+
+function getRecentRandomArticles(): Set<string> {
+  const set = new Set<string>(memoryRecentArticles.map((t) => t.toLowerCase()));
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = window.sessionStorage.getItem(RECENT_RANDOM_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((item) => {
+            if (typeof item === 'string') set.add(item.toLowerCase());
+          });
+        }
+      }
+    } catch {}
+  }
+  return set;
+}
+
+function markRandomArticleUsed(title: string) {
+  const clean = String(title || '').trim();
+  if (!clean) return;
+  const lower = clean.toLowerCase();
+  const existingIdx = memoryRecentArticles.findIndex((t) => t.toLowerCase() === lower);
+  if (existingIdx !== -1) memoryRecentArticles.splice(existingIdx, 1);
+  memoryRecentArticles.push(clean);
+  if (memoryRecentArticles.length > 90) {
+    memoryRecentArticles.splice(0, memoryRecentArticles.length - 90);
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      window.sessionStorage.setItem(
+        RECENT_RANDOM_STORAGE_KEY,
+        JSON.stringify(memoryRecentArticles)
+      );
+    } catch {}
+  }
+}
+
+function pickRandomUnusedArticleEntry(): { title: string; category: string } {
+  const recent = getRecentRandomArticles();
+  const unused = RANDOM_WIKI_ARTICLES.filter((a) => !recent.has(a.title.toLowerCase()));
+  const pool = unused.length > 0 ? unused : RANDOM_WIKI_ARTICLES;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 async function fetchWikipediaArticle(titleOrRandom?: string): Promise<{
   title: string;
   category: string;
   quote: string;
   paragraphs: string[];
 }> {
-  const curated = CURATED_ARTICLES.find(
-    (a) => titleOrRandom && a.title.toLowerCase() === titleOrRandom.toLowerCase()
-  );
+  const explicitTitle = titleOrRandom ? titleOrRandom.trim() : '';
+  const curatedExplicit = explicitTitle
+    ? CURATED_ARTICLES.find((a) => a.title.toLowerCase() === explicitTitle.toLowerCase())
+    : undefined;
 
-  const targetTitle =
-    titleOrRandom ||
-    CURATED_ARTICLES[Math.floor(Math.random() * CURATED_ARTICLES.length)].title;
-
-  try {
-    const url = `https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(
-      targetTitle
-    )}&prop=text|categories&formatversion=2&format=json&redirects=1&origin=*`;
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(3500),
+  const candidates: Array<{ title: string; category: string }> = [];
+  if (explicitTitle) {
+    const matchedRandom = RANDOM_WIKI_ARTICLES.find(
+      (a) => a.title.toLowerCase() === explicitTitle.toLowerCase()
+    );
+    candidates.push({
+      title: explicitTitle,
+      category:
+        curatedExplicit?.category ||
+        matchedRandom?.category ||
+        'Wikipedia Featured Discovery',
     });
-    if (res.ok) {
-      const json = (await res.json()) as {
-        parse?: {
-          title?: string;
-          text?: string;
+  } else {
+    const firstPick = pickRandomUnusedArticleEntry();
+    candidates.push(firstPick);
+    const secondPick = pickRandomUnusedArticleEntry();
+    if (secondPick.title.toLowerCase() !== firstPick.title.toLowerCase()) {
+      candidates.push(secondPick);
+    }
+  }
+
+  for (const candidate of candidates) {
+    const targetTitle = candidate.title;
+    const curated = CURATED_ARTICLES.find(
+      (a) => a.title.toLowerCase() === targetTitle.toLowerCase()
+    );
+
+    try {
+      const url = `https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(
+        targetTitle
+      )}&prop=text|categories&formatversion=2&format=json&redirects=1&origin=*`;
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(3500),
+      });
+      if (res.ok) {
+        const json = (await res.json()) as {
+          parse?: {
+            title?: string;
+            text?: string;
+          };
         };
-      };
-      if (json.parse && json.parse.text) {
-        const cleanTitle = stripDisambiguator(json.parse.title || targetTitle);
-        const rawHtml = json.parse.text;
+        if (json.parse && json.parse.text) {
+          const cleanTitle = stripDisambiguator(json.parse.title || targetTitle);
+          const rawHtml = json.parse.text;
 
-        const cleaned = rawHtml
-          .replace(/<style[\s\S]*?<\/style>/gi, '')
-          .replace(/<script[\s\S]*?<\/script>/gi, '')
-          .replace(/<table[\s\S]*?<\/table>/gi, '')
-          .replace(/<figure[\s\S]*?<\/figure>/gi, '')
-          .replace(/<sup[\s\S]*?<\/sup>/gi, '')
-          .replace(
-            /<div[^>]*class="[^"]*(?:hatnote|thumb|gallery|reflist|shortdescription)[^"]*"[^>]*>[\s\S]*?<\/div>/gi,
-            ''
-          );
+          const cleaned = rawHtml
+            .replace(/<style[\s\S]*?<\/style>/gi, '')
+            .replace(/<script[\s\S]*?<\/script>/gi, '')
+            .replace(/<table[\s\S]*?<\/table>/gi, '')
+            .replace(/<figure[\s\S]*?<\/figure>/gi, '')
+            .replace(/<sup[\s\S]*?<\/sup>/gi, '')
+            .replace(
+              /<div[^>]*class="[^"]*(?:hatnote|thumb|gallery|reflist|shortdescription)[^"]*"[^>]*>[\s\S]*?<\/div>/gi,
+              ''
+            );
 
-        const paragraphs: string[] = [];
-        const pRe = /<p\b[^>]*>([\s\S]*?)<\/p>/gi;
-        let m: RegExpExecArray | null;
-        let totalChars = 0;
-        while ((m = pRe.exec(cleaned)) !== null) {
-          const text = m[1]
-            .replace(/<[^>]+>/g, '')
-            .replace(/&nbsp;/gi, ' ')
-            .replace(/&amp;/gi, '&')
-            .replace(/&quot;/gi, '"')
-            .replace(/&#39;/gi, "'")
-            .replace(/\[\d+\]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-          if (text.length < 60) continue;
-          if (/^Coordinates:/i.test(text) || /^Cite error:/i.test(text)) continue;
-          paragraphs.push(text);
-          totalChars += text.length;
-          if (paragraphs.length >= 3 || totalChars >= 1100) break;
+          const paragraphs: string[] = [];
+          const pRe = /<p\b[^>]*>([\s\S]*?)<\/p>/gi;
+          let m: RegExpExecArray | null;
+          let totalChars = 0;
+          while ((m = pRe.exec(cleaned)) !== null) {
+            const text = m[1]
+              .replace(/<[^>]+>/g, '')
+              .replace(/&nbsp;/gi, ' ')
+              .replace(/&amp;/gi, '&')
+              .replace(/&quot;/gi, '"')
+              .replace(/&#39;/gi, "'")
+              .replace(/\[\d+\]/g, '')
+              .replace(/\s+/g, ' ')
+              .trim();
+            if (text.length < 60) continue;
+            if (/^Coordinates:/i.test(text) || /^Cite error:/i.test(text)) continue;
+            paragraphs.push(text);
+            totalChars += text.length;
+            if (paragraphs.length >= 3 || totalChars >= 1100) break;
+          }
+
+          if (paragraphs.length >= 1) {
+            markRandomArticleUsed(cleanTitle);
+            return {
+              title: cleanTitle,
+              category: curated?.category || candidate.category || 'Wikipedia Featured Discovery',
+              quote: curated?.quote || paragraphs[0].split('. ').slice(0, 2).join('. ') + '.',
+              paragraphs,
+            };
+          }
         }
+      }
+    } catch {
+      // Try REST summary API next
+    }
 
-        if (paragraphs.length >= 1) {
+    try {
+      const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
+        targetTitle.replace(/\s+/g, '_')
+      )}`;
+      const res = await fetch(summaryUrl, {
+        signal: AbortSignal.timeout(2500),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as {
+          title?: string;
+          extract?: string;
+          description?: string;
+        };
+        const rawExtract = String(data.extract || '').trim();
+        if (rawExtract.length >= 120) {
+          const cleanTitle = stripDisambiguator(data.title || targetTitle);
+          const sentences = rawExtract.match(/[^.!?]+[.!?]+/g) || [rawExtract];
+          const paragraphs: string[] = [];
+          for (let i = 0; i < sentences.length; i += 3) {
+            const chunk = sentences
+              .slice(i, i + 3)
+              .join(' ')
+              .trim();
+            if (chunk) paragraphs.push(chunk);
+          }
+          markRandomArticleUsed(cleanTitle);
           return {
             title: cleanTitle,
-            category: curated?.category || 'Wikipedia Featured Discovery',
-            quote: curated?.quote || paragraphs[0].split('. ').slice(0, 2).join('. ') + '.',
-            paragraphs,
+            category:
+              curated?.category ||
+              candidate.category ||
+              (data.description ? data.description.slice(0, 48) : 'Wikipedia Featured Discovery'),
+            quote: curated?.quote || sentences.slice(0, 2).join(' ').trim(),
+            paragraphs: paragraphs.length > 0 ? paragraphs : [rawExtract],
           };
         }
       }
+    } catch {
+      // Fallback below
     }
-  } catch {
-    // Fallback to curated article below
   }
 
+  const recent = getRecentRandomArticles();
+  const unusedCurated = CURATED_ARTICLES.filter((a) => !recent.has(a.title.toLowerCase()));
+  const fallbackPool = unusedCurated.length > 0 ? unusedCurated : CURATED_ARTICLES;
   const fallback =
-    curated || CURATED_ARTICLES[Math.floor(Math.random() * CURATED_ARTICLES.length)];
+    curatedExplicit || fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
+  markRandomArticleUsed(fallback.title);
   return {
     title: fallback.title,
     category: fallback.category,
@@ -539,6 +803,7 @@ export interface InternalWikiconRound {
   topRankCards: any[];
   recentTicker: any[];
   leaderboard: Map<string, any>;
+  topPlayer?: any | null;
   lastAnnouncement: any | null;
   gridBoard: ReturnType<typeof buildWikirecGrid>;
   startedAt: number;
@@ -693,7 +958,26 @@ export async function createNewWikiconRound(opts: {
   };
 }
 
+function sortWikiconLeaderboard(leaderboard: Map<string, any>) {
+  return Array.from(leaderboard.values())
+    .filter((p) => (Number(p?.score) || 0) > 0)
+    .map((p) => ({ ...p, score: Number(p.score) || 0 }))
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (b.titleWordsFound || 0) - (a.titleWordsFound || 0) ||
+        (b.wordsFound || 0) - (a.wordsFound || 0) ||
+        (a.bestRank || 9999) - (b.bestRank || 9999) ||
+        (a.displayName || '').localeCompare(b.displayName || '')
+    );
+}
+
 export function serializeWikiconRound(round: InternalWikiconRound): RoundState {
+  const sortedLeaderboard = sortWikiconLeaderboard(round.leaderboard).slice(0, 15);
+  const resolvedTopPlayer = round.solved
+    ? (round.topPlayer ? { ...round.topPlayer } : sortedLeaderboard[0] ?? null)
+    : null;
+
   return {
     roundId: round.roundId,
     mode: round.mode,
@@ -732,17 +1016,8 @@ export function serializeWikiconRound(round: InternalWikiconRound): RoundState {
     solvedBy: round.solvedBy,
     topRankCards: round.topRankCards,
     recentTicker: round.recentTicker,
-    leaderboard: Array.from(round.leaderboard.values())
-      .filter((p) => p.score > 0)
-      .sort(
-        (a, b) =>
-          b.score - a.score ||
-          (b.wordsFound || 0) - (a.wordsFound || 0) ||
-          (b.titleWordsFound || 0) - (a.titleWordsFound || 0) ||
-          (a.bestRank || 9999) - (b.bestRank || 9999) ||
-          (a.displayName || '').localeCompare(b.displayName || '')
-      )
-      .slice(0, 15),
+    leaderboard: sortedLeaderboard,
+    topPlayer: resolvedTopPlayer,
     lastAnnouncement: round.lastAnnouncement,
     gridBoard: {
       rows: round.gridBoard.rows,
@@ -798,6 +1073,9 @@ export function handleWikiconGuess(
     cosmeticTitle?: string;
   }
 ) {
+  if (round.solved) {
+    return { valid: false, reason: 'round_ended', solved: true };
+  }
   const guessNorm = normalizeWikiWord(rawGuess);
   if (!guessNorm || guessNorm.length < 1 || STOPLIST.has(guessNorm)) {
     return { valid: false, reason: 'stop_or_short' };
@@ -871,6 +1149,10 @@ export function handleWikiconGuess(
     }
   }
 
+  if (occurrencesRevealed > 0 || titleMatched || gridTargetHit) {
+    round.revealedSet.add(guessNorm);
+  }
+
   const { rank, similarity } = evaluateSemanticRankLocal(guessNorm, round);
 
   let pointsEarned = 0;
@@ -881,6 +1163,9 @@ export function handleWikiconGuess(
     const bonus =
       TITLE_WORD_BONUSES[Math.min(newlyFoundTitleIndex, TITLE_WORD_BONUSES.length - 1)];
     pointsEarned += bonus + occurrencesRevealed * 1500;
+    if (gridTargetHit) {
+      pointsEarned += 6500;
+    }
   } else if (occurrencesRevealed > 0 || gridTargetHit) {
     const isNumber = /^\d/.test(guessNorm);
     if (isNumber) {
@@ -906,26 +1191,27 @@ export function handleWikiconGuess(
     if (gridTargetHit) {
       pointsEarned += 6500;
     }
-  } else if (!alreadyRevealed) {
-    if (rank <= 100) {
-      pointsEarned = 1200;
-      rarity = 'UNCOMMON';
-    } else if (rank <= 500) {
-      pointsEarned = 450;
-    } else {
-      pointsEarned = 100;
-    }
   }
 
-  const normalizedHandle = (player.username || player.displayName || 'player')
+  const rawUser = String(player.username || '')
     .trim()
-    .replace(/^@+/, '')
-    .toLowerCase();
+    .replace(/^@+/, '');
+  const rawDisplay = String(player.displayName || '')
+    .trim()
+    .replace(/^@+/, '');
+  const isGenericUser =
+    !rawUser ||
+    ['viewer', 'tiktok_viewer', 'player', 'user', 'guest', 'anon'].includes(
+      rawUser.toLowerCase()
+    );
+  const effectiveHandle = (isGenericUser ? rawDisplay || rawUser : rawUser) || 'player';
+  const normalizedHandle = effectiveHandle.toLowerCase();
   const playerKey = `${player.platform}:${normalizedHandle}`;
-  const existingPlayer = round.leaderboard.get(playerKey) || {
+  const prevPlayer = round.leaderboard.get(playerKey);
+  const basePlayer = prevPlayer || {
     id: playerKey,
-    username: player.username,
-    displayName: player.displayName || player.username,
+    username: effectiveHandle,
+    displayName: rawDisplay || effectiveHandle,
     avatar: player.avatar,
     platform: player.platform,
     score: 0,
@@ -937,23 +1223,30 @@ export function handleWikiconGuess(
     borderColor: '#19e4ff',
   };
 
-  if (player.avatar && player.avatar.startsWith('http')) {
-    existingPlayer.avatar = player.avatar;
-  }
-  if (player.displayName) {
-    existingPlayer.displayName = player.displayName;
-  }
+  const updatedPlayer = {
+    ...basePlayer,
+    avatar:
+      player.avatar && player.avatar.startsWith('http')
+        ? player.avatar
+        : basePlayer.avatar,
+    displayName:
+      rawDisplay && rawDisplay.toLowerCase() !== 'viewer'
+        ? rawDisplay
+        : basePlayer.displayName,
+    score: (Number(basePlayer.score) || 0) + pointsEarned,
+    wordsFound:
+      (Number(basePlayer.wordsFound) || 0) +
+      (pointsEarned > 0 && (occurrencesRevealed > 0 || gridTargetHit) ? 1 : 0),
+    titleWordsFound:
+      (Number(basePlayer.titleWordsFound) || 0) + (titleMatched ? 1 : 0),
+    bestRank:
+      pointsEarned > 0 && rank < (basePlayer.bestRank || 9999)
+        ? rank
+        : basePlayer.bestRank || 9999,
+  };
 
-  if (pointsEarned > 0) {
-    existingPlayer.score += pointsEarned;
-    if (occurrencesRevealed > 0 || gridTargetHit) existingPlayer.wordsFound += 1;
-    if (titleMatched) existingPlayer.titleWordsFound += 1;
-  }
-  if (rank < existingPlayer.bestRank) {
-    existingPlayer.bestRank = rank;
-  }
-  if (existingPlayer.score > 0 || round.leaderboard.has(playerKey)) {
-    round.leaderboard.set(playerKey, existingPlayer);
+  if (updatedPlayer.score > 0 || round.leaderboard.has(playerKey)) {
+    round.leaderboard.set(playerKey, updatedPlayer);
   }
 
   const card = {
@@ -965,20 +1258,22 @@ export function handleWikiconGuess(
     pointsEarned,
     rarity,
     finder: {
-      username: player.username,
-      displayName: player.displayName || player.username,
-      avatar: player.avatar,
+      username: updatedPlayer.username,
+      displayName: updatedPlayer.displayName,
+      avatar: updatedPlayer.avatar,
       platform: player.platform,
-      cosmeticTitle: existingPlayer.cosmeticTitle,
+      cosmeticTitle: updatedPlayer.cosmeticTitle,
     },
     timestamp: Date.now(),
   };
 
-  const existingIdx = round.topRankCards.findIndex((c) => c.norm === guessNorm);
-  if (existingIdx === -1) {
-    round.topRankCards.push(card);
-    round.topRankCards.sort((a, b) => a.rank - b.rank);
-    round.topRankCards = round.topRankCards.slice(0, 6);
+  if (pointsEarned > 0) {
+    const existingIdx = round.topRankCards.findIndex((c) => c.norm === guessNorm);
+    if (existingIdx === -1) {
+      round.topRankCards.push(card);
+      round.topRankCards.sort((a, b) => a.rank - b.rank);
+      round.topRankCards = round.topRankCards.slice(0, 6);
+    }
   }
 
   round.recentTicker = [
@@ -986,17 +1281,17 @@ export function handleWikiconGuess(
     ...round.recentTicker.filter((c) => c.norm !== guessNorm),
   ].slice(0, 18);
 
-  if (pointsEarned >= 1000 || titleMatched || gridTargetHit) {
+  if (pointsEarned > 0 || titleMatched || gridTargetHit) {
     round.lastAnnouncement = {
       id: `ann_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
-      username: player.username,
-      displayName: player.displayName || player.username,
-      avatar: player.avatar,
+      username: updatedPlayer.username,
+      displayName: updatedPlayer.displayName,
+      avatar: updatedPlayer.avatar,
       platform: player.platform,
       word: rawGuess.trim().toUpperCase(),
       rarity,
       pointsEarned,
-      totalPoints: existingPlayer.score,
+      totalPoints: updatedPlayer.score,
       rank: card.rank,
       timestamp: Date.now(),
     };
@@ -1011,12 +1306,15 @@ export function handleWikiconGuess(
   if ((allTitlesRevealed || allGridTargetsRevealed) && !round.solved) {
     round.solved = true;
     round.solvedBy = {
-      username: player.username,
-      displayName: player.displayName || player.username,
-      avatar: player.avatar,
+      username: updatedPlayer.username,
+      displayName: updatedPlayer.displayName,
+      avatar: updatedPlayer.avatar,
       platform: player.platform,
     };
-    existingPlayer.elo += 24;
+    updatedPlayer.elo += 24;
+    round.leaderboard.set(playerKey, { ...updatedPlayer });
+    const lockedTop = sortWikiconLeaderboard(round.leaderboard)[0];
+    round.topPlayer = lockedTop ? { ...lockedTop } : { ...updatedPlayer };
   }
 
   return {
@@ -1035,6 +1333,7 @@ export function handleWikiconGuess(
 }
 
 export function revealWikiconHint(round: InternalWikiconRound): string | null {
+  if (round.solved) return null;
   const unrevealedTargets = round.gridBoard.targets.filter((t) => !t.revealed);
   if (unrevealedTargets.length > 0) {
     const target = unrevealedTargets[Math.floor(Math.random() * unrevealedTargets.length)];
@@ -1073,6 +1372,10 @@ export function revealWikiconHint(round: InternalWikiconRound): string | null {
 }
 
 export function revealEntireWikiconRound(round: InternalWikiconRound) {
+  if (!round.solved) {
+    const lockedTop = sortWikiconLeaderboard(round.leaderboard)[0] || null;
+    round.topPlayer = lockedTop ? { ...lockedTop } : null;
+  }
   round.solved = true;
   for (const tt of round.titleTokens) tt.revealed = true;
   for (const para of round.paragraphs) {
@@ -1093,24 +1396,76 @@ export function evaluateTikTokChatIntoWikiconRound(
     profilePictureUrl?: string;
   }
 ): boolean {
+  if (round.solved) return false;
   const rawComment = String(chatData.comment || '').trim();
   if (!rawComment) return false;
   const collapsed = rawComment.replace(/(\d),(?=\d)/g, '$1');
   const tokens = collapsed.match(/[\p{L}\p{N}\p{M}]+/gu) || [];
   let anyUpdated = false;
+  let totalCommentPoints = 0;
+  let bestRankInComment = 9999;
+  let bestRarityInComment: 'COMMON' | 'UNCOMMON' | 'RARE' | 'ULTRA' | 'TITLE' = 'COMMON';
+  const scoredWords: string[] = [];
+  const seenInComment = new Set<string>();
+
+  const rawId = String(chatData.uniqueId || '').trim().replace(/^@+/, '');
+  const rawNick = String(chatData.nickname || '').trim().replace(/^@+/, '');
+  const cleanId =
+    rawId && rawId.toLowerCase() !== 'viewer'
+      ? rawId
+      : rawNick && rawNick.toLowerCase() !== 'viewer'
+      ? rawNick
+      : rawId || 'tiktok_viewer';
+  const cleanNick = rawNick || cleanId || 'Viewer';
+
   for (const token of tokens) {
+    if (round.solved) break;
     const norm = normalizeWikiWord(token);
-    if (!norm || STOPLIST.has(norm)) continue;
-    const cleanId = (chatData.uniqueId || chatData.nickname || 'tiktok_viewer').replace(/^@+/, '');
-    const cleanNick = (chatData.nickname || chatData.uniqueId || 'Viewer').replace(/^@+/, '');
-    handleWikiconGuess(round, token, {
+    if (!norm || STOPLIST.has(norm) || seenInComment.has(norm)) continue;
+    seenInComment.add(norm);
+
+    const res = handleWikiconGuess(round, token, {
       username: cleanId,
       displayName: cleanNick,
       avatar: chatData.profilePictureUrl || '',
       platform: 'tiktok',
       cosmeticTitle: 'TikTok Live',
     });
-    anyUpdated = true;
+    if (res.valid) {
+      anyUpdated = true;
+      const pts = res.pointsEarned || 0;
+      if (pts > 0) {
+        totalCommentPoints += pts;
+        scoredWords.push(token.toUpperCase());
+        if (typeof res.rank === 'number' && res.rank < bestRankInComment) {
+          bestRankInComment = res.rank;
+        }
+        if (res.rarity === 'TITLE') {
+          bestRarityInComment = 'TITLE';
+        } else if (res.rarity === 'ULTRA' && bestRarityInComment !== 'TITLE') {
+          bestRarityInComment = 'ULTRA';
+        } else if (
+          res.rarity === 'RARE' &&
+          bestRarityInComment !== 'TITLE' &&
+          bestRarityInComment !== 'ULTRA'
+        ) {
+          bestRarityInComment = 'RARE';
+        } else if (res.rarity === 'UNCOMMON' && bestRarityInComment === 'COMMON') {
+          bestRarityInComment = 'UNCOMMON';
+        }
+      }
+    }
   }
+
+  if (scoredWords.length > 1 && round.lastAnnouncement) {
+    round.lastAnnouncement = {
+      ...round.lastAnnouncement,
+      word: scoredWords.join(' + '),
+      pointsEarned: totalCommentPoints,
+      rarity: bestRarityInComment,
+      rank: bestRankInComment < 9999 ? bestRankInComment : round.lastAnnouncement.rank,
+    };
+  }
+
   return anyUpdated;
 }
