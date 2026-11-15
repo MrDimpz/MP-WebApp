@@ -196,10 +196,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [isDraggingHint, setIsDraggingHint] = useState(false);
   const swipeTrackRef = useRef<HTMLDivElement | null>(null);
 
+  const puzzleKey = `${difficulty}-${puzzle.words.join(',')}-${resetSignal}`;
+  const syncedPuzzleKeyRef = useRef<string>(puzzleKey);
+
   // Reset board if puzzle date, difficulty, or resetSignal changes
   useEffect(() => {
-    setTiles(JSON.parse(JSON.stringify(puzzle.tiles)));
-    setRack([null, null, null, null, null]);
+    const freshTiles: TileData[] = JSON.parse(JSON.stringify(puzzle.tiles));
+    const freshRack: Array<TileData | null> = [null, null, null, null, null];
+    const firstHint = puzzle.hints[0] || 'Find the next 5-letter word in the stack.';
+    syncedPuzzleKeyRef.current = puzzleKey;
+
+    setTiles(freshTiles);
+    setRack(freshRack);
     setCompletedWordLetters(null);
     setCurrentWordIndex(0);
     setWordsFound([]);
@@ -210,8 +218,26 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     setWordTimeLeft(timerDuration);
     wordStartTimestampRef.current = Date.now();
     setCurrentWordSolvers([]);
+    setStatusMessage(null);
     isRoundFinishedRef.current = false;
-  }, [puzzle, resetSignal]);
+
+    if (!isOverlay && onBoardStateChange) {
+      onBoardStateChange({
+        tiles: freshTiles,
+        rack: freshRack,
+        completedWordLetters: null,
+        goldFlashKey: 0,
+        currentWordIndex: 0,
+        wordsFound: [],
+        showHintText: false,
+        currentHint: firstHint,
+        wordTimeLeft: timerDuration,
+        isTimerPaused: false,
+        isErrorShake: false,
+        statusMessage: null,
+      });
+    }
+  }, [puzzle, resetSignal, puzzleKey, timerDuration, isOverlay, onBoardStateChange]);
 
   // When user changes timer duration (30 / 45 / 60s), update current word countdown
   const handleSelectTimerDuration = (newDuration: TimerDuration) => {
@@ -695,9 +721,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   };
 
   const handleReset = () => {
-    const freshTiles = JSON.parse(JSON.stringify(puzzle.tiles));
+    const freshTiles: TileData[] = JSON.parse(JSON.stringify(puzzle.tiles));
+    const freshRack: Array<TileData | null> = [null, null, null, null, null];
+    const firstHint = puzzle.hints[0] || 'Find the next 5-letter word in the stack.';
     setTiles(freshTiles);
-    setRack([null, null, null, null, null]);
+    setRack(freshRack);
     setCompletedWordLetters(null);
     setCurrentWordIndex(0);
     setWordsFound([]);
@@ -710,11 +738,28 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     isRoundFinishedRef.current = false;
     setResetCount((prev) => prev + 1);
     onRoundReset?.();
+    if (!isOverlay && onBoardStateChange) {
+      onBoardStateChange({
+        tiles: freshTiles,
+        rack: freshRack,
+        completedWordLetters: null,
+        goldFlashKey,
+        currentWordIndex: 0,
+        wordsFound: [],
+        showHintText: false,
+        currentHint: firstHint,
+        wordTimeLeft: timerDuration,
+        isTimerPaused,
+        isErrorShake: false,
+        statusMessage: null,
+      });
+    }
   };
 
   // Broadcast host board snapshot up to App for live overlay mirroring
   useEffect(() => {
     if (isOverlay || !onBoardStateChange) return;
+    if (syncedPuzzleKeyRef.current !== puzzleKey) return;
     onBoardStateChange({
       tiles,
       rack,
@@ -732,6 +777,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   }, [
     isOverlay,
     onBoardStateChange,
+    puzzleKey,
     tiles,
     rack,
     completedWordLetters,

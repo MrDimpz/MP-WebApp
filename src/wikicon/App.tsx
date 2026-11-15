@@ -239,6 +239,24 @@ export function App() {
   } | null>(null);
   const [showGridInHybrid, setShowGridInHybrid] = useState(false);
   const [isManuscriptAutoScroll, setIsManuscriptAutoScroll] = useState(true);
+  const [isAutoNextRound, setIsAutoNextRound] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('wk_auto_next_round_v1') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+  const [autoNextCountdown, setAutoNextCountdown] = useState<number | null>(null);
+
+  const toggleAutoNextRound = useCallback(() => {
+    setIsAutoNextRound((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('wk_auto_next_round_v1', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
 
   const todayDateStr = useMemo(() => getLocalTodayDateStr(), []);
   const dailyStreak = useDailyStreak('wikicon', todayDateStr);
@@ -355,11 +373,12 @@ export function App() {
 
   // Connect to backend via Socket.IO (scoped to isolated user session) & initialize isolated per-user round
   useEffect(() => {
-    createNewWikiconRound({ mode: 'WIKICONTEXTO', isDaily: false }).then((init) => {
-      if (isOverlay && hasReceivedHostSyncRef.current) return;
-      internalRoundRef.current = init;
-      setRound(serializeWikiconRound(init));
-    });
+    if (!isOverlay) {
+      createNewWikiconRound({ mode: 'WIKICONTEXTO', isDaily: false }).then((init) => {
+        internalRoundRef.current = init;
+        setRound(serializeWikiconRound(init));
+      });
+    }
     setArchiveList(getArchiveList());
 
     const socket = io({
@@ -377,11 +396,16 @@ export function App() {
 
     // Standalone overlay auto-connect if opened directly with ?streamer=handle and no host tab synced
     let standaloneConnectTimer: ReturnType<typeof setTimeout> | null = null;
-    if (isOverlay && overlayStreamer) {
-      const cleanOverlayStreamer = overlayStreamer.replace(/^@+/, '').trim();
-      if (cleanOverlayStreamer) {
-        standaloneConnectTimer = setTimeout(() => {
-          if (!hasReceivedHostSyncRef.current) {
+    if (isOverlay) {
+      standaloneConnectTimer = setTimeout(() => {
+        if (!hasReceivedHostSyncRef.current) {
+          createNewWikiconRound({ mode: 'WIKICONTEXTO', isDaily: false }).then((init) => {
+            if (hasReceivedHostSyncRef.current) return;
+            internalRoundRef.current = init;
+            setRound(serializeWikiconRound(init));
+          });
+          const cleanOverlayStreamer = (overlayStreamer || '').replace(/^@+/, '').trim();
+          if (cleanOverlayStreamer) {
             triggerResilientConnect(socket, {
               username: cleanOverlayStreamer,
               isTestMode: false,
@@ -390,8 +414,8 @@ export function App() {
               sessionId: getCurrentUserSessionPrefix(),
             });
           }
-        }, 1200);
-      }
+        }
+      }, 1500);
     }
 
     // Exact Socket.IO listeners specified in prompt
@@ -528,6 +552,7 @@ export function App() {
       if (data.repeatEnd === false) return;
       const count = Number(data.repeatCount) || 1;
       setTotalGiftsCount((prev) => prev + count);
+      if (isOverlay && hasReceivedHostSyncRef.current) return;
       if (internalRoundRef.current && !internalRoundRef.current.solved) {
         const hintWord = revealWikiconHint(internalRoundRef.current);
         setRound(serializeWikiconRound(internalRoundRef.current));
@@ -812,34 +837,68 @@ export function App() {
   };
 
   // Start a specific game mode / puzzle (Does NOT disconnect from TikTok Live between rounds!)
-  const startModeRound = async (
-    targetNav: GameMode,
-    opts: {
-      mode: 'WIKICONTEXTO' | 'WIKIREC_GRID' | 'WIKIWORD_QUOTE';
-      isDaily?: boolean;
-      dailyDate?: string;
-      customTitle?: string;
-    }
-  ) => {
-    recordActivity();
-    setFeedbackToast(null);
-    setActiveNav(targetNav);
-    setShowGridInHybrid(opts.mode !== 'WIKICONTEXTO');
-    
-    // Set immediate local round
-    try {
-      const localNewRound = await createNewWikiconRound(opts);
-      internalRoundRef.current = localNewRound;
-      setRound(serializeWikiconRound(localNewRound));
-    } catch {}
+  const startModeRound = useCallback(
+    async (
+      targetNav: GameMode,
+      opts: {
+        mode: 'WIKICONTEXTO' | 'WIKIREC_GRID' | 'WIKIWORD_QUOTE';
+        isDaily?: boolean;
+        dailyDate?: string;
+        customTitle?: string;
+      }
+    ) => {
+      recordActivity();
+      setFeedbackToast(null);
+      setAutoNextCountdown(null);
+      setActiveNav(targetNav);
+      setShowGridInHybrid(opts.mode !== 'WIKICONTEXTO');
 
-    showToast(
-      opts.isDaily
-        ? `Loaded Daily Discovery (${opts.dailyDate || 'Today'})`
-        : `Started new ${opts.mode === 'WIKIREC_GRID' ? 'Wikirec Grid' : opts.mode === 'WIKIWORD_QUOTE' ? 'WikiWord Quote' : 'WikiContexto'} round!`,
-      'cyan'
-    );
-  };
+      // Set immediate local round
+      try {
+        const localNewRound = await createNewWikiconRound(opts);
+        internalRoundRef.current = localNewRound;
+        setRound(serializeWikiconRound(localNewRound));
+      } catch {}
+
+      showToast(
+        opts.isDaily
+          ? `Loaded Daily Discovery (${opts.dailyDate || 'Today'})`
+          : `Started new ${opts.mode === 'WIKIREC_GRID' ? 'Wikirec Grid' : opts.mode === 'WIKIWORD_QUOTE' ? 'WikiWord Quote' : 'WikiContexto'} round!`,
+        'cyan'
+      );
+    },
+    [recordActivity, showToast]
+  );
+
+  // Automatic 15-second progression to the next round when a round ends and Auto is enabled
+  useEffect(() => {
+    if (isOverlay) return;
+    if (!round?.solved || !isAutoNextRound) {
+      setAutoNextCountdown(null);
+      return;
+    }
+
+    let remaining = 15;
+    setAutoNextCountdown(remaining);
+    const currentRoundMode = round.mode;
+    const nextNav: GameMode = activeNav === 'DAILY' ? 'ONLINE' : activeNav;
+
+    const timer = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(timer);
+        setAutoNextCountdown(null);
+        void startModeRound(nextNav, {
+          mode: currentRoundMode,
+          isDaily: false,
+        });
+      } else {
+        setAutoNextCountdown(remaining);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [round?.solved, round?.roundId, round?.mode, activeNav, isAutoNextRound, isOverlay, startModeRound]);
 
   // Submit a word guess (from input bar or 8-connected KeycapGrid swipe)
   const submitWordGuess = async (rawWord: string) => {
@@ -1069,6 +1128,8 @@ export function App() {
             feedbackToast,
             isManuscriptAutoScroll,
             isLightMode,
+            isAutoNextRound,
+            autoNextCountdown,
           }
         : null,
     [
@@ -1080,6 +1141,8 @@ export function App() {
       feedbackToast,
       isManuscriptAutoScroll,
       isLightMode,
+      isAutoNextRound,
+      autoNextCountdown,
     ]
   );
 
@@ -1091,18 +1154,19 @@ export function App() {
     feedbackToast: { text: string; tone: 'cyan' | 'gold' | 'green' | 'muted' } | null;
     isManuscriptAutoScroll: boolean;
     isLightMode: boolean;
+    isAutoNextRound?: boolean;
+    autoNextCountdown?: number | null;
   }>({
     gameId: 'wikicon',
-    streamer:
-      overlayStreamer ||
-      connectedUsername ||
-      authenticatedStreamer ||
-      undefined,
+    streamer: isOverlay
+      ? overlayStreamer || undefined
+      : connectedUsername || authenticatedStreamer || undefined,
     isOverlay,
     localState: syncedSnapshot,
     onSyncedState: useCallback((remote) => {
       if (!remote || !remote.round) return;
       hasReceivedHostSyncRef.current = true;
+      internalRoundRef.current = null;
       setRound(remote.round);
       const navIsGameplay =
         remote.activeNav === 'DAILY' ||
@@ -1120,6 +1184,12 @@ export function App() {
       if (typeof remote.isLightMode === 'boolean') {
         setIsLightMode(remote.isLightMode);
       }
+      if (typeof remote.isAutoNextRound === 'boolean') {
+        setIsAutoNextRound(remote.isAutoNextRound);
+      }
+      setAutoNextCountdown(
+        typeof remote.autoNextCountdown === 'number' ? remote.autoNextCountdown : null
+      );
     }, []),
   });
 
@@ -1701,6 +1771,25 @@ export function App() {
                       </button>
                       <button
                         type="button"
+                        onClick={toggleAutoNextRound}
+                        title="When enabled, automatically waits 15 seconds after a round ends and starts the next round"
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border flex items-center gap-1 cursor-pointer whitespace-nowrap transition-colors ${
+                          isAutoNextRound
+                            ? 'bg-[#2bff86]/20 border-[#2bff86] text-[#2bff86]'
+                            : 'bg-[#061c3d] border-[#1768b3] text-[#96b8dd] hover:text-white'
+                        }`}
+                      >
+                        {isAutoNextRound ? (
+                          <Play className="w-3 h-3 fill-current" />
+                        ) : (
+                          <Pause className="w-3 h-3" />
+                        )}
+                        {round.solved && isAutoNextRound && autoNextCountdown !== null
+                          ? `Auto (${autoNextCountdown}s)`
+                          : `Auto 15s: ${isAutoNextRound ? 'ON' : 'OFF'}`}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setShowGridInHybrid((v) => !v)}
                         className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-colors cursor-pointer whitespace-nowrap ${
                           showGridInHybrid
@@ -1777,23 +1866,55 @@ export function App() {
                           {round.articleTitle}
                         </h2>
                       </div>
-                      {!isOverlay && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          startModeRound(
-                            activeNav === 'DAILY' ? 'ONLINE' : activeNav,
-                            {
-                              mode: round.mode,
-                              isDaily: false,
-                            }
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!isOverlay ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={toggleAutoNextRound}
+                              title="Automatically advance to the next round 15 seconds after round completion"
+                              className={`px-3 py-2 rounded-xl text-xs font-extrabold border flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors ${
+                                isAutoNextRound
+                                  ? 'bg-[#020a25]/90 border-[#2bff86] text-[#2bff86] hover:bg-[#061c3d]'
+                                  : 'bg-[#020a25]/70 border-[#1768b3] text-[#96b8dd] hover:text-white'
+                              }`}
+                            >
+                              {isAutoNextRound ? (
+                                <Pause className="w-3.5 h-3.5" />
+                              ) : (
+                                <Play className="w-3.5 h-3.5 fill-current" />
+                              )}
+                              <span className="font-mono tabular-nums">
+                                {isAutoNextRound
+                                  ? `Auto: ${autoNextCountdown ?? 15}s`
+                                  : 'Auto 15s: OFF'}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                startModeRound(
+                                  activeNav === 'DAILY' ? 'ONLINE' : activeNav,
+                                  {
+                                    mode: round.mode,
+                                    isDaily: false,
+                                  }
+                                )
+                              }
+                              className="px-3.5 py-2 rounded-xl bg-[#2bff86] hover:bg-[#5effa3] text-[#020a25] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" /> Next Round
+                            </button>
+                          </>
+                        ) : (
+                          isAutoNextRound &&
+                          autoNextCountdown !== null && (
+                            <div className="px-3 py-1.5 rounded-xl bg-[#020a25]/90 border border-[#2bff86] text-[#2bff86] text-xs font-extrabold font-mono tabular-nums whitespace-nowrap">
+                              Next Round in {autoNextCountdown}s
+                            </div>
                           )
-                        }
-                        className="px-3.5 py-2 rounded-xl bg-[#2bff86] hover:bg-[#5effa3] text-[#020a25] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" /> Next Round
-                      </button>
-                      )}
+                        )}
+                      </div>
                     </div>
 
                     {round.articleSummaryQuote && (

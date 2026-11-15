@@ -254,14 +254,17 @@ export default function App() {
       if (raw) {
         const parsed: SavedPuzzleProgress = JSON.parse(raw);
         const loadedFound = new Set(parsed.foundWords || []);
-        setFoundWords(loadedFound);
-        setBonusWords(parsed.bonusWords || []);
-        setScore(parsed.score || 0);
-        setRevealedPrefixes(new Map(parsed.revealedPrefixes || []));
-        if (basePuzzle.requiredWords.size === 0 || loadedFound.size < basePuzzle.requiredWords.size) {
+        // If this board was previously 100% solved, start a fresh round when re-entered
+        if (basePuzzle.requiredWords.size > 0 && loadedFound.size >= basePuzzle.requiredWords.size) {
+          localStorage.removeItem(storageKey);
+        } else {
+          setFoundWords(loadedFound);
+          setBonusWords(parsed.bonusWords || []);
+          setScore(parsed.score || 0);
+          setRevealedPrefixes(new Map(parsed.revealedPrefixes || []));
           setGameState((prev) => (prev === 'VICTORY' ? 'PLAYING' : prev));
+          return;
         }
-        return;
       }
     } catch {
       // Ignore storage error
@@ -1247,7 +1250,7 @@ export default function App() {
 
   useOverlaySync<SquaredOverlaySnapshot>({
     gameId: 'squaredint',
-    streamer: overlayStreamer || tiktokUsername || undefined,
+    streamer: isOverlay ? overlayStreamer || undefined : tiktokUsername || undefined,
     isOverlay,
     localState: syncedSnapshot,
     onSyncedState: useCallback((remote) => {

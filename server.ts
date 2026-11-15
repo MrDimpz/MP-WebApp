@@ -238,6 +238,7 @@ async function startServer() {
     cors: { origin: "*", methods: ["GET", "POST", "OPTIONS"] },
     transports: ["polling", "websocket"],
     allowEIO3: true,
+    maxHttpBufferSize: 5e6,
     pingTimeout: 25000,
     pingInterval: 20000,
   });
@@ -256,7 +257,7 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json({ limit: "2mb" }));
+  app.use(express.json({ limit: "8mb" }));
   app.use(express.urlencoded({ extended: true }));
 
   const sessions = new Map();
@@ -270,6 +271,132 @@ async function startServer() {
       seq?: number;
     }
   >();
+
+  function getNewestOverlaySnapshot(gameId: string, streamer: string) {
+    const defaultKey = `overlay:${gameId}:default`;
+    const streamerKey = streamer ? `overlay:${gameId}:${streamer}` : defaultKey;
+    const defaultSnap = overlaySnapshots.get(defaultKey);
+    const streamerSnap = streamer ? overlaySnapshots.get(streamerKey) : undefined;
+    if (streamerSnap && defaultSnap) {
+      return streamerSnap.updatedAt >= defaultSnap.updatedAt ? streamerSnap : defaultSnap;
+    }
+    return streamerSnap || defaultSnap;
+  }
+
+  function upsertOverlaySnapshot(params: {
+    gameId: string;
+    streamer: string;
+    state: unknown;
+    hostSessionId?: string;
+    seq?: number;
+    senderSocket?: any;
+  }) {
+    const { gameId, streamer, state, hostSessionId, seq, senderSocket } = params;
+    const updatedAt = Date.now();
+    const record = {
+      state,
+      updatedAt,
+      streamer,
+      hostSessionId,
+      seq,
+    };
+    const defaultKey = `overlay:${gameId}:default`;
+    overlaySnapshots.set(defaultKey, record);
+
+    const targetRooms = new Set<string>([defaultKey]);
+    if (streamer) {
+      const streamerKey = `overlay:${gameId}:${streamer}`;
+      overlaySnapshots.set(streamerKey, record);
+      targetRooms.add(streamerKey);
+    }
+
+    // Also refresh any existing snapshot key for this game so a previous streamer key never serves a stale round
+    const prefix = `overlay:${gameId}:`;
+    for (const existingKey of overlaySnapshots.keys()) {
+      if (existingKey.startsWith(prefix)) {
+        overlaySnapshots.set(existingKey, record);
+        targetRooms.add(existingKey);
+      }
+    }
+
+    const packet = {
+      gameId,
+      streamer,
+      state,
+      updatedAt,
+      hostSessionId,
+      seq,
+    };
+
+    const roomsArr = Array.from(targetRooms);
+    if (senderSocket) {
+      senderSocket.to(roomsArr).emit("overlay-state-sync", packet);
+    } else {
+      io.to(roomsArr).emit("overlay-state-sync", packet);
+    }
+    return packet;
+  }
+
+  app.post("/api/overlay/state", (req, res) => {
+    const body = req.body || {};
+    const gameId = String(body.gameId || "")
+      .trim()
+      .toLowerCase();
+    const streamer = String(body.streamer || "")
+      .trim()
+      .replace(/^@+/, "")
+      .toLowerCase();
+    if (!gameId || body.state === undefined) {
+      res.status(400).json({ ok: false, error: "Missing gameId or state" });
+      return;
+    }
+    const hostSessionId =
+      typeof body.hostSessionId === "string" ? body.hostSessionId : undefined;
+    const seq = typeof body.seq === "number" ? body.seq : undefined;
+    const packet = upsertOverlaySnapshot({
+      gameId,
+      streamer,
+      state: body.state,
+      hostSessionId,
+      seq,
+    });
+    res.json({
+      ok: true,
+      updatedAt: packet.updatedAt,
+      hostSessionId: packet.hostSessionId,
+      seq: packet.seq,
+    });
+  });
+
+  app.get("/api/overlay/state", (req, res) => {
+    const gameId = String(req.query.gameId || "")
+      .trim()
+      .toLowerCase();
+    const streamer = String(req.query.streamer || "")
+      .trim()
+      .replace(/^@+/, "")
+      .toLowerCase();
+    if (!gameId) {
+      res.status(400).json({ ok: false, error: "Missing gameId" });
+      return;
+    }
+    const snap = getNewestOverlaySnapshot(gameId, streamer);
+    if (!snap) {
+      res.json({ ok: true, hasSnapshot: false });
+      return;
+    }
+    res.json({
+      ok: true,
+      hasSnapshot: true,
+      gameId,
+      streamer: snap.streamer,
+      state: snap.state,
+      updatedAt: snap.updatedAt,
+      hostSessionId: snap.hostSessionId,
+      seq: snap.seq,
+    });
+  });
+
   let globalWebhookCount = 0;
   let lastWebhookTime = 0;
   let lastWebhookProvider = "";
@@ -1628,9 +1755,7 @@ async function startServer() {
         socket.join(`streamer:${streamer}`);
       }
 
-      const snap =
-        (streamer ? overlaySnapshots.get(roomKey) : undefined) ||
-        overlaySnapshots.get(defaultRoom);
+      const snap = getNewestOverlaySnapshot(gameId, streamer);
       if (snap) {
         socket.emit("overlay-state-sync", {
           gameId,
@@ -1664,39 +1789,14 @@ async function startServer() {
       const seq = typeof payload.seq === "number" ? payload.seq : undefined;
 
       syncHostOverlayMembership(gameId, streamer, hostSessionId);
-
-      const updatedAt = Date.now();
-      const packet = {
+      upsertOverlaySnapshot({
         gameId,
         streamer,
         state: payload.state,
-        updatedAt,
         hostSessionId,
         seq,
-      };
-      const defaultKey = `overlay:${gameId}:default`;
-      overlaySnapshots.set(defaultKey, {
-        state: payload.state,
-        updatedAt,
-        streamer,
-        hostSessionId,
-        seq,
+        senderSocket: socket,
       });
-
-      const targetRooms = [defaultKey];
-      if (streamer) {
-        const streamerKey = `overlay:${gameId}:${streamer}`;
-        overlaySnapshots.set(streamerKey, {
-          state: payload.state,
-          updatedAt,
-          streamer,
-          hostSessionId,
-          seq,
-        });
-        targetRooms.push(streamerKey);
-      }
-
-      socket.to(targetRooms).emit("overlay-state-sync", packet);
     });
   });
 

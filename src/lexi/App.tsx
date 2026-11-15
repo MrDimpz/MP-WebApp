@@ -125,7 +125,9 @@ export default function App() {
 
   useOverlaySync<LexiOverlaySnapshot>({
     gameId: 'lexi',
-    streamer: overlayStreamer || gameState?.tiktok?.username || undefined,
+    streamer: isOverlay
+      ? overlayStreamer || undefined
+      : gameState?.tiktok?.username || undefined,
     isOverlay,
     localState: syncedSnapshot,
     onSyncedState: React.useCallback((remote) => {
@@ -1095,10 +1097,10 @@ export default function App() {
       {route === 'vertical' && (
         <main className="flex-1 flex items-center justify-center">
           <VerticalTikTokView
-            gameState={gameState}
-            highlightedIndices={lastHighlightedIndices}
-            lastWordBanner={lastWordBanner}
-            submissionFeedback={submissionFeedback}
+            gameState={activeGameState}
+            highlightedIndices={activeHighlights}
+            lastWordBanner={activeBanner}
+            submissionFeedback={activeFeedback}
             onSubmitWord={(word, username) => submitWord(word, username)}
             onShuffle={() => sendControlAction('shuffle_board')}
             onRevealHint={() => sendControlAction('reveal_hint')}
@@ -1111,11 +1113,11 @@ export default function App() {
       {(route === 'overlay' || route === 'display') && (
         <main className="flex-1">
           <ObsOverlayView
-            gameState={gameState}
+            gameState={activeGameState}
             initialPreset={route === 'display' ? 'fullscreen' : 'transparent'}
-            highlightedIndices={lastHighlightedIndices}
-            lastWordBanner={lastWordBanner}
-            submissionFeedback={submissionFeedback}
+            highlightedIndices={activeHighlights}
+            lastWordBanner={activeBanner}
+            submissionFeedback={activeFeedback}
             onSubmitWord={(word, username) => submitWord(word, username)}
             onShuffle={() => sendControlAction('shuffle_board')}
             onRevealHint={() => sendControlAction('reveal_hint')}
@@ -1127,7 +1129,7 @@ export default function App() {
       {/* ROUTE 5: STANDALONE LEADERBOARD (/leaderboard) */}
       {route === 'leaderboard' && (
         <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8">
-          <LiveLeaderboardPanel leaderboards={gameState.leaderboards} fullPage={true} />
+          <LiveLeaderboardPanel leaderboards={activeGameState.leaderboards} fullPage={true} />
         </main>
       )}
 

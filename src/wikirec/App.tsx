@@ -906,6 +906,7 @@ export default function App() {
         chatEventsProcessed: prev.chatEventsProcessed + 1,
         giftsDiamonds: prev.giftsDiamonds + diamonds,
       }));
+      if (isOverlay && hasReceivedHostSyncRef.current) return;
       if (localGameRef.current) {
         localGameRef.current.requestHint();
         setGameState(localGameRef.current.getPublicState());
@@ -1301,16 +1302,15 @@ export default function App() {
     dismissedRoundId: string | null;
   }>({
     gameId: 'wikirec',
-    streamer:
-      overlayStreamer ||
-      authorizedStreamer?.username ||
-      tiktokStatus.username ||
-      undefined,
+    streamer: isOverlay
+      ? overlayStreamer || undefined
+      : authorizedStreamer?.username || tiktokStatus.username || undefined,
     isOverlay,
     localState: syncedSnapshot,
     onSyncedState: useCallback((remote) => {
       if (!remote || !remote.gameState) return;
       hasReceivedHostSyncRef.current = true;
+      localGameRef.current = null;
       setGameState(remote.gameState);
       if (!remote.gameState.isComplete) {
         prevCompleteRef.current = false;

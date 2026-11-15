@@ -59,6 +59,8 @@ interface DeStackOverlayPayload {
   boardSnapshot: DeStackBoardSnapshot | null;
   tiktokUsername: string;
   isLiveConnected: boolean;
+  resetSignal?: number;
+  puzzleRoundNonce?: number;
 }
 
 const STATS_STORAGE_KEY = 'destackint_game_stats_v1';
@@ -544,7 +546,6 @@ export default function App() {
   useEffect(() => {
     if (isOverlay) return;
     setVictoryData(null);
-    setHostBoardSnapshot(null);
   }, [isOverlay, selectedDateStr, difficulty, layoutMode, puzzleRoundNonce, resetSignal]);
 
   const hostOverlayPayload = useMemo<DeStackOverlayPayload>(
@@ -558,6 +559,8 @@ export default function App() {
       boardSnapshot: hostBoardSnapshot,
       tiktokUsername,
       isLiveConnected,
+      resetSignal,
+      puzzleRoundNonce,
     }),
     [
       currentPuzzle,
@@ -569,6 +572,8 @@ export default function App() {
       hostBoardSnapshot,
       tiktokUsername,
       isLiveConnected,
+      resetSignal,
+      puzzleRoundNonce,
     ]
   );
 
@@ -579,7 +584,7 @@ export default function App() {
 
   const { isReceivingHostSync } = useOverlaySync<DeStackOverlayPayload>({
     gameId: 'destackint',
-    streamer: isOverlay ? overlayStreamer || tiktokUsername : tiktokUsername,
+    streamer: isOverlay ? overlayStreamer || undefined : tiktokUsername || undefined,
     isOverlay,
     localState: isOverlay ? null : hostOverlayPayload,
     onSyncedState: handleSyncedOverlayState,
@@ -610,6 +615,10 @@ export default function App() {
     isOverlay && syncedOverlayPayload !== null
       ? syncedOverlayPayload.isLiveConnected
       : isLiveConnected;
+  const effectiveResetSignal =
+    isOverlay && typeof syncedOverlayPayload?.resetSignal === 'number'
+      ? syncedOverlayPayload.resetSignal
+      : resetSignal;
 
   const handleVictory = (
     timeSeconds: number,
@@ -716,7 +725,7 @@ export default function App() {
             onSimulateChat={handleSimulateChat}
             incomingChatQueue={incomingChatQueue}
             onConsumeChatQueue={handleConsumeChatQueue}
-            resetSignal={resetSignal}
+            resetSignal={effectiveResetSignal}
             isOverlay={true}
             overlayBg={overlayBg}
             hasHostSync={isReceivingHostSync}
