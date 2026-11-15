@@ -59,25 +59,25 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
 
   const boardStyle = {
     '--board-cols': maxWordLength,
-    '--tile-sz': `clamp(28px, min(calc((100vw - 36px) / ${maxWordLength} - 5px), 52px), 52px)`,
-    '--tile-font': `clamp(17px, min(calc((100vw - 36px) / ${maxWordLength} * 0.72), 38px), 38px)`,
+    '--tile-sz': `clamp(28px, min(calc((100vw - 32px) / ${maxWordLength} - 5px), 52px), 52px)`,
+    '--tile-font': `clamp(15px, calc(var(--tile-sz) * 0.52), 26px)`,
   } as React.CSSProperties;
 
   return (
     <div
       style={boardStyle}
-      className={`flex flex-col items-center sm:items-start select-none w-full max-w-full ${
+      className={`flex flex-col select-none shrink-0 ${
         isHardMode && isAnyEvaluatedWrong ? 'animate-shake' : ''
       }`}
     >
       {/* The Clue (e.g. "___ or treat!") */}
-      <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-wide mb-2 sm:mb-3 text-center sm:text-left leading-tight break-words max-w-full">
+      <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-wide mb-3 leading-tight break-words">
         {themeClue}
       </h1>
 
       {/* Theme Anchor Word Row (Fillable & affected by Guess and Fill Mode) */}
       <div
-        className={`flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 md:gap-2 mb-2 sm:mb-3 max-w-full overflow-x-auto py-0.5 ${
+        className={`flex items-center gap-1.5 sm:gap-2 mb-3 max-w-full ${
           !isHardMode && isThemeIncorrect ? 'animate-shake' : ''
         }`}
       >
@@ -170,7 +170,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
       <div className="w-full h-[3px] bg-gradient-to-r from-amber-400/30 via-[#f5b82e] to-amber-400/30 my-3 sm:my-[16px] rounded-full shadow-xs" />
 
       {/* The 6 Word Rows (6 rows x maxWordLength columns) */}
-      <div className="space-y-1 sm:space-y-1.5 md:space-y-2 mt-1 sm:mt-2 max-w-full">
+      <div className="space-y-1.5 sm:space-y-2 mt-2 max-w-full">
         {words.map((word, rowIdx) => {
           const wordLen = word.length;
           const userFilled = filledWords[rowIdx] || '';
@@ -182,7 +182,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
           return (
             <div
               key={rowIdx}
-              className={`flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 md:gap-2 max-w-full overflow-x-auto py-0.5 ${
+              className={`flex items-center gap-1.5 sm:gap-2 max-w-full ${
                 !isHardMode && isRowIncorrect ? 'animate-shake' : ''
               }`}
             >
@@ -275,7 +275,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
       </div>
 
       {/* Bottom Row beneath the grid: Copied Logo on bottom-left + Authentic Speech Bubble Pointer */}
-      <div className="w-full flex items-center justify-between gap-3 mt-4 sm:mt-5 flex-wrap sm:flex-nowrap">
+      <div className="w-full flex items-center justify-between gap-3 mt-4 sm:mt-5">
         {/* Logo & Title */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           <img

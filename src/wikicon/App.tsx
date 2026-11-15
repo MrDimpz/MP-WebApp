@@ -31,6 +31,7 @@ import {
   creditInteractiveScoreByTikTokHandle,
   getCurrentUserSessionPrefix,
   saveUnifiedLeaderboardScore,
+  getUserProfileAvatarUrl,
 } from '../lib/unified-game-auth';
 import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
@@ -1129,10 +1130,14 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
   ) => {
     const cleanName = (displayName || 'Player').replace(/^@+/, '');
     const fallbackUrl = `https://i.pravatar.cc/150?u=${encodeURIComponent(cleanName)}`;
+    const userAvatar = getUserProfileAvatarUrl();
     const src =
-      avatarUrlOrInitials && avatarUrlOrInitials.startsWith('http')
+      avatarUrlOrInitials &&
+      (avatarUrlOrInitials.startsWith('http') ||
+        avatarUrlOrInitials.startsWith('/') ||
+        avatarUrlOrInitials.startsWith('data:image/'))
         ? avatarUrlOrInitials
-        : fallbackUrl;
+        : userAvatar || fallbackUrl;
     return (
       <img
         src={src}

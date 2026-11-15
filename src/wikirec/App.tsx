@@ -38,6 +38,7 @@ import {
   creditInteractiveScoreByTikTokHandle,
   getCurrentUserSessionPrefix,
   saveUnifiedLeaderboardScore,
+  getUserProfileAvatarUrl,
 } from '../lib/unified-game-auth';
 import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
@@ -49,6 +50,16 @@ import {
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import './index.css';
+
+function resolvePlayerAvatar(rawUrl: string | null | undefined, name: string): string {
+  if (rawUrl && (rawUrl.startsWith('http') || rawUrl.startsWith('/') || rawUrl.startsWith('data:image/'))) {
+    return rawUrl;
+  }
+  const cleanName = (name || 'Player').replace(/^@+/, '');
+  const userAvatar = getUserProfileAvatarUrl();
+  if (userAvatar) return userAvatar;
+  return `https://i.pravatar.cc/150?u=${encodeURIComponent(cleanName)}`;
+}
 
 const STORAGE_NAME_KEY = 'wkt_display_name';
 const STORAGE_SESSION_KEY = 'wkt_session_id';
@@ -1792,11 +1803,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
                   >
                     <div className="csi-avatar">
                       <img
-                        src={
-                          item.profileImage && item.profileImage.startsWith('http')
-                            ? item.profileImage
-                            : `https://i.pravatar.cc/150?u=${encodeURIComponent(nameLabel)}`
-                        }
+                        src={resolvePlayerAvatar(item.profileImage, nameLabel)}
                         alt={nameLabel}
                         referrerPolicy="no-referrer"
                         onError={(e) => {
@@ -2066,11 +2073,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
                   <div className="pfp">
                     {player ? (
                       <img
-                        src={
-                          player.profileImage && player.profileImage.startsWith('http')
-                            ? player.profileImage
-                            : `https://i.pravatar.cc/150?u=${encodeURIComponent(cleanPlayerName)}`
-                        }
+                        src={resolvePlayerAvatar(player.profileImage, cleanPlayerName)}
                         alt={cleanPlayerName}
                         referrerPolicy="no-referrer"
                         onError={(e) => {
@@ -2301,11 +2304,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         <div className="tfinder">
                           <div className="tpfp">
                             <img
-                              src={
-                                t.finder.profileImage && t.finder.profileImage.startsWith('http')
-                                ? t.finder.profileImage
-                                : `https://i.pravatar.cc/150?u=${encodeURIComponent(finderName)}`
-                            }
+                              src={resolvePlayerAvatar(t.finder.profileImage, finderName)}
                             alt={finderName}
                             referrerPolicy="no-referrer"
                             onError={(e) => {
@@ -2400,11 +2399,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
                 >
                   <span className="fw-avatar-wrap">
                     <img
-                      src={
-                        item.profileImage && item.profileImage.startsWith('http')
-                          ? item.profileImage
-                          : fallbackUrl
-                      }
+                      src={resolvePlayerAvatar(item.profileImage, cleanFinder)}
                       alt={cleanFinder}
                       referrerPolicy="no-referrer"
                       className="fw-fallback"

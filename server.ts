@@ -2100,6 +2100,20 @@ async function startServer() {
     });
   });
 
+  app.get("/favicon.ico", (_req, res) => {
+    const icoPath = path.join(__dirname, "public", "favicon.ico");
+    if (fs.existsSync(icoPath)) {
+      res.setHeader("Content-Type", "image/x-icon");
+      res.setHeader("Cache-Control", "no-cache, must-revalidate");
+      res.sendFile(icoPath);
+      return;
+    }
+    const pngPath = path.join(__dirname, "public", "favicon.png");
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-cache, must-revalidate");
+    res.sendFile(pngPath);
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { User as UserIcon } from 'lucide-react';
 import {
   getUserProfileAvatarUrl,
+  useUnifiedAuth,
   type UnifiedPlayerUser,
   type User,
 } from '@/lib/unified-game-auth';
@@ -19,19 +20,22 @@ interface UserProfileIconProps {
 }
 
 export function UserProfileIcon({
-  user,
+  user: propUser,
   className = 'w-4 h-4 shrink-0',
   imgClassName,
   size,
   fallback,
 }: UserProfileIconProps) {
-  const [avatarUrl, setAvatarUrl] = useState<string>(() => getUserProfileAvatarUrl(user));
+  const { user: authUser } = useUnifiedAuth();
+  const effectiveUser = propUser !== undefined ? propUser : authUser;
+  const [avatarUrl, setAvatarUrl] = useState<string>(() => getUserProfileAvatarUrl(effectiveUser));
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const sync = () => {
-      const next = getUserProfileAvatarUrl(user);
+      const next = getUserProfileAvatarUrl(effectiveUser);
       setAvatarUrl(next);
+      setFailedUrl(null);
     };
     sync();
     window.addEventListener('mp-tiktok-avatar-updated', sync);
@@ -43,10 +47,10 @@ export function UserProfileIcon({
       window.removeEventListener('mp-site-auth-updated', sync);
     };
   }, [
-    user,
-    (user as { uid?: string })?.uid,
-    (user as { photoURL?: string | null })?.photoURL,
-    (user as { linkedTikTokHandle?: string | null })?.linkedTikTokHandle,
+    effectiveUser,
+    (effectiveUser as { uid?: string })?.uid,
+    (effectiveUser as { photoURL?: string | null })?.photoURL,
+    (effectiveUser as { linkedTikTokHandle?: string | null })?.linkedTikTokHandle,
   ]);
 
   if (avatarUrl && avatarUrl !== failedUrl) {

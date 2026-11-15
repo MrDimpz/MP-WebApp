@@ -340,16 +340,29 @@ export async function downloadAndCacheTikTokAvatar(
  * TikTok profile icon is always prioritized over the default icon.
  */
 export function getUserProfileAvatarUrl(
-  user:
+  user?:
     | UnifiedPlayerUser
     | User
     | { uid?: string; photoURL?: string | null; linkedTikTokHandle?: string | null }
-    | null
-    | undefined,
+    | null,
 ): string {
-  if (!user) return "";
-  const uid = (user as { uid?: string }).uid || "";
-  const explicitHandle = (user as { linkedTikTokHandle?: string | null }).linkedTikTokHandle;
+  let targetUser = user;
+  if (!targetUser && typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem(LOCAL_ACTIVE_SESSION_KEY);
+      if (raw) {
+        targetUser = JSON.parse(raw) as UnifiedPlayerUser;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  if (!targetUser && typeof auth !== "undefined" && auth?.currentUser) {
+    targetUser = auth.currentUser;
+  }
+  if (!targetUser) return "";
+  const uid = (targetUser as { uid?: string }).uid || "";
+  const explicitHandle = (targetUser as { linkedTikTokHandle?: string | null }).linkedTikTokHandle;
   const linkedHandle = normalizeTikTokHandle(
     explicitHandle || (uid ? getLinkedTikTokHandle(uid) : ""),
   );
@@ -362,7 +375,7 @@ export function getUserProfileAvatarUrl(
     return `/api/tiktok/avatar/${encodeURIComponent(clean)}`;
   }
 
-  return (user as { photoURL?: string | null }).photoURL || "";
+  return (targetUser as { photoURL?: string | null }).photoURL || "";
 }
 
 export function sanitizePublicIdentity(
