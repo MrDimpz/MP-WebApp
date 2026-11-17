@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { GameState, GameStats, RunningScoreboardPlayer } from '../types';
 import { getSafeAvatarUrl, handleAvatarError } from '../utils/avatar';
+import { deduplicateScoreboardPlayers } from '../utils/scoreboard';
 import { UnifiedLeaderboardPanel } from '@/components/solo-games/unified-auth-modal';
 import {
   getCleanDisplayName,
@@ -25,6 +26,7 @@ interface LeaderboardModalProps {
   setCurrentView: (view: GameState) => void;
   stats: GameStats;
   scoreboard?: RunningScoreboardPlayer[];
+  overallScoreboard?: RunningScoreboardPlayer[];
   currentUser?: UnifiedPlayerUser | User | null;
   onOpenSignIn: () => void;
 }
@@ -33,10 +35,13 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   setCurrentView,
   stats,
   scoreboard = [],
+  overallScoreboard = [],
   currentUser,
   onOpenSignIn,
 }) => {
-  const [tab, setTab] = useState<'stream' | 'global' | 'local'>('stream');
+  const [tab, setTab] = useState<'stream' | 'overall' | 'global' | 'local'>('stream');
+  const uniqueRoundScoreboard = deduplicateScoreboardPlayers(scoreboard);
+  const uniqueOverallScoreboard = deduplicateScoreboardPlayers(overallScoreboard);
 
   const normalEntries = Object.entries(stats.completedDays || {}).map(([date, data]) => ({
     id: `${date}_normal`,
@@ -96,7 +101,17 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   : 'text-slate-600 dark:text-purple-200/70 hover:text-[#2d0938]'
               }`}
             >
-              <Radio className="w-3.5 h-3.5 text-rose-500" /> Stream ({scoreboard.length})
+              <Radio className="w-3.5 h-3.5 text-rose-500" /> Round ({uniqueRoundScoreboard.length})
+            </button>
+            <button
+              onClick={() => setTab('overall')}
+              className={`px-3 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                tab === 'overall'
+                  ? 'bg-white dark:bg-[#3b0d47] text-[#2d0938] dark:text-amber-300 shadow-sm'
+                  : 'text-slate-600 dark:text-purple-200/70 hover:text-[#2d0938]'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-500" /> Overall ({uniqueOverallScoreboard.length})
             </button>
             <button
               onClick={() => setTab('global')}
@@ -125,7 +140,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
       {/* Content */}
       {tab === 'stream' ? (
         <div className="bg-white dark:bg-[#240930] border border-purple-200/80 dark:border-purple-800/70 rounded-3xl overflow-hidden shadow-xl">
-          {scoreboard.length === 0 ? (
+          {uniqueRoundScoreboard.length === 0 ? (
             <div className="p-12 text-center">
               <Radio className="w-12 h-12 text-rose-400/60 mx-auto mb-3" />
               <h3 className="font-bold text-[#2d0938] dark:text-white mb-1">
@@ -137,7 +152,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             </div>
           ) : (
             <div className="divide-y divide-purple-100 dark:divide-purple-800/60">
-              {scoreboard.map((player, idx) => (
+              {uniqueRoundScoreboard.map((player, idx) => (
                 <div
                   key={player.id}
                   className="p-4 sm:p-5 flex items-center justify-between hover:bg-purple-50/50 dark:hover:bg-purple-900/30 transition-colors"
@@ -165,6 +180,78 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                     />
                     <div>
                       <div className="font-bold text-[#2d0938] dark:text-white">{player.nickname}</div>
+                      <div className="text-xs text-slate-400 dark:text-purple-300/60 font-mono flex items-center gap-2">
+                        <span>{player.wordsSolved} words</span>
+                        <span>·</span>
+                        <span className="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-300">
+                          <Zap className="w-3 h-3" /> Best: {player.bestSpeedSeconds.toFixed(1)}s
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="font-extrabold text-[#4a1259] dark:text-amber-400 font-mono tabular-nums text-lg">
+                      {player.totalScore.toLocaleString()} pts
+                    </div>
+                    <div className="text-xs text-slate-400 dark:text-purple-300/60 font-mono">
+                      +{player.lastPoints} last word
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : tab === 'overall' ? (
+        <div className="bg-white dark:bg-[#240930] border border-purple-200/80 dark:border-purple-800/70 rounded-3xl overflow-hidden shadow-xl">
+          {uniqueOverallScoreboard.length === 0 ? (
+            <div className="p-12 text-center">
+              <Trophy className="w-12 h-12 text-amber-400/60 mx-auto mb-3" />
+              <h3 className="font-bold text-[#2d0938] dark:text-white mb-1">
+                No Overall Permanent Scores Yet
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-purple-200/70 max-w-md mx-auto">
+                Scores earned across every round accumulate here permanently, while Round Wins go to the highest scorer of each individual round!
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-purple-100 dark:divide-purple-800/60">
+              {uniqueOverallScoreboard.map((player, idx) => (
+                <div
+                  key={player.id}
+                  className="p-4 sm:p-5 flex items-center justify-between hover:bg-purple-50/50 dark:hover:bg-purple-900/30 transition-colors"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shadow-sm ${
+                        idx === 0
+                          ? 'bg-gradient-to-b from-amber-300 to-amber-500 text-[#2d0938]'
+                          : idx === 1
+                          ? 'bg-slate-300 text-slate-800'
+                          : idx === 2
+                          ? 'bg-amber-700/80 text-white'
+                          : 'bg-purple-50 dark:bg-[#360b42] text-[#4a1259] dark:text-purple-200'
+                      }`}
+                    >
+                      {idx === 0 ? <Medal className="w-4 h-4" /> : `#${idx + 1}`}
+                    </div>
+                    <img
+                      src={getSafeAvatarUrl(player.profilePictureUrl, player.nickname)}
+                      alt={player.nickname}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => handleAvatarError(e, player.nickname)}
+                      className="w-10 h-10 rounded-full object-cover border border-amber-400/50"
+                    />
+                    <div>
+                      <div className="font-bold text-[#2d0938] dark:text-white flex items-center gap-2">
+                        <span>{player.nickname}</span>
+                        {(player.roundsWon || 0) > 0 && (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-600 dark:text-amber-300 text-[10px] font-mono font-bold">
+                            {player.roundsWon} {player.roundsWon === 1 ? 'round win' : 'round wins'}
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-slate-400 dark:text-purple-300/60 font-mono flex items-center gap-2">
                         <span>{player.wordsSolved} words</span>
                         <span>·</span>

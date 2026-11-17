@@ -12,10 +12,12 @@ import {
 } from './types';
 import { getLondonDateString, generateDailyPuzzle } from './utils/puzzles';
 import { getSafeAvatarUrl } from './utils/avatar';
+import { deduplicateScoreboardPlayers, normalizePlayerKey } from './utils/scoreboard';
 import { Header } from './components/Header';
 import { TitleMenu } from './components/TitleMenu';
 import { GameBoard, type DeStackBoardSnapshot } from './components/GameBoard';
 import { RoundScoreboardModal } from './components/RoundScoreboardModal';
+import { OverallScoreboardModal } from './components/OverallScoreboardModal';
 import { TikTokConnectModal } from './components/TikTokConnectModal';
 import { ArchiveModal } from './components/ArchiveModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
@@ -64,6 +66,7 @@ interface DeStackOverlayPayload {
 }
 
 const STATS_STORAGE_KEY = 'destackint_game_stats_v1';
+const OVERALL_SCOREBOARD_STORAGE_KEY = 'destackint_overall_permanent_scoreboard_v1';
 const TIKTOK_USER_STORAGE_KEY = 'missing_piece_tiktok_username';
 
 const DEFAULT_STATS: GameStats = {
@@ -126,6 +129,19 @@ export default function App() {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState<boolean>(false);
 
   const [scoreboard, setScoreboard] = useState<RunningScoreboardPlayer[]>([]);
+  const [overallScoreboard, setOverallScoreboard] = useState<RunningScoreboardPlayer[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(OVERALL_SCOREBOARD_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return deduplicateScoreboardPlayers(parsed);
+        }
+      } catch {}
+    }
+    return [];
+  });
+  const [isOverallScoreboardOpen, setIsOverallScoreboardOpen] = useState<boolean>(false);
   const [chatFeed, setChatFeed] = useState<LiveChatItem[]>([]);
   const [incomingChatQueue, setIncomingChatQueue] = useState<
     Array<{
@@ -138,6 +154,17 @@ export default function App() {
   >([]);
   const [resetSignal, setResetSignal] = useState<number>(0);
   const [puzzleRoundNonce, setPuzzleRoundNonce] = useState<number>(0);
+
+  const roundIdRef = useRef<number>(1);
+  const creditedSolversByWordRef = useRef<
+    Map<string, { ids: Set<string>; names: Set<string> }>
+  >(new Map());
+  const roundWinnerCreditedRef = useRef<Set<number>>(new Set());
+  const deduplicatorRef = useRef(createEventDeduplicator());
+  const scoreboardRef = useRef<RunningScoreboardPlayer[]>(scoreboard);
+  useEffect(() => {
+    scoreboardRef.current = scoreboard;
+  }, [scoreboard]);
 
   const [stats, setStats] = useState<GameStats>(() => {
     if (typeof window !== 'undefined') {
@@ -178,6 +205,16 @@ export default function App() {
     }
   }, [stats, isOverlay]);
 
+  // Save overall permanent scoreboard (host mode only)
+  useEffect(() => {
+    if (isOverlay) return;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(OVERALL_SCOREBOARD_STORAGE_KEY, JSON.stringify(overallScoreboard));
+      } catch {}
+    }
+  }, [overallScoreboard, isOverlay]);
+
   // Sync dark mode class on root html (host mode only)
   useEffect(() => {
     if (isOverlay) return;
@@ -190,7 +227,7 @@ export default function App() {
 
   // Connect to persistent Socket.IO server scoped to isolated streamer session & destackint game
   useEffect(() => {
-    const deduplicator = createEventDeduplicator();
+    const deduplicator = deduplicatorRef.current;
     const newSocket = io({
       path: '/socket.io',
       transports: ['polling', 'websocket'],
@@ -380,14 +417,16 @@ export default function App() {
   const handleSimulateChat = useCallback(
     (data: { uniqueId: string; nickname: string; comment: string; profilePictureUrl: string }) => {
       touchActiveInteractiveStreamerSession();
+      const msgId = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      deduplicatorRef.current.shouldProcess('chat', { id: msgId });
       setIncomingChatQueue((prev) => [
         ...prev,
         {
-          id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          id: msgId,
           ...data,
         },
       ]);
-      emitResilientEvent(socket, 'chat-message', { ...data, gameId: 'destackint' });
+      emitResilientEvent(socket, 'chat-message', { id: msgId, ...data, gameId: 'destackint' });
     },
     [socket]
   );
@@ -407,70 +446,94 @@ export default function App() {
       comment: string
     ) => {
       touchActiveInteractiveStreamerSession();
-      const pfp = getSafeAvatarUrl(user.profilePictureUrl, user.uniqueId || user.nickname);
+      const rawNick = (user.nickname || user.uniqueId || 'Player').trim().replace(/^@+/, '');
+      const nameKey = normalizePlayerKey(rawNick);
+      const rawIdKey = normalizePlayerKey(user.uniqueId);
+      const cleanId =
+        rawIdKey && rawIdKey !== 'viewer' ? rawIdKey : nameKey || 'viewer';
 
-      setScoreboard((prev) => {
-        const existingIdx = prev.findIndex((p) => p.id === user.uniqueId);
-        if (existingIdx >= 0 && prev[existingIdx].answers.some((a) => a.wordIndex === wordIndex)) {
-          return prev;
-        }
+      const wordKey = `${roundIdRef.current}:${wordIndex}`;
+      let solversForWord = creditedSolversByWordRef.current.get(wordKey);
+      if (!solversForWord) {
+        solversForWord = { ids: new Set<string>(), names: new Set<string>() };
+        creditedSolversByWordRef.current.set(wordKey, solversForWord);
+      }
+      if (
+        (cleanId !== 'viewer' && solversForWord.ids.has(cleanId)) ||
+        (nameKey && solversForWord.names.has(nameKey))
+      ) {
+        return;
+      }
+      if (cleanId !== 'viewer') solversForWord.ids.add(cleanId);
+      if (nameKey) solversForWord.names.add(nameKey);
+      const rankInWord = Math.max(solversForWord.ids.size, solversForWord.names.size);
 
-        // Count how many players have already solved this specific wordIndex
-        const existingSolversForWord = prev.filter((p) =>
-          p.answers.some((a) => a.wordIndex === wordIndex)
-        ).length;
-        const rankInWord = existingSolversForWord + 1;
+      // Speed score: Base 400 + up to 600 speed bonus based on remaining time ratio + podium bonus for 1st/2nd/3rd fastest on this word
+      const timeRatio = Math.max(
+        0,
+        (activeTimerDuration - solveTimeSeconds) / Math.max(1, activeTimerDuration)
+      );
+      const speedBonus = Math.round(timeRatio * 600);
+      const orderBonus =
+        rankInWord === 1 ? 250 : rankInWord === 2 ? 150 : rankInWord === 3 ? 75 : 0;
+      const pointsEarned = 400 + speedBonus + orderBonus;
 
-        // Speed score: Base 400 + up to 600 speed bonus based on remaining time ratio + podium bonus for 1st/2nd/3rd fastest on this word
-        const timeRatio = Math.max(
-          0,
-          (activeTimerDuration - solveTimeSeconds) / activeTimerDuration
-        );
-        const speedBonus = Math.round(timeRatio * 600);
-        const orderBonus =
-          rankInWord === 1 ? 250 : rankInWord === 2 ? 150 : rankInWord === 3 ? 75 : 0;
-        const pointsEarned = 400 + speedBonus + orderBonus;
+      const pfp = getSafeAvatarUrl(user.profilePictureUrl, cleanId || rawNick);
 
-        // Credit linked website account if viewer's TikTok @username is linked
-        creditInteractiveScoreByTikTokHandle({
-          tiktokUsername: user.uniqueId || user.nickname,
-          gameId: 'destackint',
+      // Credit linked website account if viewer's TikTok @username is linked
+      creditInteractiveScoreByTikTokHandle({
+        tiktokUsername: user.uniqueId || rawNick,
+        gameId: 'destackint',
+        pointsEarned,
+        reason: `DeStack Interactive word: ${word} (#${rankInWord}, ${solveTimeSeconds.toFixed(1)}s)`,
+      });
+
+      const now = Date.now();
+      const newAnswerRecord = {
+        wordIndex,
+        word,
+        points: pointsEarned,
+        solveTimeSeconds,
+        rankInWord,
+        timestamp: now,
+      };
+
+      setChatFeed((feedPrev) => [
+        ...feedPrev.slice(-99),
+        {
+          id: `${now}_${Math.random().toString(36).substring(2, 7)}`,
+          uniqueId: cleanId,
+          nickname: rawNick,
+          profilePictureUrl: pfp,
+          comment,
+          isCorrectAnswer: true,
           pointsEarned,
-          reason: `DeStack Interactive word: ${word} (#${rankInWord}, ${solveTimeSeconds.toFixed(1)}s)`,
-        });
-
-        // Also append to chat feed with earned points & rank
-        setChatFeed((feedPrev) => [
-          ...feedPrev.slice(-99),
-          {
-            id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            uniqueId: user.uniqueId,
-            nickname: user.nickname,
-            profilePictureUrl: pfp,
-            comment,
-            isCorrectAnswer: true,
-            pointsEarned,
-            solveTimeSeconds,
-            rankInWord,
-            timestamp: Date.now(),
-          },
-        ]);
-
-        const newAnswerRecord = {
-          wordIndex,
-          word,
-          points: pointsEarned,
           solveTimeSeconds,
           rankInWord,
-          timestamp: Date.now(),
-        };
+          timestamp: now,
+        },
+      ]);
+
+      const upsertPlayer = (
+        prev: RunningScoreboardPlayer[],
+        initRoundsWon: boolean
+      ): RunningScoreboardPlayer[] => {
+        const dedupedPrev = deduplicateScoreboardPlayers(prev);
+        const existingIdx = dedupedPrev.findIndex((p) => {
+          const pId = normalizePlayerKey(p.id);
+          const pName = normalizePlayerKey(p.nickname);
+          const idMatch =
+            Boolean(cleanId && pId && cleanId !== 'viewer' && pId !== 'viewer' && pId === cleanId);
+          const nameMatch = Boolean(nameKey && pName && pName === nameKey);
+          return idMatch || nameMatch;
+        });
 
         let updated: RunningScoreboardPlayer[];
         if (existingIdx >= 0) {
-          const ex = prev[existingIdx];
+          const ex = dedupedPrev[existingIdx];
           const updatedPlayer: RunningScoreboardPlayer = {
             ...ex,
-            nickname: user.nickname,
+            nickname: rawNick || ex.nickname,
             profilePictureUrl: pfp || ex.profilePictureUrl,
             totalScore: ex.totalScore + pointsEarned,
             wordsSolved: ex.wordsSolved + 1,
@@ -480,15 +543,15 @@ export default function App() {
             lastSolveTimeSeconds: solveTimeSeconds,
             lastWordIndex: wordIndex,
             firstPlaceCount: ex.firstPlaceCount + (rankInWord === 1 ? 1 : 0),
-            answers: [newAnswerRecord, ...ex.answers],
-            updatedAt: Date.now(),
+            answers: [newAnswerRecord, ...ex.answers].slice(0, 60),
+            updatedAt: now,
           };
-          updated = [...prev];
+          updated = [...dedupedPrev];
           updated[existingIdx] = updatedPlayer;
         } else {
           const newPlayer: RunningScoreboardPlayer = {
-            id: user.uniqueId,
-            nickname: user.nickname,
+            id: cleanId,
+            nickname: rawNick,
             profilePictureUrl: pfp,
             totalScore: pointsEarned,
             wordsSolved: 1,
@@ -498,19 +561,18 @@ export default function App() {
             lastSolveTimeSeconds: solveTimeSeconds,
             lastWordIndex: wordIndex,
             firstPlaceCount: rankInWord === 1 ? 1 : 0,
+            ...(initRoundsWon ? { roundsWon: 0 } : {}),
             answers: [newAnswerRecord],
-            updatedAt: Date.now(),
+            updatedAt: now,
           };
-          updated = [newPlayer, ...prev];
+          updated = [newPlayer, ...dedupedPrev];
         }
 
-        return updated.sort(
-          (a, b) =>
-            b.totalScore - a.totalScore ||
-            b.wordsSolved - a.wordsSolved ||
-            a.bestSpeedSeconds - b.bestSpeedSeconds
-        );
-      });
+        return deduplicateScoreboardPlayers(updated);
+      };
+
+      setScoreboard((prev) => upsertPlayer(prev, false));
+      setOverallScoreboard((prev) => upsertPlayer(prev, true));
     },
     []
   );
@@ -537,15 +599,46 @@ export default function App() {
   const handleResetScoreboard = useCallback(() => {
     setScoreboard([]);
     setChatFeed([]);
+    roundIdRef.current += 1;
+    creditedSolversByWordRef.current.clear();
+  }, []);
+
+  const handleResetOverallScoreboard = useCallback(() => {
+    setOverallScoreboard([]);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(OVERALL_SCOREBOARD_STORAGE_KEY);
+      } catch {}
+    }
+  }, []);
+
+  const advanceToNextRound = useCallback(() => {
+    setVictoryData(null);
+    setScoreboard([]);
+    setChatFeed([]);
+    roundIdRef.current += 1;
+    creditedSolversByWordRef.current.clear();
+    setPuzzleRoundNonce((prev) => prev + 1);
+    setResetSignal((prev) => prev + 1);
+    setCurrentView('PLAYING');
   }, []);
 
   const currentPuzzle = useMemo(() => {
     return generateDailyPuzzle(selectedDateStr, difficulty, layoutMode, puzzleRoundNonce);
   }, [selectedDateStr, difficulty, layoutMode, puzzleRoundNonce]);
 
+  const isFirstRoundEffectRef = useRef(true);
   useEffect(() => {
     if (isOverlay) return;
+    if (isFirstRoundEffectRef.current) {
+      isFirstRoundEffectRef.current = false;
+      return;
+    }
     setVictoryData(null);
+    setScoreboard([]);
+    setChatFeed([]);
+    roundIdRef.current += 1;
+    creditedSolversByWordRef.current.clear();
   }, [isOverlay, selectedDateStr, difficulty, layoutMode, puzzleRoundNonce, resetSignal]);
 
   const hostOverlayPayload = useMemo<DeStackOverlayPayload>(
@@ -636,6 +729,27 @@ export default function App() {
 
     setVictoryData({ timeSeconds, hintsUsed, score, words, difficulty });
 
+    // Credit +1 Round Win strictly to this round's highest scorer (per-round scoreboard, NOT permanent standings)
+    const completedRoundId = roundIdRef.current;
+    const roundWinner = deduplicateScoreboardPlayers(scoreboardRef.current)[0];
+    if (roundWinner && !roundWinnerCreditedRef.current.has(completedRoundId)) {
+      roundWinnerCreditedRef.current.add(completedRoundId);
+      const winnerIdKey = normalizePlayerKey(roundWinner.id);
+      const winnerNameKey = normalizePlayerKey(roundWinner.nickname);
+      setOverallScoreboard((prev) =>
+        deduplicateScoreboardPlayers(
+          prev.map((p) => {
+            const pId = normalizePlayerKey(p.id);
+            const pName = normalizePlayerKey(p.nickname);
+            const isMatch =
+              (pId && winnerIdKey && pId !== 'viewer' && pId === winnerIdKey) ||
+              (pName && winnerNameKey && pName === winnerNameKey);
+            return isMatch ? { ...p, roundsWon: (p.roundsWon || 0) + 1 } : p;
+          })
+        )
+      );
+    }
+
     if (!isOverlay) {
       triggerVictoryConfetti({
         isDaily: selectedDateStr === todayDateStr,
@@ -692,6 +806,56 @@ export default function App() {
     });
   };
 
+  const overlayBoardOverlay =
+    isOverlay && effectiveVictoryData ? (
+      <RoundScoreboardModal
+        dateStr={selectedDateStr}
+        difficulty={effectiveVictoryData.difficulty}
+        words={effectiveVictoryData.words}
+        scoreboard={effectiveScoreboard}
+        setCurrentView={setCurrentView}
+        onAutoAdvance={() => {}}
+        onPlayAgain={() => {}}
+        onPlayHardMode={() => {}}
+        isOverlay={true}
+      />
+    ) : null;
+
+  const hostBoardOverlay =
+    !isOverlay && victoryData ? (
+      <RoundScoreboardModal
+        dateStr={selectedDateStr}
+        difficulty={victoryData.difficulty}
+        words={victoryData.words}
+        scoreboard={scoreboard}
+        setCurrentView={(view) => {
+          setVictoryData(null);
+          setScoreboard([]);
+          setChatFeed([]);
+          roundIdRef.current += 1;
+          creditedSolversByWordRef.current.clear();
+          setCurrentView(view);
+        }}
+        onAutoAdvance={advanceToNextRound}
+        onPlayAgain={() => {
+          advanceToNextRound();
+        }}
+        onPlayHardMode={() => {
+          setVictoryData(null);
+          setScoreboard([]);
+          setChatFeed([]);
+          roundIdRef.current += 1;
+          creditedSolversByWordRef.current.clear();
+          setDifficulty('hard');
+          setPuzzleRoundNonce((prev) => prev + 1);
+          setResetSignal((prev) => prev + 1);
+          setCurrentView('PLAYING');
+        }}
+        onOpenOverallScoreboard={() => setIsOverallScoreboardOpen(true)}
+        isOverlay={false}
+      />
+    ) : null;
+
   if (isOverlay) {
     return (
       <div
@@ -731,6 +895,7 @@ export default function App() {
             hasHostSync={isReceivingHostSync}
             syncedBoardState={syncedOverlayPayload?.boardSnapshot || null}
             overlayVictoryData={effectiveVictoryData}
+            boardOverlay={overlayBoardOverlay}
           />
         </main>
       </div>
@@ -821,7 +986,13 @@ export default function App() {
             onConsumeChatQueue={handleConsumeChatQueue}
             resetSignal={resetSignal}
             onBoardStateChange={setHostBoardSnapshot}
-            onRoundReset={() => setVictoryData(null)}
+            onRoundReset={() => {
+              setVictoryData(null);
+              handleResetScoreboard();
+            }}
+            overallScoreboardCount={overallScoreboard.length}
+            onOpenOverallScoreboard={() => setIsOverallScoreboardOpen(true)}
+            boardOverlay={hostBoardOverlay}
           />
         )}
 
@@ -840,6 +1011,7 @@ export default function App() {
             setCurrentView={setCurrentView}
             stats={stats}
             scoreboard={scoreboard}
+            overallScoreboard={overallScoreboard}
             currentUser={currentUser}
             onOpenSignIn={openSignInModal}
           />
@@ -880,41 +1052,12 @@ export default function App() {
         }}
       />
 
-      {victoryData && (
-        <RoundScoreboardModal
-          dateStr={selectedDateStr}
-          difficulty={victoryData.difficulty}
-          words={victoryData.words}
-          scoreboard={scoreboard}
-          setCurrentView={(view) => {
-            setVictoryData(null);
-            setCurrentView(view);
-          }}
-          onAutoAdvance={() => {
-            setVictoryData(null);
-            setPuzzleRoundNonce((prev) => prev + 1);
-            setResetSignal((prev) => prev + 1);
-            setCurrentView('PLAYING');
-          }}
-          onPlayAgain={(resetScores) => {
-            if (resetScores) {
-              setScoreboard([]);
-              setChatFeed([]);
-            }
-            setVictoryData(null);
-            setPuzzleRoundNonce((prev) => prev + 1);
-            setResetSignal((prev) => prev + 1);
-            setCurrentView('PLAYING');
-          }}
-          onPlayHardMode={() => {
-            setVictoryData(null);
-            setDifficulty('hard');
-            setPuzzleRoundNonce((prev) => prev + 1);
-            setResetSignal((prev) => prev + 1);
-            setCurrentView('PLAYING');
-          }}
-        />
-      )}
+      <OverallScoreboardModal
+        isOpen={isOverallScoreboardOpen}
+        overallScoreboard={overallScoreboard}
+        onClose={() => setIsOverallScoreboardOpen(false)}
+        onResetOverallScoreboard={handleResetOverallScoreboard}
+      />
 
       <UnifiedAuthModal
         isOpen={showAuthModal}

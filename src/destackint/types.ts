@@ -78,6 +78,7 @@ export interface RunningScoreboardPlayer {
   lastSolveTimeSeconds: number;
   lastWordIndex: number;
   firstPlaceCount: number; // how many words they were 1st on
+  roundsWon?: number; // how many rounds they finished #1 overall
   answers: PlayerAnswerRecord[];
   updatedAt: number;
 }

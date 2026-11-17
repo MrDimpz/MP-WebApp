@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { RunningScoreboardPlayer, LiveChatItem } from '../types';
 import { getSafeAvatarUrl, handleAvatarError } from '../utils/avatar';
+import { deduplicateScoreboardPlayers, normalizePlayerKey } from '../utils/scoreboard';
 
 interface TikTokLivePanelProps {
   tiktokUsername: string;
@@ -29,6 +30,8 @@ interface TikTokLivePanelProps {
   currentWordSolvers: string[]; // uniqueIds of players who solved the current word
   onOpenConnectModal: () => void;
   onResetScoreboard: () => void;
+  overallScoreboardCount: number;
+  onOpenOverallScoreboard: () => void;
   onSimulateChat: (data: {
     uniqueId: string;
     nickname: string;
@@ -106,6 +109,8 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
   currentWordSolvers,
   onOpenConnectModal,
   onResetScoreboard,
+  overallScoreboardCount,
+  onOpenOverallScoreboard,
   onSimulateChat,
   onSimulateWave,
 }) => {
@@ -116,6 +121,7 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
 
   const activePersona = SAMPLE_PERSONAS[selectedPersonaIdx % SAMPLE_PERSONAS.length];
   const isTestRoom = roomId === 'TEST_SIMULATION_ROOM';
+  const uniqueScoreboard = deduplicateScoreboardPlayers(scoreboard);
 
   useEffect(() => {
     const scrollToLatest = () => {
@@ -139,7 +145,6 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
       profilePictureUrl: activePersona.profilePictureUrl,
     });
     setChatInput('');
-    setSelectedPersonaIdx((prev) => (prev + 1) % SAMPLE_PERSONAS.length);
   };
 
   return (
@@ -184,22 +189,38 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenOverallScoreboard}
+            title="Show Overall Permanent Running Scoreboard"
+            className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400/25 to-yellow-500/20 hover:from-amber-400/35 hover:to-yellow-500/30 border border-amber-300/60 text-amber-200 font-extrabold text-[11px] flex items-center gap-1.5 cursor-pointer transition-all"
+          >
+            <Crown className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+            <span>Overall Scoreboard</span>
+            {overallScoreboardCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-[#2d0938] text-[9px] font-black tabular-nums">
+                {overallScoreboardCount}
+              </span>
+            )}
+          </button>
+
           <button
             type="button"
             onClick={onSimulateWave}
-            title="Simulate 5 viewers answering at different speeds to test the running & round scoreboards"
-            className="px-2.5 py-1.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 border border-amber-300/40 text-amber-200 font-extrabold text-[11px] flex items-center gap-1.5 cursor-pointer transition-all"
+            title="Simulate viewers answering at different speeds to test the round & overall scoreboards"
+            className="px-2.5 py-1.5 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-300/40 text-amber-200 font-extrabold text-[11px] flex items-center gap-1.5 cursor-pointer transition-all"
           >
             <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-            <span>Simulate Chat Rush</span>
+            <span className="hidden sm:inline">Simulate Chat Rush</span>
+            <span className="sm:hidden">Simulate</span>
           </button>
 
           {scoreboard.length > 0 && (
             <button
               type="button"
               onClick={onResetScoreboard}
-              title="Reset Running Scoreboard"
+              title="Reset Round Scoreboard"
               className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-purple-200 hover:text-amber-300 transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -247,32 +268,40 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
             activeTab === 'chat' ? 'hidden sm:flex' : 'flex'
           }`}
         >
-          <div className="px-3.5 py-2.5 bg-black/25 border-b border-purple-400/15 flex items-center justify-between">
+          <div className="px-3.5 py-2.5 bg-black/25 border-b border-purple-400/15 flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-300 uppercase tracking-wider">
               <Trophy className="w-4 h-4 text-amber-400" />
-              <span>Running Scoreboard</span>
+              <span>Round Scoreboard</span>
             </div>
-            <span className="text-[11px] font-mono text-purple-200/75 flex items-center gap-1">
+          <span className="text-[11px] font-mono text-purple-200/75 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-amber-300" />
-              {scoreboard.length} {scoreboard.length === 1 ? 'Player' : 'Players'} Scored
+              {uniqueScoreboard.length} {uniqueScoreboard.length === 1 ? 'Player' : 'Players'}
             </span>
           </div>
 
           <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
-            {scoreboard.length === 0 ? (
+            {uniqueScoreboard.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-4 text-purple-200/60">
                 <Trophy className="w-8 h-8 text-amber-400/40 mb-2" />
                 <p className="text-xs font-bold text-purple-100 mb-1">
                   Waiting for Correct Chat Answers...
                 </p>
                 <p className="text-[11px] max-w-[240px] leading-relaxed">
-                  Everyone who types the correct 5-letter word in chat before the timer runs out earns speed-based points!
+                  Guess as many times as you want in chat until you get the right 5-letter word — faster correct answers earn more points! (Resets after each round.)
                 </p>
               </div>
             ) : (
-              scoreboard.map((player, index) => {
+              uniqueScoreboard.map((player, index) => {
                 const rank = index + 1;
-                const solvedCurrent = currentWordSolvers.includes(player.id);
+                const playerIdKey = normalizePlayerKey(player.id);
+                const playerNameKey = normalizePlayerKey(player.nickname);
+                const solvedCurrent = currentWordSolvers.some((solverId) => {
+                  const sKey = normalizePlayerKey(solverId);
+                  return (
+                    (playerIdKey && sKey === playerIdKey) ||
+                    (playerNameKey && sKey === playerNameKey)
+                  );
+                });
 
                 // Visual emphasis on 1st, then 2nd, then 3rd
                 const rankCardStyle =
