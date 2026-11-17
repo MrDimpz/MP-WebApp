@@ -1077,47 +1077,97 @@ export default function MPSearchInteractiveApp() {
                   </p>
                 </div>
               ) : (
-                scoreboard.slice(0, 6).map((player, idx) => (
-                  <div
-                    key={player.id}
-                    className={`flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl border ${
-                      idx === 0
-                        ? 'bg-amber-400/20 border-amber-400/80'
-                        : idx === 1
-                        ? 'bg-slate-300/15 border-slate-300/60'
-                        : idx === 2
-                        ? 'bg-amber-600/20 border-amber-500/60'
-                        : 'bg-purple-950/60 border-purple-800/60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className={`w-6 h-6 rounded-md flex items-center justify-center font-mono text-xs font-black shrink-0 ${
+                <AnimatePresence initial={false}>
+                  {scoreboard.slice(0, 6).map((player, idx) => {
+                    const latestWord = player.words[player.words.length - 1];
+                    return (
+                      <motion.div
+                        key={player.id}
+                        layout="position"
+                        initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                        className={`flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl border ${
                           idx === 0
-                            ? 'bg-amber-400 text-[#1A052A]'
+                            ? 'bg-amber-400/20 border-amber-400/80 shadow-[0_0_16px_rgba(251,191,36,0.16)]'
                             : idx === 1
-                            ? 'bg-slate-200 text-slate-900'
+                            ? 'bg-slate-300/15 border-slate-300/60'
                             : idx === 2
-                            ? 'bg-amber-600 text-white'
-                            : 'bg-purple-800 text-purple-200'
+                            ? 'bg-amber-600/20 border-amber-500/60'
+                            : 'bg-purple-950/60 border-purple-800/60'
                         }`}
                       >
-                        #{idx + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="text-xs font-black text-white truncate">
-                          {player.nickname}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className={`w-6 h-6 rounded-md flex items-center justify-center font-mono text-xs font-black shrink-0 ${
+                              idx === 0
+                                ? 'bg-amber-400 text-[#1A052A]'
+                                : idx === 1
+                                ? 'bg-slate-200 text-slate-900'
+                                : idx === 2
+                                ? 'bg-amber-600 text-white'
+                                : 'bg-purple-800 text-purple-200'
+                            }`}
+                          >
+                            #{idx + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="text-xs font-black text-white truncate">
+                              {player.nickname}
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              <AnimatePresence initial={false}>
+                                {player.words.map((w) => (
+                                  <motion.span
+                                    key={w.word}
+                                    initial={{ opacity: 0, scale: 0.72, y: 5 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    transition={{ type: 'spring', stiffness: 420, damping: 22 }}
+                                    className="relative overflow-hidden inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-900/90 border border-amber-300/40 text-[10px] font-mono font-bold text-purple-100 shadow-xs"
+                                  >
+                                    <motion.span
+                                      aria-hidden="true"
+                                      initial={{ x: '-115%', opacity: 0.9 }}
+                                      animate={{ x: '130%', opacity: 0 }}
+                                      transition={{ duration: 0.85, ease: 'easeOut' }}
+                                      className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/75 to-emerald-300/65 z-0"
+                                    />
+                                    <span className="relative z-10 tracking-wide">{w.word}</span>
+                                    <span className="relative z-10 px-1 rounded bg-amber-400/20 text-amber-300 font-black">
+                                      +{w.points}
+                                    </span>
+                                  </motion.span>
+                                ))}
+                              </AnimatePresence>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-[10px] text-purple-200/80 truncate">
-                          {player.words.map((w) => `${w.word} (${w.length}L)`).join(', ')}
+                        <div className="text-right shrink-0">
+                          <motion.div
+                            key={player.score}
+                            initial={{ scale: 1.18 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+                            className="font-mono tabular-nums text-xs font-black text-amber-300 origin-right"
+                          >
+                            {player.score} PTS
+                          </motion.div>
+                          {latestWord && (
+                            <motion.div
+                              key={`${player.id}-${player.lastWordAt}`}
+                              initial={{ opacity: 0, y: 4, scale: 0.85 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              transition={{ duration: 0.3, ease: 'easeOut' }}
+                              className="text-[9px] font-mono font-bold text-emerald-300"
+                            >
+                              +{latestWord.points} {latestWord.word}
+                            </motion.div>
+                          )}
                         </div>
-                      </div>
-                    </div>
-                    <div className="font-mono tabular-nums text-xs font-black text-amber-300 shrink-0">
-                      {player.score} PTS
-                    </div>
-                  </div>
-                ))
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
               )}
             </div>
 
@@ -1133,25 +1183,27 @@ export default function MPSearchInteractiveApp() {
                     No words revealed yet — scan the 10×10 grid!
                   </span>
                 ) : (
-                  foundEntries.map((entry) => (
-                    <motion.span
-                      key={entry.word}
-                      initial={{ scale: 1.12 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.45, ease: 'easeOut' }}
-                      className="relative overflow-hidden inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/50 text-emerald-200 font-mono text-[11px] font-bold"
-                    >
+                  <AnimatePresence initial={false}>
+                    {foundEntries.map((entry) => (
                       <motion.span
-                        aria-hidden="true"
-                        initial={{ opacity: 0.9 }}
-                        animate={{ opacity: 0 }}
-                        transition={{ duration: 1.35, ease: 'easeOut' }}
-                        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-amber-300 via-yellow-300 to-emerald-300 z-0"
-                      />
-                      <span className="relative z-10">{entry.word}</span>
-                      <span className="relative z-10 text-amber-300">+{entry.points}</span>
-                    </motion.span>
-                  ))
+                        key={entry.word}
+                        initial={{ opacity: 0, scale: 0.76, y: 5 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                        className="relative overflow-hidden inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/50 text-emerald-200 font-mono text-[11px] font-bold shadow-xs"
+                      >
+                        <motion.span
+                          aria-hidden="true"
+                          initial={{ x: '-115%', opacity: 0.9 }}
+                          animate={{ x: '130%', opacity: 0 }}
+                          transition={{ duration: 0.95, ease: 'easeOut' }}
+                          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/80 to-emerald-300/70 z-0"
+                        />
+                        <span className="relative z-10">{entry.word}</span>
+                        <span className="relative z-10 text-amber-300">+{entry.points}</span>
+                      </motion.span>
+                    ))}
+                  </AnimatePresence>
                 )}
               </div>
             </div>
@@ -1549,73 +1601,115 @@ export default function MPSearchInteractiveApp() {
                         </p>
                       </div>
                     ) : (
-                      scoreboard.map((player, index) => {
-                        const rank = index + 1;
-                        return (
-                          <div
-                            key={player.id}
-                            className={`flex items-center justify-between gap-2.5 p-2.5 rounded-xl border transition-all ${
-                              rank === 1
-                                ? 'bg-amber-400/15 border-amber-400/80 shadow-xs'
-                                : rank === 2
-                                ? 'bg-slate-300/15 border-slate-300/70'
-                                : rank === 3
-                                ? 'bg-amber-600/15 border-amber-500/70'
-                                : 'bg-[#FAF6EE]/90 dark:bg-purple-950/60 border-purple-200/70 dark:border-purple-800/70'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <span
-                                className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono text-xs font-black shrink-0 ${
-                                  rank === 1
-                                    ? 'bg-amber-400 text-[#1F0630]'
-                                    : rank === 2
-                                    ? 'bg-slate-200 text-slate-900'
-                                    : rank === 3
-                                    ? 'bg-amber-600 text-white'
-                                    : 'bg-purple-200 dark:bg-purple-800 text-[#2B0938] dark:text-purple-100'
-                                }`}
-                              >
-                                #{rank}
-                              </span>
-                              <img
-                                src={player.avatar}
-                                alt=""
-                                className="w-7 h-7 rounded-full bg-purple-900 border border-purple-400/40 shrink-0"
-                              />
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs sm:text-sm font-black text-[#2B0938] dark:text-white truncate">
-                                    {player.nickname}
-                                  </span>
-                                  <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-purple-300">
-                                    ({player.wordsFound}w)
-                                  </span>
-                                </div>
-                                <div className="flex flex-wrap gap-1 mt-0.5">
-                                  {player.words.map((w) => (
-                                    <span
-                                      key={w.word}
-                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-purple-100 dark:bg-purple-900/90 text-[10px] font-mono font-bold text-[#3b0d47] dark:text-purple-200"
-                                    >
-                                      {w.word}
-                                      <span className="text-amber-600 dark:text-amber-300">
-                                        ({w.length}L=+{w.points})
-                                      </span>
+                      <AnimatePresence initial={false}>
+                        {scoreboard.map((player, index) => {
+                          const rank = index + 1;
+                          const latestWord = player.words[player.words.length - 1];
+                          return (
+                            <motion.div
+                              key={player.id}
+                              layout="position"
+                              initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                              className={`flex items-center justify-between gap-2.5 p-2.5 rounded-xl border transition-colors ${
+                                rank === 1
+                                  ? 'bg-amber-400/15 border-amber-400/80 shadow-xs'
+                                  : rank === 2
+                                  ? 'bg-slate-300/15 border-slate-300/70'
+                                  : rank === 3
+                                  ? 'bg-amber-600/15 border-amber-500/70'
+                                  : 'bg-[#FAF6EE]/90 dark:bg-purple-950/60 border-purple-200/70 dark:border-purple-800/70'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span
+                                  className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono text-xs font-black shrink-0 ${
+                                    rank === 1
+                                      ? 'bg-amber-400 text-[#1F0630]'
+                                      : rank === 2
+                                      ? 'bg-slate-200 text-slate-900'
+                                      : rank === 3
+                                      ? 'bg-amber-600 text-white'
+                                      : 'bg-purple-200 dark:bg-purple-800 text-[#2B0938] dark:text-purple-100'
+                                  }`}
+                                >
+                                  #{rank}
+                                </span>
+                                <img
+                                  src={player.avatar}
+                                  alt=""
+                                  className="w-7 h-7 rounded-full bg-purple-900 border border-purple-400/40 shrink-0"
+                                />
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs sm:text-sm font-black text-[#2B0938] dark:text-white truncate">
+                                      {player.nickname}
                                     </span>
-                                  ))}
+                                    <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-purple-300">
+                                      ({player.wordsFound}w)
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    <AnimatePresence initial={false}>
+                                      {player.words.map((w) => (
+                                        <motion.span
+                                          key={w.word}
+                                          initial={{ opacity: 0, scale: 0.72, y: 6 }}
+                                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                                          transition={{
+                                            type: 'spring',
+                                            stiffness: 420,
+                                            damping: 22,
+                                          }}
+                                          className="relative overflow-hidden inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gradient-to-r from-purple-100 to-amber-50 dark:from-purple-900/95 dark:to-[#2e0948] border border-purple-300/75 dark:border-amber-400/35 text-[10px] font-mono font-bold text-[#3b0d47] dark:text-purple-100 shadow-xs"
+                                        >
+                                          <motion.span
+                                            aria-hidden="true"
+                                            initial={{ x: '-115%', opacity: 0.9 }}
+                                            animate={{ x: '130%', opacity: 0 }}
+                                            transition={{ duration: 0.85, ease: 'easeOut' }}
+                                            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/80 to-emerald-300/65 z-0"
+                                          />
+                                          <span className="relative z-10 tracking-wide">
+                                            {w.word}
+                                          </span>
+                                          <span className="relative z-10 px-1 rounded bg-amber-400/20 text-amber-700 dark:text-amber-300 font-black">
+                                            {w.length}L · +{w.points}
+                                          </span>
+                                        </motion.span>
+                                      ))}
+                                    </AnimatePresence>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            <div className="text-right shrink-0">
-                              <div className="font-mono tabular-nums text-sm sm:text-base font-black text-amber-600 dark:text-amber-300">
-                                {player.score} PTS
+                              <div className="text-right shrink-0">
+                                <motion.div
+                                  key={player.score}
+                                  initial={{ scale: 1.18 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+                                  className="font-mono tabular-nums text-sm sm:text-base font-black text-amber-600 dark:text-amber-300 origin-right"
+                                >
+                                  {player.score} PTS
+                                </motion.div>
+                                {latestWord && (
+                                  <motion.div
+                                    key={`${player.id}-${player.lastWordAt}`}
+                                    initial={{ opacity: 0, y: 4, scale: 0.85 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                                    className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-300"
+                                  >
+                                    +{latestWord.points} {latestWord.word}
+                                  </motion.div>
+                                )}
                               </div>
-                            </div>
-                          </div>
-                        );
-                      })
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
                     )}
                   </div>
 
@@ -1637,30 +1731,32 @@ export default function MPSearchInteractiveApp() {
                       </div>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
-                        {foundEntries.map((item) => (
-                          <motion.span
-                            key={item.word}
-                            initial={{ scale: 1.1 }}
-                            animate={{ scale: 1 }}
-                            transition={{ duration: 0.45, ease: 'easeOut' }}
-                            className="relative overflow-hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-xs font-mono font-bold text-emerald-900 dark:text-emerald-200"
-                          >
+                        <AnimatePresence initial={false}>
+                          {foundEntries.map((item) => (
                             <motion.span
-                              aria-hidden="true"
-                              initial={{ opacity: 0.9 }}
-                              animate={{ opacity: 0 }}
-                              transition={{ duration: 1.35, ease: 'easeOut' }}
-                              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-amber-300/90 via-yellow-300/80 to-emerald-400/80 z-0"
-                            />
-                            <span className="relative z-10">{item.word}</span>
-                            <span className="relative z-10 text-[10px] px-1 rounded bg-emerald-500/25 text-emerald-800 dark:text-emerald-100">
-                              {item.length}L · +{item.points}
-                            </span>
-                            <span className="relative z-10 text-[10px] text-slate-500 dark:text-purple-300">
-                              @{item.finderName}
-                            </span>
-                          </motion.span>
-                        ))}
+                              key={item.word}
+                              initial={{ opacity: 0, scale: 0.76, y: 6 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                              className="relative overflow-hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/45 text-xs font-mono font-bold text-emerald-900 dark:text-emerald-200 shadow-xs"
+                            >
+                              <motion.span
+                                aria-hidden="true"
+                                initial={{ x: '-115%', opacity: 0.9 }}
+                                animate={{ x: '130%', opacity: 0 }}
+                                transition={{ duration: 0.95, ease: 'easeOut' }}
+                                className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/85 to-emerald-400/75 z-0"
+                              />
+                              <span className="relative z-10">{item.word}</span>
+                              <span className="relative z-10 text-[10px] px-1 rounded bg-emerald-500/25 text-emerald-800 dark:text-emerald-100">
+                                {item.length}L · +{item.points}
+                              </span>
+                              <span className="relative z-10 text-[10px] text-slate-500 dark:text-purple-300">
+                                @{item.finderName}
+                              </span>
+                            </motion.span>
+                          ))}
+                        </AnimatePresence>
                       </div>
                     )}
                   </div>
