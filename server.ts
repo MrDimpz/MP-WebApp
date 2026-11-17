@@ -2250,16 +2250,36 @@ async function startServer() {
     res.sendFile(pngPath);
   });
 
-  const distPath = path.join(__dirname, "dist");
+  const candidateDistDirs = [
+    path.join(__dirname, "dist"),
+    path.resolve(process.cwd(), "dist"),
+  ];
+  const distPath =
+    candidateDistDirs.find((dir) =>
+      fs.existsSync(path.join(dir, "index.html")),
+    ) || candidateDistDirs[0];
   const hasBuiltDist = fs.existsSync(path.join(distPath, "index.html"));
-  const isExplicitDev =
-    process.env.NODE_ENV === "development" ||
-    process.env.npm_lifecycle_event === "dev";
+  const isDevLifecycle =
+    process.env.npm_lifecycle_event === "dev" ||
+    (__filename.endsWith(".ts") &&
+      process.env.npm_lifecycle_event !== "start" &&
+      process.env.NODE_ENV === "development");
   const useProdStatic =
     hasBuiltDist &&
-    (process.env.NODE_ENV === "production" ||
+    (__filename.endsWith(".js") ||
       process.env.npm_lifecycle_event === "start" ||
-      (!isExplicitDev && __filename.endsWith(".js")));
+      process.env.NODE_ENV === "production" ||
+      !isDevLifecycle);
+
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      ok: true,
+      mode: useProdStatic ? "production" : "development",
+      bootId: serverBootId,
+      distReady: hasBuiltDist,
+      uptimeSec: Math.round(process.uptime()),
+    });
+  });
 
   if (!useProdStatic) {
     const { createServer: createViteServer } = await import("vite");
@@ -2305,7 +2325,9 @@ async function startServer() {
 
   const PORT = Number(process.env.PORT) || 3000;
   httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(
+      `Server running on port ${PORT} (${useProdStatic ? "production-static" : "vite-dev"})`,
+    );
   });
 }
 

@@ -40,15 +40,19 @@ function generateHostingerZipFromDist(): void {
     } catch {}
   }
 
+  const publicDir = path.resolve(ROOT_DIR, 'public');
+
   const pyScript = `
 import os, shutil, zipfile
 
 dist_dir = ${JSON.stringify(DIST_DIR)}
+public_dir = ${JSON.stringify(publicDir)}
 zip_path = ${JSON.stringify(PUBLIC_ZIP_PATH)}
 dist_zip_path = ${JSON.stringify(distZip)}
 tmp_zip_path = zip_path + ".tmp"
 
 store_exts = {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.mp4', '.webm', '.woff', '.woff2'}
+added_names = set()
 
 with zipfile.ZipFile(tmp_zip_path, 'w') as zf:
     for root, dirs, files in os.walk(dist_dir):
@@ -65,6 +69,14 @@ with zipfile.ZipFile(tmp_zip_path, 'w') as zf:
             ext = os.path.splitext(file)[1].lower()
             compress_type = zipfile.ZIP_STORED if ext in store_exts else zipfile.ZIP_DEFLATED
             zf.write(full_path, arcname, compress_type=compress_type)
+            added_names.add(arcname)
+
+    # Ensure PHP/Apache fallback files are included in the static ZIP even if stripped from Node dist/
+    for extra_rel in ('.htaccess', 'api/relay.php'):
+        if extra_rel not in added_names:
+            src_extra = os.path.join(public_dir, extra_rel)
+            if os.path.isfile(src_extra):
+                zf.write(src_extra, extra_rel, compress_type=zipfile.ZIP_DEFLATED)
 
 os.replace(tmp_zip_path, zip_path)
 shutil.copyfile(zip_path, dist_zip_path)
@@ -73,16 +85,38 @@ shutil.copyfile(zip_path, dist_zip_path)
   execFileSync('python3', ['-c', pyScript], { stdio: 'ignore' });
 }
 
+function stripApacheRewriteFilesFromDist(): void {
+  const distHtaccess = path.join(DIST_DIR, '.htaccess');
+  if (fs.existsSync(distHtaccess)) {
+    try {
+      fs.unlinkSync(distHtaccess);
+    } catch {}
+  }
+  const distRelayPhp = path.join(DIST_DIR, 'api', 'relay.php');
+  if (fs.existsSync(distRelayPhp)) {
+    try {
+      fs.unlinkSync(distRelayPhp);
+      const apiDir = path.join(DIST_DIR, 'api');
+      if (fs.existsSync(apiDir) && fs.readdirSync(apiDir).length === 0) {
+        fs.rmdirSync(apiDir);
+      }
+    } catch {}
+  }
+}
+
 function hostingerZipPlugin(): Plugin {
   return {
     name: 'hostinger-zip-plugin',
     closeBundle() {
-      if (process.env.SKIP_HOSTINGER_ZIP === 'true') return;
-      try {
-        generateHostingerZipFromDist();
-      } catch (err) {
-        console.warn('Failed to generate Hostinger zip in closeBundle:', err);
+      if (process.env.SKIP_HOSTINGER_ZIP !== 'true') {
+        try {
+          generateHostingerZipFromDist();
+        } catch (err) {
+          console.warn('Failed to generate Hostinger zip in closeBundle:', err);
+        }
       }
+      // Keep Node.js dist/ clean of Apache .htaccess/relay.php rewrite rules
+      stripApacheRewriteFilesFromDist();
     },
     configureServer(server) {
       const handleZipDownload = (req: any, res: any, next: any) => {

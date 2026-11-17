@@ -292,6 +292,10 @@ type Listener<T> = (payload: T) => void;
 class LiveChatBridge {
   private socket: Socket | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private pollInFlight = false;
+  private httpCooldownUntil = 0;
+  private httpBackoffMs = 0;
+  private lastPollAt = 0;
   private lastSeq = 0;
   private seenSeqs = new Set<number>();
 
@@ -303,6 +307,17 @@ class LiveChatBridge {
   private currentStatus: LiveStatusEvent = { connected: false };
   private initialized = false;
   private sessionId = "isolated_default";
+
+  private isOverlayRoute(): boolean {
+    if (typeof window === "undefined") return false;
+    const cleanPath = window.location.pathname.toLowerCase().replace(/\/+$/, "");
+    const params = new URLSearchParams(window.location.search);
+    return (
+      cleanPath.endsWith("/overlay") ||
+      params.get("overlay") === "1" ||
+      params.get("clean") === "1"
+    );
+  }
 
   private getSessionId(): string {
     const nextId = getCurrentUserSessionPrefix();
@@ -317,6 +332,7 @@ class LiveChatBridge {
 
   public init() {
     if (this.initialized || typeof window === "undefined") return;
+    if (this.isOverlayRoute()) return;
     this.initialized = true;
     this.sessionId = getCurrentUserSessionPrefix();
 
@@ -324,7 +340,10 @@ class LiveChatBridge {
       this.socket = io(window.location.origin, {
         path: "/socket.io",
         transports: ["polling", "websocket"],
-        reconnectionAttempts: 8,
+        reconnectionAttempts: 12,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 15000,
+        randomizationFactor: 0.5,
         query: {
           sessionId: this.sessionId,
         },
@@ -360,9 +379,19 @@ class LiveChatBridge {
       // Fallback to HTTP polling
     }
 
+    // Gentle fallback poll: 12s when idle/socket connected, 4s only when actively connected & socket disconnected
     this.pollTimer = setInterval(() => {
-      void this.pollEvents();
-    }, 1500);
+      const now = Date.now();
+      const socketUp = Boolean(this.socket?.connected);
+      const minInterval = socketUp
+        ? 12000
+        : this.currentStatus.connected
+          ? 4000
+          : 15000;
+      if (now - this.lastPollAt >= minInterval) {
+        void this.pollEvents();
+      }
+    }, 2000);
   }
 
   private shouldProcess(seq?: number): boolean {
@@ -385,12 +414,28 @@ class LiveChatBridge {
   }
 
   private async pollEvents() {
+    const now = Date.now();
+    if (this.pollInFlight || now < this.httpCooldownUntil) return;
+    if (typeof document !== "undefined" && document.hidden && !this.currentStatus.connected) {
+      return;
+    }
+    this.pollInFlight = true;
+    this.lastPollAt = now;
     try {
       const sid = encodeURIComponent(this.getSessionId());
       const res = await fetch(
         `/api/tiktok/events?sessionId=${sid}&since=${this.lastSeq}`,
       );
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (res.status === 426 || res.status === 429 || res.status >= 500) {
+          this.httpBackoffMs =
+            this.httpBackoffMs > 0 ? Math.min(60000, this.httpBackoffMs * 2) : 10000;
+          this.httpCooldownUntil = Date.now() + this.httpBackoffMs;
+        }
+        return;
+      }
+      this.httpBackoffMs = 0;
+      this.httpCooldownUntil = 0;
       const contentType = res.headers.get("content-type") || "";
       if (!contentType.includes("application/json")) return;
       const data = await res.json();
@@ -435,6 +480,8 @@ class LiveChatBridge {
       }
     } catch {
       // Ignore network polling errors
+    } finally {
+      this.pollInFlight = false;
     }
   }
 

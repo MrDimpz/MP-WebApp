@@ -6,6 +6,7 @@ import {
   normalizeIncomingChatPayload,
   triggerResilientConnect,
 } from '@/lib/live-chat-bridge';
+import { getOverlayConfigFromLocation } from '@/lib/live-overlay';
 import { getCurrentUserSessionPrefix } from '@/lib/unified-game-auth';
 import { touchActiveInteractiveStreamerSession } from '@/lib/interactive-key-auth';
 import { gameEngine } from '../server/gameEngine.ts';
@@ -43,12 +44,15 @@ export class TikTokIntegrationService {
 
   private initBridge(): void {
     if (typeof window === 'undefined') return;
+    if (getOverlayConfigFromLocation().isOverlay) return;
 
     try {
       const s = io({
         path: '/socket.io',
         transports: ['polling', 'websocket'],
         reconnectionAttempts: 8,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 15000,
         timeout: 5000,
         query: {
           sessionId: getCurrentUserSessionPrefix(),

@@ -397,6 +397,9 @@ export function useOverlaySync<T>({
   const lastSerializedPacketRef = useRef<string>('');
 
   const lastHttpPostAtRef = useRef<number>(0);
+  const httpCooldownUntilRef = useRef<number>(0);
+  const httpBackoffMsRef = useRef<number>(0);
+  const lastDirectSyncAtRef = useRef<number>(0);
   const lastLocalStorageAtRef = useRef<number>(0);
   const lastFirestoreWriteAtRef = useRef<number>(0);
   const lastFirestoreSuccessAtRef = useRef<number>(0);
@@ -595,10 +598,30 @@ export function useOverlaySync<T>({
     }
   };
 
+  const recordHttpFailureBackoff = (status: number) => {
+    if (status === 426 || status === 429 || status >= 500) {
+      const nextBackoff =
+        httpBackoffMsRef.current > 0
+          ? Math.min(60000, httpBackoffMsRef.current * 2)
+          : 8000;
+      httpBackoffMsRef.current = nextBackoff;
+      httpCooldownUntilRef.current = Date.now() + nextBackoff;
+    }
+  };
+
+  const resetHttpBackoff = () => {
+    httpBackoffMsRef.current = 0;
+    httpCooldownUntilRef.current = 0;
+  };
+
   const flushHttpPost = (serializedBody: string, packetSeq = 0) => {
     if (isOverlay || !isMountedRef.current || !serializedBody) return;
 
     const now = Date.now();
+    if (now < httpCooldownUntilRef.current) {
+      queuedPostBodyRef.current = { body: serializedBody, seq: packetSeq };
+      return;
+    }
     // Recover from a stalled fetch older than 4.5s
     if (postInFlightRef.current && now - postStartedAtRef.current < 4500) {
       queuedPostBodyRef.current = { body: serializedBody, seq: packetSeq };
@@ -608,6 +631,11 @@ export function useOverlaySync<T>({
     const sendNext = (bodyToSend: string, seqToSend: number) => {
       if (!isMountedRef.current || isOverlay) {
         postInFlightRef.current = false;
+        return;
+      }
+      if (Date.now() < httpCooldownUntilRef.current) {
+        postInFlightRef.current = false;
+        queuedPostBodyRef.current = { body: bodyToSend, seq: seqToSend };
         return;
       }
       postInFlightRef.current = true;
@@ -630,8 +658,13 @@ export function useOverlaySync<T>({
         signal: controller?.signal,
       })
         .then((res) => {
-          if (res.ok && seqToSend > lastHttpConfirmedSeqRef.current) {
-            lastHttpConfirmedSeqRef.current = seqToSend;
+          if (res.ok) {
+            resetHttpBackoff();
+            if (seqToSend > lastHttpConfirmedSeqRef.current) {
+              lastHttpConfirmedSeqRef.current = seqToSend;
+            }
+          } else {
+            recordHttpFailureBackoff(res.status);
           }
         })
         .catch(() => {
@@ -642,7 +675,12 @@ export function useOverlaySync<T>({
           postInFlightRef.current = false;
           const queued = queuedPostBodyRef.current;
           queuedPostBodyRef.current = null;
-          if (queued && isMountedRef.current && !isOverlay) {
+          if (
+            queued &&
+            isMountedRef.current &&
+            !isOverlay &&
+            Date.now() >= httpCooldownUntilRef.current
+          ) {
             sendNext(queued.body, queued.seq);
           }
         });
@@ -699,6 +737,9 @@ export function useOverlaySync<T>({
     lastPacketRef.current = null;
     lastSerializedPacketRef.current = '';
     lastHttpPostAtRef.current = 0;
+    httpCooldownUntilRef.current = 0;
+    httpBackoffMsRef.current = 0;
+    lastDirectSyncAtRef.current = 0;
     lastLocalStorageAtRef.current = 0;
     lastFirestoreWriteAtRef.current = 0;
     lastFirestoreSuccessAtRef.current = 0;
@@ -723,9 +764,10 @@ export function useOverlaySync<T>({
       path: '/socket.io',
       transports: ['polling', 'websocket'],
       reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 800,
-      reconnectionDelayMax: 4000,
+      reconnectionAttempts: 25,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 15000,
+      randomizationFactor: 0.5,
       query: { gameId: `${cleanGameId}-overlay` },
     });
     socketRef.current = socket;
@@ -819,34 +861,33 @@ export function useOverlaySync<T>({
 
       if (forceNetwork) {
         const pktSeq = packet.seq || 0;
+        const minHttpIntervalMs = socket.connected ? 2000 : 1200;
         if (socket.connected) {
           socket.emit('overlay-state-update', packet);
-          if (
-            lastHttpPostAtRef.current === 0 ||
-            nowMs - lastHttpPostAtRef.current >= 500
-          ) {
-            if (httpTrailingTimerRef.current) {
-              clearTimeout(httpTrailingTimerRef.current);
-              httpTrailingTimerRef.current = null;
-            }
-            flushHttpPost(serialized, pktSeq);
-          } else if (!httpTrailingTimerRef.current) {
-            httpTrailingTimerRef.current = setTimeout(() => {
-              httpTrailingTimerRef.current = null;
-              if (lastSerializedPacketRef.current) {
-                flushHttpPost(
-                  lastSerializedPacketRef.current,
-                  lastPacketRef.current?.seq || 0
-                );
-              }
-            }, 350);
-          }
-        } else {
+        }
+        if (
+          lastHttpPostAtRef.current === 0 ||
+          nowMs - lastHttpPostAtRef.current >= minHttpIntervalMs
+        ) {
           if (httpTrailingTimerRef.current) {
             clearTimeout(httpTrailingTimerRef.current);
             httpTrailingTimerRef.current = null;
           }
           flushHttpPost(serialized, pktSeq);
+        } else if (!httpTrailingTimerRef.current) {
+          const waitMs = Math.max(
+            400,
+            minHttpIntervalMs - (nowMs - lastHttpPostAtRef.current) + 50
+          );
+          httpTrailingTimerRef.current = setTimeout(() => {
+            httpTrailingTimerRef.current = null;
+            if (lastSerializedPacketRef.current) {
+              flushHttpPost(
+                lastSerializedPacketRef.current,
+                lastPacketRef.current?.seq || 0
+              );
+            }
+          }, waitMs);
         }
 
         // Cross-origin Firestore sync (immediately if first write or idle, coalesced otherwise)
@@ -976,6 +1017,9 @@ export function useOverlaySync<T>({
         hasDelivered: true,
         source,
       };
+      if (source === 'network') {
+        lastDirectSyncAtRef.current = Date.now();
+      }
 
       if (!hasReceivingSyncRef.current) {
         hasReceivingSyncRef.current = true;
@@ -1082,14 +1126,18 @@ export function useOverlaySync<T>({
         }
       }
 
-      // 5) Version-checked HTTP /api/overlay/state fallback polling for same-origin REST
+      // 5) Version-checked HTTP /api/overlay/state gentle fallback polling (Firestore + Socket.IO handle real-time)
       let isCancelled = false;
       let pollInFlight = false;
       let pollStartedAt = 0;
 
-      const pollHttpSnapshot = async () => {
+      const pollHttpSnapshot = async (force = false) => {
         const now = Date.now();
         if (isCancelled) return;
+        if (now < httpCooldownUntilRef.current) return;
+        if (!force && now - lastDirectSyncAtRef.current < 8000 && socket.connected) {
+          return;
+        }
         if (pollInFlight && now - pollStartedAt < 4500) return;
         pollInFlight = true;
         pollStartedAt = now;
@@ -1118,7 +1166,15 @@ export function useOverlaySync<T>({
             cache: 'no-store',
             signal: controller?.signal,
           });
-          if (!res.ok || isCancelled) return;
+          if (!res.ok || isCancelled) {
+            if (!isCancelled) {
+              recordHttpFailureBackoff(res.status);
+            }
+            return;
+          }
+          resetHttpBackoff();
+          const contentType = res.headers.get('content-type') || '';
+          if (!contentType.includes('application/json')) return;
           const data = (await res.json()) as OverlaySyncPacket<T> & {
             hasSnapshot?: boolean;
           };
@@ -1147,7 +1203,7 @@ export function useOverlaySync<T>({
 
       socket.on('connect', () => {
         joinOverlayRoom();
-        void pollHttpSnapshot();
+        void pollHttpSnapshot(true);
         if (bc) {
           try {
             bc.postMessage({
@@ -1179,29 +1235,32 @@ export function useOverlaySync<T>({
         } catch {}
       }
 
-      void pollHttpSnapshot();
+      void pollHttpSnapshot(true);
       let tickCount = 0;
       const pollTimer = setInterval(() => {
         tickCount += 1;
+        const now = Date.now();
+        const hasRecentDirectSync = now - lastDirectSyncAtRef.current < 8000;
         if (socket.disconnected) {
-          void pollHttpSnapshot();
-          if (!socket.active) {
-            socket.connect();
+          // Only poll every 4s (2nd tick) when disconnected and Firestore isn't actively delivering
+          if (!hasRecentDirectSync || tickCount % 2 === 0) {
+            void pollHttpSnapshot(false);
           }
         } else {
-          if (tickCount % 2 === 0) {
-            void pollHttpSnapshot();
+          // When Socket.IO or Firestore is active, only reconcile every 10s (5th tick)
+          if (tickCount % 5 === 0) {
+            void pollHttpSnapshot(false);
           }
-          if (tickCount % 24 === 0) {
+          if (tickCount % 6 === 0) {
             joinOverlayRoom();
           }
         }
-      }, 450);
+      }, 2000);
 
       const handleOverlayFocusOrWake = () => {
         if (socket.disconnected && !socket.active) socket.connect();
         joinOverlayRoom();
-        void pollHttpSnapshot();
+        void pollHttpSnapshot(true);
       };
       if (typeof window !== 'undefined') {
         window.addEventListener('focus', handleOverlayFocusOrWake);
@@ -1279,18 +1338,16 @@ export function useOverlaySync<T>({
         };
       }
 
-      // Keepalive: ensure dropped sockets reconnect, confirm HTTP & Firestore latest snapshot
+      // Keepalive: confirm HTTP & Firestore latest snapshot cleanly without flooding
       let beatCount = 0;
       const hostHeartbeat = setInterval(() => {
         beatCount += 1;
         if (localStateRef.current === null) return;
         const latestPacket = lastPacketRef.current;
         const latestSeq = latestPacket?.seq || 0;
-        if (socket.disconnected && !socket.active) {
-          socket.connect();
-        }
         if (
           lastSerializedPacketRef.current &&
+          Date.now() >= httpCooldownUntilRef.current &&
           (socket.disconnected || lastHttpConfirmedSeqRef.current < latestSeq)
         ) {
           flushHttpPost(lastSerializedPacketRef.current, latestSeq);
@@ -1302,7 +1359,7 @@ export function useOverlaySync<T>({
         ) {
           scheduleFirestorePush(latestPacket, false);
         }
-        if (socket.connected && beatCount % 3 === 0) {
+        if (socket.connected && beatCount % 2 === 0) {
           socket.emit('register-overlay-host', {
             gameId: cleanGameId,
             streamer: cleanStreamer,
@@ -1310,7 +1367,7 @@ export function useOverlaySync<T>({
             hostSessionId: hostSessionIdRef.current,
           });
         }
-      }, 3500);
+      }, 10000);
 
       const handleHostWake = () => {
         if (localStateRef.current !== null) {
@@ -1469,37 +1526,37 @@ export function useOverlaySync<T>({
       }
 
       const sock = socketRef.current;
-      if (sock && sock.connected) {
+      const sockConnected = Boolean(sock && sock.connected);
+      if (sock && sockConnected) {
         sock.emit('overlay-state-update', packet);
-        if (
-          lastHttpPostAtRef.current === 0 ||
-          nowMs - lastHttpPostAtRef.current >= 500
-        ) {
-          if (httpTrailingTimerRef.current) {
-            clearTimeout(httpTrailingTimerRef.current);
-            httpTrailingTimerRef.current = null;
-          }
-          flushHttpPost(serialized, seq);
-        } else {
-          if (httpTrailingTimerRef.current) {
-            clearTimeout(httpTrailingTimerRef.current);
-          }
-          httpTrailingTimerRef.current = setTimeout(() => {
-            httpTrailingTimerRef.current = null;
-            if (lastSerializedPacketRef.current) {
-              flushHttpPost(
-                lastSerializedPacketRef.current,
-                lastPacketRef.current?.seq || 0
-              );
-            }
-          }, 350);
-        }
-      } else {
+      }
+      const minHttpIntervalMs = sockConnected ? 2000 : 1200;
+      if (
+        lastHttpPostAtRef.current === 0 ||
+        nowMs - lastHttpPostAtRef.current >= minHttpIntervalMs
+      ) {
         if (httpTrailingTimerRef.current) {
           clearTimeout(httpTrailingTimerRef.current);
           httpTrailingTimerRef.current = null;
         }
         flushHttpPost(serialized, seq);
+      } else {
+        if (httpTrailingTimerRef.current) {
+          clearTimeout(httpTrailingTimerRef.current);
+        }
+        const waitMs = Math.max(
+          400,
+          minHttpIntervalMs - (nowMs - lastHttpPostAtRef.current) + 50
+        );
+        httpTrailingTimerRef.current = setTimeout(() => {
+          httpTrailingTimerRef.current = null;
+          if (lastSerializedPacketRef.current) {
+            flushHttpPost(
+              lastSerializedPacketRef.current,
+              lastPacketRef.current?.seq || 0
+            );
+          }
+        }, waitMs);
       }
 
       // Cross-origin Firestore sync (runs cleanly across ais-dev, ais-pre, Hostinger, and multi-instance containers)
