@@ -468,12 +468,13 @@ async function startServer() {
 
     if (cleanChannel) {
       const chSnap = overlaySnapshots.get(`overlay:${gameId}:ch:${cleanChannel}`);
-      if (chSnap) return chSnap;
-      if (cleanStreamer) {
-        const strSnap = overlaySnapshots.get(`overlay:${gameId}:s:${cleanStreamer}`);
-        if (strSnap) return strSnap;
+      const strSnap = cleanStreamer
+        ? overlaySnapshots.get(`overlay:${gameId}:s:${cleanStreamer}`)
+        : undefined;
+      if (chSnap && strSnap) {
+        return strSnap.serverVersion > chSnap.serverVersion ? strSnap : chSnap;
       }
-      return undefined;
+      return chSnap || strSnap;
     }
 
     if (cleanStreamer) {
@@ -2174,10 +2175,12 @@ async function startServer() {
 
       if (channel) {
         socket.join(`overlay:${gameId}:ch:${channel}`);
-      } else if (streamer) {
+      }
+      if (streamer) {
         socket.join(`overlay:${gameId}:s:${streamer}`);
         socket.join(`streamer:${streamer}`);
-      } else {
+      }
+      if (!channel && !streamer) {
         socket.join(`overlay:${gameId}:default`);
       }
 

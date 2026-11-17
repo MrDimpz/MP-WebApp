@@ -216,7 +216,8 @@ export function useOverlaySync<T>({
   // Coalesced single-flight HTTP POST state so bursts never exhaust Chromium keepalive/socket limits
   const postInFlightRef = useRef<boolean>(false);
   const postStartedAtRef = useRef<number>(0);
-  const queuedPostBodyRef = useRef<string | null>(null);
+  const queuedPostBodyRef = useRef<{ body: string; seq: number } | null>(null);
+  const lastHttpConfirmedSeqRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
 
   const lastRemoteMetaRef = useRef<{
@@ -232,17 +233,17 @@ export function useOverlaySync<T>({
   const roomScope = resolvedChannel || cleanStreamer || 'default';
   const storageKey = `mp_overlay_snap_${gameId}_${roomScope}`;
 
-  const flushHttpPost = (serializedBody: string) => {
+  const flushHttpPost = (serializedBody: string, packetSeq = 0) => {
     if (isOverlay || !isMountedRef.current || !serializedBody) return;
 
     const now = Date.now();
     // Recover from a stalled fetch older than 4.5s
     if (postInFlightRef.current && now - postStartedAtRef.current < 4500) {
-      queuedPostBodyRef.current = serializedBody;
+      queuedPostBodyRef.current = { body: serializedBody, seq: packetSeq };
       return;
     }
 
-    const sendNext = (bodyToSend: string) => {
+    const sendNext = (bodyToSend: string, seqToSend: number) => {
       if (!isMountedRef.current || isOverlay) {
         postInFlightRef.current = false;
         return;
@@ -262,13 +263,17 @@ export function useOverlaySync<T>({
         cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store',
         },
         body: bodyToSend,
         signal: controller?.signal,
       })
+        .then((res) => {
+          if (res.ok && seqToSend > lastHttpConfirmedSeqRef.current) {
+            lastHttpConfirmedSeqRef.current = seqToSend;
+          }
+        })
         .catch(() => {
-          // Ignore transient network errors; next heartbeat/change will sync
+          // Ignore transient network errors; keepalive/change will retry
         })
         .finally(() => {
           if (abortTimer) clearTimeout(abortTimer);
@@ -276,12 +281,12 @@ export function useOverlaySync<T>({
           const queued = queuedPostBodyRef.current;
           queuedPostBodyRef.current = null;
           if (queued && isMountedRef.current && !isOverlay) {
-            sendNext(queued);
+            sendNext(queued.body, queued.seq);
           }
         });
     };
 
-    sendNext(serializedBody);
+    sendNext(serializedBody, packetSeq);
   };
 
   const writeLocalStorageDeferred = (serializedBody: string, immediate = false) => {
@@ -333,6 +338,7 @@ export function useOverlaySync<T>({
     lastSerializedPacketRef.current = '';
     lastHttpPostAtRef.current = 0;
     lastLocalStorageAtRef.current = 0;
+    lastHttpConfirmedSeqRef.current = 0;
     if (isOverlay) {
       lastRemoteMetaRef.current = null;
     }
@@ -447,28 +453,35 @@ export function useOverlaySync<T>({
       }
 
       if (forceNetwork) {
+        const pktSeq = packet.seq || 0;
         if (socket.connected) {
           socket.emit('overlay-state-update', packet);
-          if (nowMs - lastHttpPostAtRef.current >= 2000) {
+          if (
+            lastHttpPostAtRef.current === 0 ||
+            nowMs - lastHttpPostAtRef.current >= 500
+          ) {
             if (httpTrailingTimerRef.current) {
               clearTimeout(httpTrailingTimerRef.current);
               httpTrailingTimerRef.current = null;
             }
-            flushHttpPost(serialized);
+            flushHttpPost(serialized, pktSeq);
           } else if (!httpTrailingTimerRef.current) {
             httpTrailingTimerRef.current = setTimeout(() => {
               httpTrailingTimerRef.current = null;
               if (lastSerializedPacketRef.current) {
-                flushHttpPost(lastSerializedPacketRef.current);
+                flushHttpPost(
+                  lastSerializedPacketRef.current,
+                  lastPacketRef.current?.seq || 0
+                );
               }
-            }, 1400);
+            }, 350);
           }
         } else {
           if (httpTrailingTimerRef.current) {
             clearTimeout(httpTrailingTimerRef.current);
             httpTrailingTimerRef.current = null;
           }
-          flushHttpPost(serialized);
+          flushHttpPost(serialized, pktSeq);
         }
       }
     };
@@ -476,6 +489,9 @@ export function useOverlaySync<T>({
     const packetMatchesOverlayScope = (packet: OverlaySyncPacket<T>) => {
       const pktChannel = sanitizeChannelToken(packet.channel);
       const pktStreamer = sanitizeStreamerHandle(packet.streamer);
+      if (cleanStreamer && pktStreamer && pktStreamer === cleanStreamer) {
+        return true;
+      }
       if (resolvedChannel && pktChannel && pktChannel !== resolvedChannel) {
         return false;
       }
@@ -490,9 +506,6 @@ export function useOverlaySync<T>({
       source: 'local' | 'network'
     ) => {
       if (!packet) return;
-      if (packet.bootId && lastRemoteMetaRef.current) {
-        lastRemoteMetaRef.current.bootId = packet.bootId;
-      }
       if (packet.unchanged || packet.state === undefined) return;
       if (!packetMatchesOverlayScope(packet)) return;
 
@@ -502,28 +515,27 @@ export function useOverlaySync<T>({
       const pktSeq = typeof packet.seq === 'number' ? packet.seq : 0;
       const pktServerVer =
         typeof packet.serverVersion === 'number' ? packet.serverVersion : -1;
+      const prevBootId = prev?.bootId || '';
       const pktBootId =
-        typeof packet.bootId === 'string' ? packet.bootId : prev?.bootId || '';
+        typeof packet.bootId === 'string' && packet.bootId
+          ? packet.bootId
+          : prevBootId;
+      const sameBoot = !prevBootId || !pktBootId || pktBootId === prevBootId;
       const pktHash = typeof packet.stateHash === 'string' ? packet.stateHash : '';
 
       if (prev) {
         if (pktSession && pktSession === prev.hostSessionId) {
           if (pktSeq <= prev.seq) {
-            if (pktServerVer > prev.serverVersion) {
-              prev.serverVersion = pktServerVer;
+            if (pktServerVer >= 0) {
+              prev.serverVersion = sameBoot
+                ? Math.max(prev.serverVersion, pktServerVer)
+                : pktServerVer;
+            }
+            if (pktBootId) {
+              prev.bootId = pktBootId;
             }
             return;
           }
-        } else if (
-          source === 'network' &&
-          prev.source === 'network' &&
-          pktServerVer >= 0 &&
-          prev.serverVersion >= 0 &&
-          pktBootId === prev.bootId &&
-          pktServerVer < prev.serverVersion &&
-          pktSession === prev.hostSessionId
-        ) {
-          return;
         } else if (
           source === 'local' &&
           prev.source === 'network' &&
@@ -534,13 +546,18 @@ export function useOverlaySync<T>({
 
         // Skip React re-renders if an on-demand resend or reconnect delivers identical state bytes
         if (pktHash && prev.stateHash && pktHash === prev.stateHash && prev.hasDelivered) {
+          const nextServerVer =
+            pktServerVer >= 0
+              ? sameBoot
+                ? Math.max(prev.serverVersion, pktServerVer)
+                : pktServerVer
+              : sameBoot
+                ? prev.serverVersion
+                : -1;
           lastRemoteMetaRef.current = {
             hostSessionId: pktSession || prev.hostSessionId,
             seq: pktSession === prev.hostSessionId ? Math.max(prev.seq, pktSeq) : pktSeq,
-            serverVersion:
-              pktBootId === prev.bootId
-                ? Math.max(prev.serverVersion, pktServerVer)
-                : pktServerVer,
+            serverVersion: nextServerVer,
             bootId: pktBootId,
             stateHash: pktHash,
             hasDelivered: true,
@@ -550,15 +567,17 @@ export function useOverlaySync<T>({
         }
       }
 
+      const resolvedServerVer =
+        pktServerVer >= 0
+          ? pktServerVer
+          : sameBoot
+            ? prev?.serverVersion ?? -1
+            : -1;
+
       lastRemoteMetaRef.current = {
         hostSessionId: pktSession || prev?.hostSessionId || '',
         seq: pktSeq,
-        serverVersion:
-          pktServerVer >= 0
-            ? pktServerVer
-            : pktBootId === prev?.bootId
-              ? prev?.serverVersion ?? -1
-              : -1,
+        serverVersion: resolvedServerVer,
         bootId: pktBootId,
         stateHash: pktHash,
         hasDelivered: true,
@@ -642,10 +661,6 @@ export function useOverlaySync<T>({
 
           const res = await fetch(`/api/overlay/state?${qs.toString()}`, {
             cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              Pragma: 'no-cache',
-            },
             signal: controller?.signal,
           });
           if (!res.ok || isCancelled) return;
@@ -715,20 +730,22 @@ export function useOverlaySync<T>({
         tickCount += 1;
         if (socket.disconnected) {
           void pollHttpSnapshot();
-          socket.connect();
+          if (!socket.active) {
+            socket.connect();
+          }
         } else {
-          // When Socket.IO is healthy, only check lightweight version every ~3s
-          if (tickCount % 4 === 0) {
+          // Lightweight version-checked HTTP poll (~900ms) guarantees Studio CEF updates even if WS frames stall
+          if (tickCount % 2 === 0) {
             void pollHttpSnapshot();
           }
-          if (tickCount % 20 === 0) {
+          if (tickCount % 24 === 0) {
             joinOverlayRoom();
           }
         }
-      }, 750);
+      }, 450);
 
       const handleOverlayFocusOrWake = () => {
-        if (socket.disconnected) socket.connect();
+        if (socket.disconnected && !socket.active) socket.connect();
         joinOverlayRoom();
         void pollHttpSnapshot();
       };
@@ -804,17 +821,22 @@ export function useOverlaySync<T>({
         };
       }
 
-      // Lightweight keepalive: reconnect dropped socket or reinforce room membership without re-serializing state
+      // Keepalive: ensure dropped sockets reconnect, confirm latest seq via HTTP, and reinforce room membership
       let beatCount = 0;
       const hostHeartbeat = setInterval(() => {
         beatCount += 1;
         if (localStateRef.current === null) return;
-        if (socket.disconnected) {
+        const latestSeq = lastPacketRef.current?.seq || 0;
+        if (socket.disconnected && !socket.active) {
           socket.connect();
-          if (lastSerializedPacketRef.current) {
-            flushHttpPost(lastSerializedPacketRef.current);
-          }
-        } else if (socket.connected && beatCount % 2 === 0) {
+        }
+        if (
+          lastSerializedPacketRef.current &&
+          (socket.disconnected || lastHttpConfirmedSeqRef.current < latestSeq)
+        ) {
+          flushHttpPost(lastSerializedPacketRef.current, latestSeq);
+        }
+        if (socket.connected && beatCount % 3 === 0) {
           socket.emit('register-overlay-host', {
             gameId,
             streamer: cleanStreamer,
@@ -822,18 +844,21 @@ export function useOverlaySync<T>({
             hostSessionId: hostSessionIdRef.current,
           });
         }
-      }, 8000);
+      }, 3500);
 
       const handleHostWake = () => {
         if (localStateRef.current !== null) {
-          if (socket.disconnected) socket.connect();
+          if (socket.disconnected && !socket.active) socket.connect();
           announceAndPushHostState(true);
         }
       };
       const handleHostHide = () => {
         if (lastSerializedPacketRef.current) {
           writeLocalStorageDeferred(lastSerializedPacketRef.current, true);
-          flushHttpPost(lastSerializedPacketRef.current);
+          flushHttpPost(
+            lastSerializedPacketRef.current,
+            lastPacketRef.current?.seq || 0
+          );
         }
       };
       if (typeof window !== 'undefined') {
@@ -973,13 +998,13 @@ export function useOverlaySync<T>({
         sock.emit('overlay-state-update', packet);
         if (
           lastHttpPostAtRef.current === 0 ||
-          nowMs - lastHttpPostAtRef.current >= 2000
+          nowMs - lastHttpPostAtRef.current >= 500
         ) {
           if (httpTrailingTimerRef.current) {
             clearTimeout(httpTrailingTimerRef.current);
             httpTrailingTimerRef.current = null;
           }
-          flushHttpPost(serialized);
+          flushHttpPost(serialized, seq);
         } else {
           if (httpTrailingTimerRef.current) {
             clearTimeout(httpTrailingTimerRef.current);
@@ -987,16 +1012,19 @@ export function useOverlaySync<T>({
           httpTrailingTimerRef.current = setTimeout(() => {
             httpTrailingTimerRef.current = null;
             if (lastSerializedPacketRef.current) {
-              flushHttpPost(lastSerializedPacketRef.current);
+              flushHttpPost(
+                lastSerializedPacketRef.current,
+                lastPacketRef.current?.seq || 0
+              );
             }
-          }, 1400);
+          }, 350);
         }
       } else {
         if (httpTrailingTimerRef.current) {
           clearTimeout(httpTrailingTimerRef.current);
           httpTrailingTimerRef.current = null;
         }
-        flushHttpPost(serialized);
+        flushHttpPost(serialized, seq);
       }
     };
 

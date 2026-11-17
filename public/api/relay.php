@@ -80,6 +80,28 @@ function saveRelayState($file, $state) {
     @file_put_contents($file, json_encode($state), LOCK_EX);
 }
 
+function withRelayStateLock($file, callable $fn) {
+    $lockFile = $file . '.lock';
+    $fp = @fopen($lockFile, 'c+');
+    if ($fp) {
+        @flock($fp, LOCK_EX);
+    }
+    try {
+        $state = loadRelayState($file);
+        $shouldSave = false;
+        $result = $fn($state, $shouldSave);
+        if ($shouldSave) {
+            saveRelayState($file, $state);
+        }
+        return $result;
+    } finally {
+        if ($fp) {
+            @flock($fp, LOCK_UN);
+            @fclose($fp);
+        }
+    }
+}
+
 function isPlaceholder($val) {
     if (!is_string($val)) return true;
     $t = trim($val);
@@ -416,11 +438,15 @@ function getOverlaySnapshotPhp($dataDir, $gameId, $streamer, $channel) {
 
     if ($channel !== '') {
         $chSnap = readOverlayFile(overlayFileForRoom($dataDir, "overlay:{$gameId}:ch:{$channel}"));
-        if ($chSnap) return $chSnap;
-        if ($streamer !== '') {
-            return readOverlayFile(overlayFileForRoom($dataDir, "overlay:{$gameId}:s:{$streamer}"));
+        $strSnap = $streamer !== ''
+            ? readOverlayFile(overlayFileForRoom($dataDir, "overlay:{$gameId}:s:{$streamer}"))
+            : null;
+        if ($chSnap && $strSnap) {
+            $chVer = isset($chSnap['serverVersion']) ? (int)$chSnap['serverVersion'] : 0;
+            $strVer = isset($strSnap['serverVersion']) ? (int)$strSnap['serverVersion'] : 0;
+            return $strVer > $chVer ? $strSnap : $chSnap;
         }
-        return null;
+        return $chSnap ?: $strSnap;
     }
     if ($streamer !== '') {
         return readOverlayFile(overlayFileForRoom($dataDir, "overlay:{$gameId}:s:{$streamer}"));
@@ -434,7 +460,6 @@ $rawBody = file_get_contents('php://input');
 $uri = isset($_SERVER['REQUEST_URI']) ? parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) : '';
 $route = isset($_GET['route']) ? trim($_GET['route'], '/') : '';
 $nowMs = round(microtime(true) * 1000);
-$state = loadRelayState($storeFile);
 
 // ============================================================================
 // 0. Native Engine.IO v4 / Socket.IO v4 HTTP Long-Polling Handler (/socket.io/)
@@ -446,12 +471,14 @@ if (strpos($uri, '/socket.io') !== false || $route === 'socket.io' || isset($_GE
     // Step 1: Engine.IO v4 Handshake (GET without sid)
     if ($sid === '' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $newSid = 'eio_' . substr(md5(uniqid((string)mt_rand(), true)), 0, 16);
-        $state['sessions'][$newSid] = [
-            'queue' => [],
-            'cursor' => $nowMs,
-            'updated' => time()
-        ];
-        saveRelayState($storeFile, $state);
+        withRelayStateLock($storeFile, function (&$state, &$shouldSave) use ($newSid, $nowMs) {
+            $state['sessions'][$newSid] = [
+                'queue' => [],
+                'cursor' => $nowMs,
+                'updated' => time()
+            ];
+            $shouldSave = true;
+        });
         echo '0' . json_encode([
             'sid' => $newSid,
             'upgrades' => [],
@@ -465,160 +492,164 @@ if (strpos($uri, '/socket.io') !== false || $route === 'socket.io' || isset($_GE
     if ($sid === '') {
         $sid = 'eio_default';
     }
-    if (!isset($state['sessions'][$sid])) {
-        $sioSid = 'sio_' . substr(md5($sid), 0, 12);
-        $state['sessions'][$sid] = [
-            'queue' => ['40' . json_encode(['sid' => $sioSid])],
-            'cursor' => $nowMs,
-            'updated' => time()
-        ];
-    }
-    $state['sessions'][$sid]['updated'] = time();
 
     // Step 2: Client POSTing Engine.IO / Socket.IO packets
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $packets = explode("\x1e", (string)$rawBody);
-        foreach ($packets as $pkt) {
-            $pkt = trim($pkt);
-            if ($pkt === '') continue;
-
-            if ($pkt === '2') {
-                // Engine.IO PING -> PONG
-                $state['sessions'][$sid]['queue'][] = '3';
-            } elseif (strpos($pkt, '40') === 0) {
-                // Socket.IO Namespace CONNECT
+        withRelayStateLock($storeFile, function (&$state, &$shouldSave) use ($sid, $rawBody, $nowMs, $dataDir) {
+            if (!isset($state['sessions'][$sid])) {
                 $sioSid = 'sio_' . substr(md5($sid), 0, 12);
-                $state['sessions'][$sid]['queue'][] = '40' . json_encode(['sid' => $sioSid]);
-                if (!empty($state['connected']) && !empty($state['username'])) {
-                    $state['sessions'][$sid]['queue'][] = '42' . json_encode([
-                        'tiktok-status',
-                        [
-                            'connected' => true,
-                            'username' => $state['username'],
-                            'roomId' => $state['roomId'] ?: 'LIVE_RELAY',
-                            'provider' => $state['provider'] ?? 'tikfinity'
-                        ]
-                    ]);
-                }
-            } elseif (preg_match('/^42(\d*)(\[.*\])/s', $pkt, $m)) {
-                $ackId = $m[1];
-                $arr = @json_decode($m[2], true);
-                if (is_array($arr) && count($arr) >= 1) {
-                    $evName = (string)$arr[0];
-                    $evData = $arr[1] ?? [];
+                $state['sessions'][$sid] = [
+                    'queue' => ['40' . json_encode(['sid' => $sioSid])],
+                    'cursor' => $nowMs,
+                    'updated' => time()
+                ];
+            }
+            $state['sessions'][$sid]['updated'] = time();
+            $shouldSave = true;
 
-                    if ($evName === 'connect-tiktok') {
-                        $rawUname = is_string($evData) ? $evData : ($evData['username'] ?? 'streamer');
-                        $cleanUname = ltrim(trim((string)$rawUname), '@') ?: 'streamer';
-                        $isTest = is_array($evData) && !empty($evData['isTestMode']);
-                        $prov = (is_array($evData) && isset($evData['provider']) && in_array($evData['provider'], ['tikfinity', 'bettertok']))
-                            ? $evData['provider']
-                            : ($state['provider'] ?? 'tikfinity');
-                        $roomId = $isTest ? 'TEST_SIMULATION_ROOM' : 'LIVE_RELAY';
+            $packets = explode("\x1e", (string)$rawBody);
+            foreach ($packets as $pkt) {
+                $pkt = trim($pkt);
+                if ($pkt === '') continue;
 
-                        $state['connected'] = true;
-                        $state['username'] = $cleanUname;
-                        $state['roomId'] = $roomId;
-                        $state['provider'] = $prov;
-
-                        $connPayload = [
-                            'username' => $cleanUname,
-                            'roomId' => $roomId,
-                            'isTestMode' => $isTest,
-                            'provider' => $prov
-                        ];
-                        $statusPayload = [
-                            'connected' => true,
-                            'username' => $cleanUname,
-                            'roomId' => $roomId,
-                            'isTestMode' => $isTest,
-                            'provider' => $prov
-                        ];
-
-                        if ($ackId !== '') {
-                            $state['sessions'][$sid]['queue'][] = '43' . $ackId . json_encode([['ok' => true] + $statusPayload]);
-                        }
-                        broadcastPacketToSessions($state, '42' . json_encode(['tiktok-connected', $connPayload]));
-                        broadcastPacketToSessions($state, '42' . json_encode(['tiktok-status', $statusPayload]));
-                    } elseif ($evName === 'disconnect-tiktok') {
-                        $state['connected'] = false;
-                        $state['username'] = '';
-                        $state['roomId'] = '';
-                        broadcastPacketToSessions($state, '42' . json_encode(['tiktok-disconnected']));
-                        broadcastPacketToSessions($state, '42' . json_encode([
+                if ($pkt === '2') {
+                    // Engine.IO PING -> PONG
+                    $state['sessions'][$sid]['queue'][] = '3';
+                } elseif (strpos($pkt, '40') === 0) {
+                    // Socket.IO Namespace CONNECT
+                    $sioSid = 'sio_' . substr(md5($sid), 0, 12);
+                    $state['sessions'][$sid]['queue'][] = '40' . json_encode(['sid' => $sioSid]);
+                    if (!empty($state['connected']) && !empty($state['username'])) {
+                        $state['sessions'][$sid]['queue'][] = '42' . json_encode([
                             'tiktok-status',
-                            ['connected' => false, 'username' => '', 'roomId' => '']
-                        ]));
-                    } elseif ($evName === 'register-streamer' || $evName === 'streamer-auth-login') {
-                        $uname = is_array($evData) ? ($evData['username'] ?? '') : '';
-                        if ($ackId !== '') {
-                            $state['sessions'][$sid]['queue'][] = '43' . $ackId . json_encode([['ok' => true, 'username' => $uname]]);
-                        }
-                        $state['sessions'][$sid]['queue'][] = '42' . json_encode(['streamer-registered', ['ok' => true, 'username' => $uname]]);
-                    } elseif ($evName === 'register-overlay-host' && is_array($evData)) {
-                        $state['sessions'][$sid]['overlayHost'] = [
-                            'gameId' => sanitizeOverlayGame($evData['gameId'] ?? ''),
-                            'streamer' => sanitizeOverlayStreamer($evData['streamer'] ?? ''),
-                            'channel' => sanitizeOverlayChannel($evData['channel'] ?? ''),
-                        ];
-                    } elseif ($evName === 'overlay-host-leave') {
-                        unset($state['sessions'][$sid]['overlayHost']);
-                    } elseif ($evName === 'join-overlay' && is_array($evData)) {
-                        $gId = sanitizeOverlayGame($evData['gameId'] ?? '');
-                        $str = sanitizeOverlayStreamer($evData['streamer'] ?? '');
-                        $ch = sanitizeOverlayChannel($evData['channel'] ?? '');
-                        $state['sessions'][$sid]['overlaySub'] = [
-                            'gameId' => $gId,
-                            'streamer' => $str,
-                            'channel' => $ch,
-                        ];
-                        $snap = getOverlaySnapshotPhp($dataDir, $gId, $str, $ch);
-                        if ($snap) {
-                            $state['sessions'][$sid]['queue'][] = '42' . json_encode(['overlay-state-sync', $snap]);
-                        }
-                        foreach ($state['sessions'] as $sk => $sess) {
-                            if (!empty($sess['overlayHost']) && ($sess['overlayHost']['gameId'] ?? '') === $gId) {
-                                $hCh = $sess['overlayHost']['channel'] ?? '';
-                                $hStr = $sess['overlayHost']['streamer'] ?? '';
-                                if (($ch !== '' && $hCh === $ch) || ($ch === '' && $str !== '' && $hStr === $str) || ($ch === '' && $str === '')) {
-                                    $state['sessions'][$sk]['queue'][] = '42' . json_encode(['overlay-request-state', ['gameId' => $gId, 'streamer' => $str, 'channel' => $ch]]);
+                            [
+                                'connected' => true,
+                                'username' => $state['username'],
+                                'roomId' => $state['roomId'] ?: 'LIVE_RELAY',
+                                'provider' => $state['provider'] ?? 'tikfinity'
+                            ]
+                        ]);
+                    }
+                } elseif (preg_match('/^42(\d*)(\[.*\])/s', $pkt, $m)) {
+                    $ackId = $m[1];
+                    $arr = @json_decode($m[2], true);
+                    if (is_array($arr) && count($arr) >= 1) {
+                        $evName = (string)$arr[0];
+                        $evData = $arr[1] ?? [];
+
+                        if ($evName === 'connect-tiktok') {
+                            $rawUname = is_string($evData) ? $evData : ($evData['username'] ?? 'streamer');
+                            $cleanUname = ltrim(trim((string)$rawUname), '@') ?: 'streamer';
+                            $isTest = is_array($evData) && !empty($evData['isTestMode']);
+                            $prov = (is_array($evData) && isset($evData['provider']) && in_array($evData['provider'], ['tikfinity', 'bettertok']))
+                                ? $evData['provider']
+                                : ($state['provider'] ?? 'tikfinity');
+                            $roomId = $isTest ? 'TEST_SIMULATION_ROOM' : 'LIVE_RELAY';
+
+                            $state['connected'] = true;
+                            $state['username'] = $cleanUname;
+                            $state['roomId'] = $roomId;
+                            $state['provider'] = $prov;
+
+                            $connPayload = [
+                                'username' => $cleanUname,
+                                'roomId' => $roomId,
+                                'isTestMode' => $isTest,
+                                'provider' => $prov
+                            ];
+                            $statusPayload = [
+                                'connected' => true,
+                                'username' => $cleanUname,
+                                'roomId' => $roomId,
+                                'isTestMode' => $isTest,
+                                'provider' => $prov
+                            ];
+
+                            if ($ackId !== '') {
+                                $state['sessions'][$sid]['queue'][] = '43' . $ackId . json_encode([['ok' => true] + $statusPayload]);
+                            }
+                            broadcastPacketToSessions($state, '42' . json_encode(['tiktok-connected', $connPayload]));
+                            broadcastPacketToSessions($state, '42' . json_encode(['tiktok-status', $statusPayload]));
+                        } elseif ($evName === 'disconnect-tiktok') {
+                            $state['connected'] = false;
+                            $state['username'] = '';
+                            $state['roomId'] = '';
+                            broadcastPacketToSessions($state, '42' . json_encode(['tiktok-disconnected']));
+                            broadcastPacketToSessions($state, '42' . json_encode([
+                                'tiktok-status',
+                                ['connected' => false, 'username' => '', 'roomId' => '']
+                            ]));
+                        } elseif ($evName === 'register-streamer' || $evName === 'streamer-auth-login') {
+                            $uname = is_array($evData) ? ($evData['username'] ?? '') : '';
+                            if ($ackId !== '') {
+                                $state['sessions'][$sid]['queue'][] = '43' . $ackId . json_encode([['ok' => true, 'username' => $uname]]);
+                            }
+                            $state['sessions'][$sid]['queue'][] = '42' . json_encode(['streamer-registered', ['ok' => true, 'username' => $uname]]);
+                        } elseif ($evName === 'register-overlay-host' && is_array($evData)) {
+                            $state['sessions'][$sid]['overlayHost'] = [
+                                'gameId' => sanitizeOverlayGame($evData['gameId'] ?? ''),
+                                'streamer' => sanitizeOverlayStreamer($evData['streamer'] ?? ''),
+                                'channel' => sanitizeOverlayChannel($evData['channel'] ?? ''),
+                            ];
+                        } elseif ($evName === 'overlay-host-leave') {
+                            unset($state['sessions'][$sid]['overlayHost']);
+                        } elseif ($evName === 'join-overlay' && is_array($evData)) {
+                            $gId = sanitizeOverlayGame($evData['gameId'] ?? '');
+                            $str = sanitizeOverlayStreamer($evData['streamer'] ?? '');
+                            $ch = sanitizeOverlayChannel($evData['channel'] ?? '');
+                            $state['sessions'][$sid]['overlaySub'] = [
+                                'gameId' => $gId,
+                                'streamer' => $str,
+                                'channel' => $ch,
+                            ];
+                            $snap = getOverlaySnapshotPhp($dataDir, $gId, $str, $ch);
+                            if ($snap) {
+                                $state['sessions'][$sid]['queue'][] = '42' . json_encode(['overlay-state-sync', $snap]);
+                            }
+                            foreach ($state['sessions'] as $sk => $sess) {
+                                if (!empty($sess['overlayHost']) && ($sess['overlayHost']['gameId'] ?? '') === $gId) {
+                                    $hCh = $sess['overlayHost']['channel'] ?? '';
+                                    $hStr = $sess['overlayHost']['streamer'] ?? '';
+                                    if (($ch !== '' && $hCh === $ch) || ($str !== '' && $hStr === $str) || ($ch === '' && $str === '')) {
+                                        $state['sessions'][$sk]['queue'][] = '42' . json_encode(['overlay-request-state', ['gameId' => $gId, 'streamer' => $str, 'channel' => $ch]]);
+                                    }
                                 }
                             }
-                        }
-                    } elseif ($evName === 'overlay-state-update' && is_array($evData)) {
-                        $snap = upsertOverlaySnapshotPhp($dataDir, $evData, $nowMs);
-                        if ($snap) {
-                            $pkt = '42' . json_encode(['overlay-state-sync', $snap]);
-                            foreach ($state['sessions'] as $sk => $sess) {
-                                if ($sk === $sid || empty($sess['overlaySub'])) continue;
-                                if (($sess['overlaySub']['gameId'] ?? '') !== $snap['gameId']) continue;
-                                $sCh = $sess['overlaySub']['channel'] ?? '';
-                                $sStr = $sess['overlaySub']['streamer'] ?? '';
-                                if ($sCh !== '' && $snap['channel'] !== '' && $sCh !== $snap['channel']) continue;
-                                if ($sCh === '' && $sStr !== '' && $snap['streamer'] !== '' && $sStr !== $snap['streamer']) continue;
-                                $state['sessions'][$sk]['queue'][] = $pkt;
+                        } elseif ($evName === 'overlay-state-update' && is_array($evData)) {
+                            $snap = upsertOverlaySnapshotPhp($dataDir, $evData, $nowMs);
+                            if ($snap) {
+                                $pkt = '42' . json_encode(['overlay-state-sync', $snap]);
+                                foreach ($state['sessions'] as $sk => $sess) {
+                                    if ($sk === $sid || empty($sess['overlaySub'])) continue;
+                                    if (($sess['overlaySub']['gameId'] ?? '') !== $snap['gameId']) continue;
+                                    $sCh = $sess['overlaySub']['channel'] ?? '';
+                                    $sStr = $sess['overlaySub']['streamer'] ?? '';
+                                    $matchesStreamer = ($sStr !== '' && $snap['streamer'] !== '' && $sStr === $snap['streamer']);
+                                    $matchesChannel = ($sCh !== '' && $snap['channel'] !== '' && $sCh === $snap['channel']);
+                                    if (!$matchesStreamer && !$matchesChannel && ($sCh !== '' || $sStr !== '')) continue;
+                                    $state['sessions'][$sk]['queue'][] = $pkt;
+                                }
                             }
-                        }
-                    } elseif (in_array($evName, ['chat-message', 'like-event', 'gift-event']) && is_array($evData)) {
-                        $evData['type'] = $evName;
-                        $normEv = normalizeIncomingEventPayload($evData, $nowMs);
-                        if ($normEv) {
-                            $state['seq'] = (int)($state['seq'] ?? 0) + 1;
-                            $normEv['payload']['_seq'] = $state['seq'];
-                            $state['events'][] = [
-                                'id' => $normEv['id'],
-                                'seq' => $state['seq'],
-                                'timestamp' => $normEv['timestamp'],
-                                'type' => $normEv['type'],
-                                'payload' => $normEv['payload']
-                            ];
-                            broadcastPacketToSessions($state, '42' . json_encode([$normEv['type'], $normEv['payload']]));
+                        } elseif (in_array($evName, ['chat-message', 'like-event', 'gift-event']) && is_array($evData)) {
+                            $evData['type'] = $evName;
+                            $normEv = normalizeIncomingEventPayload($evData, $nowMs);
+                            if ($normEv) {
+                                $state['seq'] = (int)($state['seq'] ?? 0) + 1;
+                                $normEv['payload']['_seq'] = $state['seq'];
+                                $state['events'][] = [
+                                    'id' => $normEv['id'],
+                                    'seq' => $state['seq'],
+                                    'timestamp' => $normEv['timestamp'],
+                                    'type' => $normEv['type'],
+                                    'payload' => $normEv['payload']
+                                ];
+                                broadcastPacketToSessions($state, '42' . json_encode([$normEv['type'], $normEv['payload']]));
+                            }
                         }
                     }
                 }
             }
-        }
-        saveRelayState($storeFile, $state);
+        });
         echo 'ok';
         exit;
     }
@@ -640,21 +671,32 @@ if (strpos($uri, '/socket.io') !== false || $route === 'socket.io' || isset($_GE
         return $out;
     };
 
-    $outPackets = $collectForSession($state, $sid);
+    $drainPackets = function () use ($storeFile, $sid, $nowMs, $collectForSession) {
+        return withRelayStateLock($storeFile, function (&$state, &$shouldSave) use ($sid, $nowMs, $collectForSession) {
+            if (!isset($state['sessions'][$sid])) {
+                $sioSid = 'sio_' . substr(md5($sid), 0, 12);
+                $state['sessions'][$sid] = [
+                    'queue' => ['40' . json_encode(['sid' => $sioSid])],
+                    'cursor' => $nowMs,
+                    'updated' => time()
+                ];
+            }
+            $state['sessions'][$sid]['updated'] = time();
+            $out = $collectForSession($state, $sid);
+            $shouldSave = true;
+            return $out;
+        });
+    };
+
+    $outPackets = $drainPackets();
     if (empty($outPackets)) {
-        saveRelayState($storeFile, $state);
-        usleep(350000); // 350ms non-blocking poll interval
-        $state = loadRelayState($storeFile);
-        if (!isset($state['sessions'][$sid])) {
-            $state['sessions'][$sid] = ['queue' => [], 'cursor' => $nowMs, 'updated' => time()];
-        }
-        $outPackets = $collectForSession($state, $sid);
+        usleep(220000); // Release lock while waiting cleanly so concurrent POSTs are never overwritten
+        $outPackets = $drainPackets();
         if (empty($outPackets)) {
             $outPackets[] = '2'; // Engine.IO heartbeat PING
         }
     }
 
-    saveRelayState($storeFile, $state);
     echo implode("\x1e", $outPackets);
     exit;
 }
@@ -667,6 +709,7 @@ header('Content-Type: application/json; charset=utf-8');
 $jsonBody = $rawBody ? @json_decode($rawBody, true) : [];
 if (!is_array($jsonBody)) $jsonBody = [];
 $payload = array_merge($_GET, $_POST, $jsonBody);
+$state = loadRelayState($storeFile);
 
 // 0.5 Overlay State REST Sync (/api/overlay/state)
 if (strpos($uri, '/api/overlay/state') !== false || $route === 'overlay/state') {
@@ -682,7 +725,9 @@ if (strpos($uri, '/api/overlay/state') !== false || $route === 'overlay/state') 
             'updatedAt' => $snap['updatedAt'],
             'hostSessionId' => $snap['hostSessionId'],
             'seq' => $snap['seq'],
+            'stateHash' => $snap['stateHash'] ?? null,
             'serverVersion' => $snap['serverVersion'],
+            'bootId' => $snap['bootId'] ?? 'php_relay',
         ]);
         exit;
     }
