@@ -706,15 +706,19 @@ export default function CrowdleApp() {
     setIsConnecting(false);
   };
 
-  // Overlay Real-Time Sync Snapshot
+  // Overlay Real-Time Sync Snapshot (quantize 100ms timer ticks to whole seconds so network/CEF aren't flooded 10x/sec)
+  const ceilTimeLeft = Math.ceil(timeLeft);
+  const ceilDelayLeft = Math.ceil(delayLeft);
+  const ceilResetTimeLeft = Math.ceil(resetTimeLeft);
+
   const hostOverlaySnapshot = useMemo<CrowdleOverlaySnapshot>(
     () => ({
       roundId,
       guesses,
       status,
-      timeLeft: Math.ceil(timeLeft),
-      delayLeft: Math.ceil(delayLeft),
-      resetTimeLeft: Math.ceil(resetTimeLeft),
+      timeLeft: ceilTimeLeft,
+      delayLeft: ceilDelayLeft,
+      resetTimeLeft: ceilResetTimeLeft,
       roundTimerDuration,
       topVotes,
       totalVotes,
@@ -730,9 +734,9 @@ export default function CrowdleApp() {
       roundId,
       guesses,
       status,
-      timeLeft,
-      delayLeft,
-      resetTimeLeft,
+      ceilTimeLeft,
+      ceilDelayLeft,
+      ceilResetTimeLeft,
       roundTimerDuration,
       topVotes,
       totalVotes,
@@ -753,10 +757,10 @@ export default function CrowdleApp() {
     gameId: 'crowdle',
     streamer: isOverlay ? overlayStreamer || undefined : tiktokUsername || undefined,
     isOverlay,
-    localState: hostOverlaySnapshot,
-    onSyncedState: (synced) => {
+    localState: isOverlay ? null : hostOverlaySnapshot,
+    onSyncedState: useCallback((synced) => {
       setOverlayRemoteState(synced);
-    },
+    }, []),
   });
 
   // Active display state (uses synced remote state when running inside OBS/TikTok overlay)

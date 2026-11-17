@@ -232,7 +232,11 @@ export default function MPSearchInteractiveApp() {
   // TikTok Live Connection State
   const [tiktokUsername, setTiktokUsername] = useState<string>(() => {
     try {
-      return localStorage.getItem('mp_tiktok_ bridge_username') || '';
+      return (
+        localStorage.getItem('mp_tiktok_bridge_username') ||
+        localStorage.getItem('mp_tiktok_ bridge_username') ||
+        ''
+      );
     } catch {
       return '';
     }
@@ -407,9 +411,9 @@ export default function MPSearchInteractiveApp() {
 
   useOverlaySync<MPSearchOverlayPayload>({
     gameId: 'mpsearchint',
-    streamer: overlayConfig.streamer || tiktokUsername,
+    streamer: isOverlay ? overlayConfig.streamer || undefined : tiktokUsername || undefined,
     isOverlay,
-    localState: overlayPayload,
+    localState: isOverlay ? null : overlayPayload,
     onSyncedState: handleOverlayUpdate,
   });
 
@@ -606,27 +610,50 @@ export default function MPSearchInteractiveApp() {
 
     const deduplicator = createEventDeduplicator();
 
-    newSocket.on('tiktokConnected', (data: { username?: string }) => {
+    const handleConnectedEvent = (data: { username?: string; gameId?: string }) => {
+      if (data?.gameId && data.gameId !== 'mpsearchint') return;
       setIsConnected(true);
       setConnectionError(null);
       setShowConnectModal(false);
       if (data?.username) {
+        const clean = data.username.replace(/^@+/, '');
+        setTiktokUsername(clean);
         try {
-          localStorage.setItem('mp_tiktok_bridge_username', data.username);
+          localStorage.setItem('mp_tiktok_bridge_username', clean);
         } catch {
           // Ignore
         }
       }
+    };
+
+    newSocket.on('tiktok-connected', handleConnectedEvent);
+    newSocket.on('tiktokConnected', handleConnectedEvent);
+
+    newSocket.on('tiktok-status', (st: { connected?: boolean; username?: string; gameId?: string }) => {
+      if (st && (!st.gameId || st.gameId === 'mpsearchint')) {
+        if (st.connected) {
+          setIsConnected(true);
+          setConnectionError(null);
+          if (st.username) setTiktokUsername(st.username.replace(/^@+/, ''));
+        } else {
+          setIsConnected(false);
+        }
+      }
     });
 
+    newSocket.on('tiktok-disconnected', (payload?: { gameId?: string }) => {
+      if (!payload?.gameId || payload.gameId === 'mpsearchint') setIsConnected(false);
+    });
     newSocket.on('tiktokDisconnected', () => {
       setIsConnected(false);
     });
 
-    newSocket.on('tiktokError', (err: string) => {
+    const handleSocketErr = (err: string) => {
       setConnectionError(typeof err === 'string' ? err : 'Connection failed');
       setIsConnected(false);
-    });
+    };
+    newSocket.on('tiktok-error', handleSocketErr);
+    newSocket.on('tiktokError', handleSocketErr);
 
     const handleIncomingChat = (data: {
       id?: string;
@@ -1035,6 +1062,7 @@ export default function MPSearchInteractiveApp() {
             </div>
 
             <WordSearchBoard
+              key={`ov-board-${roundNumber}-${currentPuzzle.dateKey}`}
               puzzle={currentPuzzle}
               foundWords={foundWords}
               foundWordFinders={foundEntries}
@@ -1077,7 +1105,7 @@ export default function MPSearchInteractiveApp() {
                   </p>
                 </div>
               ) : (
-                <AnimatePresence initial={false}>
+                <AnimatePresence key={`ov-sb-${roundNumber}`} initial={false}>
                   {scoreboard.slice(0, 6).map((player, idx) => {
                     const latestWord = player.words[player.words.length - 1];
                     return (
@@ -1183,7 +1211,7 @@ export default function MPSearchInteractiveApp() {
                     No words revealed yet — scan the 10×10 grid!
                   </span>
                 ) : (
-                  <AnimatePresence initial={false}>
+                  <AnimatePresence key={`ov-dw-${roundNumber}`} initial={false}>
                     {foundEntries.map((entry) => (
                       <motion.span
                         key={entry.word}
@@ -1289,6 +1317,8 @@ export default function MPSearchInteractiveApp() {
               <LiveOverlayButton
                 gameTitle="MP Search Interactive"
                 gameSlug="mpsearch"
+                streamerHandle={tiktokUsername}
+                recommendedSize="920 × 640 or 1080 × 1920"
               />
 
               <DailyStreakBadge

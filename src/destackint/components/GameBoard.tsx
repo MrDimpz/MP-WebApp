@@ -206,10 +206,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const swipeTrackRef = useRef<HTMLDivElement | null>(null);
 
   const puzzleKey = `${difficulty}-${puzzle.words.join(',')}-${resetSignal}`;
-  const syncedPuzzleKeyRef = useRef<string>(puzzleKey);
+  const syncedPuzzleKeyRef = useRef<string>('');
 
-  // Reset board if puzzle date, difficulty, or resetSignal changes
+  // Reset board ONLY when puzzleKey (difficulty/words/resetSignal) actually changes
   useEffect(() => {
+    if (syncedPuzzleKeyRef.current === puzzleKey) return;
     const freshTiles: TileData[] = JSON.parse(JSON.stringify(puzzle.tiles));
     const freshRack: Array<TileData | null> = [null, null, null, null, null];
     const firstHint = puzzle.hints[0] || 'Find the next 5-letter word in the stack.';
