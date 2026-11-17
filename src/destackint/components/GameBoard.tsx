@@ -868,11 +868,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
     return (
       <div
-        className={`relative flex-1 w-full flex flex-col items-center justify-center px-3 py-3 select-none overflow-hidden ${
+        className={`relative flex-1 w-full flex flex-col items-center justify-center px-3 py-4 select-none overflow-hidden ${
           isTransparent ? 'bg-transparent' : 'bg-[#1a0522]'
         }`}
       >
-        <div className="relative z-10 w-full max-w-[460px] mx-auto flex flex-col items-center gap-2.5">
+        <div className="relative z-10 w-full max-w-[510px] mx-auto flex flex-col items-center gap-3">
           {/* Compact Round Progress & Word Reveal Countdown */}
           <div className="w-full px-3.5 py-2.5 rounded-2xl bg-[#240630]/92 border border-purple-300/45 shadow-[0_10px_28px_rgba(0,0,0,0.45)] flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -933,6 +933,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
           {/* Recessed Tile Stack Board */}
           <div className="relative w-full aspect-square bg-[#360b42]/95 border-2 border-purple-300/50 rounded-2xl shadow-[0_14px_32px_rgba(0,0,0,0.48),inset_0_5px_14px_rgba(0,0,0,0.45)] p-[30px] sm:p-[36px] overflow-hidden pt-14 sm:pt-16 pointer-events-none">
+            {/* Centered Logo Watermark (94% of board at 20% opacity) */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none select-none"
+            >
+              <img
+                src="/assets/aistudio/3d_logo_944e5372.png"
+                alt=""
+                className="w-[94%] h-[94%] object-contain opacity-20"
+              />
+            </div>
+
             <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-center gap-1 bg-black/70 px-2 py-1 rounded-xl border border-purple-200/35 text-[10px] text-purple-100 font-bold">
               <span className="text-amber-300 uppercase tracking-wider text-[9px] font-black shrink-0">Layers:</span>
               {Array.from({ length: puzzle.totalLayers }).map((_, idx) => (
@@ -1249,6 +1261,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
           {/* Recessed Square Stack Board — 4-Layer (30 Tiles) or 6-Layer Hard Mode (50 Tiles) */}
           <div className="relative w-full aspect-square bg-[#360b42] dark:bg-[#16041c] border-2 border-purple-300/45 rounded-2xl shadow-[inset_0_5px_14px_rgba(0,0,0,0.45)] p-[36px] sm:p-[44px] overflow-hidden pt-18 sm:pt-22">
+            {/* Centered Logo Watermark (94% of board at 20% opacity) */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none select-none"
+            >
+              <img
+                src="/assets/aistudio/3d_logo_944e5372.png"
+                alt=""
+                className="w-[94%] h-[94%] object-contain opacity-20"
+              />
+            </div>
+
             {/* Layer Key Bar Above Tiles But On The Board */}
             <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-center gap-1 sm:gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-xl border border-purple-200/35 text-[10px] text-purple-100 font-bold overflow-x-auto no-scrollbar">
               <span className="text-amber-300 uppercase tracking-wider text-[9px] font-black shrink-0">Layer Key:</span>

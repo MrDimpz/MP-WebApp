@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowUpRight, Download, KeyRound, LoaderCircle, Users } from 'lucide-react';
+import { ArrowUpRight, Download, KeyRound, LoaderCircle, MonitorPlay, Users } from 'lucide-react';
 import { openCookiePreferences } from '@/lib/cookie-consent';
 import { AdminPortalModal } from '@/components/interactive-games/admin-portal-modal';
 import { AdminPanelModal } from '@/components/admin-panel-modal';
@@ -63,9 +63,20 @@ export function SiteFooter() {
             </span>
           </Link>
           <p>Find Your Space.</p>
-          <Link to="/#games">
-            Back to the games <ArrowUpRight size={16} />
-          </Link>
+          <div className="flex flex-wrap items-center gap-5">
+            <Link
+              to="/interactive-games/overlays"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold hover:underline underline-offset-4 whitespace-nowrap"
+            >
+              <MonitorPlay size={15} /> All interactive overlays
+            </Link>
+            <Link
+              to="/#games"
+              className="inline-flex items-center gap-2 text-xs font-medium hover:underline underline-offset-4 whitespace-nowrap"
+            >
+              Back to the games <ArrowUpRight size={16} />
+            </Link>
+          </div>
         </div>
 
         <div className="footer-bottom">

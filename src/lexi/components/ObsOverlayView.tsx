@@ -153,7 +153,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
                 }`}
               >
                 <Smartphone className="w-3.5 h-3.5" />
-                <span>2. Vertical 9:16 TikTok LIVE</span>
+                <span>2. Vertical 20:9 TikTok LIVE</span>
               </button>
 
               <button
@@ -239,7 +239,7 @@ export const ObsOverlayView: React.FC<ObsOverlayViewProps> = ({
                 <ol className="list-decimal list-inside space-y-0.5">
                   <li>Add a new <strong>Browser Source</strong> in your scene.</li>
                   <li>Paste one of the URLs on the left (e.g. <code className="text-amber-300">/overlay?clean=1</code> or <code className="text-amber-300">/vertical?clean=1</code>).</li>
-                  <li>Set width/height to <strong>1920×1080</strong> (16:9) or <strong>1080×1920</strong> (Vertical 9:16).</li>
+                  <li>Set width/height to <strong>1920×1080</strong> (16:9) or <strong>1080×2400</strong> (Vertical 20:9).</li>
                 </ol>
               </div>
             </div>

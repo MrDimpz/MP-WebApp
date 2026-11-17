@@ -1273,13 +1273,13 @@ export default function App() {
 
     return (
       <div
-        className={`relative w-full font-sans text-[#F5F3F7] select-none flex flex-col items-center justify-start ${
+        className={`relative w-full min-h-screen font-sans text-[#F5F3F7] select-none flex flex-col items-center justify-center p-3 ${
           overlayBg === 'transparent'
-            ? 'min-h-0 p-2 sm:p-3 bg-transparent'
-            : 'min-h-screen p-3 sm:p-5 bg-[radial-gradient(circle_at_50%_15%,#44106B_0%,#210536_58%,#11021D_100%)]'
+            ? 'bg-transparent'
+            : 'bg-[radial-gradient(circle_at_50%_15%,#44106B_0%,#210536_58%,#11021D_100%)]'
         }`}
       >
-        <div className="w-full max-w-[420px] flex flex-col items-center gap-2.5">
+        <div className="w-full max-w-[508px] flex flex-col items-center gap-3.5">
           {/* Compact Progress & Score Strip */}
           <div className="w-full px-3.5 py-2 rounded-2xl bg-[#170428]/92 border-2 border-[#D4A437]/75 shadow-[0_8px_24px_rgba(0,0,0,0.55)] flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
@@ -1641,7 +1641,7 @@ export default function App() {
               gameTitle="Squared Interactive"
               gameSlug="squaredint"
               streamerHandle={tiktokUsername}
-              recommendedSize="540 × 820 or 1080 × 1920"
+              recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
               label="LIVE Overlay"
             />
 

@@ -93,18 +93,18 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-sm bg-[#111923] border-2 border-[#1e293b] rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-sm bg-[#240630] border-2 border-[#6b21a8] rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 bg-[#0d141c] border-b border-[#1e293b]">
+        <div className="flex items-center justify-between px-5 py-4 bg-[#16041c] border-b border-[#581c87]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400">
+            <div className="w-8 h-8 rounded-lg bg-amber-400/15 border border-amber-400/35 flex items-center justify-center text-amber-300">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-white tracking-wide">
                 Admin Authentication
               </h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-purple-300">
                 Sign in to manage authorized streamers
               </p>
             </div>
@@ -112,7 +112,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1 rounded-lg text-purple-300 hover:text-white hover:bg-purple-900/50 transition"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -129,7 +129,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-purple-200 mb-1.5">
               Admin User
             </label>
             <input
@@ -137,14 +137,14 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Username"
-              className="w-full bg-[#0d141c] border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition"
+              className="w-full bg-[#16041c] border border-purple-700/80 rounded-xl px-3 py-2 text-xs text-white placeholder-purple-400/60 focus:outline-none focus:border-amber-400 transition"
               autoComplete="off"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-purple-200 mb-1.5">
               Admin Password
             </label>
             <div className="relative">
@@ -153,13 +153,13 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="w-full bg-[#0d141c] border border-slate-700/80 rounded-xl pl-3 pr-10 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition"
+                className="w-full bg-[#16041c] border border-purple-700/80 rounded-xl pl-3 pr-10 py-2 text-xs text-white placeholder-purple-400/60 focus:outline-none focus:border-amber-400 transition"
                 autoComplete="off"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-200 transition p-1"
+                className="absolute right-2.5 top-2 text-purple-300 hover:text-purple-100 transition p-1"
                 title={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
@@ -175,14 +175,14 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition"
+              className="px-4 py-2 text-xs font-semibold text-purple-300 hover:text-white transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 active:scale-[0.98] text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-[#2d0938] rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20 disabled:opacity-50"
             >
               {loading ? (
                 <span>Checking...</span>

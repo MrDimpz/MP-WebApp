@@ -159,16 +159,16 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
       aria-label="Admin Portal"
     >
       <div
-        className="w-full max-w-[490px] rounded-2xl bg-[#03142f] border-2 border-[#19e4ff] shadow-[0_0_32px_rgba(25,228,255,0.25)] text-[#f3f8ff] overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-[490px] rounded-2xl bg-[#240630] border-2 border-[#facc15] shadow-[0_0_32px_rgba(250,204,21,0.25)] text-[#faf5ff] overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1768b3]/60 bg-[#061c3d]">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#6b21a8]/60 bg-[#2c0938]">
           <div className="flex items-center gap-2.5">
-            <Shield className="w-5 h-5 text-[#ffe536]" />
+            <Shield className="w-5 h-5 text-[#facc15]" />
             <div>
               <h2 className="text-base font-bold tracking-tight">Admin Portal</h2>
-              <p className="text-[11px] text-[#96b8dd]">
+              <p className="text-[11px] text-[#d8b4fe]">
                 Authorised TikTok Streamers &amp; Access Keys
               </p>
             </div>
@@ -176,7 +176,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1 rounded-lg text-xs font-semibold bg-[#0c2b53] hover:bg-[#1768b3] text-white transition-colors cursor-pointer"
+            className="px-3 py-1 rounded-lg text-xs font-semibold bg-[#360b42] hover:bg-[#6b21a8] text-white transition-colors cursor-pointer"
           >
             Close
           </button>
@@ -186,7 +186,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
         <div className="p-5 overflow-y-auto space-y-5">
           {!isAuthenticated ? (
             <form onSubmit={handleAdminLogin} autoComplete="off" className="space-y-4">
-              <p className="text-xs text-[#d8eaff]">
+              <p className="text-xs text-[#f3e8ff]">
                 Enter Admin credentials to manage authorised TikTok Live users and individual keys.
               </p>
 
@@ -197,7 +197,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-[#96b8dd] mb-1">
+                <label className="block text-xs font-semibold text-[#d8b4fe] mb-1">
                   Admin User
                 </label>
                 <input
@@ -206,12 +206,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
                   onChange={(e) => setLoginUser(e.target.value)}
                   autoComplete="off"
                   placeholder="Enter Admin username"
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#020a25] border border-[#1768b3] text-sm text-white focus:outline-none focus:border-[#19e4ff]"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#16041c] border border-[#6b21a8] text-sm text-white focus:outline-none focus:border-[#facc15]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#96b8dd] mb-1">
+                <label className="block text-xs font-semibold text-[#d8b4fe] mb-1">
                   Admin Password
                 </label>
                 <input
@@ -220,13 +220,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
                   onChange={(e) => setLoginPassword(e.target.value)}
                   autoComplete="new-password"
                   placeholder="Enter Admin password"
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#020a25] border border-[#1768b3] text-sm text-white focus:outline-none focus:border-[#19e4ff]"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#16041c] border border-[#6b21a8] text-sm text-white focus:outline-none focus:border-[#facc15]"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-[#19e4ff] hover:bg-[#5cecff] text-[#020a25] text-xs font-extrabold cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-[#facc15] hover:bg-[#fde047] text-[#2d0938] text-xs font-extrabold cursor-pointer"
               >
                 Sign In to Admin Panel
               </button>
@@ -234,16 +234,16 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
           ) : (
             <form onSubmit={handleSaveChanges} className="space-y-4">
               {saveMessage && (
-                <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-[#2bff86] text-[#2bff86] text-xs flex items-center gap-2">
+                <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-[#4ade80] text-[#4ade80] text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>{saveMessage}</span>
                 </div>
               )}
 
               {/* Add Single Authorised User + Key */}
-              <div className="p-3.5 rounded-xl bg-[#061c3d] border border-[#1768b3] space-y-2.5">
+              <div className="p-3.5 rounded-xl bg-[#2c0938] border border-[#6b21a8] space-y-2.5">
                 <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-[#ffe536]" /> Add Authorised @Username &amp; Key
+                  <KeyRound className="w-3.5 h-3.5 text-[#facc15]" /> Add Authorised @Username &amp; Key
                 </div>
                 <div className="flex gap-2">
                   <input
@@ -251,19 +251,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
                     value={addHandle}
                     onChange={(e) => handleHandleInputChange(e.target.value)}
                     placeholder="@username"
-                    className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[#020a25] border border-[#1768b3] text-xs text-white focus:outline-none focus:border-[#19e4ff]"
+                    className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[#16041c] border border-[#6b21a8] text-xs text-white focus:outline-none focus:border-[#facc15]"
                   />
                   <input
                     type="text"
                     value={addKey}
                     onChange={(e) => setAddKey(e.target.value)}
                     placeholder="Individual Key"
-                    className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[#020a25] border border-[#1768b3] text-xs text-white focus:outline-none focus:border-[#19e4ff]"
+                    className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[#16041c] border border-[#6b21a8] text-xs text-white focus:outline-none focus:border-[#facc15]"
                   />
                   <button
                     type="button"
                     onClick={handleAddUserRow}
-                    className="px-3 py-1.5 rounded-lg bg-[#2bff86] text-[#020a25] text-xs font-extrabold flex items-center gap-1 cursor-pointer shrink-0"
+                    className="px-3 py-1.5 rounded-lg bg-[#4ade80] text-[#2d0938] text-xs font-extrabold flex items-center gap-1 cursor-pointer shrink-0"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add
                   </button>
@@ -272,29 +272,29 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 
               {/* Authorised Users List */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-[#d8eaff]">
-                  Authorised Users List (one per line: <code className="text-[#19e4ff]">@username:key</code>)
+                <label className="block text-xs font-bold text-[#f3e8ff]">
+                  Authorised Users List (one per line: <code className="text-[#facc15]">@username:key</code>)
                 </label>
                 <textarea
                   rows={4}
                   value={bulkText}
                   onChange={(e) => handleBulkTextChange(e.target.value)}
                   placeholder="@mrdimpz:secretkey1&#10;@creator2:secretkey2"
-                  className="w-full p-3 rounded-xl bg-[#020a25] border border-[#1768b3] text-xs font-mono text-white focus:outline-none focus:border-[#19e4ff]"
+                  className="w-full p-3 rounded-xl bg-[#16041c] border border-[#6b21a8] text-xs font-mono text-white focus:outline-none focus:border-[#facc15]"
                 />
               </div>
 
               {/* Current Active Entries Table */}
               {usersList.length > 0 && (
-                <div className="rounded-xl bg-[#020a25] border border-[#1768b3]/60 divide-y divide-[#1768b3]/30 max-h-36 overflow-y-auto">
+                <div className="rounded-xl bg-[#16041c] border border-[#6b21a8]/60 divide-y divide-[#6b21a8]/30 max-h-36 overflow-y-auto">
                   {usersList.map((u) => (
                     <div
                       key={u.username}
                       className="px-3 py-2 flex items-center justify-between text-xs"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-bold text-[#19e4ff]">{u.username}</span>
-                        <span className="text-[#96b8dd] font-mono">Key: {u.key}</span>
+                        <span className="font-bold text-[#facc15]">{u.username}</span>
+                        <span className="text-[#d8b4fe] font-mono">Key: {u.key}</span>
                       </div>
                       <button
                         type="button"
@@ -310,31 +310,31 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
               )}
 
               {/* Change Admin Username & Password */}
-              <div className="p-3.5 rounded-xl bg-[#061c3d] border border-[#1768b3] space-y-2.5">
+              <div className="p-3.5 rounded-xl bg-[#2c0938] border border-[#6b21a8] space-y-2.5">
                 <div className="text-xs font-bold text-white">
                   Update Admin Login Credentials
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[10px] text-[#96b8dd] mb-1">
+                    <label className="block text-[10px] text-[#d8b4fe] mb-1">
                       Admin Username
                     </label>
                     <input
                       type="text"
                       value={newAdminUser}
                       onChange={(e) => setNewAdminUser(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-[#020a25] border border-[#1768b3] text-xs text-white"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-[#16041c] border border-[#6b21a8] text-xs text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-[#96b8dd] mb-1">
+                    <label className="block text-[10px] text-[#d8b4fe] mb-1">
                       Admin Password
                     </label>
                     <input
                       type="text"
                       value={newAdminPassword}
                       onChange={(e) => setNewAdminPassword(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-[#020a25] border border-[#1768b3] text-xs text-white"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-[#16041c] border border-[#6b21a8] text-xs text-white"
                     />
                   </div>
                 </div>
@@ -342,7 +342,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-[#ffe536] hover:bg-[#ffed6c] text-[#020a25] text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-[#facc15] hover:bg-[#fde047] text-[#2d0938] text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Save className="w-4 h-4" /> Save Authorised Users &amp; Admin Settings
               </button>

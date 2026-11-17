@@ -1348,7 +1348,7 @@ export function handleWikiconGuess(
     bestRank: 9999,
     elo: 1200 + Math.floor(Math.random() * 250),
     cosmeticTitle: player.cosmeticTitle || 'Wiki Explorer',
-    borderColor: '#19e4ff',
+    borderColor: '#facc15',
   };
 
   const updatedPlayer = {

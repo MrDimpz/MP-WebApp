@@ -1,4 +1,4 @@
-/* ── WikiContexto Deep-Space Neon Canvas ── */
+/* ── WikiContexto Royal Purple & Metallic Gold Canvas ── */
 .wikicon-root {
   min-height: 100vh;
   width: 100%;
@@ -40,30 +40,30 @@
 }
 
 .wk-canvas-dark {
-  background-color: #020a25;
+  background-color: #15041c;
   background-image:
-    radial-gradient(ellipse at 85% 0%, rgba(7, 62, 101, 0.55) 0%, transparent 42%),
-    radial-gradient(ellipse at 4% 34%, rgba(17, 17, 74, 0.5) 0%, transparent 52%),
-    radial-gradient(circle, rgba(108, 173, 212, 0.14) 1px, transparent 1px);
+    radial-gradient(ellipse at 85% 0%, rgba(126, 34, 206, 0.38) 0%, transparent 45%),
+    radial-gradient(ellipse at 4% 34%, rgba(250, 204, 21, 0.14) 0%, transparent 52%),
+    radial-gradient(circle, rgba(216, 180, 254, 0.14) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 38px 38px;
 }
 
 .wk-canvas-light {
-  background-color: #eaf4ff;
+  background-color: #faf7fc;
   background-image:
-    radial-gradient(ellipse at 85% 0%, rgba(185, 237, 255, 0.7) 0%, transparent 48%),
-    radial-gradient(circle, rgba(23, 104, 179, 0.1) 1px, transparent 1px);
+    radial-gradient(ellipse at 85% 0%, rgba(233, 213, 255, 0.75) 0%, transparent 48%),
+    radial-gradient(circle, rgba(126, 34, 206, 0.1) 1px, transparent 1px);
   background-size: 100% 100%, 38px 38px;
 }
 
 /* ── Wikirec Physical Arcade Keycap Tiles ── */
 .keycap-tile {
   font-family: var(--font-display);
-  background: linear-gradient(180deg, #27495f 0%, #1b3446 48%, #12252f 100%);
+  background: linear-gradient(180deg, #5b1b73 0%, #3d0f4e 48%, #260733 100%);
   box-shadow:
-    inset 0 2px 0 rgba(190, 230, 255, 0.22),
+    inset 0 2px 0 rgba(250, 204, 21, 0.22),
     inset 0 -7px 12px rgba(0, 0, 0, 0.45),
-    0 5px 0 #08131b,
+    0 5px 0 #120318,
     0 8px 14px rgba(0, 0, 0, 0.50);
   transition: transform 110ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 110ms cubic-bezier(0.16, 1, 0.3, 1), background 110ms ease;
   user-select: none;
@@ -71,17 +71,18 @@
 }
 
 .keycap-tile:hover {
-  background: linear-gradient(180deg, #2f5770 0%, #213e54 48%, #152b37 100%);
+  background: linear-gradient(180deg, #6e228b 0%, #4a1259 48%, #2f093d 100%);
 }
 
 .keycap-tile.active-swipe {
   transform: translateY(4px);
-  background: linear-gradient(180deg, #ee7a2c 0%, #c95f1d 55%, #9a4410 100%);
+  background: linear-gradient(180deg, #fde047 0%, #facc15 55%, #ca8a04 100%);
+  color: #2d0938;
   box-shadow:
-    inset 0 1px 0 rgba(255, 235, 200, 0.40),
-    inset 0 -3px 8px rgba(0, 0, 0, 0.45),
-    0 1px 0 #4d2005,
-    0 2px 6px rgba(238, 122, 44, 0.45);
+    inset 0 1px 0 rgba(255, 250, 220, 0.65),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.3),
+    0 1px 0 #713f12,
+    0 2px 8px rgba(250, 204, 21, 0.5);
 }
 
 .keycap-tile.found-flash {
@@ -96,13 +97,13 @@
 
 .keycap-tile-light {
   font-family: var(--font-display);
-  background: linear-gradient(180deg, #ffffff 0%, #e6f2ff 55%, #cce2fc 100%);
-  color: #102c4b;
+  background: linear-gradient(180deg, #ffffff 0%, #f3edfc 55%, #e4d4fa 100%);
+  color: #4a1259;
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -5px 10px rgba(16, 44, 75, 0.12),
-    0 5px 0 #8ab9f5,
-    0 8px 14px rgba(16, 44, 75, 0.18);
+    inset 0 -5px 10px rgba(74, 18, 89, 0.12),
+    0 5px 0 #a855f7,
+    0 8px 14px rgba(74, 18, 89, 0.18);
   transition: transform 110ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 110ms cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
   touch-action: none;
@@ -110,11 +111,11 @@
 
 .keycap-tile-light.active-swipe {
   transform: translateY(4px);
-  background: linear-gradient(180deg, #ee7a2c 0%, #c95f1d 100%);
-  color: #ffffff;
+  background: linear-gradient(180deg, #facc15 0%, #eab308 100%);
+  color: #2d0938;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    0 1px 0 #9a4410;
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 1px 0 #854d0e;
 }
 
 /* ── Manuscript Auto-Scroll Box: hide scrollbar unless cursor is over box ── */
@@ -130,7 +131,7 @@
 
 .wk-manuscript-box:hover .wk-manuscript-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(150, 184, 221, 0.5) transparent;
+  scrollbar-color: rgba(216, 180, 254, 0.5) transparent;
 }
 
 .wk-manuscript-box:hover .wk-manuscript-scroll::-webkit-scrollbar {
@@ -142,24 +143,24 @@
 }
 
 .wk-manuscript-box:hover .wk-manuscript-scroll::-webkit-scrollbar-thumb {
-  background: rgba(150, 184, 221, 0.45);
+  background: rgba(216, 180, 254, 0.45);
   border-radius: 9999px;
 }
 
 .wk-manuscript-box:hover .wk-manuscript-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 184, 221, 0.72);
+  background: rgba(250, 204, 21, 0.72);
 }
 
 .wk-canvas-light .wk-manuscript-box:hover .wk-manuscript-scroll {
-  scrollbar-color: rgba(23, 104, 179, 0.45) transparent;
+  scrollbar-color: rgba(126, 34, 206, 0.45) transparent;
 }
 
 .wk-canvas-light .wk-manuscript-box:hover .wk-manuscript-scroll::-webkit-scrollbar-thumb {
-  background: rgba(23, 104, 179, 0.42);
+  background: rgba(126, 34, 206, 0.42);
 }
 
 .wk-canvas-light .wk-manuscript-box:hover .wk-manuscript-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(23, 104, 179, 0.68);
+  background: rgba(126, 34, 206, 0.68);
 }
 
 /* ── Smooth fade-in animation for newly revealed manuscript words ── */

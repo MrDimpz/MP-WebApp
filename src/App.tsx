@@ -26,10 +26,12 @@ import LexiGamePage from '@/routes/lexi-game';
 import DeStackIntGamePage from '@/routes/destackint-game';
 import { CrowdleGamePage } from '@/routes/crowdle-game';
 import MPSearchIntGamePage from '@/routes/mpsearchint-game';
+import InteractiveOverlaysWallPage from '@/routes/interactive-overlays';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'The Missing Piece — TikTok interactive & solo games',
   '/interactive-games': 'TikTok interactive games — The Missing Piece',
+  '/interactive-games/overlays': 'All Interactive Overlays — The Missing Piece',
   '/interactive-games/wikirec': 'WiKirecTangled — TikTok Interactive Game — The Missing Piece',
   '/interactive-games/wikirec/overlay': 'WiKirecTangled — TikTok LIVE Studio Overlay',
   '/interactive-games/wikicon': 'WikiContexto — TikTok Interactive Game — The Missing Piece',
@@ -70,6 +72,7 @@ const STANDALONE_GAME_PATHS = new Set([
   '/solo-games/wikirec',
   '/solo-games/wikicon',
   '/solo-games/mpsearch',
+  '/interactive-games/overlays',
   '/interactive-games/wikirec',
   '/interactive-games/wikirec/overlay',
   '/interactive-games/wikicon',
@@ -123,6 +126,7 @@ function AppShell() {
         <Route path="/solo-games/wikirec" element={<WikiRecSoloPage />} />
         <Route path="/solo-games/wikicon" element={<WikiConSoloPage />} />
         <Route path="/solo-games/mpsearch" element={<MPSearchPage />} />
+        <Route path="/interactive-games/overlays" element={<InteractiveOverlaysWallPage />} />
         <Route path="/interactive-games/wikirec" element={<WikirecGamePage />} />
         <Route path="/interactive-games/wikirec/overlay" element={<WikirecGamePage />} />
         <Route path="/interactive-games/wikicon" element={<WikiconGamePage />} />

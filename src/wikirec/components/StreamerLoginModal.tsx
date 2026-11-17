@@ -130,18 +130,18 @@ export const StreamerLoginModal: React.FC<StreamerLoginModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-md bg-[#111923] border-2 border-[#1e293b] rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md bg-[#240630] border-2 border-[#6b21a8] rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 bg-[#0d141c] border-b border-[#1e293b]">
+        <div className="flex items-center justify-between px-5 py-4 bg-[#16041c] border-b border-[#581c87]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400">
+            <div className="w-8 h-8 rounded-lg bg-amber-400/15 border border-amber-400/35 flex items-center justify-center text-amber-300">
               <Radio className="w-4 h-4" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-white tracking-wide">
                 TikTok Streamer Login
               </h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-purple-300">
                 Authorized access required to connect TikTok Live
               </p>
             </div>
@@ -149,7 +149,7 @@ export const StreamerLoginModal: React.FC<StreamerLoginModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1 rounded-lg text-purple-300 hover:text-white hover:bg-purple-900/50 transition"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -166,7 +166,7 @@ export const StreamerLoginModal: React.FC<StreamerLoginModalProps> = ({
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-purple-200 mb-1.5">
               TikTok Account
             </label>
             <div className="relative">
@@ -175,18 +175,18 @@ export const StreamerLoginModal: React.FC<StreamerLoginModalProps> = ({
                 value={username}
                 onChange={handleUsernameChange}
                 placeholder="@username"
-                className="w-full bg-[#0d141c] border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition font-mono"
+                className="w-full bg-[#16041c] border border-purple-700/80 rounded-xl px-3 py-2 text-xs text-white placeholder-purple-400/60 focus:outline-none focus:border-amber-400 transition font-mono"
                 autoComplete="off"
                 autoFocus
               />
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">
+            <p className="text-[10px] text-purple-300/75 mt-1">
               The TikTok handle that is streaming live (e.g. @yourstream)
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-purple-200 mb-1.5">
               Admin-Provided Access Key
             </label>
             <div className="relative">
@@ -195,13 +195,13 @@ export const StreamerLoginModal: React.FC<StreamerLoginModalProps> = ({
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
                 placeholder="LIVE-XXXX-XXXX"
-                className="w-full bg-[#0d141c] border border-slate-700/80 rounded-xl pl-3 pr-10 py-2 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-orange-500 transition"
+                className="w-full bg-[#16041c] border border-purple-700/80 rounded-xl pl-3 pr-10 py-2 text-xs text-white placeholder-purple-400/60 font-mono focus:outline-none focus:border-amber-400 transition"
                 autoComplete="off"
               />
               <button
                 type="button"
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-200 transition p-1"
+                className="absolute right-2.5 top-2 text-purple-300 hover:text-purple-100 transition p-1"
                 title={showKey ? 'Hide key' : 'Show key'}
               >
                 {showKey ? (
@@ -211,7 +211,7 @@ export const StreamerLoginModal: React.FC<StreamerLoginModalProps> = ({
                 )}
               </button>
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">
+            <p className="text-[10px] text-purple-300/75 mt-1">
               Your secret key issued by the game administrator
             </p>
           </div>
@@ -220,14 +220,14 @@ export const StreamerLoginModal: React.FC<StreamerLoginModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition"
+              className="px-4 py-2 text-xs font-semibold text-purple-300 hover:text-white transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 active:scale-[0.98] text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-amber-400 hover:bg-amber-300 active:scale-[0.98] text-[#2d0938] rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20 disabled:opacity-50"
             >
               {loading ? (
                 <span>Verifying...</span>
@@ -242,7 +242,7 @@ export const StreamerLoginModal: React.FC<StreamerLoginModalProps> = ({
         </form>
 
         {/* Footer info */}
-        <div className="px-5 py-3 bg-[#0d141c] border-t border-[#1e293b] text-[10px] text-slate-500 text-center">
+        <div className="px-5 py-3 bg-[#16041c] border-t border-[#581c87] text-[10px] text-purple-300/80 text-center">
           Need a key? Ask the room administrator to add your @username.
         </div>
       </div>

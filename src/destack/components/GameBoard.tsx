@@ -455,6 +455,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
         {/* Recessed Square Stack Board */}
         <div className="relative w-full aspect-square bg-[#360b42] dark:bg-[#16041c] border border-purple-400/15 rounded-2xl shadow-[inset_0_5px_14px_rgba(0,0,0,0.45)] p-[30px] sm:p-[36px] overflow-hidden pt-14 sm:pt-16">
+          {/* Centered Logo Watermark (94% of board at 20% opacity) */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none select-none"
+          >
+            <img
+              src="/assets/aistudio/3d_logo_944e5372.png"
+              alt=""
+              className="w-[94%] h-[94%] object-contain opacity-20"
+            />
+          </div>
+
           {/* Layer Key Bar Above Tiles But On The Board */}
           <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-center gap-1 sm:gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-xl border border-white/15 text-[10px] text-purple-100 font-bold overflow-x-auto no-scrollbar">
             <span className="text-amber-300 uppercase tracking-wider text-[9px] font-black shrink-0">Layer Key:</span>

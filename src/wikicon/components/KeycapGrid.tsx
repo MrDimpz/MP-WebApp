@@ -6,12 +6,14 @@ interface KeycapGridProps {
   gridBoard: GridBoard;
   onWordSubmit: (word: string) => void;
   isLightMode?: boolean;
+  compactOverlay?: boolean;
 }
 
 export const KeycapGrid: React.FC<KeycapGridProps> = ({
   gridBoard,
   onWordSubmit,
   isLightMode = false,
+  compactOverlay = false,
 }) => {
   const { rows, cols, cells, targets } = gridBoard;
   const [activePath, setActivePath] = useState<number[]>([]);
@@ -123,8 +125,8 @@ export const KeycapGrid: React.FC<KeycapGridProps> = ({
         key={t.id}
         className={`relative flex-1 min-w-0 ${heightClass} rounded-xl overflow-hidden border transition-all ${
           isRevealed
-            ? 'border-[#9eea3a] bg-[#112a18] shadow-[0_0_16px_rgba(158,234,58,0.28)]'
-            : 'border-[#2a4a5f] bg-[#152734] dark:bg-[#061c3d]'
+            ? 'border-[#4ade80] bg-[#17281e] shadow-[0_0_16px_rgba(74,222,128,0.28)]'
+            : 'border-[#6b21a8] bg-[#2c0938]'
         }`}
       >
         {/* Closeness / Revealed Fill Bar */}
@@ -133,15 +135,15 @@ export const KeycapGrid: React.FC<KeycapGridProps> = ({
           style={{
             width: `${fillPct}%`,
             background: isRevealed
-              ? 'linear-gradient(90deg, rgba(158,234,58,0.35), rgba(95,180,20,0.2))'
+              ? 'linear-gradient(90deg, rgba(74,222,128,0.35), rgba(34,197,94,0.2))'
               : `linear-gradient(90deg, hsla(${hue}, 88%, 50%, 0.35), transparent)`,
           }}
         />
-        <div className="relative z-10 h-full px-3 flex items-center justify-between gap-2">
+        <div className={`relative z-10 h-full ${compactOverlay ? 'px-2' : 'px-3'} flex items-center justify-between gap-2`}>
           <div className="flex items-center gap-1.5 min-w-0">
             <span
               className={`font-bold tracking-wider truncate ${textClass} ${
-                isRevealed ? 'text-[#9eea3a]' : 'text-[#eaf3f7]'
+                isRevealed ? 'text-[#4ade80]' : 'text-[#faf5ff]'
               }`}
               style={{ fontFamily: 'var(--font-display)' }}
             >
@@ -152,9 +154,9 @@ export const KeycapGrid: React.FC<KeycapGridProps> = ({
                     .join(' ')}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0 text-xs font-mono tabular-nums text-[#96b8dd]">
+          <div className="flex items-center gap-1.5 shrink-0 text-[11px] font-mono tabular-nums text-[#d8b4fe]">
             {isRevealed && t.finder ? (
-              <span className="text-[#9eea3a] font-semibold truncate max-w-[90px]">
+              <span className="text-[#4ade80] font-semibold truncate max-w-[80px]">
                 {t.finder.displayName}
               </span>
             ) : (
@@ -167,66 +169,94 @@ export const KeycapGrid: React.FC<KeycapGridProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full">
+    <div className={`flex flex-col w-full ${compactOverlay ? 'gap-2' : 'gap-4'}`}>
       {/* Target-Card Pyramid (1 Large on top, 2 in Middle, 3 on Bottom) */}
       {(pyramidRow1.length > 0 || pyramidRow2.length > 0 || pyramidRow3.length > 0) && (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between text-xs text-[#96b8dd] px-1">
-            <span>Target Article Pyramid · Fill grows green as guesses get closer</span>
-            <span className="font-mono tabular-nums">
+        <div className={`flex flex-col ${compactOverlay ? 'gap-1.5' : 'gap-2'}`}>
+          <div className="flex items-center justify-between text-[11px] text-[#d8b4fe] px-1">
+            <span className="truncate">
+              {compactOverlay ? 'Target Pyramid' : 'Target Article Pyramid · Fill grows green as guesses get closer'}
+            </span>
+            <span className="font-mono tabular-nums shrink-0">
               {targets.filter((t) => t.revealed).length}/{targets.length} Found
             </span>
           </div>
           {pyramidRow1.length > 0 && (
-            <div className="flex gap-2">
-              {pyramidRow1.map((t) => renderTargetCard(t, 'h-14', 'text-xl'))}
+            <div className="flex gap-1.5">
+              {pyramidRow1.map((t) =>
+                renderTargetCard(
+                  t,
+                  compactOverlay ? 'h-10' : 'h-14',
+                  compactOverlay ? 'text-base' : 'text-xl'
+                )
+              )}
             </div>
           )}
           {pyramidRow2.length > 0 && (
-            <div className="flex gap-2">
-              {pyramidRow2.map((t) => renderTargetCard(t, 'h-12', 'text-base'))}
+            <div className="flex gap-1.5">
+              {pyramidRow2.map((t) =>
+                renderTargetCard(
+                  t,
+                  compactOverlay ? 'h-9' : 'h-12',
+                  compactOverlay ? 'text-sm' : 'text-base'
+                )
+              )}
             </div>
           )}
           {pyramidRow3.length > 0 && (
-            <div className="flex gap-2">
-              {pyramidRow3.map((t) => renderTargetCard(t, 'h-11', 'text-sm'))}
+            <div className="flex gap-1.5">
+              {pyramidRow3.map((t) =>
+                renderTargetCard(
+                  t,
+                  compactOverlay ? 'h-8' : 'h-11',
+                  compactOverlay ? 'text-xs' : 'text-sm'
+                )
+              )}
             </div>
           )}
         </div>
       )}
 
       {/* Active Swipe Word Preview Floating Bar */}
-      <div className="h-9 flex items-center justify-center">
-        {currentWordPreview ? (
-          <div
-            className="px-4 py-1 rounded-lg bg-[#ee7a2c] text-white font-bold tracking-widest text-lg shadow-lg"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            {currentWordPreview}
-          </div>
-        ) : (
-          <span className="text-xs text-[#96b8dd]">
-            Drag across adjacent 8-connected arcade keycaps or type below to discover hidden words
-          </span>
-        )}
-      </div>
+      {!compactOverlay && (
+        <div className="h-9 flex items-center justify-center">
+          {currentWordPreview ? (
+            <div
+              className="px-4 py-1 rounded-lg bg-[#facc15] text-[#2d0938] font-bold tracking-widest text-lg shadow-lg"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {currentWordPreview}
+            </div>
+          ) : (
+            <span className="text-xs text-[#d8b4fe]">
+              Drag across adjacent 8-connected arcade keycaps or type below to discover hidden words
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Physical Arcade Keycap Matrix + SVG Swipe Line */}
       <div
         ref={gridRef}
         onPointerMove={handlePointerMove}
-        className="relative mx-auto w-full max-w-[460px] p-3.5 rounded-2xl bg-[#0a1620] dark:bg-[#03142f] border-2 border-[#1768b3] shadow-[0_0_24px_rgba(25,228,255,0.14)] select-none touch-none"
+        className={`relative mx-auto w-full rounded-2xl bg-[#16041c] border-2 border-[#7e22ce] shadow-[0_0_24px_rgba(250,204,21,0.16)] select-none touch-none ${
+          compactOverlay ? 'max-w-[376px] p-2.5' : 'max-w-[460px] p-3.5'
+        }`}
       >
         {/* SVG Swipe Connector Overlay */}
         <svg
-          className="absolute inset-3.5 w-[calc(100%-28px)] h-[calc(100%-28px)] pointer-events-none z-20"
+          className={`absolute pointer-events-none z-20 ${
+            compactOverlay
+              ? 'inset-2.5 w-[calc(100%-20px)] h-[calc(100%-20px)]'
+              : 'inset-3.5 w-[calc(100%-28px)] h-[calc(100%-28px)]'
+          }`}
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
         >
           {activePath.length > 1 && (
             <polyline
               fill="none"
-              stroke="#ee7a2c"
+              stroke="#facc15"
               strokeWidth="2.8"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -242,7 +272,7 @@ export const KeycapGrid: React.FC<KeycapGridProps> = ({
 
         <div
           key={`${rows}x${cols}:${cells.join('')}`}
-          className="grid gap-2 relative z-10"
+          className={`grid relative z-10 ${compactOverlay ? 'gap-1.5' : 'gap-2'}`}
           style={{
             gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
           }}
@@ -263,8 +293,10 @@ export const KeycapGrid: React.FC<KeycapGridProps> = ({
                   setActivePath([idx]);
                 }}
                 style={{ '--tile-delay': `${tileDelayMs}ms` } as React.CSSProperties}
-                className={`puzzle-tile-enter aspect-square rounded-xl flex items-center justify-center text-xl sm:text-2xl font-bold cursor-pointer ${
-                  isLightMode ? 'keycap-tile-light' : 'keycap-tile text-[#eaf3f7]'
+                className={`puzzle-tile-enter aspect-square rounded-xl flex items-center justify-center font-bold cursor-pointer ${
+                  compactOverlay ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'
+                } ${
+                  isLightMode ? 'keycap-tile-light' : 'keycap-tile text-[#faf5ff]'
                 } ${isSelected ? 'active-swipe' : ''} ${isFlashed ? 'found-flash' : ''}`}
               >
                 {letter}

@@ -928,7 +928,9 @@ export default function CrowdleApp() {
 
     return (
       <div
-        className={`w-full max-w-[430px] rounded-[28px] p-4 flex flex-col gap-3 relative overflow-hidden border transition-all ${
+        className={`w-full rounded-[28px] flex flex-col relative overflow-hidden border transition-all ${
+          isOverlay ? 'max-w-[508px] p-5 gap-4' : 'max-w-[430px] p-4 gap-3'
+        } ${
           transparent && isOverlay
             ? 'bg-[#170428]/90 border-amber-400/40 shadow-[0_0_45px_rgba(0,0,0,0.85)]'
             : isDark
@@ -1358,7 +1360,7 @@ export default function CrowdleApp() {
   if (isOverlay) {
     return (
       <div
-        className={`w-screen h-screen flex items-center justify-center p-2 overflow-hidden select-none ${
+        className={`w-screen min-h-screen flex items-center justify-center p-3 overflow-hidden select-none ${
           transparent ? 'bg-transparent' : 'bg-[#0e021a]'
         }`}
       >
@@ -1443,7 +1445,7 @@ export default function CrowdleApp() {
             gameTitle="Crowdle"
             gameSlug="crowdle"
             streamerHandle={tiktokUsername}
-            recommendedSize="540 × 940 or 1080 × 1920"
+            recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
             label="LIVE Overlay"
           />
 

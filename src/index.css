@@ -587,6 +587,11 @@
   transform: translate(2px, -2px);
 }
 
+#root {
+  position: relative;
+  z-index: 1;
+}
+
 /* TikTok LIVE Studio Browser Source transparent canvas */
 html.tiktok-live-overlay,
 html.tiktok-live-overlay body,
@@ -595,4 +600,9 @@ html.tiktok-live-overlay #root {
   background-color: transparent !important;
   background-image: none !important;
   overflow-x: hidden;
+}
+
+html.tiktok-live-overlay body::before {
+  display: none !important;
+  content: none !important;
 }

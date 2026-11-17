@@ -346,11 +346,11 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-[#111923] border-2 border-[#1e293b] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl bg-[#240630] border-2 border-[#6b21a8] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 bg-[#0d141c] border-b border-[#1e293b]">
+        <div className="flex items-center justify-between px-5 py-3.5 bg-[#16041c] border-b border-[#581c87]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400">
+            <div className="w-8 h-8 rounded-lg bg-amber-400/15 border border-amber-400/35 flex items-center justify-center text-amber-300">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div>
@@ -362,7 +362,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                   Logged in as {currentAdminUser}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-purple-300">
                 Manage registered @usernames and individual admin-provided access keys
               </p>
             </div>
@@ -375,7 +375,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                   onLogoutAdmin();
                   onClose();
                 }}
-                className="px-2.5 py-1 text-xs text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition flex items-center gap-1"
+                className="px-2.5 py-1 text-xs text-purple-300 hover:text-red-400 hover:bg-purple-900/50 rounded-lg transition flex items-center gap-1"
                 title="Log out of Admin"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -385,7 +385,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              className="p-1.5 rounded-lg text-purple-300 hover:text-white hover:bg-purple-900/50 transition"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -394,15 +394,15 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
         </div>
 
         {/* Tab switchers */}
-        <div className="flex items-center justify-between px-5 pt-3 bg-[#111923] border-b border-slate-800/60 pb-2">
+        <div className="flex items-center justify-between px-5 pt-3 bg-[#240630] border-b border-purple-800/60 pb-2">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setTab('list')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition ${
                 tab === 'list'
-                  ? 'bg-orange-500 text-white'
-                  : 'text-slate-400 hover:text-white bg-slate-800/60'
+                  ? 'bg-amber-400 text-[#2d0938]'
+                  : 'text-purple-300 hover:text-white bg-purple-900/50'
               }`}
             >
               <List className="w-3.5 h-3.5" />
@@ -413,8 +413,8 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
               onClick={() => setTab('bulk')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition ${
                 tab === 'bulk'
-                  ? 'bg-orange-500 text-white'
-                  : 'text-slate-400 hover:text-white bg-slate-800/60'
+                  ? 'bg-amber-400 text-[#2d0938]'
+                  : 'text-purple-300 hover:text-white bg-purple-900/50'
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
@@ -425,8 +425,8 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
               onClick={() => setTab('credentials')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition ${
                 tab === 'credentials'
-                  ? 'bg-orange-500 text-white'
-                  : 'text-slate-400 hover:text-white bg-slate-800/60'
+                  ? 'bg-amber-400 text-[#2d0938]'
+                  : 'text-purple-300 hover:text-white bg-purple-900/50'
               }`}
             >
               <Lock className="w-3.5 h-3.5" />
@@ -459,16 +459,16 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
           {tab === 'list' ? (
             <>
               {/* Add New Streamer Card */}
-              <div className="p-4 rounded-xl bg-[#0d141c] border border-slate-800/80 space-y-3">
+              <div className="p-4 rounded-xl bg-[#16041c] border border-purple-800/80 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                    <Key className="w-3.5 h-3.5 text-orange-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-purple-200 flex items-center gap-1.5">
+                    <Key className="w-3.5 h-3.5 text-amber-400" />
                     Authorize New Streamer
                   </span>
                   <button
                     type="button"
                     onClick={() => setNewKey(generateRandomKey())}
-                    className="text-[11px] text-orange-400 hover:text-orange-300 flex items-center gap-1"
+                    className="text-[11px] text-amber-300 hover:text-amber-200 flex items-center gap-1"
                     title="Generate a fresh random key"
                   >
                     <RefreshCw className="w-3 h-3" /> Generate Key
@@ -478,7 +478,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                 <form onSubmit={handleAddUser} className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">
+                      <label className="block text-[11px] text-purple-300 mb-1">
                         TikTok Username
                       </label>
                       <input
@@ -486,11 +486,11 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                         value={newUsername}
                         onChange={(e) => setNewUsername(e.target.value)}
                         placeholder="@streamer"
-                        className="w-full bg-[#16212e] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+                        className="w-full bg-[#2c0938] border border-purple-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-purple-400/60 focus:outline-none focus:border-amber-400"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">
+                      <label className="block text-[11px] text-purple-300 mb-1">
                         Streamer Key
                       </label>
                       <input
@@ -498,11 +498,11 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                         value={newKey}
                         onChange={(e) => setNewKey(e.target.value)}
                         placeholder="LIVE-XXXX-XXXX"
-                        className="w-full bg-[#16212e] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-orange-500"
+                        className="w-full bg-[#2c0938] border border-purple-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-purple-400/60 font-mono focus:outline-none focus:border-amber-400"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">
+                      <label className="block text-[11px] text-purple-300 mb-1">
                         Note / Label (Optional)
                       </label>
                       <input
@@ -510,7 +510,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                         value={newLabel}
                         onChange={(e) => setNewLabel(e.target.value)}
                         placeholder="Main host, tournament..."
-                        className="w-full bg-[#16212e] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+                        className="w-full bg-[#2c0938] border border-purple-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-purple-400/60 focus:outline-none focus:border-amber-400"
                       />
                     </div>
                   </div>
@@ -518,7 +518,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                   <div className="flex justify-end">
                     <button
                       type="submit"
-                      className="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                      className="px-4 py-1.5 bg-amber-400 hover:bg-amber-300 text-[#2d0938] rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Add Streamer
@@ -529,21 +529,21 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
 
               {/* Authorized Users List */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+                <div className="flex items-center justify-between text-xs text-purple-300 px-1">
                   <span>Authorized Accounts ({users.length})</span>
                   <span>Click key to toggle visibility</span>
                 </div>
 
                 {loading ? (
-                  <div className="p-8 text-center text-xs text-slate-500">
+                  <div className="p-8 text-center text-xs text-purple-400">
                     Loading authorized streamers...
                   </div>
                 ) : users.length === 0 ? (
-                  <div className="p-8 text-center bg-[#0d141c] border border-slate-800 rounded-xl">
-                    <p className="text-xs text-slate-400">
+                  <div className="p-8 text-center bg-[#16041c] border border-purple-800 rounded-xl">
+                    <p className="text-xs text-purple-300">
                       No authorized streamers configured yet.
                     </p>
-                    <p className="text-[11px] text-slate-500 mt-1">
+                    <p className="text-[11px] text-purple-400/80 mt-1">
                       Add a TikTok username and key above to allow live chat relay.
                     </p>
                   </div>
@@ -555,10 +555,10 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                       return (
                         <div
                           key={u.username}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-[#0d141c] border border-slate-800/70 hover:border-slate-700/80 transition group"
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-[#16041c] border border-purple-800/70 hover:border-purple-600/80 transition group"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-orange-400 uppercase shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-purple-900 border border-purple-700 flex items-center justify-center text-xs font-bold text-amber-300 uppercase shrink-0">
                               {u.username[0] || 'T'}
                             </div>
                             <div className="min-w-0">
@@ -567,7 +567,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                                   @{u.username}
                                 </span>
                                 {u.label && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-900 text-purple-200">
                                     {u.label}
                                   </span>
                                 )}
@@ -576,11 +576,11 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => toggleKeyReveal(u.username)}
-                                  className="text-[11px] font-mono text-slate-400 hover:text-slate-200 transition text-left"
+                                  className="text-[11px] font-mono text-purple-300 hover:text-purple-100 transition text-left"
                                   title="Click to reveal/hide"
                                 >
                                   Key:{' '}
-                                  <span className="text-orange-300">
+                                  <span className="text-amber-300">
                                     {isRevealed
                                       ? u.key
                                       : `${u.key.slice(0, 5)}••••••••`}
@@ -594,7 +594,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                             <button
                               type="button"
                               onClick={() => handleCopy(u.key, u.username)}
-                              className="p-1.5 text-slate-400 hover:text-orange-400 hover:bg-slate-800 rounded-lg transition"
+                              className="p-1.5 text-purple-300 hover:text-amber-300 hover:bg-purple-900/50 rounded-lg transition"
                               title="Copy access key"
                             >
                               {isCopied ? (
@@ -606,7 +606,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                             <button
                               type="button"
                               onClick={() => handleDeleteUser(u.username)}
-                              className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition"
+                              className="p-1.5 text-purple-300 hover:text-red-400 hover:bg-purple-900/50 rounded-lg transition"
                               title="Remove streamer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -622,9 +622,9 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
           ) : tab === 'bulk' ? (
             /* Bulk Paste / Import Tab */
             <div className="space-y-3">
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-purple-300">
                 <p>Paste one user per line using format:</p>
-                <code className="text-[11px] text-orange-300 bg-slate-900 px-2 py-0.5 rounded">
+                <code className="text-[11px] text-amber-300 bg-[#16041c] px-2 py-0.5 rounded">
                   @username : ACCESS-KEY # optional label
                 </code>
               </div>
@@ -634,7 +634,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                 onChange={(e) => setBulkText(e.target.value)}
                 rows={10}
                 placeholder={`@mindtipgames : LIVE-KEY-2026 # Main Streamer\n@streamer2 : LIVE-ABCD-EFGH # Secondary Host`}
-                className="w-full bg-[#0d141c] border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-orange-500"
+                className="w-full bg-[#16041c] border border-purple-800 rounded-xl p-3 text-xs font-mono text-purple-100 placeholder-purple-400/60 focus:outline-none focus:border-amber-400"
               />
 
               <div className="flex items-center justify-between">
@@ -644,14 +644,14 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                     navigator.clipboard.writeText(bulkText);
                     setStatusMessage({ text: 'Copied bulk list to clipboard.' });
                   }}
-                  className="px-3 py-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 rounded-lg transition"
+                  className="px-3 py-1.5 text-xs text-purple-200 hover:text-white bg-purple-900 rounded-lg transition"
                 >
                   Copy All to Clipboard
                 </button>
                 <button
                   type="button"
                   onClick={handleApplyBulkText}
-                  className="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition shadow-sm"
+                  className="px-4 py-1.5 bg-amber-400 hover:bg-amber-300 text-[#2d0938] rounded-lg text-xs font-bold transition shadow-sm"
                 >
                   Parse &amp; Update List
                 </button>
@@ -659,22 +659,22 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
             </div>
           ) : (
             /* Change Admin Credentials Tab */
-            <div className="p-4 rounded-xl bg-[#0d141c] border border-slate-800/80 space-y-4">
+            <div className="p-4 rounded-xl bg-[#16041c] border border-purple-800/80 space-y-4">
               <div className="flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-orange-400" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                <KeyRound className="w-4 h-4 text-amber-400" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-purple-100">
                   Update Admin Login Credentials
                 </h3>
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p className="text-xs text-purple-300 leading-relaxed">
                 Change the username and password required to open this Admin panel.
-                Default credentials are <span className="text-orange-400 font-mono">User: Admin</span>,{' '}
-                <span className="text-orange-400 font-mono">Password: MissingWiki</span>.
+                Default credentials are <span className="text-amber-300 font-mono">User: Admin</span>,{' '}
+                <span className="text-amber-300 font-mono">Password: MissingWiki</span>.
               </p>
 
               <form onSubmit={handleChangeCredentials} className="space-y-3 max-w-md">
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
+                  <label className="block text-[11px] text-purple-300 mb-1">
                     Current Admin Password
                   </label>
                   <input
@@ -682,13 +682,13 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                     value={credCurrentPass}
                     onChange={(e) => setCredCurrentPass(e.target.value)}
                     placeholder="Enter current password"
-                    className="w-full bg-[#16212e] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+                    className="w-full bg-[#2c0938] border border-purple-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-purple-400/60 focus:outline-none focus:border-amber-400"
                     autoComplete="current-password"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
+                  <label className="block text-[11px] text-purple-300 mb-1">
                     New Admin Username
                   </label>
                   <input
@@ -696,12 +696,12 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                     value={credNewUser}
                     onChange={(e) => setCredNewUser(e.target.value)}
                     placeholder="Admin"
-                    className="w-full bg-[#16212e] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+                    className="w-full bg-[#2c0938] border border-purple-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-purple-400/60 focus:outline-none focus:border-amber-400"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
+                  <label className="block text-[11px] text-purple-300 mb-1">
                     New Admin Password
                   </label>
                   <div className="relative">
@@ -710,13 +710,13 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                       value={credNewPass}
                       onChange={(e) => setCredNewPass(e.target.value)}
                       placeholder="Minimum 4 characters"
-                      className="w-full bg-[#16212e] border border-slate-700/80 rounded-lg pl-3 pr-9 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+                      className="w-full bg-[#2c0938] border border-purple-700/80 rounded-lg pl-3 pr-9 py-1.5 text-xs text-white placeholder-purple-400/60 focus:outline-none focus:border-amber-400"
                       autoComplete="new-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowCredPass(!showCredPass)}
-                      className="absolute right-2 top-1.5 text-slate-400 hover:text-slate-200"
+                      className="absolute right-2 top-1.5 text-purple-300 hover:text-purple-100"
                     >
                       {showCredPass ? (
                         <EyeOff className="w-3.5 h-3.5" />
@@ -728,7 +728,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
+                  <label className="block text-[11px] text-purple-300 mb-1">
                     Confirm New Admin Password
                   </label>
                   <input
@@ -736,7 +736,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                     value={credConfirmPass}
                     onChange={(e) => setCredConfirmPass(e.target.value)}
                     placeholder="Re-enter new password"
-                    className="w-full bg-[#16212e] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+                    className="w-full bg-[#2c0938] border border-purple-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-purple-400/60 focus:outline-none focus:border-amber-400"
                     autoComplete="new-password"
                   />
                 </div>
@@ -745,7 +745,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                   <button
                     type="submit"
                     disabled={credLoading}
-                    className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                    className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-[#2d0938] rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                   >
                     {credLoading ? 'Updating...' : 'Update Admin Credentials'}
                   </button>
@@ -756,15 +756,15 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-3 bg-[#0d141c] border-t border-[#1e293b]">
-          <span className="text-[11px] text-slate-500">
+        <div className="flex items-center justify-between px-5 py-3 bg-[#16041c] border-t border-[#581c87]">
+          <span className="text-[11px] text-purple-300/75">
             Streamers must enter their matching key to access TikTok Live relay.
           </span>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 text-xs font-semibold text-slate-400 hover:text-white transition"
+              className="px-3.5 py-1.5 text-xs font-semibold text-purple-300 hover:text-white transition"
             >
               Close
             </button>
@@ -773,7 +773,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                 type="button"
                 onClick={handleSaveChanges}
                 disabled={saving}
-                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-[#052e16] rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>

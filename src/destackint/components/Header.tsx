@@ -193,7 +193,7 @@ export const Header: React.FC<HeaderProps> = ({
           gameTitle="DeStack Interactive"
           gameSlug="destackint"
           streamerHandle={tiktokUsername}
-          recommendedSize="560 × 940 or 1080 × 1920"
+          recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
           label="LIVE Overlay"
         />
 

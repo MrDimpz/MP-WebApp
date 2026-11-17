@@ -262,7 +262,7 @@ export const BoggleGrid: React.FC<BoggleGridProps> = ({
             <polyline
               points={svgPoints}
               fill="none"
-              stroke={swipePath.length > 0 ? '#9eea3a' : '#ee7a2c'}
+              stroke={swipePath.length > 0 ? '#4ade80' : '#facc15'}
               strokeWidth="2.4"
               strokeLinecap="round"
               strokeLinejoin="round"

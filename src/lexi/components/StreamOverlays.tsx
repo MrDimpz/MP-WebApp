@@ -74,9 +74,9 @@ export const StreamOverlays: React.FC<StreamOverlaysProps> = ({
 
       {/* Round End / Intermission Summary Modal (centered precisely over the main game arena / board container) */}
       {roundSummary && (status === 'ROUND_END' || status === 'INTERMISSION') && (
-        <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 rounded-3xl">
-          <div className="w-full max-w-2xl rounded-2xl bg-slate-900 border-2 border-amber-400/50 p-6 shadow-2xl animate-word-celebrate">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 rounded-3xl">
+          <div className={`w-full max-w-2xl rounded-2xl bg-slate-900 border-2 border-amber-400/60 shadow-2xl animate-word-celebrate ${hideActions ? 'p-4' : 'p-6'}`}>
+            <div className={`flex items-center justify-between border-b border-slate-800 ${hideActions ? 'pb-3' : 'pb-4'}`}>
               <div className="flex items-center gap-3.5">
                 <BrandLogo size="md" />
                 <div>
@@ -88,7 +88,7 @@ export const StreamOverlays: React.FC<StreamOverlaysProps> = ({
                       </span>
                     )}
                   </div>
-                  <h2 className="text-2xl font-display font-extrabold text-white mt-0.5">
+                  <h2 className={`font-display font-extrabold text-white mt-0.5 ${hideActions ? 'text-xl' : 'text-2xl'}`}>
                     {roundSummary.targetReached
                       ? 'Goal Reached — Advancing to Next Level!'
                       : 'Goal Not Met — Restarting from Level 1'}
@@ -98,18 +98,18 @@ export const StreamOverlays: React.FC<StreamOverlaysProps> = ({
 
               <div className="text-right font-mono tabular-nums">
                 <div className="text-xs text-slate-400">Round Score</div>
-                <div className="text-2xl font-extrabold text-amber-400">
+                <div className={`${hideActions ? 'text-xl' : 'text-2xl'} font-extrabold text-amber-400`}>
                   {roundSummary.roundScore} <span className="text-sm text-slate-400">/ {roundSummary.targetScore}</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-5">
-              <div className="rounded-xl bg-slate-950 border border-slate-800/80 p-3.5">
+            <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3.5 ${hideActions ? 'my-3' : 'my-5'}`}>
+              <div className="rounded-xl bg-slate-950 border border-slate-800/80 p-3">
                 <div className="text-xs font-semibold text-emerald-400 mb-2">
                   Discovered Words ({roundSummary.discoveredWords.length} / {roundSummary.totalPossibleWords})
                 </div>
-                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                <div className={`flex flex-wrap gap-1.5 overflow-y-auto ${hideActions ? 'max-h-24' : 'max-h-36'}`}>
                   {roundSummary.discoveredWords.length === 0 ? (
                     <span className="text-xs text-slate-500">None discovered this round.</span>
                   ) : (
@@ -125,11 +125,11 @@ export const StreamOverlays: React.FC<StreamOverlaysProps> = ({
                 </div>
               </div>
 
-              <div className="rounded-xl bg-slate-950 border border-slate-800/80 p-3.5">
+              <div className="rounded-xl bg-slate-950 border border-slate-800/80 p-3">
                 <div className="text-xs font-semibold text-slate-400 mb-2">
                   Missed Words ({roundSummary.missedWords.length})
                 </div>
-                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                <div className={`flex flex-wrap gap-1.5 overflow-y-auto ${hideActions ? 'max-h-24' : 'max-h-36'}`}>
                   {roundSummary.missedWords.slice(0, 35).map((word) => (
                     <span
                       key={word}

@@ -252,13 +252,13 @@ export default function App() {
     const topContributors = (activeGameState.leaderboards?.round || []).slice(0, 3);
     return (
       <div
-        className={`lexi-root flex flex-col items-center justify-start ${
+        className={`lexi-root min-h-screen flex flex-col items-center justify-center p-3 ${
           overlayBg === 'transparent'
-            ? 'min-h-0 p-2 sm:p-4 bg-transparent text-slate-100'
-            : 'min-h-screen p-3 sm:p-5 bg-slate-950 text-slate-100'
+            ? 'bg-transparent text-slate-100'
+            : 'bg-slate-950 text-slate-100'
         }`}
       >
-        <div className="w-full max-w-2xl mx-auto flex flex-col gap-3">
+        <div className="w-full max-w-[516px] mx-auto flex flex-col gap-3.5">
           {/* Compact Round Status & Countdown Strip */}
           <div className="px-4 py-2 rounded-2xl bg-[#190429]/92 border-2 border-amber-400/60 shadow-[0_8px_24px_rgba(0,0,0,0.6)] flex flex-wrap items-center justify-between gap-3 text-xs font-mono tabular-nums">
             <div className="flex items-center gap-2.5">
@@ -476,7 +476,7 @@ export default function App() {
                 route === 'vertical' ? 'text-amber-400 font-semibold underline underline-offset-8' : ''
               }`}
             >
-              Vertical 9:16
+              Vertical 20:9
             </a>
             <a
               href="/overlay"
@@ -530,7 +530,7 @@ export default function App() {
               gameTitle="Lexi Tiles"
               gameSlug="lexi"
               streamerHandle={gameState.tiktok.username}
-              recommendedSize="680 × 1040 or 1080 × 1920"
+              recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
               label="LIVE Overlay"
             />
             <button
@@ -580,7 +580,7 @@ export default function App() {
               route === 'vertical' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-slate-400'
             }`}
           >
-            Vertical 9:16
+            Vertical 20:9
           </button>
           <button
             type="button"

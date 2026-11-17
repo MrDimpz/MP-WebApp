@@ -21,7 +21,7 @@ export const LiveOverlayModal: React.FC<LiveOverlayModalProps> = ({
   gameTitle,
   gameSlug,
   streamerHandle,
-  recommendedSize = '1080 × 1920 (9:16 Vertical)',
+  recommendedSize = '540 × 1200 or 1080 × 2400 (20:9 Vertical)',
 }) => {
   const [bgMode, setBgMode] = useState<OverlayBackgroundMode>('transparent');
   const [copied, setCopied] = useState(false);

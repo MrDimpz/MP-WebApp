@@ -1,0 +1,342 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <clipPath id="wciClip"><rect x="0" y="0" width="1200" height="720" rx="16" /></clipPath>
+    <radialGradient id="wciGlow1" cx="0.22" cy="0.14" r="0.65">
+      <stop offset="0%" stop-color="#7e22ce" stop-opacity="0.34" />
+      <stop offset="100%" stop-color="#15041c" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="wciGlow2" cx="0.82" cy="0.85" r="0.6">
+      <stop offset="0%" stop-color="#facc15" stop-opacity="0.14" />
+      <stop offset="100%" stop-color="#15041c" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="wciGoldBtn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#facc15" />
+    </linearGradient>
+    <linearGradient id="wciBoxBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#360b42" />
+      <stop offset="100%" stop-color="#16041c" />
+    </linearGradient>
+    <linearGradient id="wciChatBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2c0938" />
+      <stop offset="100%" stop-color="#16041c" />
+    </linearGradient>
+    <linearGradient id="wciGreenFill" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.58" />
+      <stop offset="100%" stop-color="#16a34a" stop-opacity="0.16" />
+    </linearGradient>
+    <linearGradient id="wciGoldFill" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#facc15" stop-opacity="0.52" />
+      <stop offset="100%" stop-color="#eab308" stop-opacity="0.14" />
+    </linearGradient>
+    <linearGradient id="wciPurpleFill" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#7e22ce" stop-opacity="0.12" />
+    </linearGradient>
+    <filter id="wciShadow" x="-8%" y="-8%" width="116%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#07010a" flood-opacity="0.55" />
+    </filter>
+  </defs>
+
+  <g clip-path="url(#wciClip)">
+    <rect x="0" y="0" width="1200" height="720" fill="#15041c" />
+    <rect x="0" y="0" width="1200" height="720" fill="url(#wciGlow1)" />
+    <rect x="0" y="0" width="1200" height="720" fill="url(#wciGlow2)" />
+
+    <!-- Unified Interactive Stream Gate Top Bar -->
+    <rect x="0" y="0" width="1200" height="38" fill="#0d101b" />
+    <line x1="0" y1="38" x2="1200" y2="38" stroke="#262c40" stroke-width="1" />
+    <rect x="16" y="7" width="60" height="24" rx="6" fill="#181d30" stroke="#2e3652" stroke-width="1" />
+    <text x="46" y="23" text-anchor="middle" fill="#e2e8f0" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">← Back</text>
+    <text x="90" y="23" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="800">The Missing Piece <tspan fill="#64748b">·</tspan> <tspan fill="#facc15">WikiContexto Interactive</tspan></text>
+
+    <rect x="818" y="7" width="166" height="24" rx="7" fill="#0c2e24" stroke="#10b981" stroke-opacity="0.5" stroke-width="1" />
+    <circle cx="832" cy="19" r="4" fill="#34d399" />
+    <text x="875" y="23" text-anchor="middle" fill="#a7f3d0" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="700">@mrdimpz</text>
+    <text x="948" y="23" text-anchor="middle" fill="#fda4af" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="700">Switch Key</text>
+
+    <rect x="994" y="7" width="190" height="24" rx="7" fill="#26143d" stroke="#a855f7" stroke-opacity="0.5" stroke-width="1" />
+    <text x="1089" y="23" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">👤 Dimpz (@mrdimpz) · 4,850</text>
+
+    <!-- =============================================================== -->
+    <!-- LEFT COLUMN: LiveChatBox (w=320px, Royal Purple & Gold)         -->
+    <!-- =============================================================== -->
+    <g transform="translate(26, 56)" filter="url(#wciShadow)">
+      <rect x="0" y="0" width="320" height="644" rx="18" fill="url(#wciChatBg)" stroke="#7e22ce" stroke-width="2" />
+      <rect x="0" y="0" width="320" height="48" rx="18" fill="#240630" />
+      <line x1="0" y1="48" x2="320" y2="48" stroke="#6b21a8" stroke-width="1.2" />
+      <text x="18" y="29" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="900">💬 <tspan fill="#ffffff">Live Chat Stream</tspan></text>
+      <text x="304" y="29" text-anchor="end" fill="#4ade80" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="800">@mrdimpz</text>
+
+      <!-- Live Viewer Messages -->
+      <g transform="translate(14, 64)">
+        <rect x="0" y="0" width="292" height="68" rx="12" fill="#16041c" stroke="#581c87" stroke-width="1.2" />
+        <circle cx="24" cy="34" r="14" fill="#240630" stroke="#facc15" stroke-width="1.2" />
+        <text x="24" y="38.5" text-anchor="middle" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">WM</text>
+        <text x="48" y="27" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">WordMaster_UK</text>
+        <text x="48" y="48" fill="#faf5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="700">atmosphere</text>
+        <text x="278" y="27" text-anchor="end" fill="#4ade80" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">+2,450</text>
+
+        <rect x="0" y="80" width="292" height="68" rx="12" fill="#16041c" stroke="#581c87" stroke-width="1.2" />
+        <circle cx="24" cy="114" r="14" fill="#240630" stroke="#facc15" stroke-width="1.2" />
+        <text x="24" y="118.5" text-anchor="middle" fill="#f472b6" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">SS</text>
+        <text x="48" y="107" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">SarahStacks</text>
+        <text x="48" y="128" fill="#faf5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="700">orbital</text>
+        <text x="278" y="107" text-anchor="end" fill="#4ade80" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">+1,180</text>
+
+        <rect x="0" y="160" width="292" height="68" rx="12" fill="#16041c" stroke="#581c87" stroke-width="1.2" />
+        <circle cx="24" cy="194" r="14" fill="#240630" stroke="#facc15" stroke-width="1.2" />
+        <text x="24" y="198.5" text-anchor="middle" fill="#38bdf8" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">PQ</text>
+        <text x="48" y="187" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">PixelQueen</text>
+        <text x="48" y="208" fill="#faf5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="700">gravity</text>
+        <text x="278" y="187" text-anchor="end" fill="#facc15" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">+760</text>
+
+        <rect x="0" y="240" width="292" height="68" rx="12" fill="#16041c" stroke="#581c87" stroke-width="1.2" />
+        <circle cx="24" cy="274" r="14" fill="#240630" stroke="#facc15" stroke-width="1.2" />
+        <text x="24" y="278.5" text-anchor="middle" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">LL</text>
+        <text x="48" y="267" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">LeoLightning</text>
+        <text x="48" y="288" fill="#faf5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="700">planet surface</text>
+        <text x="278" y="267" text-anchor="end" fill="#c084fc" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">#62</text>
+
+        <rect x="0" y="320" width="292" height="68" rx="12" fill="#16041c" stroke="#581c87" stroke-width="1.2" />
+        <circle cx="24" cy="354" r="14" fill="#240630" stroke="#facc15" stroke-width="1.2" />
+        <text x="24" y="358.5" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">JT</text>
+        <text x="48" y="347" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">JaxTurbo</text>
+        <text x="48" y="368" fill="#faf5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="700">magnetic field</text>
+        <text x="278" y="347" text-anchor="end" fill="#4ade80" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">+920</text>
+
+        <rect x="0" y="400" width="292" height="68" rx="12" fill="#16041c" stroke="#581c87" stroke-width="1.2" />
+        <circle cx="24" cy="434" r="14" fill="#240630" stroke="#facc15" stroke-width="1.2" />
+        <text x="24" y="438.5" text-anchor="middle" fill="#4ade80" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">AM</text>
+        <text x="48" y="427" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">AstroMaya</text>
+        <text x="48" y="448" fill="#faf5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="700">Is the title Earth?</text>
+      </g>
+
+      <!-- Live Relay Status Footnote -->
+      <rect x="14" y="554" width="292" height="72" rx="12" fill="#240630" stroke="#4ade80" stroke-opacity="0.55" stroke-width="1.2" />
+      <text x="160" y="580" text-anchor="middle" fill="#4ade80" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="900">● TIKTOK LIVE CHAT SYNCED</text>
+      <text x="160" y="602" text-anchor="middle" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="600">Every viewer comment auto-guesses live</text>
+    </g>
+
+    <!-- =============================================================== -->
+    <!-- RIGHT COLUMN: WikiContexto Interactive Arena Shell (804px)      -->
+    <!-- =============================================================== -->
+    <g transform="translate(370, 56)" filter="url(#wciShadow)">
+      <rect x="0" y="0" width="804" height="644" rx="18" fill="#15041c" stroke="#7e22ce" stroke-width="2" />
+
+      <!-- Header Bar (#16041c, border-[#6b21a8]) -->
+      <rect x="0" y="0" width="804" height="48" rx="18" fill="#16041c" />
+      <line x1="0" y1="48" x2="804" y2="48" stroke="#6b21a8" stroke-width="1" />
+      <rect x="14" y="11" width="58" height="26" rx="7" fill="#2c0938" stroke="#6b21a8" />
+      <text x="43" y="28" text-anchor="middle" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">← Back</text>
+
+      <rect x="80" y="13" width="22" height="22" rx="5" fill="#3b0d47" stroke="#facc15" stroke-opacity="0.65" />
+      <text x="91" y="28" text-anchor="middle" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">W</text>
+      <text x="108" y="29" fill="#faf5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="16" font-weight="900">Wiki<tspan fill="#facc15">Contexto</tspan></text>
+
+      <text x="246" y="28" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">Home Hub</text>
+      <text x="322" y="28" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800" text-decoration="underline">WikiContexto</text>
+      <text x="418" y="28" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">Past Dailies</text>
+      <text x="500" y="28" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">Admin</text>
+
+      <!-- Header Right: Streak + Overlay + @mrdimpz green connected pill -->
+      <rect x="572" y="12" width="44" height="24" rx="8" fill="#2c0938" stroke="#facc15" stroke-opacity="0.7" />
+      <text x="594" y="28" text-anchor="middle" fill="#facc15" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="900">🔥6</text>
+      <rect x="622" y="12" width="70" height="24" rx="8" fill="#3b0d47" stroke="#facc15" />
+      <text x="657" y="28" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800">📡 Overlay</text>
+      <rect x="698" y="12" width="94" height="24" rx="8" fill="#4ade80" />
+      <text x="745" y="28" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="900">📻 @mrdimpz</text>
+
+      <!-- Compact 5-Tab Mode & Utility Toolbar -->
+      <g transform="translate(16, 56)">
+        <rect x="0" y="0" width="772" height="58" rx="12" fill="#240630" stroke="#6b21a8" stroke-width="1.2" />
+        <rect x="6" y="5" width="760" height="24" rx="8" fill="#16041c" />
+        <rect x="9" y="7" width="146" height="20" rx="6" fill="#4ade80" />
+        <text x="82" y="21" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">Online</text>
+        <text x="233" y="21" text-anchor="middle" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">Solo</text>
+        <text x="385" y="21" text-anchor="middle" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">Daily</text>
+        <text x="537" y="21" text-anchor="middle" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">⊞ 7×7 Grid</text>
+        <text x="689" y="21" text-anchor="middle" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">❝ 5×7 Quote</text>
+
+        <rect x="8" y="33" width="90" height="20" rx="6" fill="#2c0938" stroke="#4ade80" stroke-opacity="0.7" />
+        <text x="53" y="46.5" text-anchor="middle" fill="#4ade80" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="800">↻ New Round</text>
+        <rect x="104" y="33" width="96" height="20" rx="6" fill="#064e3b" stroke="#4ade80" />
+        <text x="152" y="46.5" text-anchor="middle" fill="#4ade80" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="800">▶ Auto 15s: ON</text>
+        <rect x="206" y="33" width="80" height="20" rx="6" fill="#2c0938" stroke="#6b21a8" />
+        <text x="246" y="46.5" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="700">Show Grid</text>
+        <rect x="292" y="33" width="66" height="20" rx="6" fill="#2c0938" stroke="#6b21a8" />
+        <text x="325" y="46.5" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="700">Lengths</text>
+        <rect x="364" y="33" width="58" height="20" rx="6" fill="#2c0938" stroke="#facc15" stroke-opacity="0.7" />
+        <text x="393" y="46.5" text-anchor="middle" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="800">💡 Hint</text>
+        <rect x="428" y="33" width="66" height="20" rx="6" fill="#2c0938" stroke="#6b21a8" />
+        <text x="461" y="46.5" text-anchor="middle" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="700">⚑ Reveal</text>
+        <rect x="702" y="33" width="26" height="20" rx="6" fill="#2c0938" stroke="#6b21a8" />
+        <text x="715" y="46.5" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10">🔊</text>
+        <rect x="734" y="33" width="26" height="20" rx="6" fill="#2c0938" stroke="#6b21a8" />
+        <text x="747" y="46.5" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10">☀</text>
+      </g>
+
+      <!-- TOP 2-COLUMN SECTION: TITLE + PODIUM (5 cols = 314px) | TOP-6 RANK CARDS (7 cols = 446px) -->
+      <g transform="translate(16, 122)">
+        <g>
+          <rect x="0" y="0" width="314" height="76" rx="12" fill="url(#wcsBoxBg)" stroke="#7e22ce" stroke-width="1.5" />
+          <text x="12" y="19" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10" font-weight="800" letter-spacing="1">TITLE</text>
+          <circle cx="206" cy="15" r="8" fill="#facc15" /><text x="206" y="18" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8.5" font-weight="900">G</text>
+          <text x="218" y="18.5" fill="#f3e8ff" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="800">42</text>
+          <circle cx="248" cy="15" r="8" fill="#facc15" /><text x="248" y="18" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8.5" font-weight="900">F</text>
+          <text x="260" y="18.5" fill="#f3e8ff" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="800">68/142</text>
+
+          <rect x="12" y="32" width="90" height="28" rx="7" fill="#4ade80" />
+          <text x="57" y="50" text-anchor="middle" fill="#052e16" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">EARTH</text>
+          <rect x="110" y="32" width="96" height="28" rx="7" fill="#facc15" stroke="#fef9c3" stroke-width="1" />
+          <text x="158" y="50" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">HIDDEN</text>
+
+          <!-- Podium Box -->
+          <rect x="0" y="82" width="314" height="90" rx="12" fill="url(#wcsBoxBg)" stroke="#7e22ce" stroke-width="1.5" />
+          <!-- Silver 2nd -->
+          <rect x="10" y="102" width="92" height="62" rx="8" fill="#2c0938" stroke="#e2e8f0" stroke-width="1.2" />
+          <rect x="14" y="95" width="26" height="12" rx="4" fill="#e2e8f0" />
+          <text x="27" y="104" text-anchor="middle" fill="#15041c" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8" font-weight="900">2nd</text>
+          <circle cx="56" cy="122" r="10.5" fill="#f472b6" stroke="#e2e8f0" />
+          <text x="56" y="126" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9" font-weight="900">SS</text>
+          <text x="56" y="144" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="800">SarahStacks</text>
+          <text x="56" y="158" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="9.5" font-weight="800">5,420</text>
+
+          <!-- Gold 1st -->
+          <rect x="111" y="92" width="92" height="72" rx="8" fill="#4a1259" stroke="#facc15" stroke-width="1.8" />
+          <rect x="166" y="85" width="28" height="12" rx="4" fill="#facc15" />
+          <text x="180" y="94" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8" font-weight="900">1st</text>
+          <circle cx="157" cy="116" r="11" fill="#fde047" stroke="#facc15" />
+          <text x="157" y="120" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="900">WM</text>
+          <text x="157" y="140" text-anchor="middle" fill="#facc15" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="900">WordMaster</text>
+          <text x="157" y="156" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="9.5" font-weight="900">8,140</text>
+
+          <!-- Bronze 3rd -->
+          <rect x="212" y="106" width="92" height="58" rx="8" fill="#240630" stroke="#d97706" stroke-width="1.2" />
+          <rect x="216" y="99" width="26" height="12" rx="4" fill="#d97706" />
+          <text x="229" y="108" text-anchor="middle" fill="#15041c" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8" font-weight="900">3rd</text>
+          <circle cx="258" cy="124" r="9.5" fill="#38bdf8" stroke="#d97706" />
+          <text x="258" y="128" text-anchor="middle" fill="#0c4a6e" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8.5" font-weight="900">PQ</text>
+          <text x="258" y="145" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="800">PixelQueen</text>
+          <text x="258" y="158" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="9.5" font-weight="800">3,980</text>
+        </g>
+
+        <!-- Right: Top-6 Semantic Rank Cards -->
+        <g transform="translate(326, 0)">
+          <rect x="0" y="0" width="446" height="25.5" rx="7" fill="#16041c" stroke="#4ade80" stroke-width="1.5" />
+          <rect x="0" y="0" width="414" height="25.5" rx="7" fill="url(#wciGreenFill)" />
+          <text x="12" y="17" fill="#facc15" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">♛ #1  <tspan fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif">ATMOSPHERE</tspan></text>
+          <circle cx="428" cy="12.75" r="8.5" fill="#fde047" stroke="#facc15" /><text x="428" y="16" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="7.5" font-weight="900">WM</text>
+
+          <g transform="translate(0, 29.5)">
+            <rect x="0" y="0" width="446" height="25.5" rx="7" fill="#16041c" stroke="#4ade80" stroke-width="1.3" />
+            <rect x="0" y="0" width="356" height="25.5" rx="7" fill="url(#wciGreenFill)" />
+            <text x="12" y="17" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">#8  <tspan font-family="DejaVu Sans, system-ui, sans-serif">ORBITAL</tspan></text>
+            <circle cx="428" cy="12.75" r="8.5" fill="#f472b6" stroke="#facc15" /><text x="428" y="16" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="7.5" font-weight="900">SS</text>
+          </g>
+          <g transform="translate(0, 59)">
+            <rect x="0" y="0" width="446" height="25.5" rx="7" fill="#16041c" stroke="#4ade80" stroke-width="1.3" />
+            <rect x="0" y="0" width="298" height="25.5" rx="7" fill="url(#wciGreenFill)" />
+            <text x="12" y="17" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">#24 <tspan font-family="DejaVu Sans, system-ui, sans-serif">GRAVITY</tspan></text>
+            <circle cx="428" cy="12.75" r="8.5" fill="#38bdf8" stroke="#facc15" /><text x="428" y="16" text-anchor="middle" fill="#0c4a6e" font-family="DejaVu Sans, system-ui, sans-serif" font-size="7.5" font-weight="900">PQ</text>
+          </g>
+          <g transform="translate(0, 88.5)">
+            <rect x="0" y="0" width="446" height="25.5" rx="7" fill="#16041c" stroke="#4ade80" stroke-width="1.3" />
+            <rect x="0" y="0" width="246" height="25.5" rx="7" fill="url(#wciGreenFill)" />
+            <text x="12" y="17" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">#62 <tspan font-family="DejaVu Sans, system-ui, sans-serif">SURFACE</tspan></text>
+            <circle cx="428" cy="12.75" r="8.5" fill="#c084fc" stroke="#facc15" /><text x="428" y="16" text-anchor="middle" fill="#15041c" font-family="DejaVu Sans, system-ui, sans-serif" font-size="7.5" font-weight="900">LL</text>
+          </g>
+          <g transform="translate(0, 118)">
+            <rect x="0" y="0" width="446" height="25.5" rx="7" fill="#16041c" stroke="#facc15" stroke-width="1.3" />
+            <rect x="0" y="0" width="184" height="25.5" rx="7" fill="url(#wciGoldFill)" />
+            <text x="12" y="17" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">#145 <tspan font-family="DejaVu Sans, system-ui, sans-serif">MAGNETIC</tspan></text>
+            <circle cx="428" cy="12.75" r="8.5" fill="#fde047" stroke="#facc15" /><text x="428" y="16" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="7.5" font-weight="900">JT</text>
+          </g>
+          <g transform="translate(0, 147.5)">
+            <rect x="0" y="0" width="446" height="25.5" rx="7" fill="#16041c" stroke="#a855f7" stroke-width="1.3" />
+            <rect x="0" y="0" width="128" height="25.5" rx="7" fill="url(#wciPurpleFill)" />
+            <text x="12" y="17" fill="#ffffff" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="900">#310 <tspan font-family="DejaVu Sans, system-ui, sans-serif">RADIATION</tspan></text>
+            <circle cx="428" cy="12.75" r="8.5" fill="#fde047" stroke="#facc15" /><text x="428" y="16" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="7.5" font-weight="900">WM</text>
+          </g>
+        </g>
+      </g>
+
+      <!-- ANNOUNCE BANNER -->
+      <g transform="translate(16, 302)">
+        <rect x="0" y="0" width="772" height="32" rx="10" fill="#16041c" stroke="#facc15" stroke-width="1.8" />
+        <circle cx="18" cy="16" r="9.5" fill="#fde047" stroke="#facc15" />
+        <text x="18" y="19.5" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8" font-weight="900">WM</text>
+        <text x="34" y="20" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700"><tspan fill="#ffffff" font-weight="900">WordMaster_UK</tspan> found <tspan fill="#facc15" font-weight="900">ATMOSPHERE</tspan></text>
+        <text x="758" y="20" text-anchor="end" fill="#4ade80" font-family="DejaVu Sans Mono, monospace" font-size="11.5" font-weight="900">+2,450</text>
+      </g>
+
+      <!-- RECENT MARQUEE -->
+      <g transform="translate(16, 342)">
+        <rect x="0" y="0" width="772" height="28" rx="9" fill="#240630" stroke="#6b21a8" stroke-width="1.2" />
+        <text x="14" y="18" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800">Recent</text>
+        <line x1="60" y1="5" x2="60" y2="23" stroke="#6b21a8" stroke-width="1" />
+        <text x="72" y="18" fill="#faf5ff" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="800">ATMOSPHERE <tspan fill="#facc15">#1</tspan> <tspan fill="#6b21a8">·</tspan> ORBITAL <tspan fill="#facc15">#8</tspan> <tspan fill="#6b21a8">·</tspan> GRAVITY <tspan fill="#facc15">#24</tspan> <tspan fill="#6b21a8">·</tspan> SURFACE <tspan fill="#facc15">#62</tspan> <tspan fill="#6b21a8">·</tspan> MAGNETIC <tspan fill="#facc15">#145</tspan></text>
+      </g>
+
+      <!-- REDACTED WIKIPEDIA MANUSCRIPT PANEL -->
+      <g transform="translate(16, 378)">
+        <rect x="0" y="0" width="772" height="202" rx="14" fill="url(#wciBoxBg)" stroke="#7e22ce" stroke-width="1.8" />
+        <text x="16" y="22" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">Wikipedia Redacted Manuscript</text>
+        <text x="756" y="22" text-anchor="end" fill="#d8b4fe" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="700">⏸ Auto · 48% Uncovered</text>
+        <line x1="14" y1="31" x2="758" y2="31" stroke="#6b21a8" stroke-width="1" />
+
+        <text x="16" y="56" fill="#4ade80" font-family="Georgia, serif" font-size="15" font-weight="800">Earth</text>
+        <text x="64" y="56" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">is the</text>
+        <rect x="108" y="40" width="52" height="20" rx="5" fill="#facc15" stroke="#fef08a" />
+        <text x="168" y="56" fill="#4ade80" font-family="Georgia, serif" font-size="15" font-weight="800">planet</text>
+        <text x="220" y="56" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">from the</text>
+        <rect x="290" y="40" width="48" height="20" rx="5" fill="#3b0d47" stroke="#6b21a8" />
+        <text x="346" y="56" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">and the only</text>
+        <rect x="440" y="40" width="84" height="20" rx="5" fill="#3b0d47" stroke="#6b21a8" />
+        <text x="532" y="56" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">known to</text>
+        <rect x="606" y="40" width="66" height="20" rx="5" fill="#3b0d47" stroke="#6b21a8" />
+        <text x="680" y="56" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">life.</text>
+
+        <text x="16" y="88" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">Its</text>
+        <text x="40" y="88" fill="#4ade80" font-family="Georgia, serif" font-size="15" font-weight="800">atmosphere</text>
+        <text x="134" y="88" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">and</text>
+        <text x="166" y="88" fill="#4ade80" font-family="Georgia, serif" font-size="15" font-weight="800">magnetic</text>
+        <rect x="242" y="72" width="54" height="20" rx="5" fill="#3b0d47" stroke="#6b21a8" />
+        <text x="304" y="88" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">shield the</text>
+        <text x="380" y="88" fill="#4ade80" font-family="Georgia, serif" font-size="15" font-weight="800">surface</text>
+        <text x="440" y="88" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">from</text>
+        <rect x="480" y="72" width="76" height="20" rx="5" fill="#3b0d47" stroke="#6b21a8" />
+        <text x="564" y="88" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">solar</text>
+        <text x="604" y="88" fill="#4ade80" font-family="Georgia, serif" font-size="15" font-weight="800">radiation.</text>
+
+        <text x="16" y="120" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">Driven by</text>
+        <text x="90" y="120" fill="#4ade80" font-family="Georgia, serif" font-size="15" font-weight="800">gravity</text>
+        <text x="148" y="120" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">, it completes one</text>
+        <text x="274" y="120" fill="#4ade80" font-family="Georgia, serif" font-size="15" font-weight="800">orbital</text>
+        <rect x="330" y="104" width="68" height="20" rx="5" fill="#3b0d47" stroke="#6b21a8" />
+        <text x="406" y="120" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">every</text>
+        <rect x="452" y="104" width="44" height="20" rx="5" fill="#f59e0b" stroke="#fde047" />
+        <text x="504" y="120" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">days around the star.</text>
+
+        <text x="16" y="152" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">About</text>
+        <rect x="64" y="136" width="38" height="20" rx="5" fill="#f59e0b" stroke="#fde047" />
+        <text x="108" y="152" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">percent of</text>
+        <text x="184" y="152" fill="#4ade80" font-family="Georgia, serif" font-size="15" font-weight="800">Earth</text>
+        <rect x="232" y="136" width="70" height="20" rx="5" fill="#3b0d47" stroke="#6b21a8" />
+        <text x="310" y="152" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">is covered by</text>
+        <rect x="408" y="136" width="64" height="20" rx="5" fill="#3b0d47" stroke="#6b21a8" />
+        <text x="480" y="152" fill="#e9d5ff" font-family="Georgia, serif" font-size="15" font-weight="600">oceans and tectonic</text>
+        <rect x="630" y="136" width="66" height="20" rx="5" fill="#3b0d47" stroke="#6b21a8" />
+      </g>
+
+      <!-- BOTTOM GUESS COMPOSER BAR -->
+      <g transform="translate(16, 588)">
+        <rect x="0" y="0" width="772" height="44" rx="12" fill="#240630" stroke="#7e22ce" stroke-width="1.8" />
+        <rect x="8" y="6" width="644" height="32" rx="9" fill="#16041c" stroke="#6b21a8" stroke-width="1" />
+        <text x="22" y="26.5" fill="#d8b4fe" fill-opacity="0.7" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="700">Guess a word or chat live on TikTok...</text>
+        <rect x="660" y="6" width="104" height="32" rx="9" fill="url(#wciGoldBtn)" stroke="#fef08a" stroke-width="1" />
+        <text x="712" y="26.5" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">➤ Guess</text>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -99,8 +99,8 @@ const INITIAL_PROFILE: UserEconomyProfile = {
   totalWordsFound: 68,
   dailyStreak: 0,
   equippedTitle: 'Tycoon Scholar',
-  equippedFrame: '#19e4ff',
-  equippedTileSkin: 'arcade-teal',
+  equippedFrame: '#facc15',
+  equippedTileSkin: 'royal-purple',
   completedDailies: [],
   businesses: [
     {
@@ -150,7 +150,7 @@ const INITIAL_PROFILE: UserEconomyProfile = {
       name: 'Tycoon Scholar',
       slot: 'title',
       price: 0,
-      previewHex: '#19e4ff',
+      previewHex: '#facc15',
       unlocked: true,
       equipped: true,
     },
@@ -159,7 +159,7 @@ const INITIAL_PROFILE: UserEconomyProfile = {
       name: 'Contexto Grandmaster',
       slot: 'title',
       price: 2500,
-      previewHex: '#ffe536',
+      previewHex: '#fde047',
       unlocked: false,
       equipped: false,
     },
@@ -168,16 +168,16 @@ const INITIAL_PROFILE: UserEconomyProfile = {
       name: 'Stream Legend',
       slot: 'title',
       price: 3500,
-      previewHex: '#2bff86',
+      previewHex: '#4ade80',
       unlocked: false,
       equipped: false,
     },
     {
       id: 'cos-frame-cyan',
-      name: 'Neon Cyan Halo',
+      name: 'Royal Amethyst Halo',
       slot: 'frame',
       price: 0,
-      previewHex: '#19e4ff',
+      previewHex: '#c084fc',
       unlocked: true,
       equipped: true,
     },
@@ -186,7 +186,7 @@ const INITIAL_PROFILE: UserEconomyProfile = {
       name: 'Sovereign Gold Crown',
       slot: 'frame',
       price: 4000,
-      previewHex: '#ffe536',
+      previewHex: '#facc15',
       unlocked: false,
       equipped: false,
     },
@@ -195,7 +195,7 @@ const INITIAL_PROFILE: UserEconomyProfile = {
       name: 'Emerald Matrix Frame',
       slot: 'frame',
       price: 3000,
-      previewHex: '#2bff86',
+      previewHex: '#4ade80',
       unlocked: false,
       equipped: false,
     },
@@ -1066,9 +1066,9 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
   const getRankHue = (rank: number) => {
     if (rank <= 10) return 135;
     if (rank <= 100) return 110;
-    if (rank <= 400) return 52;
-    if (rank <= 1200) return 32;
-    return 202;
+    if (rank <= 400) return 48;
+    if (rank <= 1200) return 36;
+    return 275;
   };
 
   const paddedRankCards: (RankCard | null)[] = Array.from({ length: 6 }, (_, i) =>
@@ -1126,7 +1126,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
             target.src = fallbackUrl;
           }
         }}
-        className={`${sizeClasses} rounded-full object-cover ${borderClasses}`}
+        className={`${sizeClasses} rounded-full object-cover bg-[#2c0938] ${borderClasses}`}
       />
     );
   };
@@ -1220,14 +1220,18 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
   return (
     <div
-      className={`wikicon-root ${isOverlay && overlayBg === 'transparent' ? 'min-h-0 py-2 bg-transparent' : 'min-h-screen'} flex flex-col items-center transition-colors duration-200 ${
+      className={`wikicon-root relative z-10 ${
+        isOverlay
+          ? `min-h-screen justify-center py-3 ${overlayBg === 'transparent' ? 'bg-transparent' : ''}`
+          : 'min-h-screen'
+      } flex flex-col items-center transition-colors duration-200 ${
         isOverlay && overlayBg === 'transparent'
           ? isLightMode
-            ? 'text-[#102c4b]'
-            : 'text-[#f3f8ff]'
+            ? 'text-[#2d0938]'
+            : 'text-[#faf5ff]'
           : isLightMode
-          ? 'wk-canvas-light text-[#102c4b]'
-          : 'wk-canvas-dark text-[#f3f8ff]'
+          ? 'wk-canvas-light text-[#2d0938]'
+          : 'wk-canvas-dark text-[#faf5ff]'
       }`}
     >
       {/* ── Horizontal Flex Wrapper: Live Chat Box on Left (Only when Authorised User Logged In) + 50px Gap + 490px Game Shell ── */}
@@ -1243,22 +1247,26 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
           </div>
         )}
 
-        {/* ── Centered 490px App Shell ── */}
-        <div className={`w-full max-w-[490px] ${isOverlay ? '' : 'min-h-screen'} flex flex-col shrink-0`}>
+        {/* ── Centered 490px (or 520px 20:9 overlay) App Shell ── */}
+        <div className={`w-full ${isOverlay ? 'max-w-[520px]' : 'max-w-[490px] min-h-screen'} flex flex-col shrink-0`}>
           {/* ── Top Navigation Bar (hidden in LIVE Studio overlay) ── */}
           {!isOverlay && (
           <header
             className={`w-full flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b ${
               isLightMode
-                ? 'bg-white border-[#6498d2]'
-                : 'bg-[#020a25] border-[#1768b3]'
+                ? 'bg-white border-[#c084fc]'
+                : 'bg-[#16041c] border-[#6b21a8]'
             } sticky top-0 z-30`}
           >
             {/* Zone 1: Brand Wordmark (Links back to Home Screen /) + Back Link */}
             <div className="flex items-center gap-2 shrink-0">
               <Link
                 to={isSoloRoute ? '/solo-games' : '/interactive-games'}
-                className="px-2 py-1 rounded-lg text-xs font-bold bg-[#0e1d3b] hover:bg-[#152e5c] text-[#8ab4f8] hover:text-white border border-[#234b88] transition-all flex items-center gap-1 shrink-0"
+                className={`px-2 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 shrink-0 ${
+                  isLightMode
+                    ? 'bg-[#f3edfc] hover:bg-[#e9d5ff] text-[#4a1259] border-[#c084fc]'
+                    : 'bg-[#2c0938] hover:bg-[#4a1259] text-[#d8b4fe] hover:text-white border-[#6b21a8]'
+                }`}
                 title={isSoloRoute ? 'Back to Solo Games' : 'Back to Interactive Games'}
               >
                 ← Back
@@ -1271,10 +1279,10 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                 <img
                   src="/brand-logo.png"
                   alt="The Missing Piece Home"
-                  className="w-5 h-5 rounded object-cover border border-[#19e4ff]/50"
+                  className="w-5 h-5 rounded object-cover border border-[#facc15]/60"
                 />
                 <span>
-                  Wiki<span className="text-[#19e4ff]">Contexto</span>
+                  Wiki<span className={isLightMode ? 'text-[#7e22ce]' : 'text-[#facc15]'}>Contexto</span>
                 </span>
               </Link>
             </div>
@@ -1284,12 +1292,12 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
               <button
                 type="button"
                 onClick={() => setActiveNav('HOME')}
-                className={`hover:text-[#19e4ff] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   activeNav === 'HOME'
-                    ? 'text-[#19e4ff] underline underline-offset-8 decoration-2'
+                    ? `${isLightMode ? 'text-[#7e22ce]' : 'text-[#facc15]'} underline underline-offset-8 decoration-2`
                     : isLightMode
-                    ? 'text-[#163a61]'
-                    : 'text-[#d8eaff]'
+                    ? 'text-[#4a1259] hover:text-[#7e22ce]'
+                    : 'text-[#e9d5ff] hover:text-[#facc15]'
                 }`}
               >
                 Home Hub
@@ -1314,16 +1322,16 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                     });
                   }
                 }}
-                className={`hover:text-[#19e4ff] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   activeNav === 'DAILY' ||
                   activeNav === 'SOLO' ||
                   activeNav === 'ONLINE' ||
                   activeNav === 'WIKIREC_GRID' ||
                   activeNav === 'WIKIWORD_QUOTE'
-                    ? 'text-[#19e4ff] underline underline-offset-8 decoration-2'
+                    ? `${isLightMode ? 'text-[#7e22ce]' : 'text-[#facc15]'} underline underline-offset-8 decoration-2`
                     : isLightMode
-                    ? 'text-[#163a61]'
-                    : 'text-[#d8eaff]'
+                    ? 'text-[#4a1259] hover:text-[#7e22ce]'
+                    : 'text-[#e9d5ff] hover:text-[#facc15]'
                 }`}
               >
                 WikiContexto
@@ -1331,12 +1339,12 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
               <button
                 type="button"
                 onClick={() => setActiveNav('ARCHIVE')}
-                className={`hover:text-[#19e4ff] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   activeNav === 'ARCHIVE'
-                    ? 'text-[#19e4ff] underline underline-offset-8 decoration-2'
+                    ? `${isLightMode ? 'text-[#7e22ce]' : 'text-[#facc15]'} underline underline-offset-8 decoration-2`
                     : isLightMode
-                    ? 'text-[#163a61]'
-                    : 'text-[#d8eaff]'
+                    ? 'text-[#4a1259] hover:text-[#7e22ce]'
+                    : 'text-[#e9d5ff] hover:text-[#facc15]'
                 }`}
               >
                 Past Dailies
@@ -1345,8 +1353,10 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                 <button
                   type="button"
                   onClick={() => setIsAdminModalOpen(true)}
-                  className={`hover:text-[#ffe536] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                    isLightMode ? 'text-[#163a61]' : 'text-[#d8eaff]'
+                  className={`transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    isLightMode
+                      ? 'text-[#4a1259] hover:text-[#b45309]'
+                      : 'text-[#e9d5ff] hover:text-[#facc15]'
                   }`}
                 >
                   Admin
@@ -1359,7 +1369,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
               <DailyStreakBadge
                 streak={dailyStreak.streak}
                 solvedToday={dailyStreak.solvedToday}
-                variant={isLightMode ? 'light' : 'cyan'}
+                variant={isLightMode ? 'light' : 'gold'}
                 compact
               />
               {isSoloRoute ? (
@@ -1370,7 +1380,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                     gameTitle="WikiContexto"
                     gameSlug="wikicon"
                     streamerHandle={connectedUsername || authenticatedStreamer}
-                    recommendedSize="520 × 920 or 1080 × 1920"
+                    recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
                     label="Overlay"
                     className="!px-2 !py-1.5 !text-[11px] !rounded-xl"
                   />
@@ -1381,10 +1391,10 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                     title="Open TikTok Live Connection pop-up"
                     className={`px-2.5 py-1.5 text-[11px] font-bold rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5 ${
                       tiktokConnState === 'connected'
-                        ? 'bg-[#2bff86] text-[#020a25] shadow-[0_0_16px_rgba(43,255,134,0.35)]'
+                        ? 'bg-[#4ade80] text-[#2d0938] shadow-[0_0_16px_rgba(74,222,128,0.35)]'
                         : authenticatedStreamer
-                        ? 'bg-[#ffe536] text-[#020a25]'
-                        : 'bg-[#19e4ff] hover:bg-[#5cecff] text-[#020a25] shadow-[0_0_14px_rgba(25,228,255,0.28)]'
+                        ? 'bg-[#fde047] text-[#2d0938]'
+                        : 'bg-[#facc15] hover:bg-[#fde047] text-[#2d0938] shadow-[0_0_14px_rgba(250,204,21,0.28)]'
                     }`}
                   >
                     <Radio className="w-3.5 h-3.5" />
@@ -1404,13 +1414,17 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
           {!isOverlay && effectiveNav === 'HOME' && (
             <main className="flex-1 w-full px-4 py-6 flex flex-col justify-between">
               {/* Suite Top Subbar */}
-              <div className="flex items-center justify-between text-[11px] text-[#96b8dd] gap-2">
+              <div className={`flex items-center justify-between text-[11px] gap-2 ${isLightMode ? 'text-[#6b21a8]' : 'text-[#d8b4fe]'}`}>
                 <button
                   type="button"
                   onClick={() => setActiveNav('TYCOON_HUB')}
-                  className="flex items-center gap-1.5 font-bold text-[#f3f8ff] hover:text-[#19e4ff] transition-colors cursor-pointer whitespace-nowrap"
+                  className={`flex items-center gap-1.5 font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                    isLightMode
+                      ? 'text-[#2d0938] hover:text-[#7e22ce]'
+                      : 'text-[#faf5ff] hover:text-[#facc15]'
+                  }`}
                 >
-                  <Coins className="w-3.5 h-3.5 text-[#ffe536]" />
+                  <Coins className="w-3.5 h-3.5 text-[#facc15]" />
                   <span>Word Tycoon · {Math.floor(profile.coins).toLocaleString()} Coins</span>
                 </button>
                 <span className="truncate font-mono tabular-nums">
@@ -1421,18 +1435,18 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
               {/* Center Wordmark & Tagline */}
               <section className="my-6 text-center">
                 <div className="inline-flex items-center justify-center gap-2.5 mb-1.5">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#19e4ff] to-[#137bcc] flex items-center justify-center shadow-[0_0_20px_rgba(25,228,255,0.4)] text-[#020a25] font-black text-xl">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#facc15] to-[#a855f7] flex items-center justify-center shadow-[0_0_20px_rgba(250,204,21,0.38)] text-[#2d0938] font-black text-xl">
                     W
                   </div>
                   <h1
                     className="text-3xl font-black tracking-tight"
                     style={{ textWrap: 'balance' }}
                   >
-                    Wiki<span className="text-[#19e4ff]">Contexto</span>{' '}
-                    <span className="text-base font-bold text-[#ffe536]">× Wikirec</span>
+                    Wiki<span className={isLightMode ? 'text-[#7e22ce]' : 'text-[#facc15]'}>Contexto</span>{' '}
+                    <span className={`text-base font-bold ${isLightMode ? 'text-[#a16207]' : 'text-[#fde047]'}`}>× Wikirec</span>
                   </h1>
                 </div>
-                <p className="text-xs text-[#96b8dd] mt-1.5 leading-relaxed">
+                <p className={`text-xs mt-1.5 leading-relaxed ${isLightMode ? 'text-[#6b21a8]' : 'text-[#d8b4fe]'}`}>
                   {isSoloRoute
                     ? 'One hidden Wikipedia article. Semantic rank cards, 8-connected arcade keycaps, daily puzzles, and word tycoon progression.'
                     : 'One hidden Wikipedia article. Semantic rank cards, 8-connected arcade keycaps, and live TikTok stream play.'}
@@ -1453,15 +1467,15 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       isDaily: false,
                     })
                   }
-                  className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#19e4ff]/70 hover:border-[#19e4ff] shadow-[0_0_20px_rgba(25,228,255,0.15)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
+                  className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#360b42] to-[#16041c] border-2 border-[#a855f7]/80 hover:border-[#facc15] shadow-[0_0_20px_rgba(168,85,247,0.2)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
                 >
-                  <div className="w-11 h-11 rounded-2xl bg-[#19e4ff]/15 text-[#19e4ff] flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <div className="w-11 h-11 rounded-2xl bg-[#a855f7]/20 text-[#e9d5ff] flex items-center justify-center group-hover:scale-105 transition-transform">
                     <Compass className="w-5 h-5" />
                   </div>
                   <span className="text-sm font-extrabold text-white whitespace-nowrap">
                     Solo
                   </span>
-                  <span className="text-[11px] text-[#96b8dd]">
+                  <span className="text-[11px] text-[#d8b4fe]">
                     Explore random articles
                   </span>
                 </button>
@@ -1476,15 +1490,15 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         isDaily: false,
                       })
                     }
-                    className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#2bff86]/70 hover:border-[#2bff86] shadow-[0_0_20px_rgba(43,255,134,0.15)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
+                    className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#360b42] to-[#16041c] border-2 border-[#4ade80]/70 hover:border-[#4ade80] shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
                   >
-                    <div className="w-11 h-11 rounded-2xl bg-[#2bff86]/15 text-[#2bff86] flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <div className="w-11 h-11 rounded-2xl bg-[#4ade80]/15 text-[#4ade80] flex items-center justify-center group-hover:scale-105 transition-transform">
                       <Quote className="w-5 h-5" />
                     </div>
                     <span className="text-sm font-extrabold text-white whitespace-nowrap">
                       WikiWord 5×7
                     </span>
-                    <span className="text-[11px] text-[#96b8dd]">
+                    <span className="text-[11px] text-[#d8b4fe]">
                       Quote &amp; 5×7 keycaps
                     </span>
                   </button>
@@ -1500,15 +1514,15 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         setIsStreamModalOpen(true);
                       }
                     }}
-                    className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#2bff86]/70 hover:border-[#2bff86] shadow-[0_0_20px_rgba(43,255,134,0.15)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
+                    className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#360b42] to-[#16041c] border-2 border-[#4ade80]/70 hover:border-[#4ade80] shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
                   >
-                    <div className="w-11 h-11 rounded-2xl bg-[#2bff86]/15 text-[#2bff86] flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <div className="w-11 h-11 rounded-2xl bg-[#4ade80]/15 text-[#4ade80] flex items-center justify-center group-hover:scale-105 transition-transform">
                       <Globe className="w-5 h-5" />
                     </div>
                     <span className="text-sm font-extrabold text-white whitespace-nowrap">
                       Online &amp; TikTok
                     </span>
-                    <span className="text-[11px] text-[#96b8dd]">
+                    <span className="text-[11px] text-[#d8b4fe]">
                       Discover together live
                     </span>
                   </button>
@@ -1524,15 +1538,15 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       dailyDate: '2026-10-31',
                     })
                   }
-                  className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#2b1f06] via-[#06244b] to-[#03142f] border-2 border-[#ffe536] shadow-[0_0_22px_rgba(255,229,54,0.2)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
+                  className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#4a1259] via-[#2c0938] to-[#16041c] border-2 border-[#facc15] shadow-[0_0_22px_rgba(250,204,21,0.22)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
                 >
-                  <div className="w-11 h-11 rounded-2xl bg-[#ffe536]/20 text-[#ffe536] flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <div className="w-11 h-11 rounded-2xl bg-[#facc15]/20 text-[#facc15] flex items-center justify-center group-hover:scale-105 transition-transform">
                     <Calendar className="w-5 h-5" />
                   </div>
-                  <span className="text-sm font-extrabold text-[#ffe536] whitespace-nowrap">
+                  <span className="text-sm font-extrabold text-[#facc15] whitespace-nowrap">
                     Daily Puzzle
                   </span>
-                  <span className="text-[11px] text-[#d8eaff]">
+                  <span className="text-[11px] text-[#f3e8ff]">
                     Oct 31 Discovery
                   </span>
                 </button>
@@ -1546,15 +1560,15 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       isDaily: false,
                     })
                   }
-                  className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#1b3346] to-[#0a1620] border-2 border-[#ee7a2c] shadow-[0_0_20px_rgba(238,122,44,0.2)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
+                  className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#3b0d47] to-[#16041c] border-2 border-[#c084fc] hover:border-[#facc15] shadow-[0_0_20px_rgba(192,132,252,0.2)] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
                 >
-                  <div className="w-11 h-11 rounded-2xl bg-[#ee7a2c]/20 text-[#ee7a2c] flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <div className="w-11 h-11 rounded-2xl bg-[#facc15]/20 text-[#facc15] flex items-center justify-center group-hover:scale-105 transition-transform">
                     <Grid className="w-5 h-5" />
                   </div>
                   <span className="text-sm font-extrabold text-white whitespace-nowrap">
                     Wikirec Grid
                   </span>
-                  <span className="text-[11px] text-[#96b8dd]">
+                  <span className="text-[11px] text-[#d8b4fe]">
                     7×7 Keycaps &amp; Pyramid
                   </span>
                 </button>
@@ -1563,15 +1577,15 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                 <button
                   type="button"
                   onClick={() => setActiveNav('ARCHIVE')}
-                  className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc] hover:border-[#19e4ff] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
+                  className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#360b42] to-[#16041c] border-2 border-[#7e22ce] hover:border-[#facc15] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
                 >
-                  <div className="w-11 h-11 rounded-2xl bg-[#137bcc]/25 text-[#96b8dd] group-hover:text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <div className="w-11 h-11 rounded-2xl bg-[#7e22ce]/30 text-[#d8b4fe] group-hover:text-[#facc15] flex items-center justify-center group-hover:scale-105 transition-transform">
                     <History className="w-5 h-5" />
                   </div>
                   <span className="text-sm font-extrabold text-white whitespace-nowrap">
                     Previous Dailies
                   </span>
-                  <span className="text-[11px] text-[#96b8dd]">
+                  <span className="text-[11px] text-[#d8b4fe]">
                     Revisit past puzzles
                   </span>
                 </button>
@@ -1580,22 +1594,24 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                 <button
                   type="button"
                   onClick={() => setActiveNav('TYCOON_HUB')}
-                  className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#270e28] to-[#03142f] border-2 border-[#d557a7] hover:border-[#ff8cd6] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
+                  className="group relative p-4 rounded-3xl bg-gradient-to-br from-[#4a1259] to-[#16041c] border-2 border-[#e879f9] hover:border-[#facc15] transition-all flex flex-col items-center text-center gap-1.5 cursor-pointer"
                 >
-                  <div className="w-11 h-11 rounded-2xl bg-[#d557a7]/20 text-[#ff8cd6] flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <div className="w-11 h-11 rounded-2xl bg-[#e879f9]/20 text-[#f0abfc] flex items-center justify-center group-hover:scale-105 transition-transform">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <span className="text-sm font-extrabold text-white whitespace-nowrap">
                     Profile &amp; Tycoon
                   </span>
-                  <span className="text-[11px] text-[#96b8dd]">
+                  <span className="text-[11px] text-[#d8b4fe]">
                     Cosmetics &amp; Empire
                   </span>
                 </button>
               </nav>
 
               {/* Footer */}
-              <footer className="mt-6 pt-3.5 border-t border-[#1768b3]/30 flex items-center justify-between text-[11px] text-[#96b8dd]">
+              <footer className={`mt-6 pt-3.5 border-t flex items-center justify-between text-[11px] ${
+                isLightMode ? 'border-[#d8b4fe] text-[#6b21a8]' : 'border-[#6b21a8]/40 text-[#d8b4fe]'
+              }`}>
                 <span>Pick a bubble. Follow your curiosity.</span>
                 <button
                   type="button"
@@ -1605,7 +1621,9 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       isDaily: false,
                     })
                   }
-                  className="hover:text-[#19e4ff] transition-colors cursor-pointer whitespace-nowrap"
+                  className={`transition-colors cursor-pointer whitespace-nowrap font-semibold ${
+                    isLightMode ? 'hover:text-[#4a1259]' : 'hover:text-[#facc15]'
+                  }`}
                 >
                   WikiWord 5×7 →
                 </button>
@@ -1618,7 +1636,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
             <main className="flex-1 w-full px-4 py-6 space-y-4">
               <div>
                 <h1 className="text-xl font-extrabold">Previous Daily Discoveries</h1>
-                <p className="text-xs text-[#96b8dd] mt-1">
+                <p className={`text-xs mt-1 ${isLightMode ? 'text-[#6b21a8]' : 'text-[#d8b4fe]'}`}>
                   Play any archived Wikipedia article in WikiContexto or Wikirec Keycap Grid Mode.
                 </p>
               </div>
@@ -1629,13 +1647,13 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                   return (
                     <div
                       key={item.date}
-                      className="p-4 rounded-2xl bg-[#061c3d] border-2 border-[#137bcc] flex flex-col justify-between gap-3"
+                      className="p-4 rounded-2xl bg-[#240630] border-2 border-[#7e22ce] flex flex-col justify-between gap-3"
                     >
                       <div>
-                        <div className="flex items-center justify-between text-xs text-[#96b8dd]">
+                        <div className="flex items-center justify-between text-xs text-[#d8b4fe]">
                           <span className="font-mono tabular-nums">{item.date} · {item.difficulty}</span>
                           {isDone && (
-                            <span className="text-[#2bff86] font-bold flex items-center gap-1">
+                            <span className="text-[#4ade80] font-bold flex items-center gap-1">
                               <CheckCircle2 className="w-3.5 h-3.5" /> Solved
                             </span>
                           )}
@@ -1643,7 +1661,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         <h3 className="text-base font-extrabold text-white mt-0.5">
                           {item.category}
                         </h3>
-                        <p className="text-[11px] text-[#96b8dd] mt-0.5 font-mono tabular-nums">
+                        <p className="text-[11px] text-[#d8b4fe] mt-0.5 font-mono tabular-nums">
                           Approx. {item.wordCount} tokens · Hidden Wikipedia Article
                         </p>
                       </div>
@@ -1659,7 +1677,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                               customTitle: item.title,
                             })
                           }
-                          className="flex-1 py-2 px-3 rounded-xl bg-[#19e4ff] hover:bg-[#5cecff] text-[#020a25] text-xs font-bold cursor-pointer whitespace-nowrap"
+                          className="flex-1 py-2 px-3 rounded-xl bg-[#facc15] hover:bg-[#fde047] text-[#2d0938] text-xs font-bold cursor-pointer whitespace-nowrap"
                         >
                           Play WikiContexto
                         </button>
@@ -1673,7 +1691,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                               customTitle: item.title,
                             })
                           }
-                          className="flex-1 py-2 px-3 rounded-xl bg-[#0c2b53] hover:bg-[#1768b3] text-white text-xs font-bold cursor-pointer whitespace-nowrap"
+                          className="flex-1 py-2 px-3 rounded-xl bg-[#360b42] hover:bg-[#6b21a8] text-white text-xs font-bold cursor-pointer whitespace-nowrap"
                         >
                           Play Wikirec Grid
                         </button>
@@ -1704,9 +1722,9 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
           )}
 
           {isOverlay && !round && (
-            <main className="flex-1 w-full px-3.5 py-6">
-              <div className="p-5 rounded-2xl bg-[#03142f]/95 border-2 border-[#137bcc] text-center shadow-lg space-y-2">
-                <div className="text-xs font-extrabold uppercase tracking-widest text-[#19e4ff]">
+            <main className="relative z-10 flex-1 w-full px-3.5 py-6">
+              <div className="p-5 rounded-2xl bg-[#240630] border-2 border-[#7e22ce] text-center shadow-lg space-y-2 opacity-100">
+                <div className="text-xs font-extrabold uppercase tracking-widest text-[#facc15]">
                   WikiContexto LIVE Overlay
                 </div>
                 <div className="text-sm font-bold text-white">
@@ -1723,12 +1741,12 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
             effectiveNav === 'WIKIREC_GRID' ||
             effectiveNav === 'WIKIWORD_QUOTE') &&
             round && (
-              <main key={`wk-arena-${round.roundId}`} className="flex-1 w-full px-3.5 py-2.5 space-y-2">
+              <main key={`wk-arena-${round.roundId}`} className="relative z-10 flex-1 w-full px-3.5 py-2.5 space-y-2">
                 {/* Compact Workspace Mode & Utility Toolbar (hidden in LIVE Studio overlay) */}
                 {!isOverlay && (
-                <div className="flex flex-col gap-1.5 p-1.5 rounded-xl bg-[#03142f] border border-[#1768b3]">
+                <div className="flex flex-col gap-1.5 p-1.5 rounded-xl bg-[#240630] border border-[#6b21a8]">
                   {/* Row 1: Mode Switcher Tabs */}
-                  <div className={`grid ${isSoloRoute ? 'grid-cols-4' : 'grid-cols-5'} gap-1 p-0.5 rounded-lg bg-[#020a25]`}>
+                  <div className={`grid ${isSoloRoute ? 'grid-cols-4' : 'grid-cols-5'} gap-1 p-0.5 rounded-lg bg-[#16041c]`}>
                     {!isSoloRoute && (
                       <button
                         type="button"
@@ -1740,8 +1758,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         }
                         className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate ${
                           activeNav === 'ONLINE'
-                            ? 'bg-[#2bff86] text-[#020a25]'
-                            : 'text-[#96b8dd] hover:text-white'
+                            ? 'bg-[#4ade80] text-[#2d0938]'
+                            : 'text-[#d8b4fe] hover:text-white'
                         }`}
                       >
                         Online
@@ -1757,8 +1775,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       }
                       className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate ${
                         activeNav === 'SOLO'
-                          ? 'bg-[#19e4ff] text-[#020a25]'
-                          : 'text-[#96b8dd] hover:text-white'
+                          ? 'bg-[#facc15] text-[#2d0938]'
+                          : 'text-[#d8b4fe] hover:text-white'
                       }`}
                     >
                       Solo
@@ -1774,8 +1792,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       }
                       className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate ${
                         activeNav === 'DAILY'
-                          ? 'bg-[#ffe536] text-[#020a25]'
-                          : 'text-[#96b8dd] hover:text-white'
+                          ? 'bg-[#fde047] text-[#2d0938]'
+                          : 'text-[#d8b4fe] hover:text-white'
                       }`}
                     >
                       Daily
@@ -1790,8 +1808,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       }
                       className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate flex items-center justify-center gap-1 ${
                         activeNav === 'WIKIREC_GRID'
-                          ? 'bg-[#ee7a2c] text-white'
-                          : 'text-[#96b8dd] hover:text-white'
+                          ? 'bg-[#a855f7] text-white'
+                          : 'text-[#d8b4fe] hover:text-white'
                       }`}
                     >
                       <Grid className="w-3 h-3 shrink-0" /> 7×7 Grid
@@ -1806,8 +1824,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       }
                       className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap truncate flex items-center justify-center gap-1 ${
                         activeNav === 'WIKIWORD_QUOTE'
-                          ? 'bg-[#2bff86] text-[#020a25]'
-                          : 'text-[#96b8dd] hover:text-white'
+                          ? 'bg-[#4ade80] text-[#2d0938]'
+                          : 'text-[#d8b4fe] hover:text-white'
                       }`}
                     >
                       <Quote className="w-3 h-3 shrink-0" /> 5×7 Quote
@@ -1829,7 +1847,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                           )
                         }
                         title="Start a new random Wikipedia article round"
-                        className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#061c3d] hover:bg-[#0c2b53] border border-[#2bff86]/60 text-[#2bff86] flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                        className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#2c0938] hover:bg-[#360b42] border border-[#4ade80]/60 text-[#4ade80] flex items-center gap-1 cursor-pointer whitespace-nowrap"
                       >
                         <RotateCcw className="w-3 h-3" /> New Round
                       </button>
@@ -1839,8 +1857,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         title="When enabled, automatically waits 15 seconds after a round ends and starts the next round"
                         className={`px-2 py-0.5 rounded-md text-[11px] font-bold border flex items-center gap-1 cursor-pointer whitespace-nowrap transition-colors ${
                           isAutoNextRound
-                            ? 'bg-[#2bff86]/20 border-[#2bff86] text-[#2bff86]'
-                            : 'bg-[#061c3d] border-[#1768b3] text-[#96b8dd] hover:text-white'
+                            ? 'bg-[#4ade80]/20 border-[#4ade80] text-[#4ade80]'
+                            : 'bg-[#2c0938] border-[#6b21a8] text-[#d8b4fe] hover:text-white'
                         }`}
                       >
                         {isAutoNextRound ? (
@@ -1857,8 +1875,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         onClick={() => setShowGridInHybrid((v) => !v)}
                         className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-colors cursor-pointer whitespace-nowrap ${
                           showGridInHybrid
-                            ? 'bg-[#ee7a2c]/20 border-[#ee7a2c] text-[#ee7a2c]'
-                            : 'bg-[#061c3d] border-[#1768b3] text-[#d8eaff]'
+                            ? 'bg-[#facc15]/20 border-[#facc15] text-[#facc15]'
+                            : 'bg-[#2c0938] border-[#6b21a8] text-[#f3e8ff]'
                         }`}
                       >
                         {showGridInHybrid ? 'Hide Grid' : 'Show Grid'}
@@ -1868,8 +1886,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         onClick={() => setShowLengthsOnBlocks((v) => !v)}
                         className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-colors cursor-pointer whitespace-nowrap ${
                           showLengthsOnBlocks
-                            ? 'bg-[#19e4ff]/20 border-[#19e4ff] text-[#19e4ff]'
-                            : 'bg-[#061c3d] border-[#1768b3] text-[#d8eaff]'
+                            ? 'bg-[#c084fc]/20 border-[#c084fc] text-[#e9d5ff]'
+                            : 'bg-[#2c0938] border-[#6b21a8] text-[#f3e8ff]'
                         }`}
                       >
                         {showLengthsOnBlocks ? 'Hide Lengths' : 'Lengths'}
@@ -1878,7 +1896,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         type="button"
                         onClick={handleRequestHint}
                         disabled={round.solved}
-                        className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#061c3d] hover:bg-[#0c2b53] border border-[#ffe536]/60 text-[#ffe536] flex items-center gap-1 cursor-pointer whitespace-nowrap disabled:opacity-40"
+                        className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#2c0938] hover:bg-[#360b42] border border-[#facc15]/60 text-[#facc15] flex items-center gap-1 cursor-pointer whitespace-nowrap disabled:opacity-40"
                       >
                         <Lightbulb className="w-3 h-3" /> Hint
                       </button>
@@ -1886,7 +1904,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         type="button"
                         onClick={handleRevealRound}
                         disabled={round.solved}
-                        className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#061c3d] hover:bg-[#0c2b53] border border-[#1768b3] text-[#96b8dd] hover:text-white flex items-center gap-1 cursor-pointer whitespace-nowrap disabled:opacity-40"
+                        className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#2c0938] hover:bg-[#360b42] border border-[#6b21a8] text-[#d8b4fe] hover:text-white flex items-center gap-1 cursor-pointer whitespace-nowrap disabled:opacity-40"
                       >
                         <Flag className="w-3 h-3" /> Reveal
                       </button>
@@ -1901,7 +1919,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                           soundFX.muted = nextMute;
                         }}
                         aria-label="Toggle Sound"
-                        className="p-1 rounded-md bg-[#061c3d] border border-[#1768b3] text-[#d8eaff] hover:text-white cursor-pointer"
+                        className="p-1 rounded-md bg-[#2c0938] border border-[#6b21a8] text-[#f3e8ff] hover:text-white cursor-pointer"
                       >
                         {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                       </button>
@@ -1909,7 +1927,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         type="button"
                         onClick={() => setIsLightMode((v) => !v)}
                         aria-label="Toggle Light/Dark Theme"
-                        className="p-1 rounded-md bg-[#061c3d] border border-[#1768b3] text-[#d8eaff] hover:text-white cursor-pointer"
+                        className="p-1 rounded-md bg-[#2c0938] border border-[#6b21a8] text-[#f3e8ff] hover:text-white cursor-pointer"
                       >
                         {isLightMode ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
                       </button>
@@ -1920,10 +1938,10 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
                 {/* ── Round Complete Overlay Card (Shows Top Player Profile Picture, Display Name, and Score + Current Article Info) ── */}
                 {round.solved && (
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-[#0b4937] via-[#06244b] to-[#0b4937] border-2 border-[#2bff86] shadow-[0_0_24px_rgba(43,255,134,0.3)] space-y-3">
+                  <div className="p-4 rounded-2xl bg-[#240630] bg-gradient-to-r from-[#2c0938] via-[#240630] to-[#3b0d47] border-2 border-[#4ade80] shadow-[0_0_24px_rgba(74,222,128,0.28)] space-y-3 opacity-100">
                     <div className="flex items-center justify-between gap-2">
                       <div>
-                        <div className="text-[10px] font-bold text-[#2bff86]">
+                        <div className="text-[10px] font-bold text-[#4ade80]">
                           ROUND COMPLETE · {round.articleCategory}
                         </div>
                         <h2 className="text-xl font-black text-white">
@@ -1939,8 +1957,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                               title="Automatically advance to the next round 15 seconds after round completion"
                               className={`px-3 py-2 rounded-xl text-xs font-extrabold border flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors ${
                                 isAutoNextRound
-                                  ? 'bg-[#020a25]/90 border-[#2bff86] text-[#2bff86] hover:bg-[#061c3d]'
-                                  : 'bg-[#020a25]/70 border-[#1768b3] text-[#96b8dd] hover:text-white'
+                                  ? 'bg-[#16041c] border-[#4ade80] text-[#4ade80] hover:bg-[#2c0938]'
+                                  : 'bg-[#16041c] border-[#6b21a8] text-[#d8b4fe] hover:text-white'
                               }`}
                             >
                               {isAutoNextRound ? (
@@ -1965,7 +1983,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                                   }
                                 )
                               }
-                              className="px-3.5 py-2 rounded-xl bg-[#2bff86] hover:bg-[#5effa3] text-[#020a25] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                              className="px-3.5 py-2 rounded-xl bg-[#4ade80] hover:bg-[#86efac] text-[#2d0938] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
                             >
                               <RotateCcw className="w-3.5 h-3.5" /> Next Round
                             </button>
@@ -1973,7 +1991,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         ) : (
                           isAutoNextRound &&
                           autoNextCountdown !== null && (
-                            <div className="px-3 py-1.5 rounded-xl bg-[#020a25]/90 border border-[#2bff86] text-[#2bff86] text-xs font-extrabold font-mono tabular-nums whitespace-nowrap">
+                            <div className="px-3 py-1.5 rounded-xl bg-[#16041c] border border-[#4ade80] text-[#4ade80] text-xs font-extrabold font-mono tabular-nums whitespace-nowrap">
                               Next Round in {autoNextCountdown}s
                             </div>
                           )
@@ -1982,25 +2000,25 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                     </div>
 
                     {round.articleSummaryQuote && (
-                      <p className="text-xs text-[#d8eaff]">
+                      <p className="text-xs text-[#f3e8ff]">
                         {round.articleSummaryQuote}
                       </p>
                     )}
 
                     {/* Top Player MVP Highlight on Round Complete Overlay */}
-                    <div className="p-3 rounded-xl bg-[#020a25] border border-[#ffe536] flex items-center justify-between gap-3">
+                    <div className="p-3 rounded-xl bg-[#16041c] border border-[#facc15] flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="relative shrink-0">
-                          <Crown className="w-4 h-4 text-[#ffe536] absolute -top-2.5 -left-1 -rotate-12" />
+                          <Crown className="w-4 h-4 text-[#facc15] absolute -top-2.5 -left-1 -rotate-12" />
                           {renderPlayerAvatar(
                             goldPlayer?.avatar,
                             goldPlayer?.displayName || profile.displayName,
-                            'w-11 h-11 text-xs text-[#ffe536]',
-                            'border-2 border-[#ffe536]'
+                            'w-11 h-11 text-xs text-[#facc15]',
+                            'border-2 border-[#facc15]'
                           )}
                         </div>
                         <div className="min-w-0">
-                          <div className="text-[10px] font-bold text-[#ffe536] flex items-center gap-1">
+                          <div className="text-[10px] font-bold text-[#facc15] flex items-center gap-1">
                             <Trophy className="w-3 h-3" /> TOP PLAYER OF THE ROUND
                           </div>
                           <div className="text-sm font-extrabold text-white truncate">
@@ -2009,8 +2027,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-[10px] text-[#96b8dd]">Top Score</div>
-                        <div className="text-base font-extrabold font-mono tabular-nums text-[#2bff86]">
+                        <div className="text-[10px] text-[#d8b4fe]">Top Score</div>
+                        <div className="text-base font-extrabold font-mono tabular-nums text-[#4ade80]">
                           {(goldPlayer ? goldPlayer.score : 0).toLocaleString()} pts
                         </div>
                       </div>
@@ -2024,20 +2042,20 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                     {/* Left Column (5 cols): Title Block + Podium */}
                     <div className="col-span-5 flex flex-col gap-1.5">
                       {/* Title Block */}
-                      <div className="flex-1 p-2 rounded-xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc] shadow-[inset_0_1px_7px_rgba(25,228,255,0.16)] flex flex-col justify-between">
+                      <div className="flex-1 p-2 rounded-xl bg-[#240630] bg-gradient-to-br from-[#360b42] to-[#16041c] border-2 border-[#7e22ce] shadow-[inset_0_1px_7px_rgba(250,204,21,0.16)] flex flex-col justify-between opacity-100">
                         <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className="text-[10px] font-bold tracking-wider text-[#96b8dd]">
+                          <span className="text-[10px] font-bold tracking-wider text-[#d8b4fe]">
                             TITLE
                           </span>
-                          <div className="flex items-center gap-1.5 text-[10px] font-mono tabular-nums text-[#d8eaff]">
+                          <div className="flex items-center gap-1.5 text-[10px] font-mono tabular-nums text-[#f3e8ff]">
                             <span className="flex items-center gap-0.5">
-                              <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-b from-[#ffec4a] to-[#ffad13] text-[#17210a] font-black text-[9px] inline-flex items-center justify-center">
+                              <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-b from-[#fde047] to-[#eab308] text-[#2d0938] font-black text-[9px] inline-flex items-center justify-center">
                                 G
                               </span>
                               {round.guessCount}
                             </span>
                             <span className="flex items-center gap-0.5">
-                              <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-b from-[#ffec4a] to-[#ffad13] text-[#17210a] font-black text-[9px] inline-flex items-center justify-center">
+                              <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-b from-[#fde047] to-[#eab308] text-[#2d0938] font-black text-[9px] inline-flex items-center justify-center">
                                 F
                               </span>
                               {round.revealedWordsCount}/{round.totalWords}
@@ -2052,8 +2070,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                               key={t.index}
                               className={`min-h-[26px] px-2 py-0.5 rounded-lg font-extrabold text-xs flex items-center gap-1 transition-all ${
                                 t.revealed
-                                  ? 'bg-gradient-to-br from-[#64ff54] to-[#22ed3f] text-[#061d0c] shadow-[0_0_10px_rgba(57,255,99,0.3)]'
-                                  : 'bg-gradient-to-br from-[#fff780] to-[#ffcf27] text-[#111809] border border-[#ffef86]'
+                                  ? 'bg-[#4ade80] bg-gradient-to-br from-[#86efac] to-[#22c55e] text-[#052e16] shadow-[0_0_10px_rgba(74,222,128,0.3)]'
+                                  : 'bg-[#facc15] bg-gradient-to-br from-[#fef08a] to-[#facc15] text-[#2d0938] border border-[#fef9c3]'
                               }`}
                             >
                               <span className="truncate max-w-[130px]">
@@ -2069,10 +2087,10 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       </div>
 
                       {/* Gold / Silver / Bronze Scoreboard Podium */}
-                      <div className="p-1.5 rounded-xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc] flex items-end justify-center gap-1 min-h-[86px]">
+                      <div className="p-1.5 rounded-xl bg-[#240630] bg-gradient-to-br from-[#360b42] to-[#16041c] border-2 border-[#7e22ce] flex items-end justify-center gap-1 min-h-[86px] opacity-100">
                         {/* Silver #2 */}
-                        <div className="relative flex-1 min-w-0 h-[66px] rounded-lg border border-[#8ab9f5] bg-gradient-to-br from-[#1b467a] to-[#0d3470] p-1 flex flex-col items-center justify-between text-center">
-                          <span className="absolute -top-1.5 left-1 px-1 rounded bg-[#8ab9f5] text-[#041838] text-[8px] font-black leading-tight">
+                        <div className="relative flex-1 min-w-0 h-[66px] rounded-lg border border-[#e2e8f0] bg-[#360b42] bg-gradient-to-br from-[#4a1259] to-[#240630] p-1 flex flex-col items-center justify-between text-center">
+                          <span className="absolute -top-1.5 left-1 px-1 rounded bg-[#e2e8f0] text-[#15041c] text-[8px] font-black leading-tight">
                             2nd
                           </span>
                           {silverPlayer ? (
@@ -2080,14 +2098,14 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                               silverPlayer.avatar,
                               silverPlayer.displayName,
                               'w-6 h-6 text-[9px] text-white mt-0.5',
-                              'border border-[#8ab9f5]'
+                              'border border-[#e2e8f0]'
                             )
                           ) : (
-                            <div className="w-6 h-6 mt-0.5 rounded-full border border-[#8ab9f5]/60 bg-[#082046] flex items-center justify-center text-[9px] font-bold text-[#8ab9f5]">
+                            <div className="w-6 h-6 mt-0.5 rounded-full border border-[#e2e8f0] bg-[#240630] flex items-center justify-center text-[9px] font-bold text-[#e2e8f0]">
                               2
                             </div>
                           )}
-                          <div className="text-[9px] font-bold text-[#e6f2ff] truncate w-full leading-tight">
+                          <div className="text-[9px] font-bold text-[#f3e8ff] truncate w-full leading-tight">
                             {silverPlayer ? silverPlayer.displayName : '—'}
                           </div>
                           <div className="text-[9px] font-mono tabular-nums text-white font-bold leading-tight">
@@ -2096,24 +2114,24 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         </div>
 
                         {/* Gold #1 */}
-                        <div className="relative flex-1 min-w-0 h-[76px] rounded-lg border-2 border-[#ffdd35] bg-gradient-to-br from-[#700432] to-[#270e28] shadow-[0_0_10px_rgba(255,214,48,0.28)] p-1 flex flex-col items-center justify-between text-center">
-                          <Crown className="w-3.5 h-3.5 text-[#ffe536] absolute -top-2 -left-0.5 -rotate-12" />
-                          <span className="absolute -top-1.5 right-1 px-1 rounded bg-[#ffe536] text-[#270e28] text-[8px] font-black leading-tight">
+                        <div className="relative flex-1 min-w-0 h-[76px] rounded-lg border-2 border-[#facc15] bg-[#4a1259] bg-gradient-to-br from-[#7e22ce] to-[#2d0938] shadow-[0_0_12px_rgba(250,204,21,0.3)] p-1 flex flex-col items-center justify-between text-center">
+                          <Crown className="w-3.5 h-3.5 text-[#facc15] absolute -top-2 -left-0.5 -rotate-12" />
+                          <span className="absolute -top-1.5 right-1 px-1 rounded bg-[#facc15] text-[#2d0938] text-[8px] font-black leading-tight">
                             1st
                           </span>
                           {goldPlayer ? (
                             renderPlayerAvatar(
                               goldPlayer.avatar,
                               goldPlayer.displayName,
-                              'w-6 h-6 text-[10px] text-[#ffe536] mt-0.5',
-                              'border border-[#ffe536]'
+                              'w-6 h-6 text-[10px] text-[#facc15] mt-0.5',
+                              'border border-[#facc15]'
                             )
                           ) : (
-                            <div className="w-6 h-6 mt-0.5 rounded-full border border-[#ffe536]/70 bg-[#270e28] flex items-center justify-center text-[9px] font-extrabold text-[#ffe536]">
+                            <div className="w-6 h-6 mt-0.5 rounded-full border border-[#facc15] bg-[#2d0938] flex items-center justify-center text-[9px] font-extrabold text-[#facc15]">
                               1
                             </div>
                           )}
-                          <div className="text-[9px] font-extrabold text-[#ffe536] truncate w-full leading-tight">
+                          <div className="text-[9px] font-extrabold text-[#facc15] truncate w-full leading-tight">
                             {goldPlayer ? goldPlayer.displayName : '—'}
                           </div>
                           <div className="text-[9px] font-mono tabular-nums text-white font-bold leading-tight">
@@ -2122,8 +2140,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         </div>
 
                         {/* Bronze #3 */}
-                        <div className="relative flex-1 min-w-0 h-[60px] rounded-lg border border-[#b07a3d] bg-gradient-to-br from-[#183553] to-[#020c22] p-1 flex flex-col items-center justify-between text-center">
-                          <span className="absolute -top-1.5 left-1 px-1 rounded bg-[#d99b52] text-[#1a0d02] text-[8px] font-black leading-tight">
+                        <div className="relative flex-1 min-w-0 h-[60px] rounded-lg border border-[#d97706] bg-[#240630] bg-gradient-to-br from-[#3b0d47] to-[#16041c] p-1 flex flex-col items-center justify-between text-center">
+                          <span className="absolute -top-1.5 left-1 px-1 rounded bg-[#d97706] text-[#15041c] text-[8px] font-black leading-tight">
                             3rd
                           </span>
                           {bronzePlayer ? (
@@ -2131,14 +2149,14 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                               bronzePlayer.avatar,
                               bronzePlayer.displayName,
                               'w-5 h-5 text-[9px] text-white mt-0.5',
-                              'border border-[#b07a3d]'
+                              'border border-[#d97706]'
                             )
                           ) : (
-                            <div className="w-5 h-5 mt-0.5 rounded-full border border-[#b07a3d]/60 bg-[#0b1f38] flex items-center justify-center text-[8px] font-bold text-[#d99b52]">
+                            <div className="w-5 h-5 mt-0.5 rounded-full border border-[#d97706] bg-[#16041c] flex items-center justify-center text-[8px] font-bold text-[#fbbf24]">
                               3
                             </div>
                           )}
-                          <div className="text-[9px] font-bold text-[#e6f2ff] truncate w-full leading-tight">
+                          <div className="text-[9px] font-bold text-[#f3e8ff] truncate w-full leading-tight">
                             {bronzePlayer ? bronzePlayer.displayName : '—'}
                           </div>
                           <div className="text-[9px] font-mono tabular-nums text-white font-bold leading-tight">
@@ -2155,7 +2173,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                           return (
                             <div
                               key={`empty-${idx}`}
-                              className="rounded-lg bg-[#051630] border border-[#21558a] px-2.5 py-0.5 flex items-center justify-between text-[10px] text-[#96b8dd]"
+                              className="rounded-lg bg-[#16041c] border border-[#6b21a8] px-2.5 py-0.5 flex items-center justify-between text-[10px] text-[#d8b4fe] opacity-100"
                             >
                               <span>Rank #{idx + 1}</span>
                               <span className="font-mono tabular-nums">—</span>
@@ -2169,7 +2187,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         return (
                           <div
                             key={card.norm}
-                            className="relative rounded-lg bg-[#02112a] overflow-hidden flex items-center justify-between px-2 py-0.5"
+                            className="relative rounded-lg bg-[#16041c] overflow-hidden flex items-center justify-between px-2 py-0.5 opacity-100"
                             style={{
                               border: `1.5px solid hsl(${hue}, 90%, 55%)`,
                               boxShadow:
@@ -2190,7 +2208,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                             {/* Left: Rank Number + Word */}
                             <div className="relative z-10 flex items-center gap-1 min-w-0">
                               <span className="min-w-[38px] font-mono tabular-nums text-[11px] font-extrabold text-white flex items-center gap-0.5">
-                                {idx === 0 && <span className="text-[#ffe536]">♛</span>}#{card.rank}
+                                {idx === 0 && <span className="text-[#facc15]">♛</span>}#{card.rank}
                               </span>
                               <span className="text-xs font-extrabold text-white tracking-wide truncate">
                                 {card.word}
@@ -2203,7 +2221,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                                 card.finder.avatar,
                                 card.finder.displayName,
                                 'w-5 h-5 text-[9px] text-white',
-                                'border border-[#ffe536]'
+                                'border border-[#facc15]'
                               )}
                             </div>
                           </div>
@@ -2214,23 +2232,23 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                 )}
 
                 {/* ── Full-Width Word Announce Banner + Feedback Toast ── */}
-                <div className="min-h-[34px] rounded-xl border-2 border-[#ffe13a] bg-gradient-to-r from-[#4b003e] via-[#100621] to-[#25082e] shadow-[0_0_10px_rgba(255,222,53,0.2)] px-2.5 py-1 flex items-center justify-between gap-2">
+                <div className="min-h-[34px] rounded-xl border-2 border-[#facc15] bg-[#16041c] bg-gradient-to-r from-[#3b0d47] via-[#16041c] to-[#2c0938] shadow-[0_0_12px_rgba(250,204,21,0.22)] px-2.5 py-1 flex items-center justify-between gap-2 opacity-100">
                   {feedbackToast ? (
                     <div className="flex items-center justify-between w-full text-[11px] font-bold gap-2">
                       <span
                         className={`truncate ${
                           feedbackToast.tone === 'gold'
-                            ? 'text-[#ffe536]'
+                            ? 'text-[#facc15]'
                             : feedbackToast.tone === 'green'
-                            ? 'text-[#2bff86]'
+                            ? 'text-[#4ade80]'
                             : feedbackToast.tone === 'cyan'
-                            ? 'text-[#19e4ff]'
-                            : 'text-[#d8eaff]'
+                            ? 'text-[#e879f9]'
+                            : 'text-[#f3e8ff]'
                         }`}
                       >
                         {feedbackToast.text}
                       </span>
-                      <span className="text-[10px] text-[#96b8dd] font-mono tabular-nums shrink-0">
+                      <span className="text-[10px] text-[#d8b4fe] font-mono tabular-nums shrink-0">
                         #{round.guessCount}
                       </span>
                     </div>
@@ -2240,24 +2258,24 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         {renderPlayerAvatar(
                           round.lastAnnouncement.avatar,
                           round.lastAnnouncement.displayName,
-                          'w-5 h-5 text-[9px] text-[#ffe536] shrink-0',
-                          'border border-[#ffe536]'
+                          'w-5 h-5 text-[9px] text-[#facc15] shrink-0',
+                          'border border-[#facc15]'
                         )}
-                        <div className="text-[11px] text-[#d8eaff] truncate">
+                        <div className="text-[11px] text-[#f3e8ff] truncate">
                           <strong className="text-white">{round.lastAnnouncement.displayName}</strong>{' '}
-                          found <strong className="text-[#ffe536]">{round.lastAnnouncement.word}</strong>
+                          found <strong className="text-[#facc15]">{round.lastAnnouncement.word}</strong>
                         </div>
                       </div>
-                      <div className="text-[11px] font-extrabold font-mono tabular-nums text-[#2bff86] shrink-0">
+                      <div className="text-[11px] font-extrabold font-mono tabular-nums text-[#4ade80] shrink-0">
                         +{round.lastAnnouncement.pointsEarned.toLocaleString()}
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between w-full text-[11px] text-[#d8eaff]">
+                    <div className="flex items-center justify-between w-full text-[11px] text-[#f3e8ff]">
                       <span className="truncate">
                         Guess words below to uncover the hidden Wikipedia article!
                       </span>
-                      <span className="font-mono tabular-nums text-[#ffe536] shrink-0">
+                      <span className="font-mono tabular-nums text-[#facc15] shrink-0">
                         +50k Title
                       </span>
                     </div>
@@ -2267,17 +2285,17 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                 {/* ── Scrolling Marquee for Guessed Words ── */}
                 {round.recentTicker.length > 0 && (
                   <div
-                    className={`wk-marquee-wrap relative flex items-center overflow-hidden py-1.5 px-2.5 rounded-xl border ${
+                    className={`wk-marquee-wrap relative flex items-center overflow-hidden py-1.5 px-2.5 rounded-xl border opacity-100 ${
                       isLightMode
-                        ? 'bg-white border-[#6498d2] text-[#102c4b]'
-                        : 'bg-[#03142f] border-[#1768b3] text-[#d8eaff]'
+                        ? 'bg-white border-[#c084fc] text-[#2d0938]'
+                        : 'bg-[#240630] border-[#6b21a8] text-[#f3e8ff]'
                     }`}
                   >
                     <span
                       className={`text-[10px] font-bold shrink-0 pr-2 mr-2 border-r z-10 ${
                         isLightMode
-                          ? 'bg-white text-[#416890] border-[#6498d2]/50'
-                          : 'bg-[#03142f] text-[#96b8dd] border-[#1768b3]/60'
+                          ? 'bg-white text-[#6b21a8] border-[#c084fc]'
+                          : 'bg-[#240630] text-[#d8b4fe] border-[#6b21a8]'
                       }`}
                     >
                       Recent
@@ -2302,13 +2320,13 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                                 key={`${dupIdx}-${item.norm}-${item.timestamp}`}
                                 className="text-[11px] font-mono tabular-nums whitespace-nowrap shrink-0"
                               >
-                                <strong className={isLightMode ? 'text-[#102c4b]' : 'text-white'}>
+                                <strong className={isLightMode ? 'text-[#2d0938]' : 'text-white'}>
                                   {item.word}
                                 </strong>{' '}
-                                <span className={isLightMode ? 'text-[#0e6eb8]' : 'text-[#19e4ff]'}>
+                                <span className={isLightMode ? 'text-[#7e22ce]' : 'text-[#facc15]'}>
                                   #{item.rank}
                                 </span>
-                                <span className="ml-2 text-[#1768b3]">·</span>
+                                <span className="ml-2 text-[#6b21a8]">·</span>
                               </span>
                             ))}
                           </div>
@@ -2323,7 +2341,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                   effectiveNav === 'WIKIWORD_QUOTE' ||
                   showGridInHybrid) &&
                   round.gridBoard && (
-                    <section className="p-3 rounded-2xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc]">
+                    <section className="p-3 rounded-2xl bg-[#240630] bg-gradient-to-br from-[#360b42] to-[#16041c] border-2 border-[#7e22ce] opacity-100">
                       <KeycapGrid
                         key={`wk-kc-${round.roundId}`}
                         gridBoard={round.gridBoard}
@@ -2336,14 +2354,16 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                 {/* ── Redacted Wikipedia Article Body Panel (Auto-Scrolling Viewport) ── */}
                 <section
                   key={`wk-ms-${round.roundId}`}
-                  className={`wk-manuscript-box p-3.5 rounded-2xl border-2 border-[#137bcc] shadow-[inset_0_1px_7px_rgba(25,228,255,0.15)] space-y-2.5 ${
+                  className={`wk-manuscript-box p-3.5 rounded-2xl border-2 border-[#7e22ce] shadow-[inset_0_1px_7px_rgba(250,204,21,0.15)] space-y-2.5 opacity-100 ${
                     isLightMode
-                      ? 'bg-white text-[#102c4b]'
-                      : 'bg-gradient-to-br from-[#06244b] to-[#03142f] text-[#f3f8ff]'
+                      ? 'bg-white text-[#2d0938]'
+                      : 'bg-[#240630] bg-gradient-to-br from-[#360b42] to-[#16041c] text-[#faf5ff]'
                   }`}
                   style={{ fontFamily: 'var(--font-article)' }}
                 >
-                  <div className="flex items-center justify-between border-b border-[#1768b3]/40 pb-1.5 text-[11px] text-[#96b8dd]">
+                  <div className={`flex items-center justify-between border-b pb-1.5 text-[11px] ${
+                    isLightMode ? 'border-[#d8b4fe] text-[#6b21a8]' : 'border-[#6b21a8] text-[#d8b4fe]'
+                  }`}>
                     <span>Wikipedia Redacted Manuscript</span>
                     <div className="flex items-center gap-2.5">
                       {!isOverlay && (
@@ -2352,8 +2372,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         onClick={() => setIsManuscriptAutoScroll((v) => !v)}
                         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
                           isLightMode
-                            ? 'hover:bg-[#eaf4ff] text-[#416890]'
-                            : 'hover:bg-[#0c2b53] text-[#96b8dd]'
+                            ? 'hover:bg-[#f3edfc] text-[#6b21a8]'
+                            : 'hover:bg-[#360b42] text-[#d8b4fe]'
                         }`}
                         title={
                           isManuscriptAutoScroll
@@ -2396,7 +2416,9 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         manuscriptManualPauseUntilRef.current = performance.now() + 3000;
                       }
                     }}
-                    className="wk-manuscript-scroll max-h-[245px] overflow-y-auto overscroll-contain pr-1.5 space-y-3 leading-7 text-[15px]"
+                    className={`wk-manuscript-scroll ${
+                      isOverlay ? 'max-h-[400px]' : 'max-h-[245px]'
+                    } overflow-y-auto overscroll-contain pr-1.5 space-y-3 leading-7 text-[15px]`}
                   >
                     {round.paragraphs.map((para, pIdx) => (
                       <p key={pIdx} className="break-words">
@@ -2411,11 +2433,11 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                                 className={`font-semibold transition-colors ${
                                   tok.isStop
                                     ? isLightMode
-                                      ? 'text-[#416890]'
-                                      : 'text-[#d8eaff]'
+                                      ? 'text-[#4a1259]'
+                                      : 'text-[#e9d5ff]'
                                     : isLightMode
-                                    ? 'text-[#08724c] font-bold wk-word-reveal'
-                                    : 'text-[#2bff86] font-bold wk-word-reveal'
+                                    ? 'text-[#15803d] font-bold wk-word-reveal'
+                                    : 'text-[#4ade80] font-bold wk-word-reveal'
                                 }`}
                               >
                                 {decodeHtmlEntities(tok.text)}
@@ -2433,12 +2455,12 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                               style={{ minWidth: `${blockWidthCh * 0.56}rem` }}
                               className={`inline-flex items-center justify-center align-baseline mx-0.5 px-1 py-0.5 rounded-md text-[11px] font-mono tabular-nums font-bold cursor-pointer select-none transition-all ${
                                 tok.isNumber
-                                  ? 'bg-[#ee7a2c] text-white border border-[#ffad75]'
+                                  ? 'bg-[#f59e0b] text-[#2d0938] border border-[#fde047]'
                                   : tok.isTitleWord
-                                  ? 'bg-[#ffe536] text-[#111809] border border-[#fff799]'
+                                  ? 'bg-[#facc15] text-[#2d0938] border border-[#fef08a]'
                                   : isLightMode
-                                  ? 'bg-[#bbd5f0] text-[#102c4b] hover:bg-[#a3c6eb]'
-                                  : 'bg-[#123e73] text-[#96b8dd] hover:bg-[#195396] border border-[#1d5ca1]'
+                                  ? 'bg-[#e9d5ff] text-[#4a1259] hover:bg-[#d8b4fe]'
+                                  : 'bg-[#3b0d47] text-[#e9d5ff] hover:bg-[#4a1259] border border-[#6b21a8]'
                               }`}
                             >
                               {showLengthsOnBlocks
@@ -2461,10 +2483,10 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                     e.preventDefault();
                     submitWordGuess(guessInput);
                   }}
-                  className={`flex items-center gap-2 p-1.5 rounded-2xl border-2 shadow-[0_0_16px_rgba(19,132,211,0.2)] ${
+                  className={`flex items-center gap-2 p-1.5 rounded-2xl border-2 shadow-[0_0_16px_rgba(168,85,247,0.2)] ${
                     isLightMode
-                      ? 'bg-white border-[#6498d2]'
-                      : 'bg-[#03142f] border-[#2186c6]'
+                      ? 'bg-white border-[#c084fc]'
+                      : 'bg-[#240630] border-[#7e22ce]'
                   }`}
                 >
                   <input
@@ -2477,16 +2499,16 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                         ? 'Round complete — start Next Round to keep guessing...'
                         : 'Guess a word...'
                     }
-                    className={`flex-1 min-w-0 px-3.5 py-2 rounded-xl border text-sm font-bold focus:outline-none focus:border-[#19e4ff] disabled:opacity-60 ${
+                    className={`flex-1 min-w-0 px-3.5 py-2 rounded-xl border text-sm font-bold focus:outline-none focus:border-[#facc15] disabled:opacity-60 ${
                       isLightMode
-                        ? 'bg-[#eaf4ff] border-[#6498d2] text-[#102c4b] placeholder-[#416890]/60'
-                        : 'bg-[#020a25] border-[#286296] text-white placeholder-[#96b8dd]/60'
+                        ? 'bg-[#faf7fc] border-[#c084fc] text-[#2d0938] placeholder-[#6b21a8]/60'
+                        : 'bg-[#16041c] border-[#6b21a8] text-white placeholder-[#d8b4fe]/60'
                     }`}
                   />
                   <button
                     type="submit"
                     disabled={round.solved}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-b from-[#ffed60] to-[#ffca27] hover:from-[#fff380] hover:to-[#ffd645] text-[#17210a] font-extrabold text-xs border border-[#ffed6c] flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-b from-[#fde047] to-[#facc15] hover:from-[#fef08a] hover:to-[#fde047] text-[#2d0938] font-extrabold text-xs border border-[#fef08a] flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Send className="w-3.5 h-3.5" /> Guess
                   </button>

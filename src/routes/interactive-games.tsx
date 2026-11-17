@@ -212,8 +212,8 @@ export function InteractiveGamesPage() {
             >
               <img
                 className="game-thumbnail"
-                src="/wikirec-website-thumbnail.svg"
-                alt="Preview of the WiKirecTangled 8-connected Wikipedia word grid and TikTok Live chat bridge"
+                src="/wikirecint-website-thumbnail.svg"
+                alt="Preview of the WiKirecTangled Interactive 8-connected Wikipedia word grid and TikTok Live chat bridge"
               />
             </Link>
             <h3>WiKirecTangled</h3>
@@ -233,7 +233,7 @@ export function InteractiveGamesPage() {
                 gameTitle="WiKirecTangled"
                 gameSlug="wikirec"
                 streamerHandle={activeStreamer?.username}
-                recommendedSize="560 × 940 or 1080 × 1920"
+                recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
                 label="LIVE Overlay"
               />
             </div>
@@ -253,8 +253,8 @@ export function InteractiveGamesPage() {
             >
               <img
                 className="game-thumbnail"
-                src="/wikicon-website-thumbnail.svg"
-                alt="Preview of the WikiContexto redacted Wikipedia article discovery arena and 3D keycap matrix"
+                src="/wikiconint-website-thumbnail.svg"
+                alt="Preview of the WikiContexto Interactive redacted Wikipedia article discovery arena and TikTok Live chat stream"
               />
             </Link>
             <h3>WikiContexto</h3>
@@ -274,7 +274,7 @@ export function InteractiveGamesPage() {
                 gameTitle="WikiContexto"
                 gameSlug="wikicon"
                 streamerHandle={activeStreamer?.username}
-                recommendedSize="560 × 960 or 1080 × 1920"
+                recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
                 label="LIVE Overlay"
               />
             </div>
@@ -315,7 +315,7 @@ export function InteractiveGamesPage() {
                 gameTitle="Squared Interactive"
                 gameSlug="squaredint"
                 streamerHandle={activeStreamer?.username}
-                recommendedSize="540 × 920 or 1080 × 1920"
+                recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
                 label="LIVE Overlay"
               />
             </div>
@@ -356,7 +356,7 @@ export function InteractiveGamesPage() {
                 gameTitle="Lexi Tiles"
                 gameSlug="lexi"
                 streamerHandle={activeStreamer?.username}
-                recommendedSize="540 × 860 or 1080 × 1920"
+                recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
                 label="LIVE Overlay"
               />
             </div>
@@ -397,7 +397,7 @@ export function InteractiveGamesPage() {
                 gameTitle="DeStack Interactive"
                 gameSlug="destackint"
                 streamerHandle={activeStreamer?.username}
-                recommendedSize="560 × 940 or 1080 × 1920"
+                recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
                 label="LIVE Overlay"
               />
             </div>
@@ -438,7 +438,7 @@ export function InteractiveGamesPage() {
                 gameTitle="Crowdle"
                 gameSlug="crowdle"
                 streamerHandle={activeStreamer?.username}
-                recommendedSize="540 × 940 or 1080 × 1920"
+                recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
                 label="LIVE Overlay"
               />
             </div>

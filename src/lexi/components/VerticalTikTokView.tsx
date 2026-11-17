@@ -40,8 +40,8 @@ export const VerticalTikTokView: React.FC<VerticalTikTokViewProps> = ({
 
   return (
     <div className="w-full flex items-center justify-center py-4 px-2">
-      {/* 9:16 Vertical Mobile Broadcast Frame */}
-      <div className="w-full max-w-[430px] min-h-[760px] rounded-3xl bg-slate-950 border-2 border-amber-400/40 shadow-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+      {/* 20:9 Vertical Mobile Broadcast Frame */}
+      <div className="w-full max-w-[460px] min-h-[960px] aspect-[9/20] rounded-3xl bg-slate-950 border-2 border-amber-400/40 shadow-2xl p-4 flex flex-col justify-between relative overflow-hidden">
         {/* Top Broadcast HUD */}
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">

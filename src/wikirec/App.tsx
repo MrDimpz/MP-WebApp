@@ -1360,8 +1360,8 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 9999,
-            backgroundColor: '#ea580c',
-            color: '#ffffff',
+            backgroundColor: '#facc15',
+            color: '#2d0938',
             padding: '8px 16px',
             borderRadius: '10px',
             boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
@@ -1379,7 +1379,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#fff',
+              color: '#2d0938',
               cursor: 'pointer',
               fontWeight: 'bold',
               marginLeft: '8px',
@@ -1415,7 +1415,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
               alignItems: 'center',
               gap: '8px',
               textDecoration: 'none',
-              color: '#f8fafc',
+              color: '#faf5ff',
               fontWeight: 800,
               fontSize: '13px',
             }}
@@ -1440,7 +1440,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
               gameTitle="WiKirecTangled"
               gameSlug="wikirec"
               streamerHandle={authorizedStreamer?.username || tiktokStatus.username}
-              recommendedSize="540 × 1080 or 1080 × 1920"
+              recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
             />
           )}
           <LoggedInIndicator />
@@ -1556,7 +1556,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       cursor: 'pointer',
                       border: '1px solid var(--border-soft)',
                       background: inlineChatProvider === 'tikfinity' ? 'var(--accent-orange)' : 'var(--bg)',
-                      color: inlineChatProvider === 'tikfinity' ? '#fff' : 'var(--text-dim)',
+                      color: inlineChatProvider === 'tikfinity' ? '#2d0938' : 'var(--text-dim)',
                     }}
                   >
                     Tikfinity
@@ -1573,7 +1573,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       cursor: 'pointer',
                       border: '1px solid var(--border-soft)',
                       background: inlineChatProvider === 'bettertok' ? 'var(--accent-orange)' : 'var(--bg)',
-                      color: inlineChatProvider === 'bettertok' ? '#fff' : 'var(--text-dim)',
+                      color: inlineChatProvider === 'bettertok' ? '#2d0938' : 'var(--text-dim)',
                     }}
                   >
                     BetterTok
@@ -2316,9 +2316,9 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
             margin: '10px 0',
             padding: '10px 14px',
             borderRadius: '12px',
-            background: 'rgba(18, 22, 34, 0.92)',
-            border: '1px solid rgba(251, 191, 36, 0.45)',
-            color: '#fbbf24',
+            background: '#240630',
+            border: '1.5px solid rgba(250, 204, 21, 0.5)',
+            color: '#facc15',
             fontSize: '12px',
             fontWeight: 700,
             textAlign: 'center',
@@ -2885,7 +2885,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
                 id="solo-end-again"
                 style={{
                   background: 'var(--accent-orange)',
-                  color: '#fff',
+                  color: '#2d0938',
                   border: '2px solid var(--accent-orange-2)',
                   borderRadius: '10px',
                   padding: '10px 20px',

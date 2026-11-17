@@ -8,6 +8,8 @@ interface DiscoveredWordsGridProps {
   revealedHints: string[];
   wordSlots?: BoardWordSlot[];
   compact?: boolean;
+  maxSlotsOverride?: number;
+  hideExpandToggle?: boolean;
 }
 
 export const DiscoveredWordsGrid: React.FC<DiscoveredWordsGridProps> = ({
@@ -16,6 +18,8 @@ export const DiscoveredWordsGrid: React.FC<DiscoveredWordsGridProps> = ({
   revealedHints,
   wordSlots,
   compact = false,
+  maxSlotsOverride,
+  hideExpandToggle = false,
 }) => {
   const [showAllSlots, setShowAllSlots] = useState(false);
 
@@ -53,9 +57,9 @@ export const DiscoveredWordsGrid: React.FC<DiscoveredWordsGridProps> = ({
     return [...foundSlots, ...unfoundSlots].sort((a, b) => a.length - b.length);
   }, [wordSlots, discoveredWords, totalPossibleWords]);
 
-  // Select 12 or 15 balanced slots across the 3 columns by default (like the reference board), or all if expanded
+  // Select balanced slots across the 3 columns by default (like the reference board), or all if expanded
+  const defaultCap = maxSlotsOverride ?? (compact ? 9 : 12);
   const visibleSlots = useMemo(() => {
-    const defaultCap = compact ? 9 : 12;
     if (showAllSlots || allSlots.length <= defaultCap) {
       return allSlots;
     }
@@ -90,7 +94,7 @@ export const DiscoveredWordsGrid: React.FC<DiscoveredWordsGridProps> = ({
     return [...priority, ...pickedOthers].sort(
       (a, b) => a.length - b.length || a.id.localeCompare(b.id)
     );
-  }, [allSlots, showAllSlots, compact]);
+  }, [allSlots, showAllSlots, defaultCap]);
 
   // Split visibleSlots into 3 columns (Col 1: shortest, Col 2: medium, Col 3: longest)
   const columns = useMemo(() => {
@@ -221,8 +225,8 @@ export const DiscoveredWordsGrid: React.FC<DiscoveredWordsGridProps> = ({
         ))}
       </div>
 
-      {/* Expand/Collapse toggle when total board slots exceed default 12-slot arcade view */}
-      {allSlots.length > (compact ? 9 : 12) && (
+      {/* Expand/Collapse toggle when total board slots exceed default arcade view */}
+      {!hideExpandToggle && allSlots.length > defaultCap && (
         <div className="flex items-center justify-center pt-1">
           <button
             type="button"

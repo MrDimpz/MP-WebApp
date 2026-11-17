@@ -1043,202 +1043,37 @@ export default function MPSearchInteractiveApp() {
       >
         <div
           key={`ov-arena-${roundNumber}-${currentPuzzle.dateKey}`}
-          className="w-full max-w-[920px] grid grid-cols-12 gap-3 items-stretch"
+          className="w-full max-w-[540px] flex flex-col"
         >
-          {/* Left 7 Cols: 10x10 Board + Pop-Up Final Screen Over Main Board */}
-          <div className="col-span-7 flex flex-col">
-            <div className="mb-2 flex items-center justify-between px-3 py-2 rounded-xl bg-[#1F0632]/95 border border-amber-400/40 text-white">
-              <div className="flex items-center gap-2">
-                <img src="/brand-logo.png" alt="" className="w-6 h-6 object-contain" />
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-amber-300">
-                    Round #{roundNumber} · {currentPuzzle.category}
-                  </div>
-                  <div className="text-sm font-black leading-tight">{currentPuzzle.themeTitle}</div>
+          <div className="mb-2 flex items-center justify-between px-3 py-2 rounded-xl bg-[#1F0632] border border-amber-400/50 text-white">
+            <div className="flex items-center gap-2">
+              <img src="/brand-logo.png" alt="" className="w-6 h-6 object-contain" />
+              <div>
+                <div className="text-[10px] font-extrabold uppercase tracking-widest text-amber-300">
+                  Round #{roundNumber} · {currentPuzzle.category}
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-lg bg-purple-900/90 border border-purple-700 text-xs font-mono font-black text-amber-300">
-                  {foundWords.length} / {currentPuzzle.words.length} Words
-                </span>
+                <div className="text-sm font-black leading-tight">{currentPuzzle.themeTitle}</div>
               </div>
             </div>
-
-            <WordSearchBoard
-              key={`ov-board-${roundNumber}-${currentPuzzle.dateKey}`}
-              puzzle={currentPuzzle}
-              foundWords={foundWords}
-              foundWordFinders={foundEntries}
-              onWordFound={() => {}}
-              hintTargetWord={hintTargetWord}
-              hintTier={hintTier}
-              largePrint={true}
-              disabled={true}
-              boardOverlay={finalBoardOverlayNode}
-            />
-          </div>
-
-          {/* Right 5 Cols: Live Word-Length Scoreboard (Replaces Target Word Bank Pill) */}
-          <div className="col-span-5 flex flex-col rounded-2xl bg-[#1F0632]/95 border-2 border-amber-400/40 p-3.5 text-white shadow-xl">
-            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-purple-800/80">
-              <div>
-                <h2 className="text-sm font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                  <Trophy className="w-4 h-4 text-amber-400" />
-                  Live Scoreboard
-                </h2>
-                <p className="text-[11px] text-purple-200/80">
-                  Type hidden grid words in chat!
-                </p>
-              </div>
-              <span className="px-2 py-0.5 rounded-md bg-amber-400/20 border border-amber-400/50 text-amber-300 font-mono text-[10px] font-black">
-                10 PTS / LETTER
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-lg bg-purple-900 border border-purple-700 text-xs font-mono font-black text-amber-300">
+                {foundWords.length} / {currentPuzzle.words.length} Words
               </span>
             </div>
-
-            {/* Standings List */}
-            <div className="flex-1 space-y-1.5 overflow-y-auto pr-0.5">
-              {scoreboard.length === 0 ? (
-                <div className="h-36 flex flex-col items-center justify-center text-center px-3 rounded-xl bg-purple-950/50 border border-purple-800/50">
-                  <Sparkles className="w-5 h-5 text-amber-400 mb-1" />
-                  <p className="text-xs font-bold text-purple-100">
-                    Waiting for first word discovery...
-                  </p>
-                  <p className="text-[11px] text-purple-300/80 mt-0.5">
-                    5-letter word = 50 pts · 7-letter = 70 pts · 8-letter = 80 pts
-                  </p>
-                </div>
-              ) : (
-                <AnimatePresence key={`ov-sb-${roundNumber}`} initial={false}>
-                  {scoreboard.slice(0, 6).map((player, idx) => {
-                    const latestWord = player.words[player.words.length - 1];
-                    return (
-                      <motion.div
-                        key={player.id}
-                        layout="position"
-                        initial={{ opacity: 0, y: 10, scale: 0.96 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 360, damping: 26 }}
-                        className={`flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl border ${
-                          idx === 0
-                            ? 'bg-amber-400/20 border-amber-400/80 shadow-[0_0_16px_rgba(251,191,36,0.16)]'
-                            : idx === 1
-                            ? 'bg-slate-300/15 border-slate-300/60'
-                            : idx === 2
-                            ? 'bg-amber-600/20 border-amber-500/60'
-                            : 'bg-purple-950/60 border-purple-800/60'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span
-                            className={`w-6 h-6 rounded-md flex items-center justify-center font-mono text-xs font-black shrink-0 ${
-                              idx === 0
-                                ? 'bg-amber-400 text-[#1A052A]'
-                                : idx === 1
-                                ? 'bg-slate-200 text-slate-900'
-                                : idx === 2
-                                ? 'bg-amber-600 text-white'
-                                : 'bg-purple-800 text-purple-200'
-                            }`}
-                          >
-                            #{idx + 1}
-                          </span>
-                          <div className="min-w-0">
-                            <div className="text-xs font-black text-white truncate">
-                              {player.nickname}
-                            </div>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              <AnimatePresence initial={false}>
-                                {player.words.map((w) => (
-                                  <motion.span
-                                    key={w.word}
-                                    initial={{ opacity: 0, scale: 0.72, y: 5 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-                                    className="relative overflow-hidden inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-900/90 border border-amber-300/40 text-[10px] font-mono font-bold text-purple-100 shadow-xs"
-                                  >
-                                    <motion.span
-                                      aria-hidden="true"
-                                      initial={{ x: '-115%', opacity: 0.9 }}
-                                      animate={{ x: '130%', opacity: 0 }}
-                                      transition={{ duration: 0.85, ease: 'easeOut' }}
-                                      className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/75 to-emerald-300/65 z-0"
-                                    />
-                                    <span className="relative z-10 tracking-wide">{w.word}</span>
-                                    <span className="relative z-10 px-1 rounded bg-amber-400/20 text-amber-300 font-black">
-                                      +{w.points}
-                                    </span>
-                                  </motion.span>
-                                ))}
-                              </AnimatePresence>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <motion.div
-                            key={player.score}
-                            initial={{ scale: 1.18 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: 'spring', stiffness: 380, damping: 18 }}
-                            className="font-mono tabular-nums text-xs font-black text-amber-300 origin-right"
-                          >
-                            {player.score} PTS
-                          </motion.div>
-                          {latestWord && (
-                            <motion.div
-                              key={`${player.id}-${player.lastWordAt}`}
-                              initial={{ opacity: 0, y: 4, scale: 0.85 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              transition={{ duration: 0.3, ease: 'easeOut' }}
-                              className="text-[9px] font-mono font-bold text-emerald-300"
-                            >
-                              +{latestWord.points} {latestWord.word}
-                            </motion.div>
-                          )}
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
-              )}
-            </div>
-
-            {/* Discovered Words Feed (Only shows ALREADY FOUND words) */}
-            <div className="mt-3 pt-2.5 border-t border-purple-800/80">
-              <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-purple-200 mb-1.5">
-                <span>Discovered Words ({foundEntries.length}/{currentPuzzle.words.length})</span>
-                <span>{currentPuzzle.words.length - foundEntries.length} Hidden Left</span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {foundEntries.length === 0 ? (
-                  <span className="text-[11px] text-purple-300/70">
-                    No words revealed yet — scan the 10×10 grid!
-                  </span>
-                ) : (
-                  <AnimatePresence key={`ov-dw-${roundNumber}`} initial={false}>
-                    {foundEntries.map((entry) => (
-                      <motion.span
-                        key={entry.word}
-                        initial={{ opacity: 0, scale: 0.76, y: 5 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-                        className="relative overflow-hidden inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/50 text-emerald-200 font-mono text-[11px] font-bold shadow-xs"
-                      >
-                        <motion.span
-                          aria-hidden="true"
-                          initial={{ x: '-115%', opacity: 0.9 }}
-                          animate={{ x: '130%', opacity: 0 }}
-                          transition={{ duration: 0.95, ease: 'easeOut' }}
-                          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/80 to-emerald-300/70 z-0"
-                        />
-                        <span className="relative z-10">{entry.word}</span>
-                        <span className="relative z-10 text-amber-300">+{entry.points}</span>
-                      </motion.span>
-                    ))}
-                  </AnimatePresence>
-                )}
-              </div>
-            </div>
           </div>
+
+          <WordSearchBoard
+            key={`ov-board-${roundNumber}-${currentPuzzle.dateKey}`}
+            puzzle={currentPuzzle}
+            foundWords={foundWords}
+            foundWordFinders={foundEntries}
+            onWordFound={() => {}}
+            hintTargetWord={hintTargetWord}
+            hintTier={hintTier}
+            largePrint={true}
+            disabled={true}
+            boardOverlay={finalBoardOverlayNode}
+          />
         </div>
       </div>
     );
@@ -1321,7 +1156,7 @@ export default function MPSearchInteractiveApp() {
                 gameTitle="MP Search Interactive"
                 gameSlug="mpsearch"
                 streamerHandle={tiktokUsername}
-                recommendedSize="920 × 640 or 1080 × 1920"
+                recommendedSize="580 × 660 or 1080 × 1920"
               />
 
               <DailyStreakBadge
