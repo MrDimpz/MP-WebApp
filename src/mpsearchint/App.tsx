@@ -1041,7 +1041,10 @@ export default function MPSearchInteractiveApp() {
           isTransparent ? 'bg-transparent' : 'bg-[#12031E]'
         }`}
       >
-        <div className="w-full max-w-[920px] grid grid-cols-12 gap-3 items-stretch">
+        <div
+          key={`ov-arena-${roundNumber}-${currentPuzzle.dateKey}`}
+          className="w-full max-w-[920px] grid grid-cols-12 gap-3 items-stretch"
+        >
           {/* Left 7 Cols: 10x10 Board + Pop-Up Final Screen Over Main Board */}
           <div className="col-span-7 flex flex-col">
             <div className="mb-2 flex items-center justify-between px-3 py-2 rounded-xl bg-[#1F0632]/95 border border-amber-400/40 text-white">

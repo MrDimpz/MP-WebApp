@@ -159,6 +159,8 @@ export class GameEngine {
     timestamp: number;
   }> = [];
 
+  private hasStarted = false;
+
   constructor() {
     this.events = eventManager;
     this.validator = wordValidator;
@@ -184,8 +186,13 @@ export class GameEngine {
       onRoundStart: () => this.handleRoundStarted(),
       onRoundEnd: (reason) => this.handleRoundEnded(reason),
     });
+  }
 
-    this.startRound(false);
+  public ensureStarted(): void {
+    if (!this.hasStarted) {
+      this.hasStarted = true;
+      this.startRound(false);
+    }
   }
 
   public loadConfigs(): void {
@@ -518,6 +525,7 @@ export class GameEngine {
   }
 
   public startRound(incrementRound = false): void {
+    this.hasStarted = true;
     this.rounds.startCountdownAndRound(
       {
         roundDuration: this.getEffectiveRoundDuration(),

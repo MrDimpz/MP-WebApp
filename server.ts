@@ -401,9 +401,11 @@ async function startServer() {
     cors: { origin: "*", methods: ["GET", "POST", "OPTIONS"] },
     transports: ["polling", "websocket"],
     allowEIO3: true,
+    perMessageDeflate: false,
+    httpCompression: false,
     maxHttpBufferSize: 5e6,
     pingTimeout: 25000,
-    pingInterval: 20000,
+    pingInterval: 15000,
   });
 
   app.use((req, res, next) => {
@@ -424,94 +426,162 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true }));
 
   const sessions = new Map();
+  let overlayVersionCounter = 0;
+  const serverBootId = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
   const overlaySnapshots = new Map<
     string,
     {
       state: unknown;
       updatedAt: number;
       streamer: string;
+      channel: string;
       hostSessionId?: string;
       seq?: number;
+      stateHash?: string;
+      serverVersion: number;
     }
   >();
 
-  function getNewestOverlaySnapshot(gameId: string, streamer: string) {
-    const defaultKey = `overlay:${gameId}:default`;
-    const streamerKey = streamer ? `overlay:${gameId}:${streamer}` : defaultKey;
-    const defaultSnap = overlaySnapshots.get(defaultKey);
-    const streamerSnap = streamer ? overlaySnapshots.get(streamerKey) : undefined;
-    if (streamerSnap && defaultSnap) {
-      return streamerSnap.updatedAt >= defaultSnap.updatedAt ? streamerSnap : defaultSnap;
+  function sanitizeOverlayChannel(raw: unknown): string {
+    return String(raw || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, "")
+      .slice(0, 64);
+  }
+
+  function sanitizeOverlayStreamer(raw: unknown): string {
+    return String(raw || "")
+      .trim()
+      .replace(/^@+/, "")
+      .toLowerCase()
+      .slice(0, 80);
+  }
+
+  function getNewestOverlaySnapshot(
+    gameId: string,
+    streamer: string,
+    channel = "",
+  ) {
+    const cleanChannel = sanitizeOverlayChannel(channel);
+    const cleanStreamer = sanitizeOverlayStreamer(streamer);
+
+    if (cleanChannel) {
+      const chSnap = overlaySnapshots.get(`overlay:${gameId}:ch:${cleanChannel}`);
+      if (chSnap) return chSnap;
+      if (cleanStreamer) {
+        const strSnap = overlaySnapshots.get(`overlay:${gameId}:s:${cleanStreamer}`);
+        if (strSnap) return strSnap;
+      }
+      return undefined;
     }
-    return streamerSnap || defaultSnap;
+
+    if (cleanStreamer) {
+      return overlaySnapshots.get(`overlay:${gameId}:s:${cleanStreamer}`);
+    }
+
+    const defaultSnap = overlaySnapshots.get(`overlay:${gameId}:default`);
+    if (defaultSnap) return defaultSnap;
+
+    // Fallback for legacy unpaired overlay URLs with neither ?channel= nor ?streamer=
+    let newest:
+      | {
+          state: unknown;
+          updatedAt: number;
+          streamer: string;
+          channel: string;
+          hostSessionId?: string;
+          seq?: number;
+          stateHash?: string;
+          serverVersion: number;
+        }
+      | undefined;
+    const prefix = `overlay:${gameId}:`;
+    for (const [k, rec] of overlaySnapshots.entries()) {
+      if (!k.startsWith(prefix)) continue;
+      if (!newest || rec.serverVersion > newest.serverVersion) {
+        newest = rec;
+      }
+    }
+    return newest;
   }
 
   function upsertOverlaySnapshot(params: {
     gameId: string;
     streamer: string;
+    channel?: string;
     state: unknown;
     hostSessionId?: string;
     seq?: number;
+    stateHash?: string;
     senderSocket?: any;
   }) {
-    const { gameId, streamer, state, hostSessionId, seq, senderSocket } = params;
-    const defaultKey = `overlay:${gameId}:default`;
-    const streamerKey = streamer ? `overlay:${gameId}:${streamer}` : defaultKey;
+    const { gameId, state, hostSessionId, seq, stateHash, senderSocket } = params;
+    const streamer = sanitizeOverlayStreamer(params.streamer);
+    const channel = sanitizeOverlayChannel(params.channel);
 
-    // Never overwrite a newer snapshot from the same host session with a stale out-of-order seq
-    const currentExisting =
-      (streamer ? overlaySnapshots.get(streamerKey) : undefined) ||
-      overlaySnapshots.get(defaultKey);
+    const primaryKey = channel
+      ? `overlay:${gameId}:ch:${channel}`
+      : streamer
+        ? `overlay:${gameId}:s:${streamer}`
+        : `overlay:${gameId}:default`;
+
+    const currentExisting = overlaySnapshots.get(primaryKey);
     if (
       currentExisting &&
       hostSessionId &&
       currentExisting.hostSessionId === hostSessionId &&
       typeof seq === "number" &&
       typeof currentExisting.seq === "number" &&
-      seq < currentExisting.seq
+      seq <= currentExisting.seq
     ) {
       return {
         gameId,
         streamer: currentExisting.streamer,
+        channel: currentExisting.channel,
         state: currentExisting.state,
+        stateHash: currentExisting.stateHash,
         updatedAt: currentExisting.updatedAt,
         hostSessionId: currentExisting.hostSessionId,
         seq: currentExisting.seq,
+        serverVersion: currentExisting.serverVersion,
+        bootId: serverBootId,
       };
     }
 
     const updatedAt = Date.now();
+    const serverVersion = ++overlayVersionCounter;
     const record = {
       state,
       updatedAt,
       streamer,
+      channel,
       hostSessionId,
       seq,
+      stateHash,
+      serverVersion,
     };
-    overlaySnapshots.set(defaultKey, record);
 
-    const targetRooms = new Set<string>([defaultKey]);
-    if (streamer) {
+    const targetRooms = new Set<string>([primaryKey]);
+    overlaySnapshots.set(primaryKey, record);
+
+    if (channel && streamer) {
+      const streamerKey = `overlay:${gameId}:s:${streamer}`;
       overlaySnapshots.set(streamerKey, record);
       targetRooms.add(streamerKey);
-    }
-
-    // Also refresh any existing snapshot key for this game so a previous streamer key never serves a stale round
-    const prefix = `overlay:${gameId}:`;
-    for (const existingKey of overlaySnapshots.keys()) {
-      if (existingKey.startsWith(prefix)) {
-        overlaySnapshots.set(existingKey, record);
-        targetRooms.add(existingKey);
-      }
     }
 
     const packet = {
       gameId,
       streamer,
+      channel,
       state,
       updatedAt,
       hostSessionId,
       seq,
+      stateHash,
+      serverVersion,
+      bootId: serverBootId,
     };
 
     const roomsArr = Array.from(targetRooms);
@@ -540,10 +610,8 @@ async function startServer() {
     const gameId = String(body.gameId || "")
       .trim()
       .toLowerCase();
-    const streamer = String(body.streamer || "")
-      .trim()
-      .replace(/^@+/, "")
-      .toLowerCase();
+    const streamer = sanitizeOverlayStreamer(body.streamer);
+    const channel = sanitizeOverlayChannel(body.channel);
     if (!gameId || body.state === undefined) {
       res.status(400).json({ ok: false, error: "Missing gameId or state" });
       return;
@@ -551,18 +619,25 @@ async function startServer() {
     const hostSessionId =
       typeof body.hostSessionId === "string" ? body.hostSessionId : undefined;
     const seq = typeof body.seq === "number" ? body.seq : undefined;
+    const stateHash =
+      typeof body.stateHash === "string" ? body.stateHash : undefined;
     const packet = upsertOverlaySnapshot({
       gameId,
       streamer,
+      channel,
       state: body.state,
       hostSessionId,
       seq,
+      stateHash,
     });
     res.json({
       ok: true,
       updatedAt: packet.updatedAt,
       hostSessionId: packet.hostSessionId,
       seq: packet.seq,
+      stateHash: packet.stateHash,
+      serverVersion: packet.serverVersion,
+      bootId: serverBootId,
     });
   });
 
@@ -571,17 +646,41 @@ async function startServer() {
     const gameId = String(req.query.gameId || "")
       .trim()
       .toLowerCase();
-    const streamer = String(req.query.streamer || "")
-      .trim()
-      .replace(/^@+/, "")
-      .toLowerCase();
+    const streamer = sanitizeOverlayStreamer(req.query.streamer);
+    const channel = sanitizeOverlayChannel(req.query.channel);
+    const afterVersionRaw = Number(req.query.afterVersion);
+    const afterBootId = String(req.query.afterBootId || "").trim();
     if (!gameId) {
       res.status(400).json({ ok: false, error: "Missing gameId" });
       return;
     }
-    const snap = getNewestOverlaySnapshot(gameId, streamer);
+    const snap = getNewestOverlaySnapshot(gameId, streamer, channel);
     if (!snap) {
-      res.json({ ok: true, hasSnapshot: false, serverTime: Date.now() });
+      res.json({
+        ok: true,
+        hasSnapshot: false,
+        bootId: serverBootId,
+        serverTime: Date.now(),
+      });
+      return;
+    }
+    if (
+      afterBootId === serverBootId &&
+      Number.isFinite(afterVersionRaw) &&
+      afterVersionRaw > 0 &&
+      snap.serverVersion <= afterVersionRaw
+    ) {
+      res.json({
+        ok: true,
+        hasSnapshot: true,
+        unchanged: true,
+        hostSessionId: snap.hostSessionId,
+        seq: snap.seq,
+        stateHash: snap.stateHash,
+        serverVersion: snap.serverVersion,
+        bootId: serverBootId,
+        serverTime: Date.now(),
+      });
       return;
     }
     res.json({
@@ -589,10 +688,14 @@ async function startServer() {
       hasSnapshot: true,
       gameId,
       streamer: snap.streamer,
+      channel: snap.channel,
       state: snap.state,
       updatedAt: snap.updatedAt,
       hostSessionId: snap.hostSessionId,
       seq: snap.seq,
+      stateHash: snap.stateHash,
+      serverVersion: snap.serverVersion,
+      bootId: serverBootId,
       serverTime: Date.now(),
     });
   });
@@ -2007,15 +2110,28 @@ async function startServer() {
       }
     });
 
-    const syncHostOverlayMembership = (gameId: string, streamer: string, hostSessionId?: string) => {
-      const hostDefaultRoom = `overlay-host:${gameId}:default`;
-      socket.join(hostDefaultRoom);
-      const trackedRooms = (socket.data.overlayHostRooms as Set<string> | undefined) || new Set<string>();
-      trackedRooms.add(hostDefaultRoom);
+    const syncHostOverlayMembership = (
+      gameId: string,
+      streamer: string,
+      channel: string,
+      hostSessionId?: string,
+    ) => {
+      const trackedRooms =
+        (socket.data.overlayHostRooms as Set<string> | undefined) || new Set<string>();
+      if (channel) {
+        const hostChannelRoom = `overlay-host:${gameId}:ch:${channel}`;
+        socket.join(hostChannelRoom);
+        trackedRooms.add(hostChannelRoom);
+      }
       if (streamer) {
-        const hostStreamerRoom = `overlay-host:${gameId}:${streamer}`;
+        const hostStreamerRoom = `overlay-host:${gameId}:s:${streamer}`;
         socket.join(hostStreamerRoom);
         trackedRooms.add(hostStreamerRoom);
+      }
+      if (!channel && !streamer) {
+        const hostDefaultRoom = `overlay-host:${gameId}:default`;
+        socket.join(hostDefaultRoom);
+        trackedRooms.add(hostDefaultRoom);
       }
       socket.data.overlayHostRooms = trackedRooms;
       if (hostSessionId) {
@@ -2026,31 +2142,23 @@ async function startServer() {
     socket.on("register-overlay-host", (payload) => {
       if (!payload || typeof payload !== "object") return;
       const gameId = String(payload.gameId || "").trim().toLowerCase();
-      const streamer = String(payload.streamer || "")
-        .trim()
-        .replace(/^@+/, "")
-        .toLowerCase();
+      const streamer = sanitizeOverlayStreamer(payload.streamer);
+      const channel = sanitizeOverlayChannel(payload.channel);
       const hostSessionId =
         typeof payload.hostSessionId === "string" ? payload.hostSessionId : undefined;
       if (!gameId) return;
-      syncHostOverlayMembership(gameId, streamer, hostSessionId);
+      syncHostOverlayMembership(gameId, streamer, channel, hostSessionId);
     });
 
     socket.on("overlay-host-leave", (payload) => {
       if (!payload || typeof payload !== "object") return;
       const gameId = String(payload.gameId || "").trim().toLowerCase();
-      const streamer = String(payload.streamer || "")
-        .trim()
-        .replace(/^@+/, "")
-        .toLowerCase();
+      const streamer = sanitizeOverlayStreamer(payload.streamer);
+      const channel = sanitizeOverlayChannel(payload.channel);
       if (!gameId) return;
-      const hostDefaultRoom = `overlay-host:${gameId}:default`;
-      socket.leave(hostDefaultRoom);
-      if (streamer) {
-        const hostStreamerRoom = `overlay-host:${gameId}:${streamer}`;
-        socket.leave(hostStreamerRoom);
-      }
-      // Keep overlaySnapshots intact across host reconnects, streamer changes, or tab backgrounding
+      if (channel) socket.leave(`overlay-host:${gameId}:ch:${channel}`);
+      if (streamer) socket.leave(`overlay-host:${gameId}:s:${streamer}`);
+      if (!channel && !streamer) socket.leave(`overlay-host:${gameId}:default`);
     });
 
     socket.on("disconnecting", () => {
@@ -2060,60 +2168,65 @@ async function startServer() {
     socket.on("join-overlay", (payload) => {
       if (!payload || typeof payload !== "object") return;
       const gameId = String(payload.gameId || "").trim().toLowerCase();
-      const streamer = String(payload.streamer || "")
-        .trim()
-        .replace(/^@+/, "")
-        .toLowerCase();
+      const streamer = sanitizeOverlayStreamer(payload.streamer);
+      const channel = sanitizeOverlayChannel(payload.channel);
       if (!gameId) return;
 
-      const defaultRoom = `overlay:${gameId}:default`;
-      const roomKey = `overlay:${gameId}:${streamer || "default"}`;
-      socket.join(defaultRoom);
-      socket.join(roomKey);
-      if (streamer) {
+      if (channel) {
+        socket.join(`overlay:${gameId}:ch:${channel}`);
+      } else if (streamer) {
+        socket.join(`overlay:${gameId}:s:${streamer}`);
         socket.join(`streamer:${streamer}`);
+      } else {
+        socket.join(`overlay:${gameId}:default`);
       }
 
-      const snap = getNewestOverlaySnapshot(gameId, streamer);
+      const snap = getNewestOverlaySnapshot(gameId, streamer, channel);
       if (snap) {
         socket.emit("overlay-state-sync", {
           gameId,
           streamer: snap.streamer,
+          channel: snap.channel,
           state: snap.state,
           updatedAt: snap.updatedAt,
           hostSessionId: snap.hostSessionId,
           seq: snap.seq,
+          stateHash: snap.stateHash,
+          serverVersion: snap.serverVersion,
+          bootId: serverBootId,
         });
       }
 
-      // Immediately ask any active host for this game/streamer to push its current live round
-      const hostTargets = [`overlay-host:${gameId}:default`];
-      if (streamer) {
-        hostTargets.push(`overlay-host:${gameId}:${streamer}`);
-      }
-      io.to(hostTargets).emit("overlay-request-state", { gameId, streamer });
+      // Immediately ask the paired host for this channel/streamer to push its live round
+      const hostTargets: string[] = [];
+      if (channel) hostTargets.push(`overlay-host:${gameId}:ch:${channel}`);
+      if (streamer) hostTargets.push(`overlay-host:${gameId}:s:${streamer}`);
+      if (hostTargets.length === 0) hostTargets.push(`overlay-host:${gameId}:default`);
+      io.to(hostTargets).emit("overlay-request-state", { gameId, streamer, channel });
     });
 
     socket.on("overlay-state-update", (payload) => {
       if (!payload || typeof payload !== "object") return;
       const gameId = String(payload.gameId || "").trim().toLowerCase();
-      const streamer = String(payload.streamer || "")
-        .trim()
-        .replace(/^@+/, "")
-        .toLowerCase();
+      const streamer = sanitizeOverlayStreamer(payload.streamer);
+      const channel = sanitizeOverlayChannel(payload.channel);
       if (!gameId || payload.state === undefined) return;
 
       const hostSessionId =
         typeof payload.hostSessionId === "string" ? payload.hostSessionId : undefined;
       const seq = typeof payload.seq === "number" ? payload.seq : undefined;
+      const stateHash =
+        typeof payload.stateHash === "string" ? payload.stateHash : undefined;
 
-      syncHostOverlayMembership(gameId, streamer, hostSessionId);
+      syncHostOverlayMembership(gameId, streamer, channel, hostSessionId);
       upsertOverlaySnapshot({
         gameId,
         streamer,
+        channel,
         state: payload.state,
         hostSessionId,
         seq,
+        stateHash,
         senderSocket: socket,
       });
     });

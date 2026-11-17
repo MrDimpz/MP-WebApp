@@ -1243,13 +1243,12 @@ export default function CrowdleApp() {
               Crowd Consensus
             </span>
             <div className="flex flex-col items-center justify-center">
-              <AnimatePresence mode="wait">
+              <AnimatePresence initial={false}>
                 {activeState.topVotes.length > 0 ? (
                   <motion.div
-                    key={activeState.topVotes[0][0]}
+                    key={`${activeState.roundId}-${activeState.topVotes[0][0]}`}
                     initial={{ opacity: 0, scale: 0.92 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.06 }}
                     className="flex items-baseline gap-2.5"
                   >
                     <span className="text-2xl font-black tracking-[0.18em] text-emerald-400 font-mono uppercase drop-shadow-[0_0_12px_rgba(16,185,129,0.35)]">
@@ -1261,7 +1260,10 @@ export default function CrowdleApp() {
                     </span>
                   </motion.div>
                 ) : (
-                  <div className="h-8 flex items-center justify-center">
+                  <div
+                    key={`empty-${activeState.roundId}`}
+                    className="h-8 flex items-center justify-center"
+                  >
                     <span className="text-xl font-black tracking-[0.25em] text-purple-300/30 font-mono uppercase italic">
                       {Array(activeState.wordLength).fill('?').join('')}
                     </span>

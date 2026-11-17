@@ -227,6 +227,7 @@ export default function App() {
 
   // Connect to persistent Socket.IO server scoped to isolated streamer session & destackint game
   useEffect(() => {
+    if (isOverlay) return;
     const deduplicator = deduplicatorRef.current;
     const newSocket = io({
       path: '/socket.io',
@@ -309,32 +310,6 @@ export default function App() {
       newSocket.disconnect();
     };
   }, [isOverlay]);
-
-  // Standalone overlay auto-connect fallback if no live host snapshot arrives within 1.2s
-  useEffect(() => {
-    if (!isOverlay || !overlayStreamer || !socket) return;
-    const timer = setTimeout(() => {
-      if (hasReceivedHostSyncRef.current) return;
-      setTiktokUsername(overlayStreamer);
-      setIsLiveConnected(true);
-      setRoomId(`LIVE_${overlayStreamer}`);
-      triggerResilientConnect(
-        socket,
-        {
-          username: overlayStreamer,
-          isTestMode: false,
-          gameId: 'destackint',
-          sessionId: getCurrentUserSessionPrefix(),
-        },
-        ({ username: uname, roomId: rId }) => {
-          setIsLiveConnected(true);
-          setTiktokUsername((uname || overlayStreamer).replace(/^@+/, ''));
-          if (rId) setRoomId(rId);
-        }
-      );
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, [isOverlay, overlayStreamer, socket]);
 
   const handleConnectTikTok = useCallback(
     (username: string, isTestMode?: boolean) => {
@@ -712,6 +687,10 @@ export default function App() {
     isOverlay && typeof syncedOverlayPayload?.resetSignal === 'number'
       ? syncedOverlayPayload.resetSignal
       : resetSignal;
+  const effectivePuzzleRoundNonce =
+    isOverlay && typeof syncedOverlayPayload?.puzzleRoundNonce === 'number'
+      ? syncedOverlayPayload.puzzleRoundNonce
+      : puzzleRoundNonce;
 
   const handleVictory = (
     timeSeconds: number,
@@ -890,6 +869,7 @@ export default function App() {
             incomingChatQueue={incomingChatQueue}
             onConsumeChatQueue={handleConsumeChatQueue}
             resetSignal={effectiveResetSignal}
+            puzzleRoundNonce={effectivePuzzleRoundNonce}
             isOverlay={true}
             overlayBg={overlayBg}
             hasHostSync={isReceivingHostSync}
@@ -985,10 +965,12 @@ export default function App() {
             incomingChatQueue={incomingChatQueue}
             onConsumeChatQueue={handleConsumeChatQueue}
             resetSignal={resetSignal}
+            puzzleRoundNonce={puzzleRoundNonce}
             onBoardStateChange={setHostBoardSnapshot}
             onRoundReset={() => {
               setVictoryData(null);
               handleResetScoreboard();
+              setResetSignal((prev) => prev + 1);
             }}
             overallScoreboardCount={overallScoreboard.length}
             onOpenOverallScoreboard={() => setIsOverallScoreboardOpen(true)}

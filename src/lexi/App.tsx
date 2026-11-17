@@ -77,7 +77,7 @@ export default function App() {
     reconnectTikTok,
     simulateEvent,
     runTestSuite,
-  } = useGameClient();
+  } = useGameClient(isOverlay);
 
   const [route, setRoute] = useState<ActiveRoute>(() =>
     resolveRouteFromPathname(window.location.pathname)
@@ -104,11 +104,28 @@ export default function App() {
     () =>
       !isOverlay && gameState
         ? {
-            gameState,
+            gameState: {
+              ...gameState,
+              chatFeed: [],
+              giftHistory: [],
+              gameConfig: {
+                ...gameState.gameConfig,
+                enabledCommands: {},
+                difficulties: {} as GameFullState['gameConfig']['difficulties'],
+                modes: {},
+              },
+              scoringConfig: {} as GameFullState['scoringConfig'],
+              settingsConfig: {} as GameFullState['settingsConfig'],
+            },
             lastHighlightedIndices,
             lastWordBanner,
             activeCelebration,
-            roundSummary,
+            roundSummary: roundSummary
+              ? {
+                  ...roundSummary,
+                  missedWords: roundSummary.missedWords.slice(0, 20),
+                }
+              : null,
             submissionFeedback,
           }
         : null,
@@ -136,19 +153,6 @@ export default function App() {
       setSyncedPayload(remote);
     }, []),
   });
-
-  // Standalone overlay auto-connect if opened directly with ?streamer=handle and no host tab synced
-  useEffect(() => {
-    if (!isOverlay || !overlayStreamer) return;
-    const clean = overlayStreamer.replace(/^@+/, '').trim();
-    if (!clean) return;
-    const timer = window.setTimeout(() => {
-      if (!hasReceivedHostSyncRef.current) {
-        connectTikTok(clean);
-      }
-    }, 1200);
-    return () => window.clearTimeout(timer);
-  }, [isOverlay, overlayStreamer]);
 
   const isCleanObsCapture =
     isOverlay || new URLSearchParams(window.location.search).get('clean') === '1';
@@ -229,7 +233,9 @@ export default function App() {
               {BRAND_NAME}
             </div>
             <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300 mt-1">
-              {BRAND_TAGLINE} · Loading Live Puzzle Engine...
+              {isOverlay
+                ? `${BRAND_TAGLINE} · Waiting for Host Sync...`
+                : `${BRAND_TAGLINE} · Loading Live Puzzle Engine...`}
             </div>
           </div>
         </div>
@@ -286,8 +292,12 @@ export default function App() {
           </div>
 
           {/* Arcade Cabinet Game Board + Community Target Bar + Word Slots */}
-          <div className="arcade-board-cabinet relative rounded-3xl p-2 sm:p-3 flex flex-col gap-2 overflow-hidden shadow-[0_14px_34px_rgba(0,0,0,0.65)]">
+          <div
+            key={`ov-cabinet-${activeGameState.roundNumber}`}
+            className="arcade-board-cabinet relative rounded-3xl p-2 sm:p-3 flex flex-col gap-2 overflow-hidden shadow-[0_14px_34px_rgba(0,0,0,0.65)]"
+          >
             <StreamOverlays
+              key={`ov-so-${activeGameState.roundNumber}`}
               celebration={activeCelebrationState}
               roundSummary={activeRoundSummary}
               intermissionSeconds={activeGameState.intermissionSeconds}
@@ -298,6 +308,7 @@ export default function App() {
             />
 
             <LetterBoard
+              key={`ov-board-${activeGameState.roundNumber}`}
               letters={activeGameState.board.letters}
               centerLetter={activeGameState.board.centerLetter}
               centerIndex={activeGameState.board.centerIndex}

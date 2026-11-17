@@ -351,23 +351,25 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
   // Sync profile to localStorage scoped per user session
   useEffect(() => {
+    if (isOverlay) return;
     try {
       localStorage.setItem(
         `wk_tycoon_profile_v1_${getCurrentUserSessionPrefix()}`,
         JSON.stringify(profile),
       );
     } catch (_) {}
-  }, [profile]);
+  }, [profile, isOverlay]);
 
   // Passive coin generation from Word Tycoon businesses
   useEffect(() => {
+    if (isOverlay) return;
     const interval = setInterval(() => {
       const perMin = profile.businesses.reduce((acc, b) => acc + b.coinsPerMinute * b.level, 0);
       const perTick = perMin / 12;
       setProfile((p) => ({ ...p, coins: p.coins + perTick }));
     }, 5000);
     return () => clearInterval(interval);
-  }, [profile.businesses]);
+  }, [profile.businesses, isOverlay]);
 
   // Sync light/dark theme with documentElement
   useEffect(() => {
@@ -389,7 +391,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
     }
     setArchiveList(getArchiveList());
 
-    if (isSoloRoute) return;
+    if (isSoloRoute || isOverlay) return;
 
     const socket = io({
       path: '/socket.io',
@@ -403,30 +405,6 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
     });
     socketRef.current = socket;
     const deduplicator = createEventDeduplicator();
-
-    // Standalone overlay auto-connect if opened directly with ?streamer=handle and no host tab synced
-    let standaloneConnectTimer: ReturnType<typeof setTimeout> | null = null;
-    if (isOverlay) {
-      standaloneConnectTimer = setTimeout(() => {
-        if (!hasReceivedHostSyncRef.current) {
-          createNewWikiconRound({ mode: 'WIKICONTEXTO', isDaily: false }).then((init) => {
-            if (hasReceivedHostSyncRef.current) return;
-            internalRoundRef.current = init;
-            setRound(serializeWikiconRound(init));
-          });
-          const cleanOverlayStreamer = (overlayStreamer || '').replace(/^@+/, '').trim();
-          if (cleanOverlayStreamer) {
-            triggerResilientConnect(socket, {
-              username: cleanOverlayStreamer,
-              isTestMode: false,
-              provider: 'tikfinity',
-              gameId: 'wikicon',
-              sessionId: getCurrentUserSessionPrefix(),
-            });
-          }
-        }
-      }, 1500);
-    }
 
     // Exact Socket.IO listeners specified in prompt
     socket.on('tiktok-connected', (data: { username: string; roomId: string; gameId?: string }) => {
@@ -495,7 +473,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
       // Append all chat messages (even if not part of puzzle, multi-word, or numbers)
       setChatMessages((prev) => [...prev.slice(-199), msg]);
 
-      if (isOverlay && hasReceivedHostSyncRef.current) {
+      if (isOverlay) {
         return;
       }
 
@@ -562,7 +540,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
       if (data.repeatEnd === false) return;
       const count = Number(data.repeatCount) || 1;
       setTotalGiftsCount((prev) => prev + count);
-      if (isOverlay && hasReceivedHostSyncRef.current) return;
+      if (isOverlay) return;
       if (internalRoundRef.current && !internalRoundRef.current.solved) {
         const hintWord = revealWikiconHint(internalRoundRef.current);
         setRound(serializeWikiconRound(internalRoundRef.current));
@@ -607,11 +585,10 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
     });
 
     return () => {
-      if (standaloneConnectTimer) clearTimeout(standaloneConnectTimer);
       detachBridge();
       socket.disconnect();
     };
-  }, [recordActivity, showToast, isOverlay, overlayStreamer, isSoloRoute]);
+  }, [recordActivity, showToast, isOverlay, isSoloRoute]);
 
   // Trigger Victory Fanfare & Confetti when round transitions to solved
   useEffect(() => {
@@ -1726,6 +1703,19 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
             </main>
           )}
 
+          {isOverlay && !round && (
+            <main className="flex-1 w-full px-3.5 py-6">
+              <div className="p-5 rounded-2xl bg-[#03142f]/95 border-2 border-[#137bcc] text-center shadow-lg space-y-2">
+                <div className="text-xs font-extrabold uppercase tracking-widest text-[#19e4ff]">
+                  WikiContexto LIVE Overlay
+                </div>
+                <div className="text-sm font-bold text-white">
+                  Waiting for Host Game Sync...
+                </div>
+              </div>
+            </main>
+          )}
+
           {/* ── VIEW 4: ACTIVE GAMEPLAY ARENA (490px Portrait Width) ── */}
           {(effectiveNav === 'DAILY' ||
             effectiveNav === 'SOLO' ||
@@ -1733,7 +1723,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
             effectiveNav === 'WIKIREC_GRID' ||
             effectiveNav === 'WIKIWORD_QUOTE') &&
             round && (
-              <main className="flex-1 w-full px-3.5 py-2.5 space-y-2">
+              <main key={`wk-arena-${round.roundId}`} className="flex-1 w-full px-3.5 py-2.5 space-y-2">
                 {/* Compact Workspace Mode & Utility Toolbar (hidden in LIVE Studio overlay) */}
                 {!isOverlay && (
                 <div className="flex flex-col gap-1.5 p-1.5 rounded-xl bg-[#03142f] border border-[#1768b3]">
@@ -2335,6 +2325,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                   round.gridBoard && (
                     <section className="p-3 rounded-2xl bg-gradient-to-br from-[#06244b] to-[#03142f] border-2 border-[#137bcc]">
                       <KeycapGrid
+                        key={`wk-kc-${round.roundId}`}
                         gridBoard={round.gridBoard}
                         onWordSubmit={submitWordGuess}
                         isLightMode={isLightMode}
@@ -2344,6 +2335,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
                 {/* ── Redacted Wikipedia Article Body Panel (Auto-Scrolling Viewport) ── */}
                 <section
+                  key={`wk-ms-${round.roundId}`}
                   className={`wk-manuscript-box p-3.5 rounded-2xl border-2 border-[#137bcc] shadow-[inset_0_1px_7px_rgba(25,228,255,0.15)] space-y-2.5 ${
                     isLightMode
                       ? 'bg-white text-[#102c4b]'

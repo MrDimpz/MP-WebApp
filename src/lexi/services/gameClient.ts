@@ -46,9 +46,13 @@ function buildCompleteState(): GameFullState {
   };
 }
 
-export function useGameClient() {
-  const [gameState, setGameState] = useState<GameFullState | null>(() => buildCompleteState());
-  const [wsConnected, setWsConnected] = useState<boolean>(true);
+export function useGameClient(isOverlay = false) {
+  const [gameState, setGameState] = useState<GameFullState | null>(() => {
+    if (isOverlay) return null;
+    gameEngine.ensureStarted();
+    return buildCompleteState();
+  });
+  const [wsConnected, setWsConnected] = useState<boolean>(!isOverlay);
   const [lastHighlightedIndices, setLastHighlightedIndices] = useState<number[]>([]);
   const [lastWordBanner, setLastWordBanner] = useState<{
     word: string;
@@ -78,6 +82,8 @@ export function useGameClient() {
   }, []);
 
   useEffect(() => {
+    if (isOverlay) return;
+    gameEngine.ensureStarted();
     const initial = buildCompleteState();
     setGameState(initial);
     soundEngine.configure(initial.settingsConfig?.audio);

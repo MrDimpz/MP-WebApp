@@ -118,7 +118,7 @@ export const LiveOverlayModal: React.FC<LiveOverlayModalProps> = ({
           <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-slate-300">
             <li>In TikTok LIVE Studio, click <strong>Add Source → Browser</strong>.</li>
             <li>Paste the URL above and set size to <strong>{recommendedSize}</strong>.</li>
-            <li>Keep this main game window open to host rounds, hints, and TikTok chat sync.</li>
+            <li>Host the game and paste this paired link from the <strong>same site URL</strong> so all rounds sync live.</li>
           </ol>
         </div>
 

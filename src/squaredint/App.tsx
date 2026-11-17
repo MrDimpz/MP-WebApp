@@ -145,14 +145,16 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
+    if (isOverlay) return;
     const unsubscribe = onAuthStateChanged(auth, (usr) => {
       setCurrentUser(usr);
       syncSquaredIntFirebaseUser(usr);
     });
     return () => unsubscribe();
-  }, []);
+  }, [isOverlay]);
 
   useEffect(() => {
+    if (isOverlay) return;
     if (!currentUser?.uid) {
       setHighScores([]);
       return;
@@ -161,7 +163,7 @@ export default function App() {
       setHighScores(scores);
     });
     return () => unsubscribe();
-  }, [currentUser?.uid]);
+  }, [currentUser?.uid, isOverlay]);
 
   // Board Dark / Light mode toggle state (affects the game board and tiles rather than the whole page)
   const [boardDarkMode, setBoardDarkMode] = useState<boolean>(() => {
@@ -171,8 +173,14 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
-    localStorage.setItem('missing_piece_board_dark', String(boardDarkMode));
-  }, [boardDarkMode]);
+    if (!isOverlay) {
+      try {
+        localStorage.setItem('missing_piece_board_dark', String(boardDarkMode));
+      } catch {
+        // ignore
+      }
+    }
+  }, [boardDarkMode, isOverlay]);
 
   // Generate deterministic puzzle board for selected date (100% tile coverage guaranteed)
   const basePuzzle: PuzzleBoard = useMemo(() => {
@@ -445,7 +453,7 @@ export default function App() {
   // Handle incoming chat messages from TikTok LIVE or simulator
   const handleIncomingChatMessage = useCallback(
     async (data: { uniqueId: string; nickname: string; comment: string; profilePictureUrl: string; simulated?: boolean }) => {
-      if (isOverlay && hasReceivedHostSyncRef.current) return;
+      if (isOverlay) return;
       if (!isLiveConnectedRef.current && !data.simulated) return;
 
       const {
@@ -724,6 +732,7 @@ export default function App() {
 
   // Connect to persistent Socket.IO server (scoped to isolated user session and squaredint game)
   useEffect(() => {
+    if (isOverlay) return;
     const deduplicator = createEventDeduplicator();
     const newSocket = io({
       path: '/socket.io',
@@ -735,26 +744,6 @@ export default function App() {
       },
     });
     setSocket(newSocket);
-
-    // Standalone overlay auto-connect if opened directly with ?streamer=handle and no host tab synced
-    let standaloneConnectTimer: ReturnType<typeof setTimeout> | null = null;
-    if (isOverlay && overlayStreamer) {
-      const cleanOverlayStreamer = overlayStreamer.replace(/^@+/, '').trim();
-      if (cleanOverlayStreamer) {
-        standaloneConnectTimer = setTimeout(() => {
-          if (!hasReceivedHostSyncRef.current) {
-            setIsLiveConnected(true);
-            setTiktokUsername(cleanOverlayStreamer);
-            triggerResilientConnect(newSocket, {
-              username: cleanOverlayStreamer,
-              isTestMode: false,
-              gameId: 'squaredint',
-              sessionId: getCurrentUserSessionPrefix(),
-            });
-          }
-        }, 1200);
-      }
-    }
 
     newSocket.on('tiktok-connected', ({ username, roomId: rId, gameId }: { username: string; roomId?: string; gameId?: string }) => {
       if (!gameId || gameId === 'squaredint') {
@@ -810,11 +799,10 @@ export default function App() {
     });
 
     return () => {
-      if (standaloneConnectTimer) clearTimeout(standaloneConnectTimer);
       detachBridge();
       newSocket.disconnect();
     };
-  }, [handleIncomingChatMessage, showToast, isOverlay, overlayStreamer]);
+  }, [handleIncomingChatMessage, showToast, isOverlay]);
 
   const handleConnectTikTok = useCallback(
     (username: string, isTestMode?: boolean) => {
@@ -1176,10 +1164,11 @@ export default function App() {
 
   // Clear active path on window blur
   useEffect(() => {
+    if (isOverlay) return;
     const handleBlur = () => setActivePath([]);
     window.addEventListener('blur', handleBlur);
     return () => window.removeEventListener('blur', handleBlur);
-  }, []);
+  }, [isOverlay]);
 
   const currentTracedWord = activePath.map((idx) => grid[idx]).join('');
   const progressPct =
@@ -1360,6 +1349,7 @@ export default function App() {
           {/* Board Frame */}
           <div className="w-full flex items-center justify-center p-2.5 rounded-2xl bg-[#170428]/90 border-2 border-[#D4A437]/75 shadow-[0_14px_34px_rgba(0,0,0,0.65)]">
             <WordGridBoard
+              key={`ov-grid-${basePuzzle.id}`}
               grid={grid}
               size={basePuzzle.size}
               activePath={[]}

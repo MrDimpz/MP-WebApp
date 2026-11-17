@@ -150,13 +150,13 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
   const localGameRef = useRef<WiKirecGame | null>(null);
 
   const initLocalGame = useCallback(async (selectedMode: GameMode) => {
-    if (isOverlay && hasReceivedHostSyncRef.current) return;
+    if (isOverlay) return;
     setFlashedCells([]);
     setWordAnnounce({ word: '', points: 0, finderName: '', visible: false });
     prevCompleteRef.current = false;
     try {
       const game = await createNewGameInstance(selectedMode);
-      if (isOverlay && hasReceivedHostSyncRef.current) return;
+      if (isOverlay) return;
       localGameRef.current = game;
       const next = game.getPublicState();
       setGameState(next);
@@ -166,8 +166,9 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
   }, [isOverlay]);
 
   useEffect(() => {
+    if (isOverlay) return;
     initLocalGame(mode);
-  }, []);
+  }, [isOverlay]);
 
   const [tiktokStatus, setTiktokStatus] = useState<TikTokConnectionStatus>({
     connected: false,
@@ -632,7 +633,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
   }, []);
 
   useEffect(() => {
-    if (isSoloRoute) return;
+    if (isSoloRoute || isOverlay) return;
     const socket = io({
       path: '/socket.io',
       transports: ['polling', 'websocket'],
@@ -651,25 +652,6 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
         username: authorizedStreamerRef.current.username,
         sessionId: getCurrentUserSessionPrefix(),
       });
-    }
-
-    // Standalone overlay auto-connect when opened directly with ?streamer=handle and no host tab synced
-    let standaloneConnectTimer: ReturnType<typeof setTimeout> | null = null;
-    if (isOverlay && overlayStreamer) {
-      const cleanOverlayStreamer = overlayStreamer.replace(/^@+/, '').trim();
-      if (cleanOverlayStreamer) {
-        standaloneConnectTimer = setTimeout(() => {
-          if (!hasReceivedHostSyncRef.current) {
-            triggerResilientConnect(socket, {
-              username: cleanOverlayStreamer,
-              isTestMode: false,
-              provider: 'tikfinity',
-              sessionId: getCurrentUserSessionPrefix(),
-              gameId: 'wikirec',
-            });
-          }
-        }, 1200);
-      }
     }
 
     socket.on('tiktok-connected', (payload: { username: string; roomId: string; gameId?: string }) => {
@@ -780,7 +762,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
         ? normalizedPfp
         : `https://i.pravatar.cc/150?u=${encodeURIComponent(viewerUsername || viewerDisplay)}`;
 
-      if (isOverlay && hasReceivedHostSyncRef.current) {
+      if (isOverlay) {
         return;
       }
 
@@ -927,7 +909,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
         chatEventsProcessed: prev.chatEventsProcessed + 1,
         giftsDiamonds: prev.giftsDiamonds + diamonds,
       }));
-      if (isOverlay && hasReceivedHostSyncRef.current) return;
+      if (isOverlay) return;
       if (localGameRef.current) {
         localGameRef.current.requestHint();
         setGameState(localGameRef.current.getPublicState());
@@ -961,12 +943,11 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
     });
 
     return () => {
-      if (standaloneConnectTimer) clearTimeout(standaloneConnectTimer);
       detachBridge();
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [triggerWordAnnounce, isOverlay, overlayStreamer, isSoloRoute]);
+  }, [triggerWordAnnounce, isOverlay, isSoloRoute]);
 
   const switchMode = useCallback(
     (nextMode: GameMode) => {
@@ -2329,8 +2310,27 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
       </main>
 
+      {isOverlay && !gameState && (
+        <div
+          style={{
+            margin: '10px 0',
+            padding: '10px 14px',
+            borderRadius: '12px',
+            background: 'rgba(18, 22, 34, 0.92)',
+            border: '1px solid rgba(251, 191, 36, 0.45)',
+            color: '#fbbf24',
+            fontSize: '12px',
+            fontWeight: 700,
+            textAlign: 'center',
+          }}
+        >
+          Waiting for Host Game Sync...
+        </div>
+      )}
+
       {/* 9x5 BOGGLE KEYCAP LETTER GRID */}
       <BoggleGrid
+        key={`wk-grid-${gameState?.roundId || 'none'}`}
         grid={gameState?.grid || []}
         rows={gameState?.rows || 5}
         cols={gameState?.cols || 9}
@@ -2345,6 +2345,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
       {/* 3X HEIGHT SINGLE-PASS NON-OVERLAPPING ANSWER MARQUEE (Between board and guess entry box) */}
       <div
+        key={`wk-mq-${gameState?.roundId || 'none'}`}
         ref={marqueeCardRef}
         className="found-words-card"
         id="found-words-card"

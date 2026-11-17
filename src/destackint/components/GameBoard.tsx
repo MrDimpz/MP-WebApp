@@ -90,6 +90,7 @@ interface GameBoardProps {
   }>;
   onConsumeChatQueue: () => void;
   resetSignal: number;
+  puzzleRoundNonce?: number;
   layoutMode: LayoutMode;
   onChangeLayoutMode: (mode: LayoutMode) => void;
   isOverlay?: boolean;
@@ -164,6 +165,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   incomingChatQueue,
   onConsumeChatQueue,
   resetSignal,
+  puzzleRoundNonce = 0,
   layoutMode,
   onChangeLayoutMode,
   isOverlay = false,
@@ -205,7 +207,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [isDraggingHint, setIsDraggingHint] = useState(false);
   const swipeTrackRef = useRef<HTMLDivElement | null>(null);
 
-  const puzzleKey = `${difficulty}-${puzzle.words.join(',')}-${resetSignal}`;
+  const puzzleKey = `${difficulty}-${puzzle.words.join(',')}-${resetSignal}-${puzzleRoundNonce}`;
   const syncedPuzzleKeyRef = useRef<string>('');
 
   // Reset board ONLY when puzzleKey (difficulty/words/resetSignal) actually changes
@@ -400,18 +402,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   // Automatically reveal the hint for the last 10 seconds of each word (without manual hint penalty)
   useEffect(() => {
-    if (isOverlay && hasHostSync) return;
+    if (isOverlay) return;
     if (isRoundFinishedRef.current) return;
     if (wordTimeLeft > 0 && wordTimeLeft <= 10 && !showHintText) {
       setShowHintText(true);
       setAutoRevealedHint(true);
       setSwipeProgress(1);
     }
-  }, [wordTimeLeft, showHintText, isOverlay, hasHostSync]);
+  }, [wordTimeLeft, showHintText, isOverlay]);
 
   // 1-second interval for total elapsed time AND the 30/45/60s Word Auto-Reveal Countdown
   useEffect(() => {
-    if (isOverlay && hasHostSync) return;
+    if (isOverlay) return;
     const timer = setInterval(() => {
       if (isRoundFinishedRef.current) return;
 
@@ -431,12 +433,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [isTimerPaused, timerDuration, isOverlay, hasHostSync]);
+  }, [isTimerPaused, timerDuration, isOverlay]);
 
   // Process incoming chat messages from TikTok LIVE or Simulator
   // Allows unlimited guesses per person until they submit the correct word, then scores them appropriately
   useEffect(() => {
-    if (isOverlay && hasHostSync) return;
+    if (isOverlay) return;
     if (incomingChatQueue.length === 0) return;
 
     incomingChatQueue.forEach((msg) => {
@@ -513,7 +515,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     onConsumeChatQueue();
   }, [
     isOverlay,
-    hasHostSync,
     incomingChatQueue,
     targetWord,
     currentWordIndex,
@@ -858,8 +859,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const isHardMode = difficulty === 'hard';
   const tileSizePct = isHardMode ? '10.2%' : '13.6%';
   const timerPct = Math.max(0, Math.min(100, (activeBoard.wordTimeLeft / Math.max(1, timerDuration)) * 100));
-  const overlayBoardKey = `ov-${difficulty}-${layoutMode}-${puzzle.words.join(',')}-${resetSignal}`;
-  const hostBoardKey = `${difficulty}-${layoutMode}-${puzzle.words.join(',')}-${resetSignal}-${resetCount}`;
+  const overlayBoardKey = `ov-${difficulty}-${layoutMode}-${puzzle.words.join(',')}-${resetSignal}-${puzzleRoundNonce}`;
+  const hostBoardKey = `${difficulty}-${layoutMode}-${puzzle.words.join(',')}-${resetSignal}-${resetCount}-${puzzleRoundNonce}`;
 
   if (isOverlay) {
     const topPlayers = deduplicateScoreboardPlayers(scoreboard).slice(0, 5);
@@ -895,11 +896,15 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                     Paused
                   </span>
                 )}
-                {isLiveConnected && tiktokUsername && (
+                {!hasHostSync ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-purple-200/80 font-semibold">
+                    Syncing host...
+                  </span>
+                ) : isLiveConnected && tiktokUsername ? (
                   <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300 font-bold">
                     <Radio className="w-3 h-3" /> @{tiktokUsername}
                   </span>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -928,7 +933,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
           {/* Recessed Tile Stack Board */}
           <div className="relative w-full aspect-square bg-[#360b42]/95 border-2 border-purple-300/50 rounded-2xl shadow-[0_14px_32px_rgba(0,0,0,0.48),inset_0_5px_14px_rgba(0,0,0,0.45)] p-[30px] sm:p-[36px] overflow-hidden pt-14 sm:pt-16 pointer-events-none">
-            <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-center gap-1 bg-black/55 backdrop-blur-md px-2 py-1 rounded-xl border border-purple-200/35 text-[10px] text-purple-100 font-bold">
+            <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-center gap-1 bg-black/70 px-2 py-1 rounded-xl border border-purple-200/35 text-[10px] text-purple-100 font-bold">
               <span className="text-amber-300 uppercase tracking-wider text-[9px] font-black shrink-0">Layers:</span>
               {Array.from({ length: puzzle.totalLayers }).map((_, idx) => (
                 <div key={idx} className="flex items-center gap-1 shrink-0 px-1 py-0.5 rounded bg-white/5 border border-white/25">
@@ -1019,12 +1024,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           {/* Visible Timer Centralised Below Guess Bar */}
           <div className="w-full flex justify-center">
             <div
-              className={`inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border shadow-md backdrop-blur-md transition-colors ${
+              className={`inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border shadow-md transition-colors ${
                 activeBoard.wordTimeLeft <= 5
-                  ? 'bg-rose-950/90 border-rose-400/80 text-rose-200 animate-pulse'
+                  ? 'bg-rose-950/95 border-rose-400/80 text-rose-200 animate-pulse'
                   : activeBoard.wordTimeLeft <= 10
-                  ? 'bg-amber-950/90 border-amber-400/80 text-amber-200'
-                  : 'bg-[#240630]/92 border-purple-300/45 text-amber-300'
+                  ? 'bg-amber-950/95 border-amber-400/80 text-amber-200'
+                  : 'bg-[#240630]/95 border-purple-300/45 text-amber-300'
               }`}
             >
               <Timer className="w-4 h-4 shrink-0" />

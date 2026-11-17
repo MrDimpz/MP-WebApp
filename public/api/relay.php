@@ -314,6 +314,122 @@ function broadcastPacketToSessions(&$state, $sioPacket) {
     }
 }
 
+function sanitizeOverlayGame($raw) {
+    return preg_replace('/[^a-z0-9_-]/', '', strtolower(trim((string)$raw)));
+}
+
+function sanitizeOverlayChannel($raw) {
+    return substr(preg_replace('/[^a-z0-9_-]/', '', strtolower(trim((string)$raw))), 0, 64);
+}
+
+function sanitizeOverlayStreamer($raw) {
+    return substr(ltrim(strtolower(trim((string)$raw)), '@'), 0, 80);
+}
+
+function overlayFileForRoom($dataDir, $roomKey) {
+    return rtrim($dataDir, '/') . '/overlay_' . sha1($roomKey) . '.json';
+}
+
+function readOverlayFile($file) {
+    if (!file_exists($file)) return null;
+    $raw = @file_get_contents($file);
+    if (!$raw) return null;
+    $decoded = @json_decode($raw, true);
+    return is_array($decoded) ? $decoded : null;
+}
+
+function nextOverlayServerVersion($dataDir) {
+    $verFile = rtrim($dataDir, '/') . '/overlay_ver.txt';
+    $fp = @fopen($verFile, 'c+');
+    if (!$fp) {
+        return (int)round(microtime(true) * 1000);
+    }
+    $ver = 1;
+    if (@flock($fp, LOCK_EX)) {
+        $contents = trim((string)stream_get_contents($fp));
+        $ver = $contents !== '' ? ((int)$contents + 1) : 1;
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, (string)$ver);
+        fflush($fp);
+        @flock($fp, LOCK_UN);
+    }
+    @fclose($fp);
+    return $ver;
+}
+
+function upsertOverlaySnapshotPhp($dataDir, $params, $nowMs) {
+    $gameId = sanitizeOverlayGame($params['gameId'] ?? '');
+    if ($gameId === '' || !array_key_exists('state', $params)) {
+        return null;
+    }
+    $channel = sanitizeOverlayChannel($params['channel'] ?? '');
+    $streamer = sanitizeOverlayStreamer($params['streamer'] ?? '');
+    $hostSessionId = isset($params['hostSessionId']) && is_string($params['hostSessionId']) ? $params['hostSessionId'] : null;
+    $seq = isset($params['seq']) && is_numeric($params['seq']) ? (int)$params['seq'] : null;
+    $stateHash = isset($params['stateHash']) && is_string($params['stateHash']) ? $params['stateHash'] : null;
+
+    $primaryKey = $channel !== ''
+        ? "overlay:{$gameId}:ch:{$channel}"
+        : ($streamer !== '' ? "overlay:{$gameId}:s:{$streamer}" : "overlay:{$gameId}:default");
+
+    $primaryFile = overlayFileForRoom($dataDir, $primaryKey);
+    $existing = readOverlayFile($primaryFile);
+    if (
+        $existing &&
+        $hostSessionId !== null &&
+        ($existing['hostSessionId'] ?? null) === $hostSessionId &&
+        $seq !== null &&
+        isset($existing['seq']) &&
+        $seq <= (int)$existing['seq']
+    ) {
+        return $existing;
+    }
+
+    $record = [
+        'gameId' => $gameId,
+        'streamer' => $streamer,
+        'channel' => $channel,
+        'state' => $params['state'],
+        'updatedAt' => $nowMs,
+        'hostSessionId' => $hostSessionId,
+        'seq' => $seq,
+        'stateHash' => $stateHash,
+        'serverVersion' => nextOverlayServerVersion($dataDir),
+        'bootId' => 'php_relay',
+    ];
+
+    $encoded = json_encode($record);
+    @file_put_contents($primaryFile, $encoded, LOCK_EX);
+    if ($channel !== '' && $streamer !== '') {
+        @file_put_contents(overlayFileForRoom($dataDir, "overlay:{$gameId}:s:{$streamer}"), $encoded, LOCK_EX);
+    }
+    @file_put_contents(overlayFileForRoom($dataDir, "overlay_latest:{$gameId}"), $encoded, LOCK_EX);
+    return $record;
+}
+
+function getOverlaySnapshotPhp($dataDir, $gameId, $streamer, $channel) {
+    $gameId = sanitizeOverlayGame($gameId);
+    if ($gameId === '') return null;
+    $channel = sanitizeOverlayChannel($channel);
+    $streamer = sanitizeOverlayStreamer($streamer);
+
+    if ($channel !== '') {
+        $chSnap = readOverlayFile(overlayFileForRoom($dataDir, "overlay:{$gameId}:ch:{$channel}"));
+        if ($chSnap) return $chSnap;
+        if ($streamer !== '') {
+            return readOverlayFile(overlayFileForRoom($dataDir, "overlay:{$gameId}:s:{$streamer}"));
+        }
+        return null;
+    }
+    if ($streamer !== '') {
+        return readOverlayFile(overlayFileForRoom($dataDir, "overlay:{$gameId}:s:{$streamer}"));
+    }
+    $def = readOverlayFile(overlayFileForRoom($dataDir, "overlay:{$gameId}:default"));
+    if ($def) return $def;
+    return readOverlayFile(overlayFileForRoom($dataDir, "overlay_latest:{$gameId}"));
+}
+
 $rawBody = file_get_contents('php://input');
 $uri = isset($_SERVER['REQUEST_URI']) ? parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) : '';
 $route = isset($_GET['route']) ? trim($_GET['route'], '/') : '';
@@ -439,6 +555,50 @@ if (strpos($uri, '/socket.io') !== false || $route === 'socket.io' || isset($_GE
                             $state['sessions'][$sid]['queue'][] = '43' . $ackId . json_encode([['ok' => true, 'username' => $uname]]);
                         }
                         $state['sessions'][$sid]['queue'][] = '42' . json_encode(['streamer-registered', ['ok' => true, 'username' => $uname]]);
+                    } elseif ($evName === 'register-overlay-host' && is_array($evData)) {
+                        $state['sessions'][$sid]['overlayHost'] = [
+                            'gameId' => sanitizeOverlayGame($evData['gameId'] ?? ''),
+                            'streamer' => sanitizeOverlayStreamer($evData['streamer'] ?? ''),
+                            'channel' => sanitizeOverlayChannel($evData['channel'] ?? ''),
+                        ];
+                    } elseif ($evName === 'overlay-host-leave') {
+                        unset($state['sessions'][$sid]['overlayHost']);
+                    } elseif ($evName === 'join-overlay' && is_array($evData)) {
+                        $gId = sanitizeOverlayGame($evData['gameId'] ?? '');
+                        $str = sanitizeOverlayStreamer($evData['streamer'] ?? '');
+                        $ch = sanitizeOverlayChannel($evData['channel'] ?? '');
+                        $state['sessions'][$sid]['overlaySub'] = [
+                            'gameId' => $gId,
+                            'streamer' => $str,
+                            'channel' => $ch,
+                        ];
+                        $snap = getOverlaySnapshotPhp($dataDir, $gId, $str, $ch);
+                        if ($snap) {
+                            $state['sessions'][$sid]['queue'][] = '42' . json_encode(['overlay-state-sync', $snap]);
+                        }
+                        foreach ($state['sessions'] as $sk => $sess) {
+                            if (!empty($sess['overlayHost']) && ($sess['overlayHost']['gameId'] ?? '') === $gId) {
+                                $hCh = $sess['overlayHost']['channel'] ?? '';
+                                $hStr = $sess['overlayHost']['streamer'] ?? '';
+                                if (($ch !== '' && $hCh === $ch) || ($ch === '' && $str !== '' && $hStr === $str) || ($ch === '' && $str === '')) {
+                                    $state['sessions'][$sk]['queue'][] = '42' . json_encode(['overlay-request-state', ['gameId' => $gId, 'streamer' => $str, 'channel' => $ch]]);
+                                }
+                            }
+                        }
+                    } elseif ($evName === 'overlay-state-update' && is_array($evData)) {
+                        $snap = upsertOverlaySnapshotPhp($dataDir, $evData, $nowMs);
+                        if ($snap) {
+                            $pkt = '42' . json_encode(['overlay-state-sync', $snap]);
+                            foreach ($state['sessions'] as $sk => $sess) {
+                                if ($sk === $sid || empty($sess['overlaySub'])) continue;
+                                if (($sess['overlaySub']['gameId'] ?? '') !== $snap['gameId']) continue;
+                                $sCh = $sess['overlaySub']['channel'] ?? '';
+                                $sStr = $sess['overlaySub']['streamer'] ?? '';
+                                if ($sCh !== '' && $snap['channel'] !== '' && $sCh !== $snap['channel']) continue;
+                                if ($sCh === '' && $sStr !== '' && $snap['streamer'] !== '' && $sStr !== $snap['streamer']) continue;
+                                $state['sessions'][$sk]['queue'][] = $pkt;
+                            }
+                        }
                     } elseif (in_array($evName, ['chat-message', 'like-event', 'gift-event']) && is_array($evData)) {
                         $evData['type'] = $evName;
                         $normEv = normalizeIncomingEventPayload($evData, $nowMs);
@@ -507,6 +667,71 @@ header('Content-Type: application/json; charset=utf-8');
 $jsonBody = $rawBody ? @json_decode($rawBody, true) : [];
 if (!is_array($jsonBody)) $jsonBody = [];
 $payload = array_merge($_GET, $_POST, $jsonBody);
+
+// 0.5 Overlay State REST Sync (/api/overlay/state)
+if (strpos($uri, '/api/overlay/state') !== false || $route === 'overlay/state') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $snap = upsertOverlaySnapshotPhp($dataDir, $payload, $nowMs);
+        if (!$snap) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Missing gameId or state']);
+            exit;
+        }
+        echo json_encode([
+            'ok' => true,
+            'updatedAt' => $snap['updatedAt'],
+            'hostSessionId' => $snap['hostSessionId'],
+            'seq' => $snap['seq'],
+            'serverVersion' => $snap['serverVersion'],
+        ]);
+        exit;
+    }
+
+    $gId = sanitizeOverlayGame($_GET['gameId'] ?? '');
+    $str = sanitizeOverlayStreamer($_GET['streamer'] ?? '');
+    $ch = sanitizeOverlayChannel($_GET['channel'] ?? '');
+    $afterVersion = isset($_GET['afterVersion']) && is_numeric($_GET['afterVersion']) ? (int)$_GET['afterVersion'] : 0;
+    if ($gId === '') {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'Missing gameId']);
+        exit;
+    }
+    $snap = getOverlaySnapshotPhp($dataDir, $gId, $str, $ch);
+    if (!$snap) {
+        echo json_encode(['ok' => true, 'hasSnapshot' => false, 'bootId' => 'php_relay', 'serverTime' => $nowMs]);
+        exit;
+    }
+    if ($afterVersion > 0 && isset($snap['serverVersion']) && (int)$snap['serverVersion'] <= $afterVersion) {
+        echo json_encode([
+            'ok' => true,
+            'hasSnapshot' => true,
+            'unchanged' => true,
+            'hostSessionId' => $snap['hostSessionId'] ?? null,
+            'seq' => $snap['seq'] ?? null,
+            'stateHash' => $snap['stateHash'] ?? null,
+            'serverVersion' => $snap['serverVersion'],
+            'bootId' => $snap['bootId'] ?? 'php_relay',
+            'serverTime' => $nowMs,
+        ]);
+        exit;
+    }
+    echo json_encode([
+        'ok' => true,
+        'hasSnapshot' => true,
+        'gameId' => $snap['gameId'],
+        'streamer' => $snap['streamer'],
+        'channel' => $snap['channel'],
+        'state' => $snap['state'],
+        'updatedAt' => $snap['updatedAt'],
+        'hostSessionId' => $snap['hostSessionId'],
+        'seq' => $snap['seq'],
+        'stateHash' => $snap['stateHash'] ?? null,
+        'serverVersion' => $snap['serverVersion'],
+        'bootId' => $snap['bootId'] ?? 'php_relay',
+        'serverTime' => $nowMs,
+    ]);
+    exit;
+}
 
 // 1. Connect endpoint
 if (strpos($uri, '/api/tiktok/connect') !== false || $route === 'tiktok/connect') {

@@ -7,6 +7,52 @@ export interface OverlayConfig {
   isOverlay: boolean;
   bg: OverlayBackgroundMode;
   streamer: string;
+  channel: string;
+}
+
+const OVERLAY_CHANNEL_STORAGE_KEY = 'mp_overlay_channel_v1';
+let inMemoryFallbackChannel = '';
+
+function sanitizeChannelToken(raw: unknown): string {
+  return String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '')
+    .slice(0, 64);
+}
+
+function sanitizeStreamerHandle(raw: unknown): string {
+  return String(raw || '')
+    .trim()
+    .replace(/^@+/, '')
+    .toLowerCase()
+    .slice(0, 80);
+}
+
+export function getOrCreateHostOverlayChannel(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    const existing = sanitizeChannelToken(
+      window.localStorage.getItem(OVERLAY_CHANNEL_STORAGE_KEY)
+    );
+    if (existing) {
+      inMemoryFallbackChannel = existing;
+      return existing;
+    }
+    const generated = `ch_${Date.now().toString(36)}_${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
+    window.localStorage.setItem(OVERLAY_CHANNEL_STORAGE_KEY, generated);
+    inMemoryFallbackChannel = generated;
+    return generated;
+  } catch {
+    if (!inMemoryFallbackChannel) {
+      inMemoryFallbackChannel = `ch_${Date.now().toString(36)}_${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
+    }
+    return inMemoryFallbackChannel;
+  }
 }
 
 export function getOverlayConfigFromLocation(
@@ -21,11 +67,9 @@ export function getOverlayConfigFromLocation(
     params.get('clean') === '1';
   const bgParam = (params.get('bg') || '').toLowerCase();
   const bg: OverlayBackgroundMode = bgParam === 'dark' ? 'dark' : 'transparent';
-  const streamer = (params.get('streamer') || '')
-    .trim()
-    .replace(/^@+/, '')
-    .toLowerCase();
-  return { isOverlay, bg, streamer };
+  const streamer = sanitizeStreamerHandle(params.get('streamer'));
+  const channel = sanitizeChannelToken(params.get('channel'));
+  return { isOverlay, bg, streamer, channel };
 }
 
 export function useOverlayConfig(): OverlayConfig {
@@ -60,51 +104,84 @@ export function buildLiveOverlayUrl(
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const params = new URLSearchParams();
   params.set('bg', bg);
-  const clean = String(streamerHandle || '')
-    .trim()
-    .replace(/^@+/, '')
-    .toLowerCase();
+  const channel = getOrCreateHostOverlayChannel();
+  if (channel) {
+    params.set('channel', channel);
+  }
+  const clean = sanitizeStreamerHandle(streamerHandle);
   if (clean) {
     params.set('streamer', clean);
   }
   return `${origin}/interactive-games/${gameSlug}/overlay?${params.toString()}`;
 }
 
+function computeFastStateHash(str: string): string {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x9e3779b9;
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    h1 ^= c;
+    h1 = Math.imul(h1, 0x01000193);
+    h2 ^= c + ((i & 255) << 1);
+    h2 = Math.imul(h2, 0x85ebca6b);
+  }
+  return `${str.length}:${(h1 >>> 0).toString(36)}_${(h2 >>> 0).toString(36)}`;
+}
+
 interface UseOverlaySyncOptions<T> {
   gameId: string;
   streamer?: string | null;
+  channel?: string | null;
   isOverlay: boolean;
   localState: T | null;
   onSyncedState: (state: T) => void;
 }
 
 interface OverlaySyncPacket<T> {
+  type?: string;
+  gameId?: string;
   state?: T;
   streamer?: string;
+  channel?: string;
   hostSessionId?: string;
   seq?: number;
+  stateHash?: string;
+  serverVersion?: number;
+  bootId?: string;
+  unchanged?: boolean;
   updatedAt?: number;
 }
 
 /**
- * Syncs live host game state to TikTok LIVE Studio Browser Source overlays via 4 redundant channels:
- * 1) Same-origin BroadcastChannel (zero latency when host & overlay share browser)
- * 2) Same-origin localStorage + 'storage' event (instant fallback when BroadcastChannel is throttled)
- * 3) Socket.IO overlay room relay (real-time push into TikTok LIVE Studio CEF)
- * 4) Cache-busted HTTP REST /api/overlay/state (guaranteed delivery even if CEF drops WS frames across rounds)
+ * Syncs live host game state to TikTok LIVE Studio Browser Source overlays with minimal CPU/memory overhead:
+ * 1) Same-origin BroadcastChannel (zero serialization overhead for same-browser Preview Overlay)
+ * 2) Throttled/deferred localStorage snapshot (for initial mount hydration without blocking input/frames)
+ * 3) Primary Socket.IO overlay room relay (real-time push into TikTok LIVE Studio CEF)
+ * 4) Version-checked HTTP REST /api/overlay/state fallback (short-circuits with ~70B when unchanged)
  */
 export function useOverlaySync<T>({
   gameId,
   streamer,
+  channel,
   isOverlay,
   localState,
   onSyncedState,
 }: UseOverlaySyncOptions<T>): { isReceivingHostSync: boolean } {
   const [isReceivingHostSync, setIsReceivingHostSync] = useState(false);
-  const cleanStreamer = String(streamer || '')
-    .trim()
-    .replace(/^@+/, '')
-    .toLowerCase();
+  const hasReceivingSyncRef = useRef<boolean>(false);
+  const cleanStreamer = sanitizeStreamerHandle(streamer);
+
+  const locationChannel =
+    typeof window !== 'undefined'
+      ? sanitizeChannelToken(new URLSearchParams(window.location.search).get('channel'))
+      : '';
+
+  const resolvedChannel = useMemo(() => {
+    const explicit = sanitizeChannelToken(channel);
+    if (explicit) return explicit;
+    if (isOverlay) return locationChannel;
+    return getOrCreateHostOverlayChannel();
+  }, [channel, isOverlay, locationChannel]);
 
   const localStateRef = useRef<T | null>(localState);
   localStateRef.current = localState;
@@ -116,27 +193,155 @@ export function useOverlaySync<T>({
   const channelRef = useRef<BroadcastChannel | null>(null);
   const lastEmitAtRef = useRef<number>(0);
   const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const followUpTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const httpTrailingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localStorageTrailingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const lastTransmittedJsonRef = useRef<string>('');
+  const lastTransmittedHashRef = useRef<string>('');
+  const latestPreparedRef = useRef<{
+    state: T;
+    json: string;
+    hash: string;
+  } | null>(null);
+  const lastPacketRef = useRef<OverlaySyncPacket<T> | null>(null);
+  const lastSerializedPacketRef = useRef<string>('');
+
+  const lastHttpPostAtRef = useRef<number>(0);
+  const lastLocalStorageAtRef = useRef<number>(0);
   const hostSessionIdRef = useRef<string>(
     `host_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
   );
   const seqRef = useRef<number>(0);
+
+  // Coalesced single-flight HTTP POST state so bursts never exhaust Chromium keepalive/socket limits
+  const postInFlightRef = useRef<boolean>(false);
+  const postStartedAtRef = useRef<number>(0);
+  const queuedPostBodyRef = useRef<string | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+
   const lastRemoteMetaRef = useRef<{
     hostSessionId: string;
     seq: number;
-    updatedAt: number;
+    serverVersion: number;
+    bootId: string;
+    stateHash: string;
+    hasDelivered: boolean;
     source: 'local' | 'network';
   } | null>(null);
 
-  const storageKey = `mp_overlay_snap_${gameId}`;
+  const roomScope = resolvedChannel || cleanStreamer || 'default';
+  const storageKey = `mp_overlay_snap_${gameId}_${roomScope}`;
+
+  const flushHttpPost = (serializedBody: string) => {
+    if (isOverlay || !isMountedRef.current || !serializedBody) return;
+
+    const now = Date.now();
+    // Recover from a stalled fetch older than 4.5s
+    if (postInFlightRef.current && now - postStartedAtRef.current < 4500) {
+      queuedPostBodyRef.current = serializedBody;
+      return;
+    }
+
+    const sendNext = (bodyToSend: string) => {
+      if (!isMountedRef.current || isOverlay) {
+        postInFlightRef.current = false;
+        return;
+      }
+      postInFlightRef.current = true;
+      postStartedAtRef.current = Date.now();
+      lastHttpPostAtRef.current = postStartedAtRef.current;
+
+      const controller =
+        typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const abortTimer = controller
+        ? setTimeout(() => controller.abort(), 4000)
+        : null;
+
+      fetch('/api/overlay/state', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store',
+        },
+        body: bodyToSend,
+        signal: controller?.signal,
+      })
+        .catch(() => {
+          // Ignore transient network errors; next heartbeat/change will sync
+        })
+        .finally(() => {
+          if (abortTimer) clearTimeout(abortTimer);
+          postInFlightRef.current = false;
+          const queued = queuedPostBodyRef.current;
+          queuedPostBodyRef.current = null;
+          if (queued && isMountedRef.current && !isOverlay) {
+            sendNext(queued);
+          }
+        });
+    };
+
+    sendNext(serializedBody);
+  };
+
+  const writeLocalStorageDeferred = (serializedBody: string, immediate = false) => {
+    if (typeof window === 'undefined' || isOverlay || !serializedBody) return;
+    const performWrite = () => {
+      if (!isMountedRef.current || isOverlay) return;
+      lastLocalStorageAtRef.current = Date.now();
+      try {
+        window.localStorage.setItem(storageKey, serializedBody);
+      } catch {
+        // Ignore storage quota errors
+      }
+    };
+    if (immediate) {
+      performWrite();
+      return;
+    }
+    setTimeout(performWrite, 0);
+  };
+
+  const buildSerializedFromStateJson = (
+    packetMeta: {
+      seq: number;
+      stateHash: string;
+      updatedAt: number;
+    },
+    stateJson: string
+  ) => {
+    const headerJson = JSON.stringify({
+      type: 'state-sync',
+      gameId,
+      streamer: cleanStreamer,
+      channel: resolvedChannel,
+      hostSessionId: hostSessionIdRef.current,
+      seq: packetMeta.seq,
+      stateHash: packetMeta.stateHash,
+      updatedAt: packetMeta.updatedAt,
+    });
+    return `${headerJson.slice(0, -1)},"state":${stateJson}}`;
+  };
 
   useEffect(() => {
-    const channelName = `mp_overlay_${gameId}`;
+    isMountedRef.current = true;
+    // Reset cached state when room scope changes
+    lastTransmittedJsonRef.current = '';
+    lastTransmittedHashRef.current = '';
+    latestPreparedRef.current = null;
+    lastPacketRef.current = null;
+    lastSerializedPacketRef.current = '';
+    lastHttpPostAtRef.current = 0;
+    lastLocalStorageAtRef.current = 0;
+    if (isOverlay) {
+      lastRemoteMetaRef.current = null;
+    }
+
+    const bcName = `mp_overlay_${gameId}`;
     let bc: BroadcastChannel | null = null;
     if (typeof BroadcastChannel !== 'undefined') {
       try {
-        bc = new BroadcastChannel(channelName);
+        bc = new BroadcastChannel(bcName);
         channelRef.current = bc;
       } catch {
         bc = null;
@@ -148,31 +353,76 @@ export function useOverlaySync<T>({
       transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
+      reconnectionDelay: 800,
       reconnectionDelayMax: 4000,
       query: { gameId: `${gameId}-overlay` },
     });
     socketRef.current = socket;
 
-    const pushHostSnapshotNow = (forceNetwork = true, overrideState?: T) => {
-      const stateToSend = overrideState !== undefined ? overrideState : localStateRef.current;
-      if (isOverlay || stateToSend === null) return;
-      const seq = ++seqRef.current;
-      const hostSessionId = hostSessionIdRef.current;
-      const updatedAt = Date.now();
-      lastEmitAtRef.current = performance.now();
+    const buildFreshPacketAndSerialized = (stateObj: T) => {
+      let stateJson = '';
+      let stateHash = '';
+      if (latestPreparedRef.current && latestPreparedRef.current.state === stateObj) {
+        stateJson = latestPreparedRef.current.json;
+        stateHash = latestPreparedRef.current.hash;
+      } else {
+        stateJson = JSON.stringify(stateObj);
+        stateHash = computeFastStateHash(stateJson);
+        latestPreparedRef.current = { state: stateObj, json: stateJson, hash: stateHash };
+      }
 
-      const packet: OverlaySyncPacket<T> & { type: string; gameId: string } = {
+      const seq = ++seqRef.current;
+      const updatedAt = Date.now();
+      const packet: OverlaySyncPacket<T> = {
         type: 'state-sync',
         gameId,
         streamer: cleanStreamer,
-        state: stateToSend,
-        hostSessionId,
+        channel: resolvedChannel,
+        state: stateObj,
+        hostSessionId: hostSessionIdRef.current,
         seq,
+        stateHash,
         updatedAt,
       };
+      const serialized = buildSerializedFromStateJson(
+        { seq, stateHash, updatedAt },
+        stateJson
+      );
+      lastTransmittedJsonRef.current = stateJson;
+      lastTransmittedHashRef.current = stateHash;
+      lastPacketRef.current = packet;
+      lastSerializedPacketRef.current = serialized;
+      return { packet, serialized };
+    };
 
-      const serialized = JSON.stringify(packet);
+    const pushHostSnapshotNow = (
+      forceNetwork = true,
+      overrideState?: T,
+      allowReuseCached = false
+    ) => {
+      if (isOverlay || !isMountedRef.current) return;
+      const stateToSend =
+        overrideState !== undefined ? overrideState : localStateRef.current;
+      if (stateToSend === null) return;
+
+      let packet: OverlaySyncPacket<T>;
+      let serialized: string;
+
+      if (
+        allowReuseCached &&
+        overrideState === undefined &&
+        lastPacketRef.current &&
+        lastSerializedPacketRef.current
+      ) {
+        packet = lastPacketRef.current;
+        serialized = lastSerializedPacketRef.current;
+      } else {
+        const built = buildFreshPacketAndSerialized(stateToSend);
+        packet = built.packet;
+        serialized = built.serialized;
+      }
+
+      lastEmitAtRef.current = performance.now();
 
       if (bc) {
         try {
@@ -180,61 +430,145 @@ export function useOverlaySync<T>({
         } catch {}
       }
 
-      if (typeof window !== 'undefined') {
-        try {
-          window.localStorage.setItem(storageKey, serialized);
-        } catch {}
+      const nowMs = Date.now();
+      if (nowMs - lastLocalStorageAtRef.current >= 3500) {
+        if (localStorageTrailingTimerRef.current) {
+          clearTimeout(localStorageTrailingTimerRef.current);
+          localStorageTrailingTimerRef.current = null;
+        }
+        writeLocalStorageDeferred(serialized);
+      } else if (!localStorageTrailingTimerRef.current) {
+        localStorageTrailingTimerRef.current = setTimeout(() => {
+          localStorageTrailingTimerRef.current = null;
+          if (lastSerializedPacketRef.current) {
+            writeLocalStorageDeferred(lastSerializedPacketRef.current);
+          }
+        }, 2000);
       }
 
       if (forceNetwork) {
         if (socket.connected) {
           socket.emit('overlay-state-update', packet);
+          if (nowMs - lastHttpPostAtRef.current >= 2000) {
+            if (httpTrailingTimerRef.current) {
+              clearTimeout(httpTrailingTimerRef.current);
+              httpTrailingTimerRef.current = null;
+            }
+            flushHttpPost(serialized);
+          } else if (!httpTrailingTimerRef.current) {
+            httpTrailingTimerRef.current = setTimeout(() => {
+              httpTrailingTimerRef.current = null;
+              if (lastSerializedPacketRef.current) {
+                flushHttpPost(lastSerializedPacketRef.current);
+              }
+            }, 1400);
+          }
+        } else {
+          if (httpTrailingTimerRef.current) {
+            clearTimeout(httpTrailingTimerRef.current);
+            httpTrailingTimerRef.current = null;
+          }
+          flushHttpPost(serialized);
         }
-        fetch('/api/overlay/state', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
-          },
-          body: serialized,
-          keepalive: serialized.length < 60000,
-        }).catch(() => {});
       }
+    };
+
+    const packetMatchesOverlayScope = (packet: OverlaySyncPacket<T>) => {
+      const pktChannel = sanitizeChannelToken(packet.channel);
+      const pktStreamer = sanitizeStreamerHandle(packet.streamer);
+      if (resolvedChannel && pktChannel && pktChannel !== resolvedChannel) {
+        return false;
+      }
+      if (!resolvedChannel && cleanStreamer && pktStreamer && pktStreamer !== cleanStreamer) {
+        return false;
+      }
+      return true;
     };
 
     const acceptRemotePacket = (
       packet: OverlaySyncPacket<T> | null | undefined,
       source: 'local' | 'network'
     ) => {
-      if (!packet || packet.state === undefined) return;
-      const prev = lastRemoteMetaRef.current;
-      const pktUpdatedAt = typeof packet.updatedAt === 'number' ? packet.updatedAt : Date.now();
+      if (!packet) return;
+      if (packet.bootId && lastRemoteMetaRef.current) {
+        lastRemoteMetaRef.current.bootId = packet.bootId;
+      }
+      if (packet.unchanged || packet.state === undefined) return;
+      if (!packetMatchesOverlayScope(packet)) return;
 
-      if (packet.hostSessionId && typeof packet.seq === 'number') {
-        if (prev) {
-          if (prev.hostSessionId === packet.hostSessionId) {
-            // Skip stale out-of-order frames AND identical already-applied frames
-            if (packet.seq <= prev.seq) {
-              return;
+      const prev = lastRemoteMetaRef.current;
+      const pktSession =
+        typeof packet.hostSessionId === 'string' ? packet.hostSessionId : '';
+      const pktSeq = typeof packet.seq === 'number' ? packet.seq : 0;
+      const pktServerVer =
+        typeof packet.serverVersion === 'number' ? packet.serverVersion : -1;
+      const pktBootId =
+        typeof packet.bootId === 'string' ? packet.bootId : prev?.bootId || '';
+      const pktHash = typeof packet.stateHash === 'string' ? packet.stateHash : '';
+
+      if (prev) {
+        if (pktSession && pktSession === prev.hostSessionId) {
+          if (pktSeq <= prev.seq) {
+            if (pktServerVer > prev.serverVersion) {
+              prev.serverVersion = pktServerVer;
             }
-          } else if (
-            source === prev.source &&
-            prev.updatedAt > 0 &&
-            pktUpdatedAt > 0 &&
-            pktUpdatedAt + 10000 < prev.updatedAt &&
-            packet.seq > 3
-          ) {
             return;
           }
+        } else if (
+          source === 'network' &&
+          prev.source === 'network' &&
+          pktServerVer >= 0 &&
+          prev.serverVersion >= 0 &&
+          pktBootId === prev.bootId &&
+          pktServerVer < prev.serverVersion &&
+          pktSession === prev.hostSessionId
+        ) {
+          return;
+        } else if (
+          source === 'local' &&
+          prev.source === 'network' &&
+          !pktSession
+        ) {
+          return;
         }
-        lastRemoteMetaRef.current = {
-          hostSessionId: packet.hostSessionId,
-          seq: packet.seq,
-          updatedAt: pktUpdatedAt,
-          source,
-        };
+
+        // Skip React re-renders if an on-demand resend or reconnect delivers identical state bytes
+        if (pktHash && prev.stateHash && pktHash === prev.stateHash && prev.hasDelivered) {
+          lastRemoteMetaRef.current = {
+            hostSessionId: pktSession || prev.hostSessionId,
+            seq: pktSession === prev.hostSessionId ? Math.max(prev.seq, pktSeq) : pktSeq,
+            serverVersion:
+              pktBootId === prev.bootId
+                ? Math.max(prev.serverVersion, pktServerVer)
+                : pktServerVer,
+            bootId: pktBootId,
+            stateHash: pktHash,
+            hasDelivered: true,
+            source,
+          };
+          return;
+        }
       }
-      setIsReceivingHostSync(true);
+
+      lastRemoteMetaRef.current = {
+        hostSessionId: pktSession || prev?.hostSessionId || '',
+        seq: pktSeq,
+        serverVersion:
+          pktServerVer >= 0
+            ? pktServerVer
+            : pktBootId === prev?.bootId
+              ? prev?.serverVersion ?? -1
+              : -1,
+        bootId: pktBootId,
+        stateHash: pktHash,
+        hasDelivered: true,
+        source,
+      };
+
+      if (!hasReceivingSyncRef.current) {
+        hasReceivingSyncRef.current = true;
+        setIsReceivingHostSync(true);
+      }
       onSyncedRef.current(packet.state);
     };
 
@@ -264,18 +598,97 @@ export function useOverlaySync<T>({
 
       // 3) Socket.IO overlay room subscription
       const joinOverlayRoom = () => {
-        socket.emit('join-overlay', { gameId, streamer: cleanStreamer });
+        if (socket.connected) {
+          socket.emit('join-overlay', {
+            gameId,
+            streamer: cleanStreamer,
+            channel: resolvedChannel,
+          });
+        }
       };
       joinOverlayRoom();
+
+      // 5) Version-checked HTTP /api/overlay/state fallback polling for TikTok LIVE Studio CEF
+      let isCancelled = false;
+      let pollInFlight = false;
+      let pollStartedAt = 0;
+
+      const pollHttpSnapshot = async () => {
+        const now = Date.now();
+        if (isCancelled) return;
+        if (pollInFlight && now - pollStartedAt < 4500) return;
+        pollInFlight = true;
+        pollStartedAt = now;
+
+        const controller =
+          typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timeoutId = controller
+          ? setTimeout(() => controller.abort(), 3500)
+          : null;
+        try {
+          const qs = new URLSearchParams({
+            gameId,
+            _t: String(now),
+          });
+          if (resolvedChannel) qs.set('channel', resolvedChannel);
+          if (cleanStreamer) qs.set('streamer', cleanStreamer);
+          const meta = lastRemoteMetaRef.current;
+          if (meta && meta.serverVersion > 0) {
+            qs.set('afterVersion', String(meta.serverVersion));
+            if (meta.bootId) {
+              qs.set('afterBootId', meta.bootId);
+            }
+          }
+
+          const res = await fetch(`/api/overlay/state?${qs.toString()}`, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              Pragma: 'no-cache',
+            },
+            signal: controller?.signal,
+          });
+          if (!res.ok || isCancelled) return;
+          const data = (await res.json()) as OverlaySyncPacket<T> & {
+            hasSnapshot?: boolean;
+          };
+          if (data && data.hasSnapshot) {
+            if (data.unchanged) {
+              if (lastRemoteMetaRef.current && typeof data.serverVersion === 'number') {
+                lastRemoteMetaRef.current.serverVersion = Math.max(
+                  lastRemoteMetaRef.current.serverVersion,
+                  data.serverVersion
+                );
+                if (typeof data.bootId === 'string') {
+                  lastRemoteMetaRef.current.bootId = data.bootId;
+                }
+              }
+            } else if (data.state !== undefined) {
+              acceptRemotePacket(data, 'network');
+            }
+          }
+        } catch {
+          // Ignore transient abort / network errors
+        } finally {
+          if (timeoutId) clearTimeout(timeoutId);
+          pollInFlight = false;
+        }
+      };
+
       socket.on('connect', () => {
         joinOverlayRoom();
         void pollHttpSnapshot();
         if (bc) {
           try {
-            bc.postMessage({ type: 'request-state', streamer: cleanStreamer });
+            bc.postMessage({
+              type: 'request-state',
+              streamer: cleanStreamer,
+              channel: resolvedChannel,
+            });
           } catch {}
         }
       });
+
       socket.on('overlay-state-sync', (packet: OverlaySyncPacket<T>) => {
         acceptRemotePacket(packet, 'network');
       });
@@ -288,55 +701,31 @@ export function useOverlaySync<T>({
           acceptRemotePacket(msg, 'local');
         };
         try {
-          bc.postMessage({ type: 'request-state', streamer: cleanStreamer });
+          bc.postMessage({
+            type: 'request-state',
+            streamer: cleanStreamer,
+            channel: resolvedChannel,
+          });
         } catch {}
       }
 
-      // 5) Resilient cache-busted HTTP /api/overlay/state polling for TikTok LIVE Studio CEF
-      let isCancelled = false;
-      let pollInFlight = false;
-      const pollHttpSnapshot = async () => {
-        if (isCancelled || pollInFlight) return;
-        pollInFlight = true;
-        const controller =
-          typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = controller
-          ? setTimeout(() => controller.abort(), 3500)
-          : null;
-        try {
-          const qs = new URLSearchParams({
-            gameId,
-            _t: String(Date.now()),
-          });
-          if (cleanStreamer) qs.set('streamer', cleanStreamer);
-          const res = await fetch(`/api/overlay/state?${qs.toString()}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              Pragma: 'no-cache',
-            },
-            signal: controller?.signal,
-          });
-          if (!res.ok || isCancelled) return;
-          const data = await res.json();
-          if (data && data.hasSnapshot && data.state !== undefined) {
-            acceptRemotePacket(data as OverlaySyncPacket<T>, 'network');
-          }
-        } catch {
-          // Ignore transient abort / network errors
-        } finally {
-          if (timeoutId) clearTimeout(timeoutId);
-          pollInFlight = false;
-        }
-      };
-
       void pollHttpSnapshot();
+      let tickCount = 0;
       const pollTimer = setInterval(() => {
-        void pollHttpSnapshot();
+        tickCount += 1;
         if (socket.disconnected) {
+          void pollHttpSnapshot();
           socket.connect();
+        } else {
+          // When Socket.IO is healthy, only check lightweight version every ~3s
+          if (tickCount % 4 === 0) {
+            void pollHttpSnapshot();
+          }
+          if (tickCount % 20 === 0) {
+            joinOverlayRoom();
+          }
         }
-      }, 650);
+      }, 750);
 
       const handleOverlayFocusOrWake = () => {
         if (socket.disconnected) socket.connect();
@@ -350,6 +739,7 @@ export function useOverlaySync<T>({
 
       return () => {
         isCancelled = true;
+        isMountedRef.current = false;
         clearInterval(pollTimer);
         if (typeof window !== 'undefined') {
           window.removeEventListener('storage', handleStorage);
@@ -366,70 +756,119 @@ export function useOverlaySync<T>({
         socketRef.current = null;
       };
     } else {
-      const announceAndPushHostState = () => {
-        socket.emit('register-overlay-host', {
-          gameId,
-          streamer: cleanStreamer,
-          hostSessionId: hostSessionIdRef.current,
-        });
-        pushHostSnapshotNow(true);
+      const announceAndPushHostState = (reuseCached = false) => {
+        if (socket.connected) {
+          socket.emit('register-overlay-host', {
+            gameId,
+            streamer: cleanStreamer,
+            channel: resolvedChannel,
+            hostSessionId: hostSessionIdRef.current,
+          });
+        }
+        pushHostSnapshotNow(true, undefined, reuseCached);
       };
 
       if (socket.connected) {
-        announceAndPushHostState();
+        announceAndPushHostState(true);
+      } else {
+        pushHostSnapshotNow(true, undefined, true);
       }
-      socket.on('connect', announceAndPushHostState);
+      socket.on('connect', () => announceAndPushHostState(true));
 
-      socket.on('overlay-request-state', (req: { gameId?: string; streamer?: string }) => {
-        if (req?.gameId && req.gameId !== gameId) return;
-        pushHostSnapshotNow(true);
-      });
+      socket.on(
+        'overlay-request-state',
+        (req: { gameId?: string; streamer?: string; channel?: string }) => {
+          if (req?.gameId && req.gameId !== gameId) return;
+          const reqCh = sanitizeChannelToken(req?.channel);
+          const reqStr = sanitizeStreamerHandle(req?.streamer);
+          if (reqCh && resolvedChannel && reqCh !== resolvedChannel) return;
+          if (!reqCh && reqStr && cleanStreamer && reqStr !== cleanStreamer) return;
+          pushHostSnapshotNow(true, undefined, true);
+        }
+      );
 
       if (bc) {
         bc.onmessage = (ev) => {
           if (ev.data?.type === 'request-state' && localStateRef.current !== null) {
-            pushHostSnapshotNow(true);
+            const reqCh = sanitizeChannelToken(ev.data?.channel);
+            if (reqCh && resolvedChannel && reqCh !== resolvedChannel) return;
+            // Send directly over BroadcastChannel using cached packet without bumping seq
+            if (lastPacketRef.current) {
+              try {
+                bc.postMessage(lastPacketRef.current);
+              } catch {}
+            } else {
+              pushHostSnapshotNow(false, undefined, false);
+            }
           }
         };
       }
 
-      // Periodic host heartbeat so late-joining or reconnecting TikTok LIVE Studio sources stay synced
+      // Lightweight keepalive: reconnect dropped socket or reinforce room membership without re-serializing state
+      let beatCount = 0;
       const hostHeartbeat = setInterval(() => {
-        if (localStateRef.current !== null) {
-          if (socket.disconnected) {
-            socket.connect();
+        beatCount += 1;
+        if (localStateRef.current === null) return;
+        if (socket.disconnected) {
+          socket.connect();
+          if (lastSerializedPacketRef.current) {
+            flushHttpPost(lastSerializedPacketRef.current);
           }
-          pushHostSnapshotNow(true);
+        } else if (socket.connected && beatCount % 2 === 0) {
+          socket.emit('register-overlay-host', {
+            gameId,
+            streamer: cleanStreamer,
+            channel: resolvedChannel,
+            hostSessionId: hostSessionIdRef.current,
+          });
         }
-      }, 2000);
+      }, 8000);
 
       const handleHostWake = () => {
         if (localStateRef.current !== null) {
           if (socket.disconnected) socket.connect();
-          announceAndPushHostState();
+          announceAndPushHostState(true);
+        }
+      };
+      const handleHostHide = () => {
+        if (lastSerializedPacketRef.current) {
+          writeLocalStorageDeferred(lastSerializedPacketRef.current, true);
+          flushHttpPost(lastSerializedPacketRef.current);
         }
       };
       if (typeof window !== 'undefined') {
         window.addEventListener('focus', handleHostWake);
+        window.addEventListener('pagehide', handleHostHide);
         document.addEventListener('visibilitychange', handleHostWake);
       }
 
       return () => {
+        isMountedRef.current = false;
         clearInterval(hostHeartbeat);
         if (pendingTimerRef.current) {
           clearTimeout(pendingTimerRef.current);
           pendingTimerRef.current = null;
         }
-        followUpTimersRef.current.forEach((t) => clearTimeout(t));
-        followUpTimersRef.current = [];
+        if (httpTrailingTimerRef.current) {
+          clearTimeout(httpTrailingTimerRef.current);
+          httpTrailingTimerRef.current = null;
+        }
+        if (localStorageTrailingTimerRef.current) {
+          clearTimeout(localStorageTrailingTimerRef.current);
+          localStorageTrailingTimerRef.current = null;
+        }
+        queuedPostBodyRef.current = null;
+        postInFlightRef.current = false;
         if (typeof window !== 'undefined') {
           window.removeEventListener('focus', handleHostWake);
+          window.removeEventListener('pagehide', handleHostHide);
           document.removeEventListener('visibilitychange', handleHostWake);
         }
         if (socket.connected) {
           socket.emit('overlay-host-leave', {
             gameId,
             streamer: cleanStreamer,
+            channel: resolvedChannel,
             hostSessionId: hostSessionIdRef.current,
           });
         }
@@ -443,9 +882,9 @@ export function useOverlaySync<T>({
         socketRef.current = null;
       };
     }
-  }, [gameId, cleanStreamer, isOverlay, storageKey]);
+  }, [gameId, cleanStreamer, resolvedChannel, isOverlay, storageKey]);
 
-  // Host emits state updates immediately + confirmation burst when localState meaningfully changes
+  // Host emits state updates cleanly (single pass JSON stringify, coalesced at 120ms, zero redundant 350ms duplicate emit)
   useEffect(() => {
     if (isOverlay || localState === null) return;
 
@@ -453,78 +892,126 @@ export function useOverlaySync<T>({
     try {
       currentStateJson = JSON.stringify(localState);
     } catch {
-      currentStateJson = '';
-    }
-    if (currentStateJson && currentStateJson === lastTransmittedJsonRef.current) {
       return;
     }
-    if (currentStateJson) {
-      lastTransmittedJsonRef.current = currentStateJson;
+    if (!currentStateJson || currentStateJson === lastTransmittedJsonRef.current) {
+      return;
     }
 
-    const transmitSnapshot = () => {
-      if (localStateRef.current === null) return;
+    const currentStateHash = computeFastStateHash(currentStateJson);
+    latestPreparedRef.current = {
+      state: localState,
+      json: currentStateJson,
+      hash: currentStateHash,
+    };
+
+    const transmitLatestSnapshot = () => {
+      pendingTimerRef.current = null;
+      if (!isMountedRef.current) return;
+      const prepared = latestPreparedRef.current;
+      const stateToSend = prepared ? prepared.state : localStateRef.current;
+      if (stateToSend === null) return;
+
+      const stateJson = prepared ? prepared.json : JSON.stringify(stateToSend);
+      if (stateJson === lastTransmittedJsonRef.current) return;
+
+      const stateHash = prepared ? prepared.hash : computeFastStateHash(stateJson);
+      lastTransmittedJsonRef.current = stateJson;
+      lastTransmittedHashRef.current = stateHash;
       lastEmitAtRef.current = performance.now();
+
       const seq = ++seqRef.current;
-      const hostSessionId = hostSessionIdRef.current;
       const updatedAt = Date.now();
-      const packet = {
+      const packet: OverlaySyncPacket<T> = {
         type: 'state-sync',
         gameId,
         streamer: cleanStreamer,
-        state: localStateRef.current,
-        hostSessionId,
+        channel: resolvedChannel,
+        state: stateToSend,
+        hostSessionId: hostSessionIdRef.current,
         seq,
+        stateHash,
         updatedAt,
       };
-      const serialized = JSON.stringify(packet);
+      const serialized = buildSerializedFromStateJson(
+        { seq, stateHash, updatedAt },
+        stateJson
+      );
+      lastPacketRef.current = packet;
+      lastSerializedPacketRef.current = serialized;
 
       if (channelRef.current) {
         try {
           channelRef.current.postMessage(packet);
         } catch {}
       }
-      if (typeof window !== 'undefined') {
-        try {
-          window.localStorage.setItem(storageKey, serialized);
-        } catch {}
-      }
-      if (socketRef.current && socketRef.current.connected) {
-        socketRef.current.emit('overlay-state-update', packet);
-      }
-      fetch('/api/overlay/state', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-        },
-        body: serialized,
-        keepalive: serialized.length < 60000,
-      }).catch(() => {});
-    };
 
-    const scheduleWithFollowUps = () => {
-      pendingTimerRef.current = null;
-      transmitSnapshot();
-      followUpTimersRef.current.forEach((t) => clearTimeout(t));
-      followUpTimersRef.current = [
-        setTimeout(transmitSnapshot, 250),
-        setTimeout(transmitSnapshot, 900),
-      ];
+      const nowMs = Date.now();
+      if (
+        lastLocalStorageAtRef.current === 0 ||
+        nowMs - lastLocalStorageAtRef.current >= 4000
+      ) {
+        if (localStorageTrailingTimerRef.current) {
+          clearTimeout(localStorageTrailingTimerRef.current);
+          localStorageTrailingTimerRef.current = null;
+        }
+        writeLocalStorageDeferred(serialized);
+      } else {
+        if (localStorageTrailingTimerRef.current) {
+          clearTimeout(localStorageTrailingTimerRef.current);
+        }
+        localStorageTrailingTimerRef.current = setTimeout(() => {
+          localStorageTrailingTimerRef.current = null;
+          if (lastSerializedPacketRef.current) {
+            writeLocalStorageDeferred(lastSerializedPacketRef.current);
+          }
+        }, 2000);
+      }
+
+      const sock = socketRef.current;
+      if (sock && sock.connected) {
+        sock.emit('overlay-state-update', packet);
+        if (
+          lastHttpPostAtRef.current === 0 ||
+          nowMs - lastHttpPostAtRef.current >= 2000
+        ) {
+          if (httpTrailingTimerRef.current) {
+            clearTimeout(httpTrailingTimerRef.current);
+            httpTrailingTimerRef.current = null;
+          }
+          flushHttpPost(serialized);
+        } else {
+          if (httpTrailingTimerRef.current) {
+            clearTimeout(httpTrailingTimerRef.current);
+          }
+          httpTrailingTimerRef.current = setTimeout(() => {
+            httpTrailingTimerRef.current = null;
+            if (lastSerializedPacketRef.current) {
+              flushHttpPost(lastSerializedPacketRef.current);
+            }
+          }, 1400);
+        }
+      } else {
+        if (httpTrailingTimerRef.current) {
+          clearTimeout(httpTrailingTimerRef.current);
+          httpTrailingTimerRef.current = null;
+        }
+        flushHttpPost(serialized);
+      }
     };
 
     const elapsed = performance.now() - lastEmitAtRef.current;
-    if (elapsed >= 45) {
+    if (elapsed >= 120) {
       if (pendingTimerRef.current) {
         clearTimeout(pendingTimerRef.current);
         pendingTimerRef.current = null;
       }
-      scheduleWithFollowUps();
+      transmitLatestSnapshot();
     } else {
       if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
-      pendingTimerRef.current = setTimeout(scheduleWithFollowUps, 50 - elapsed);
+      pendingTimerRef.current = setTimeout(transmitLatestSnapshot, 125 - elapsed);
     }
-  }, [isOverlay, localState, gameId, cleanStreamer, storageKey]);
+  }, [isOverlay, localState, gameId, cleanStreamer, resolvedChannel, storageKey]);
 
   return { isReceivingHostSync };
 }
