@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Keyboard } from 'lucide-react';
 import { GameMode, WordValidationStatus } from '../types/game';
 import { getWordBreakAfterIndices } from '../utils/wordSplits';
@@ -63,21 +63,123 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
     '--tile-font': `clamp(15px, calc(var(--tile-sz) * 0.52), 26px)`,
   } as React.CSSProperties;
 
+  const tileRowRef = useRef<HTMLDivElement | null>(null);
+  const clueMeasureRef = useRef<HTMLSpanElement | null>(null);
+  const [clueLayout, setClueLayout] = useState<{
+    maxWidth?: number;
+    fontSize?: number;
+    allowWrap: boolean;
+  }>({ allowWrap: false });
+
+  useLayoutEffect(() => {
+    let isMounted = true;
+    const updateClueSize = () => {
+      if (!isMounted) return;
+      const rowEl = tileRowRef.current;
+      const measureEl = clueMeasureRef.current;
+      if (!rowEl || !measureEl) return;
+
+      const availableWidth = Math.floor(rowEl.getBoundingClientRect().width);
+      if (availableWidth <= 0) return;
+
+      const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 640;
+      const maxFont = isSmallScreen ? 24 : 30;
+      const minSingleLineFont = 10;
+
+      measureEl.style.fontSize = `${maxFont}px`;
+      if (measureEl.getBoundingClientRect().width <= availableWidth) {
+        setClueLayout({ maxWidth: availableWidth, fontSize: maxFont, allowWrap: false });
+        return;
+      }
+
+      let low = minSingleLineFont;
+      let high = maxFont;
+      let best = minSingleLineFont;
+      let fitsOnOneLine = false;
+
+      for (let i = 0; i < 12; i++) {
+        const mid = (low + high) / 2;
+        measureEl.style.fontSize = `${mid}px`;
+        if (measureEl.getBoundingClientRect().width <= availableWidth) {
+          best = mid;
+          fitsOnOneLine = true;
+          low = mid;
+        } else {
+          high = mid;
+        }
+      }
+
+      if (fitsOnOneLine) {
+        setClueLayout({
+          maxWidth: availableWidth,
+          fontSize: Math.floor(best * 2) / 2,
+          allowWrap: false,
+        });
+      } else {
+        setClueLayout({
+          maxWidth: availableWidth,
+          fontSize: minSingleLineFont,
+          allowWrap: true,
+        });
+      }
+    };
+
+    updateClueSize();
+
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      void document.fonts.ready.then(() => {
+        if (isMounted) updateClueSize();
+      });
+    }
+
+    const observer =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => updateClueSize())
+        : null;
+    if (observer && tileRowRef.current) {
+      observer.observe(tileRowRef.current);
+    }
+    window.addEventListener('resize', updateClueSize);
+    return () => {
+      isMounted = false;
+      observer?.disconnect();
+      window.removeEventListener('resize', updateClueSize);
+    };
+  }, [themeClue, maxWordLength]);
+
   return (
     <div
       style={boardStyle}
-      className={`flex flex-col select-none shrink-0 ${
+      className={`relative flex flex-col select-none shrink-0 w-fit max-w-full ${
         isHardMode && isAnyEvaluatedWrong ? 'animate-shake' : ''
       }`}
     >
-      {/* The Clue (e.g. "___ or treat!") */}
-      <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-wide mb-3 leading-tight break-words">
+      {/* Hidden off-flow text measurer matching clue typography */}
+      <span
+        ref={clueMeasureRef}
+        aria-hidden="true"
+        className="invisible fixed -top-[9999px] -left-[9999px] pointer-events-none whitespace-nowrap font-extrabold tracking-wide leading-tight"
+      >
+        {themeClue}
+      </span>
+
+      {/* The Clue (dynamically scaled so it never exceeds the width of the tiles) */}
+      <h1
+        style={{
+          maxWidth: clueLayout.maxWidth ? `${clueLayout.maxWidth}px` : undefined,
+          fontSize: clueLayout.fontSize ? `${clueLayout.fontSize}px` : undefined,
+        }}
+        className={`w-0 min-w-full font-extrabold text-white tracking-wide mb-3 leading-tight ${
+          clueLayout.fontSize ? '' : 'text-2xl sm:text-3xl'
+        } ${clueLayout.allowWrap ? 'whitespace-normal break-words' : 'whitespace-nowrap'}`}
+      >
         {themeClue}
       </h1>
 
       {/* Theme Anchor Word Row (Fillable & affected by Guess and Fill Mode) */}
       <div
-        className={`flex items-center gap-1.5 sm:gap-2 mb-3 max-w-full ${
+        ref={tileRowRef}
+        className={`inline-flex w-fit items-center gap-1.5 sm:gap-2 mb-3 max-w-full ${
           !isHardMode && isThemeIncorrect ? 'animate-shake' : ''
         }`}
       >
