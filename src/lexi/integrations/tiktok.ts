@@ -49,7 +49,7 @@ export class TikTokIntegrationService {
     try {
       const s = io({
         path: '/socket.io',
-        transports: ['polling', 'websocket'],
+        transports: ['websocket', 'polling'],
         reconnectionAttempts: 8,
         reconnectionDelay: 2000,
         reconnectionDelayMax: 15000,

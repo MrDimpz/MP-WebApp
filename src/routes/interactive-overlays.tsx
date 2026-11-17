@@ -14,7 +14,11 @@ import {
 import { useInteractiveAuthStore } from '@/lib/interactive-key-auth';
 import {
   buildLiveOverlayUrl,
+  DEFAULT_PUBLIC_STUDIO_ORIGIN,
   getOrCreateHostOverlayChannel,
+  getPublicStudioOrigin,
+  isAiStudioProxyHost,
+  setPublicStudioOrigin,
   type OverlayBackgroundMode,
 } from '@/lib/live-overlay';
 
@@ -103,6 +107,7 @@ interface ScaledOverlayStageProps {
   virtualHeight: number;
   bgMode: OverlayBackgroundMode;
   reloadKey: number;
+  shouldMount?: boolean;
 }
 
 const CHECKERBOARD_STYLE: React.CSSProperties = {
@@ -120,6 +125,7 @@ function ScaledOverlayStage({
   virtualHeight,
   bgMode,
   reloadKey,
+  shouldMount = true,
 }: ScaledOverlayStageProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [boxSize, setBoxSize] = useState<{ width: number; height: number }>({
@@ -162,19 +168,25 @@ function ScaledOverlayStage({
           height: `${scaledH}px`,
         }}
       >
-        <iframe
-          key={`${src}-${reloadKey}`}
-          src={src}
-          title={`${title} live overlay preview`}
-          loading="eager"
-          className="border-0 block pointer-events-none bg-transparent"
-          style={{
-            width: `${virtualWidth}px`,
-            height: `${virtualHeight}px`,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
-          }}
-        />
+        {shouldMount ? (
+          <iframe
+            key={`${src}-${reloadKey}`}
+            src={src}
+            title={`${title} live overlay preview`}
+            loading="lazy"
+            className="border-0 block pointer-events-none bg-transparent"
+            style={{
+              width: `${virtualWidth}px`,
+              height: `${virtualHeight}px`,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-[#0d111a] text-xs font-mono text-slate-400">
+            Loading {title}…
+          </div>
+        )}
       </div>
     </div>
   );
@@ -194,10 +206,24 @@ export function InteractiveOverlaysWallPage() {
   const [cardReloadNonces, setCardReloadNonces] = useState<Record<string, number>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [mountLimit, setMountLimit] = useState<number>(1);
+  const [studioOrigin, setStudioOrigin] = useState<string>(() => getPublicStudioOrigin());
+  const [originDraft, setOriginDraft] = useState<string>(() => getPublicStudioOrigin());
+  const [originSaved, setOriginSaved] = useState(false);
+
+  const isProxyHost = isAiStudioProxyHost();
 
   useEffect(() => {
     document.title = 'All Interactive Overlays — The Missing Piece';
   }, []);
+
+  useEffect(() => {
+    if (mountLimit >= INTERACTIVE_OVERLAY_SPECS.length) return;
+    const t = setTimeout(() => {
+      setMountLimit((prev) => Math.min(INTERACTIVE_OVERLAY_SPECS.length, prev + 1));
+    }, 140);
+    return () => clearTimeout(t);
+  }, [mountLimit]);
 
   useEffect(() => {
     if (activeStreamer?.username && !appliedStreamer) {
@@ -215,17 +241,23 @@ export function InteractiveOverlaysWallPage() {
           spec.overlaySlug,
           appliedStreamer || undefined,
           bgMode,
+          { preferPublicOrigin: false, embed: true }
+        );
+        const tabPreviewUrl = buildLiveOverlayUrl(
+          spec.overlaySlug,
+          appliedStreamer || undefined,
+          bgMode,
           { preferPublicOrigin: false }
         );
         const studioUrl = buildLiveOverlayUrl(
           spec.overlaySlug,
           appliedStreamer || undefined,
           bgMode,
-          { preferPublicOrigin: true }
+          { preferPublicOrigin: true, publicOriginOverride: studioOrigin }
         );
-        return { ...spec, previewSrc, studioUrl };
+        return { ...spec, previewSrc, tabPreviewUrl, studioUrl };
       }),
-    [appliedStreamer, bgMode]
+    [appliedStreamer, bgMode, studioOrigin]
   );
 
   const focusedCard = useMemo(
@@ -253,6 +285,15 @@ export function InteractiveOverlaysWallPage() {
 
   const bumpCardReload = (id: string) => {
     setCardReloadNonces((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+  };
+
+  const handleApplyOrigin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated = setPublicStudioOrigin(originDraft);
+    setStudioOrigin(updated);
+    setOriginDraft(updated);
+    setOriginSaved(true);
+    setTimeout(() => setOriginSaved(false), 1800);
   };
 
   return (
@@ -312,6 +353,26 @@ export function InteractiveOverlaysWallPage() {
                 </button>
               )}
             </form>
+
+            {isProxyHost && (
+              <form onSubmit={handleApplyOrigin} className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={originDraft}
+                  onChange={(e) => setOriginDraft(e.target.value)}
+                  placeholder={DEFAULT_PUBLIC_STUDIO_ORIGIN}
+                  aria-label="Public Studio Domain for copied overlay URLs"
+                  title="Public domain used when copying TikTok LIVE Studio Browser Source URLs"
+                  className="w-40 sm:w-48 px-2.5 py-1.5 rounded-lg bg-[#090B10] border border-slate-700/90 font-mono text-xs text-amber-300 placeholder:text-slate-500 focus:outline-none focus:border-[#F6C915]"
+                />
+                <button
+                  type="submit"
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  {originSaved ? 'Saved' : 'Domain'}
+                </button>
+              </form>
+            )}
 
             {/* Backdrop Toggle */}
             <div
@@ -391,7 +452,7 @@ export function InteractiveOverlaysWallPage() {
           layoutMode === 'fit' ? 'lg:grid-rows-2' : 'auto-rows-[520px]'
         }`}
       >
-        {cards.map((card) => {
+        {cards.map((card, idx) => {
           const isCopied = copiedId === card.id;
           const reloadKey = globalReloadNonce + (cardReloadNonces[card.id] || 0);
           return (
@@ -473,6 +534,7 @@ export function InteractiveOverlaysWallPage() {
                 virtualHeight={card.virtualHeight}
                 bgMode={bgMode}
                 reloadKey={reloadKey}
+                shouldMount={idx < mountLimit}
               />
             </section>
           );
@@ -514,7 +576,7 @@ export function InteractiveOverlaysWallPage() {
                   </span>
                 </button>
                 <a
-                  href={focusedCard.previewSrc}
+                  href={focusedCard.tabPreviewUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 whitespace-nowrap"

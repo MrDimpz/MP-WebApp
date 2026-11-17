@@ -136,7 +136,7 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
   useEffect(() => {
     const socket = io({
       path: '/socket.io',
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       query: {
         sessionId: getCurrentUserSessionPrefix(),
         gameId: 'wikirec',

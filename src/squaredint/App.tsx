@@ -736,7 +736,7 @@ export default function App() {
     const deduplicator = createEventDeduplicator();
     const newSocket = io({
       path: '/socket.io',
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
       query: {
         sessionId: getCurrentUserSessionPrefix(),

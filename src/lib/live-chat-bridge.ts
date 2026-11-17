@@ -339,8 +339,8 @@ class LiveChatBridge {
     try {
       this.socket = io(window.location.origin, {
         path: "/socket.io",
-        transports: ["polling", "websocket"],
-        reconnectionAttempts: 12,
+        transports: ["websocket", "polling"],
+        reconnectionAttempts: 10,
         reconnectionDelay: 2000,
         reconnectionDelayMax: 15000,
         randomizationFactor: 0.5,
@@ -427,17 +427,28 @@ class LiveChatBridge {
         `/api/tiktok/events?sessionId=${sid}&since=${this.lastSeq}`,
       );
       if (!res.ok) {
-        if (res.status === 426 || res.status === 429 || res.status >= 500) {
+        if (
+          res.status === 401 ||
+          res.status === 403 ||
+          res.status === 426 ||
+          res.status === 429 ||
+          res.status >= 500
+        ) {
           this.httpBackoffMs =
-            this.httpBackoffMs > 0 ? Math.min(60000, this.httpBackoffMs * 2) : 10000;
+            this.httpBackoffMs > 0 ? Math.min(120000, this.httpBackoffMs * 2) : 20000;
           this.httpCooldownUntil = Date.now() + this.httpBackoffMs;
         }
         return;
       }
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        this.httpBackoffMs =
+          this.httpBackoffMs > 0 ? Math.min(120000, this.httpBackoffMs * 2) : 20000;
+        this.httpCooldownUntil = Date.now() + this.httpBackoffMs;
+        return;
+      }
       this.httpBackoffMs = 0;
       this.httpCooldownUntil = 0;
-      const contentType = res.headers.get("content-type") || "";
-      if (!contentType.includes("application/json")) return;
       const data = await res.json();
 
       if (

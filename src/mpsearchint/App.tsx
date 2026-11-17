@@ -601,10 +601,12 @@ export default function MPSearchInteractiveApp() {
   useEffect(() => {
     if (isOverlay) return;
     const newSocket = io({
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 12,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 15000,
     });
     socketRef.current = newSocket;
 

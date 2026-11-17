@@ -395,7 +395,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
     const socket = io({
       path: '/socket.io',
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
       timeout: 5000,
       query: {

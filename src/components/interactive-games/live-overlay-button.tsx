@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import { MonitorPlay, Copy, Check, ExternalLink, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { MonitorPlay, Copy, Check, ExternalLink, X, Globe } from 'lucide-react';
 import {
   buildLiveOverlayUrl,
-  isAiStudioDevHost,
+  DEFAULT_PUBLIC_STUDIO_ORIGIN,
+  getPublicStudioOrigin,
+  isAiStudioProxyHost,
+  setPublicStudioOrigin,
   type OverlayBackgroundMode,
 } from '@/lib/live-overlay';
 
@@ -25,12 +28,25 @@ export const LiveOverlayModal: React.FC<LiveOverlayModalProps> = ({
 }) => {
   const [bgMode, setBgMode] = useState<OverlayBackgroundMode>('transparent');
   const [copied, setCopied] = useState(false);
+  const [studioOrigin, setStudioOrigin] = useState<string>(() => getPublicStudioOrigin());
+  const [originDraft, setOriginDraft] = useState<string>(() => getPublicStudioOrigin());
+  const [originSaved, setOriginSaved] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const current = getPublicStudioOrigin();
+      setStudioOrigin(current);
+      setOriginDraft(current);
+      setOriginSaved(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const isDevHost = isAiStudioDevHost();
+  const isProxyHost = isAiStudioProxyHost();
   const overlayUrl = buildLiveOverlayUrl(gameSlug, streamerHandle, bgMode, {
     preferPublicOrigin: true,
+    publicOriginOverride: studioOrigin,
   });
   const previewUrl = buildLiveOverlayUrl(gameSlug, streamerHandle, 'dark', {
     preferPublicOrigin: false,
@@ -40,6 +56,23 @@ export const LiveOverlayModal: React.FC<LiveOverlayModalProps> = ({
     navigator.clipboard.writeText(overlayUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleApplyOrigin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated = setPublicStudioOrigin(originDraft);
+    setStudioOrigin(updated);
+    setOriginDraft(updated);
+    setOriginSaved(true);
+    setTimeout(() => setOriginSaved(false), 1800);
+  };
+
+  const handleResetOrigin = () => {
+    const updated = setPublicStudioOrigin(DEFAULT_PUBLIC_STUDIO_ORIGIN);
+    setStudioOrigin(updated);
+    setOriginDraft(updated);
+    setOriginSaved(true);
+    setTimeout(() => setOriginSaved(false), 1800);
   };
 
   return (
@@ -123,14 +156,53 @@ export const LiveOverlayModal: React.FC<LiveOverlayModalProps> = ({
           </div>
         </div>
 
+        {isProxyHost && (
+          <form
+            onSubmit={handleApplyOrigin}
+            className="rounded-xl bg-slate-900/75 border border-slate-800 p-3 space-y-2"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                <Globe className="w-3.5 h-3.5 text-amber-300" />
+                <span>Public Studio Domain</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleResetOrigin}
+                className="text-[11px] text-slate-400 hover:text-amber-300 underline cursor-pointer"
+              >
+                Reset default
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={originDraft}
+                onChange={(e) => setOriginDraft(e.target.value)}
+                placeholder={DEFAULT_PUBLIC_STUDIO_ORIGIN}
+                className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg bg-black/50 border border-slate-700 font-mono text-xs text-slate-200 focus:outline-none focus:border-amber-400"
+              />
+              <button
+                type="submit"
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 shrink-0 cursor-pointer"
+              >
+                {originSaved ? 'Saved' : 'Set Domain'}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-snug">
+              Uses your public site domain instead of preview links so TikTok LIVE Studio avoids reCAPTCHA and 403 login errors while syncing live via Firebase.
+            </p>
+          </form>
+        )}
+
         <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3 text-xs text-slate-300 space-y-1">
           <div className="font-bold text-amber-300">TikTok LIVE Studio Setup</div>
           <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-slate-300">
             <li>In TikTok LIVE Studio, click <strong>Add Source → Browser</strong>.</li>
             <li>Paste the URL above and set size to <strong>{recommendedSize}</strong>.</li>
             <li>
-              {isDevHost
-                ? 'This link uses the public app URL so TikTok LIVE Studio loads without sign-in while syncing live from your host game.'
+              {isProxyHost
+                ? 'Keep this host game open — moves sync live across your deployed domain and Studio without extra sign-in.'
                 : 'Keep this host game open — all word reveals, timers, and rounds sync automatically across tabs and Studio.'}
             </li>
           </ol>

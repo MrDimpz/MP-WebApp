@@ -16,6 +16,7 @@ export interface OverlayConfig {
   bg: OverlayBackgroundMode;
   streamer: string;
   channel: string;
+  embed?: boolean;
 }
 
 enum OperationType {
@@ -85,6 +86,8 @@ function isFirestorePermissionError(err: unknown): boolean {
 }
 
 const OVERLAY_CHANNEL_STORAGE_KEY = 'mp_overlay_channel_v1';
+const PUBLIC_STUDIO_ORIGIN_STORAGE_KEY = 'mp_overlay_public_origin_v1';
+export const DEFAULT_PUBLIC_STUDIO_ORIGIN = 'https://missingpiecepuzzles.fun';
 const OVERLAY_FIRESTORE_COLLECTION = 'overlaySessions';
 const ALLOWED_FIRESTORE_GAMES = new Set([
   'crowdle',
@@ -241,7 +244,8 @@ export function getOverlayConfigFromLocation(
   const bg: OverlayBackgroundMode = bgParam === 'dark' ? 'dark' : 'transparent';
   const streamer = sanitizeStreamerHandle(params.get('streamer'));
   const channel = sanitizeChannelToken(params.get('channel'));
-  return { isOverlay, bg, streamer, channel };
+  const embed = params.get('embed') === '1';
+  return { isOverlay, bg, streamer, channel, embed };
 }
 
 export function useOverlayConfig(): OverlayConfig {
@@ -268,24 +272,100 @@ export function useOverlayConfig(): OverlayConfig {
   return config;
 }
 
+export function isAiStudioProxyHost(
+  hostname: string = typeof window !== 'undefined' ? window.location.hostname : ''
+): boolean {
+  return hostname.startsWith('ais-dev-') || hostname.startsWith('ais-pre-');
+}
+
 export function isAiStudioDevHost(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.location.hostname.startsWith('ais-dev-');
+  return isAiStudioProxyHost();
+}
+
+export function normalizeOriginUrl(raw: unknown): string {
+  const trimmed = String(raw || '').trim();
+  if (!trimmed) return '';
+  try {
+    const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    const parsed = new URL(withProto);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+    return parsed.origin;
+  } catch {
+    return '';
+  }
+}
+
+export function getPublicStudioOrigin(): string {
+  if (typeof window === 'undefined') {
+    return DEFAULT_PUBLIC_STUDIO_ORIGIN;
+  }
+  try {
+    const stored = normalizeOriginUrl(
+      window.localStorage.getItem(PUBLIC_STUDIO_ORIGIN_STORAGE_KEY)
+    );
+    if (stored) {
+      const host = new URL(stored).hostname;
+      if (!isAiStudioProxyHost(host)) {
+        return stored;
+      }
+    }
+  } catch {}
+
+  const envUrl = normalizeOriginUrl(
+    (import.meta as unknown as { env?: Record<string, string | undefined> }).env
+      ?.VITE_PUBLIC_APP_URL
+  );
+  if (envUrl) {
+    try {
+      if (!isAiStudioProxyHost(new URL(envUrl).hostname)) {
+        return envUrl;
+      }
+    } catch {}
+  }
+
+  if (!isAiStudioProxyHost(window.location.hostname)) {
+    return window.location.origin;
+  }
+
+  return DEFAULT_PUBLIC_STUDIO_ORIGIN;
+}
+
+export function setPublicStudioOrigin(nextOrigin: string): string {
+  const normalized = normalizeOriginUrl(nextOrigin);
+  if (typeof window !== 'undefined') {
+    try {
+      if (!normalized) {
+        window.localStorage.removeItem(PUBLIC_STUDIO_ORIGIN_STORAGE_KEY);
+      } else {
+        const host = new URL(normalized).hostname;
+        if (!isAiStudioProxyHost(host)) {
+          window.localStorage.setItem(PUBLIC_STUDIO_ORIGIN_STORAGE_KEY, normalized);
+        }
+      }
+    } catch {}
+  }
+  return getPublicStudioOrigin();
 }
 
 export function buildLiveOverlayUrl(
   gameSlug: string,
   streamerHandle?: string | null,
   bg: OverlayBackgroundMode = 'transparent',
-  options?: { preferPublicOrigin?: boolean }
+  options?: {
+    preferPublicOrigin?: boolean;
+    embed?: boolean;
+    publicOriginOverride?: string;
+  }
 ): string {
   let origin = '';
   if (typeof window !== 'undefined') {
-    if (options?.preferPublicOrigin && window.location.hostname.startsWith('ais-dev-')) {
-      const publicHostname = window.location.hostname.replace(/^ais-dev-/, 'ais-pre-');
-      origin = `${window.location.protocol}//${publicHostname}${
-        window.location.port ? `:${window.location.port}` : ''
-      }`;
+    if (options?.preferPublicOrigin) {
+      const override = normalizeOriginUrl(options.publicOriginOverride);
+      if (override && !isAiStudioProxyHost(new URL(override).hostname)) {
+        origin = override;
+      } else {
+        origin = getPublicStudioOrigin();
+      }
     } else {
       origin = window.location.origin;
     }
@@ -299,6 +379,9 @@ export function buildLiveOverlayUrl(
   const clean = sanitizeStreamerHandle(streamerHandle);
   if (clean) {
     params.set('streamer', clean);
+  }
+  if (options?.embed) {
+    params.set('embed', '1');
   }
   return `${origin}/interactive-games/${gameSlug}/overlay?${params.toString()}`;
 }
@@ -599,11 +682,17 @@ export function useOverlaySync<T>({
   };
 
   const recordHttpFailureBackoff = (status: number) => {
-    if (status === 426 || status === 429 || status >= 500) {
+    if (
+      status === 401 ||
+      status === 403 ||
+      status === 426 ||
+      status === 429 ||
+      status >= 500
+    ) {
       const nextBackoff =
         httpBackoffMsRef.current > 0
-          ? Math.min(60000, httpBackoffMsRef.current * 2)
-          : 8000;
+          ? Math.min(120000, httpBackoffMsRef.current * 2)
+          : 20000;
       httpBackoffMsRef.current = nextBackoff;
       httpCooldownUntilRef.current = Date.now() + nextBackoff;
     }
@@ -658,11 +747,14 @@ export function useOverlaySync<T>({
         signal: controller?.signal,
       })
         .then((res) => {
-          if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (res.ok && contentType.includes('application/json')) {
             resetHttpBackoff();
             if (seqToSend > lastHttpConfirmedSeqRef.current) {
               lastHttpConfirmedSeqRef.current = seqToSend;
             }
+          } else if (res.ok) {
+            recordHttpFailureBackoff(403);
           } else {
             recordHttpFailureBackoff(res.status);
           }
@@ -760,16 +852,24 @@ export function useOverlaySync<T>({
       }
     }
 
-    const socket = io({
-      path: '/socket.io',
-      transports: ['polling', 'websocket'],
-      reconnection: true,
-      reconnectionAttempts: 25,
-      reconnectionDelay: 2000,
-      reconnectionDelayMax: 15000,
-      randomizationFactor: 0.5,
-      query: { gameId: `${cleanGameId}-overlay` },
-    });
+    const isEmbedPreview =
+      isOverlay &&
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('embed') === '1';
+
+    const socket = isEmbedPreview
+      ? null
+      : io({
+          path: '/socket.io',
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+          reconnectionAttempts: 10,
+          reconnectionDelay: 3500,
+          reconnectionDelayMax: 30000,
+          randomizationFactor: 0.5,
+          timeout: 8000,
+          query: { gameId: `${cleanGameId}-overlay` },
+        });
     socketRef.current = socket;
 
     const buildFreshPacketAndSerialized = (stateObj: T) => {
@@ -861,8 +961,9 @@ export function useOverlaySync<T>({
 
       if (forceNetwork) {
         const pktSeq = packet.seq || 0;
-        const minHttpIntervalMs = socket.connected ? 2000 : 1200;
-        if (socket.connected) {
+        const sockConnected = Boolean(socket && socket.connected);
+        const minHttpIntervalMs = sockConnected ? 3000 : 1800;
+        if (socket && sockConnected) {
           socket.emit('overlay-state-update', packet);
         }
         if (
@@ -1052,9 +1153,9 @@ export function useOverlaySync<T>({
         window.addEventListener('storage', handleStorage);
       }
 
-      // 3) Socket.IO overlay room subscription
+      // 3) Socket.IO overlay room subscription (skipped for embedded multiview wall previews)
       const joinOverlayRoom = () => {
-        if (socket.connected) {
+        if (socket && socket.connected) {
           socket.emit('join-overlay', {
             gameId: cleanGameId,
             streamer: cleanStreamer,
@@ -1132,10 +1233,22 @@ export function useOverlaySync<T>({
       let pollStartedAt = 0;
 
       const pollHttpSnapshot = async (force = false) => {
+        if (isEmbedPreview) return;
         const now = Date.now();
         if (isCancelled) return;
         if (now < httpCooldownUntilRef.current) return;
-        if (!force && now - lastDirectSyncAtRef.current < 8000 && socket.connected) {
+        if (
+          typeof document !== 'undefined' &&
+          document.hidden &&
+          lastDirectSyncAtRef.current > 0
+        ) {
+          return;
+        }
+        if (
+          !force &&
+          now - lastDirectSyncAtRef.current < 15000 &&
+          Boolean(socket?.connected)
+        ) {
           return;
         }
         if (pollInFlight && now - pollStartedAt < 4500) return;
@@ -1172,9 +1285,14 @@ export function useOverlaySync<T>({
             }
             return;
           }
-          resetHttpBackoff();
           const contentType = res.headers.get('content-type') || '';
-          if (!contentType.includes('application/json')) return;
+          if (!contentType.includes('application/json')) {
+            if (!isCancelled) {
+              recordHttpFailureBackoff(403);
+            }
+            return;
+          }
+          resetHttpBackoff();
           const data = (await res.json()) as OverlaySyncPacket<T> & {
             hasSnapshot?: boolean;
           };
@@ -1201,23 +1319,24 @@ export function useOverlaySync<T>({
         }
       };
 
-      socket.on('connect', () => {
-        joinOverlayRoom();
-        void pollHttpSnapshot(true);
-        if (bc) {
-          try {
-            bc.postMessage({
-              type: 'request-state',
-              streamer: cleanStreamer,
-              channel: resolvedChannel,
-            });
-          } catch {}
-        }
-      });
+      if (socket) {
+        socket.on('connect', () => {
+          joinOverlayRoom();
+          if (bc) {
+            try {
+              bc.postMessage({
+                type: 'request-state',
+                streamer: cleanStreamer,
+                channel: resolvedChannel,
+              });
+            } catch {}
+          }
+        });
 
-      socket.on('overlay-state-sync', (packet: OverlaySyncPacket<T>) => {
-        acceptRemotePacket(packet, 'network');
-      });
+        socket.on('overlay-state-sync', (packet: OverlaySyncPacket<T>) => {
+          acceptRemotePacket(packet, 'network');
+        });
+      }
 
       // BroadcastChannel subscription (same-browser preview tabs)
       if (bc) {
@@ -1235,32 +1354,56 @@ export function useOverlaySync<T>({
         } catch {}
       }
 
-      void pollHttpSnapshot(true);
+      // Defer initial HTTP fallback fetch so Firestore / Socket.IO / BroadcastChannel deliver first without WAF bursts
+      const initialFallbackTimer = !isEmbedPreview
+        ? setTimeout(() => {
+            if (!isCancelled && lastDirectSyncAtRef.current === 0) {
+              void pollHttpSnapshot(true);
+            }
+          }, 1800)
+        : null;
+
       let tickCount = 0;
-      const pollTimer = setInterval(() => {
-        tickCount += 1;
-        const now = Date.now();
-        const hasRecentDirectSync = now - lastDirectSyncAtRef.current < 8000;
-        if (socket.disconnected) {
-          // Only poll every 4s (2nd tick) when disconnected and Firestore isn't actively delivering
-          if (!hasRecentDirectSync || tickCount % 2 === 0) {
-            void pollHttpSnapshot(false);
-          }
-        } else {
-          // When Socket.IO or Firestore is active, only reconcile every 10s (5th tick)
-          if (tickCount % 5 === 0) {
-            void pollHttpSnapshot(false);
-          }
-          if (tickCount % 6 === 0) {
-            joinOverlayRoom();
-          }
-        }
-      }, 2000);
+      const pollTimer = !isEmbedPreview
+        ? setInterval(() => {
+            tickCount += 1;
+            const now = Date.now();
+            const hasRecentDirectSync = now - lastDirectSyncAtRef.current < 15000;
+            if (!socket || socket.disconnected) {
+              // Only fallback-poll every 10s (2nd tick) when disconnected and Firestore isn't delivering
+              if (!hasRecentDirectSync || tickCount % 2 === 0) {
+                void pollHttpSnapshot(false);
+              }
+            } else {
+              // When Socket.IO or Firestore is active, only reconcile every 25s (5th tick)
+              if (tickCount % 5 === 0) {
+                void pollHttpSnapshot(false);
+              }
+              if (tickCount % 4 === 0) {
+                joinOverlayRoom();
+              }
+            }
+          }, 5000)
+        : null;
 
       const handleOverlayFocusOrWake = () => {
-        if (socket.disconnected && !socket.active) socket.connect();
+        if (isEmbedPreview) {
+          if (bc) {
+            try {
+              bc.postMessage({
+                type: 'request-state',
+                streamer: cleanStreamer,
+                channel: resolvedChannel,
+              });
+            } catch {}
+          }
+          return;
+        }
+        if (socket && socket.disconnected && !socket.active) socket.connect();
         joinOverlayRoom();
-        void pollHttpSnapshot(true);
+        if (Date.now() - lastDirectSyncAtRef.current > 5000) {
+          void pollHttpSnapshot(false);
+        }
       };
       if (typeof window !== 'undefined') {
         window.addEventListener('focus', handleOverlayFocusOrWake);
@@ -1270,7 +1413,8 @@ export function useOverlaySync<T>({
       return () => {
         isCancelled = true;
         isMountedRef.current = false;
-        clearInterval(pollTimer);
+        if (initialFallbackTimer) clearTimeout(initialFallbackTimer);
+        if (pollTimer) clearInterval(pollTimer);
         for (const unsub of firestoreUnsubs) {
           try {
             unsub();
@@ -1287,12 +1431,14 @@ export function useOverlaySync<T>({
           } catch {}
         }
         channelRef.current = null;
-        socket.disconnect();
+        if (socket) {
+          socket.disconnect();
+        }
         socketRef.current = null;
       };
     } else {
       const announceAndPushHostState = (reuseCached = false) => {
-        if (socket.connected) {
+        if (socket && socket.connected) {
           socket.emit('register-overlay-host', {
             gameId: cleanGameId,
             streamer: cleanStreamer,
@@ -1303,24 +1449,26 @@ export function useOverlaySync<T>({
         pushHostSnapshotNow(true, undefined, reuseCached);
       };
 
-      if (socket.connected) {
+      if (socket && socket.connected) {
         announceAndPushHostState(true);
       } else {
         pushHostSnapshotNow(true, undefined, true);
       }
-      socket.on('connect', () => announceAndPushHostState(true));
+      if (socket) {
+        socket.on('connect', () => announceAndPushHostState(true));
 
-      socket.on(
-        'overlay-request-state',
-        (req: { gameId?: string; streamer?: string; channel?: string }) => {
-          if (req?.gameId && req.gameId !== cleanGameId) return;
-          const reqCh = sanitizeChannelToken(req?.channel);
-          const reqStr = sanitizeStreamerHandle(req?.streamer);
-          if (reqCh && resolvedChannel && reqCh !== resolvedChannel) return;
-          if (!reqCh && reqStr && cleanStreamer && reqStr !== cleanStreamer) return;
-          pushHostSnapshotNow(true, undefined, true);
-        }
-      );
+        socket.on(
+          'overlay-request-state',
+          (req: { gameId?: string; streamer?: string; channel?: string }) => {
+            if (req?.gameId && req.gameId !== cleanGameId) return;
+            const reqCh = sanitizeChannelToken(req?.channel);
+            const reqStr = sanitizeStreamerHandle(req?.streamer);
+            if (reqCh && resolvedChannel && reqCh !== resolvedChannel) return;
+            if (!reqCh && reqStr && cleanStreamer && reqStr !== cleanStreamer) return;
+            pushHostSnapshotNow(true, undefined, true);
+          }
+        );
+      }
 
       if (bc) {
         bc.onmessage = (ev) => {
@@ -1348,7 +1496,7 @@ export function useOverlaySync<T>({
         if (
           lastSerializedPacketRef.current &&
           Date.now() >= httpCooldownUntilRef.current &&
-          (socket.disconnected || lastHttpConfirmedSeqRef.current < latestSeq)
+          (!socket || socket.disconnected || lastHttpConfirmedSeqRef.current < latestSeq)
         ) {
           flushHttpPost(lastSerializedPacketRef.current, latestSeq);
         }
@@ -1359,7 +1507,7 @@ export function useOverlaySync<T>({
         ) {
           scheduleFirestorePush(latestPacket, false);
         }
-        if (socket.connected && beatCount % 2 === 0) {
+        if (socket && socket.connected && beatCount % 2 === 0) {
           socket.emit('register-overlay-host', {
             gameId: cleanGameId,
             streamer: cleanStreamer,
@@ -1371,7 +1519,7 @@ export function useOverlaySync<T>({
 
       const handleHostWake = () => {
         if (localStateRef.current !== null) {
-          if (socket.disconnected && !socket.active) socket.connect();
+          if (socket && socket.disconnected && !socket.active) socket.connect();
           announceAndPushHostState(true);
         }
       };
@@ -1421,7 +1569,7 @@ export function useOverlaySync<T>({
           window.removeEventListener('pagehide', handleHostHide);
           document.removeEventListener('visibilitychange', handleHostWake);
         }
-        if (socket.connected) {
+        if (socket && socket.connected) {
           socket.emit('overlay-host-leave', {
             gameId: cleanGameId,
             streamer: cleanStreamer,
@@ -1435,7 +1583,9 @@ export function useOverlaySync<T>({
           } catch {}
         }
         channelRef.current = null;
-        socket.disconnect();
+        if (socket) {
+          socket.disconnect();
+        }
         socketRef.current = null;
       };
     }
@@ -1530,7 +1680,7 @@ export function useOverlaySync<T>({
       if (sock && sockConnected) {
         sock.emit('overlay-state-update', packet);
       }
-      const minHttpIntervalMs = sockConnected ? 2000 : 1200;
+      const minHttpIntervalMs = sockConnected ? 3000 : 1800;
       if (
         lastHttpPostAtRef.current === 0 ||
         nowMs - lastHttpPostAtRef.current >= minHttpIntervalMs

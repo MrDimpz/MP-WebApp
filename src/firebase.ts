@@ -12,6 +12,15 @@ export const db = firebaseConfig.firestoreDatabaseId
 
 async function testConnection() {
   if (typeof window === "undefined") return;
+  const cleanPath = window.location.pathname.toLowerCase().replace(/\/+$/, "");
+  const params = new URLSearchParams(window.location.search);
+  if (
+    cleanPath.endsWith("/overlay") ||
+    params.get("overlay") === "1" ||
+    params.get("clean") === "1"
+  ) {
+    return;
+  }
   try {
     await getDocFromServer(doc(db, "test", "connection"));
   } catch (error) {

@@ -590,7 +590,7 @@ export default function CrowdleApp() {
     const deduplicator = createEventDeduplicator();
     const socket = io({
       path: '/socket.io',
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 10,
       query: {
