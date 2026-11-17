@@ -395,6 +395,7 @@ function upsertServerRegisteredUsers(
 
 async function startServer() {
   const app = express();
+  app.set("trust proxy", 1);
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     path: "/socket.io",
@@ -2249,7 +2250,18 @@ async function startServer() {
     res.sendFile(pngPath);
   });
 
-  if (process.env.NODE_ENV !== "production") {
+  const distPath = path.join(__dirname, "dist");
+  const hasBuiltDist = fs.existsSync(path.join(distPath, "index.html"));
+  const isExplicitDev =
+    process.env.NODE_ENV === "development" ||
+    process.env.npm_lifecycle_event === "dev";
+  const useProdStatic =
+    hasBuiltDist &&
+    (process.env.NODE_ENV === "production" ||
+      process.env.npm_lifecycle_event === "start" ||
+      (!isExplicitDev && __filename.endsWith(".js")));
+
+  if (!useProdStatic) {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: {
@@ -2260,8 +2272,18 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(__dirname, "dist");
-    app.use(express.static(distPath));
+    app.use(
+      express.static(distPath, {
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith(".html")) {
+            res.setHeader(
+              "Cache-Control",
+              "no-store, no-cache, must-revalidate, max-age=0",
+            );
+          }
+        },
+      }),
+    );
 
     // Never return index.html for unknown /api/* or /socket.io/* routes
     app.use("/api", (_req, res) => {
@@ -2273,6 +2295,10 @@ async function startServer() {
         next();
         return;
       }
+      res.setHeader(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, max-age=0",
+      );
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

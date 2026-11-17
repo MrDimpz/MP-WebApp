@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { MonitorPlay, Copy, Check, ExternalLink, X } from 'lucide-react';
-import { buildLiveOverlayUrl, type OverlayBackgroundMode } from '@/lib/live-overlay';
+import {
+  buildLiveOverlayUrl,
+  isAiStudioDevHost,
+  type OverlayBackgroundMode,
+} from '@/lib/live-overlay';
 
 interface LiveOverlayModalProps {
   isOpen: boolean;
@@ -24,7 +28,13 @@ export const LiveOverlayModal: React.FC<LiveOverlayModalProps> = ({
 
   if (!isOpen) return null;
 
-  const overlayUrl = buildLiveOverlayUrl(gameSlug, streamerHandle, bgMode);
+  const isDevHost = isAiStudioDevHost();
+  const overlayUrl = buildLiveOverlayUrl(gameSlug, streamerHandle, bgMode, {
+    preferPublicOrigin: true,
+  });
+  const previewUrl = buildLiveOverlayUrl(gameSlug, streamerHandle, 'dark', {
+    preferPublicOrigin: false,
+  });
 
   const handleCopy = () => {
     navigator.clipboard.writeText(overlayUrl);
@@ -118,13 +128,17 @@ export const LiveOverlayModal: React.FC<LiveOverlayModalProps> = ({
           <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-slate-300">
             <li>In TikTok LIVE Studio, click <strong>Add Source → Browser</strong>.</li>
             <li>Paste the URL above and set size to <strong>{recommendedSize}</strong>.</li>
-            <li>Host the game and paste this paired link from the <strong>same site URL</strong> so all rounds sync live.</li>
+            <li>
+              {isDevHost
+                ? 'This link uses the public app URL so TikTok LIVE Studio loads without sign-in while syncing live from your host game.'
+                : 'Keep this host game open — all word reveals, timers, and rounds sync automatically across tabs and Studio.'}
+            </li>
           </ol>
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-1">
           <a
-            href={buildLiveOverlayUrl(gameSlug, streamerHandle, 'dark')}
+            href={previewUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"

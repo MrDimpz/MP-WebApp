@@ -204,6 +204,71 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "OverlaySyncSession": {
+      "title": "OverlaySyncSession",
+      "description": "Real-time TikTok LIVE Studio Browser Source gameplay snapshot pushed by host and subscribed by overlay.",
+      "type": "object",
+      "properties": {
+        "gameId": {
+          "type": "string",
+          "description": "Interactive game identifier.",
+          "enum": ["crowdle", "destackint", "mpsearchint", "squaredint", "wikicon", "wikirec", "lexi"]
+        },
+        "channel": {
+          "type": "string",
+          "description": "Per-host pairing channel token.",
+          "minLength": 0,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9_-]*$"
+        },
+        "streamer": {
+          "type": "string",
+          "description": "Sanitized streamer handle without @.",
+          "minLength": 0,
+          "maxLength": 80,
+          "pattern": "^[a-z0-9_.-]*$"
+        },
+        "hostSessionId": {
+          "type": "string",
+          "description": "Ephemeral host tab session identifier.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "seq": {
+          "type": "integer",
+          "description": "Monotonically increasing snapshot sequence number.",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "stateHash": {
+          "type": "string",
+          "description": "Fast content hash of the serialized gameplay state.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9:_-]+$"
+        },
+        "state": {
+          "type": "object",
+          "description": "Native Firestore Map containing sanitized gameplay state for the overlay."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the snapshot was last updated."
+        }
+      },
+      "required": [
+        "gameId",
+        "channel",
+        "streamer",
+        "hostSessionId",
+        "seq",
+        "stateHash",
+        "state",
+        "updatedAt"
+      ]
     }
   },
   "firestore": {
@@ -224,6 +289,12 @@
         "$ref": "#/entities/RegisteredUserProfile"
       },
       "description": "Non-PII directory of Firebase-registered users storing displayName and TikTok connection state for the Admin Panel."
+    },
+    "/overlaySessions/{sessionKey}": {
+      "schema": {
+        "$ref": "#/entities/OverlaySyncSession"
+      },
+      "description": "Live gameplay sync snapshots for TikTok LIVE Studio Browser Source overlays across origins."
     }
   }
 }

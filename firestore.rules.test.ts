@@ -72,3 +72,86 @@ export const LEADERBOARD_RULE_TESTS: LeaderboardTestVector[] = [
     expectedAllowed: false,
   },
 ];
+
+export interface OverlaySessionTestVector {
+  description: string;
+  operation: 'get' | 'list' | 'create' | 'update' | 'delete';
+  authUid: string | null;
+  sessionKey: string;
+  payload?: Record<string, unknown>;
+  expectedAllowed: boolean;
+}
+
+export const OVERLAY_SESSION_RULE_TESTS: OverlaySessionTestVector[] = [
+  {
+    description: 'Studio CEF browser can read exact valid overlay session document by key',
+    operation: 'get',
+    authUid: null,
+    sessionKey: 'destackint__ch_m1abc_x9k2p1',
+    expectedAllowed: true,
+  },
+  {
+    description: 'Collection list scraping on overlaySessions is denied',
+    operation: 'list',
+    authUid: null,
+    sessionKey: 'destackint__ch_m1abc_x9k2p1',
+    expectedAllowed: false,
+  },
+  {
+    description: 'Host can create valid native map snapshot for overlay session',
+    operation: 'create',
+    authUid: null,
+    sessionKey: 'destackint__ch_m1abc_x9k2p1',
+    payload: {
+      gameId: 'destackint',
+      channel: 'ch_m1abc_x9k2p1',
+      streamer: 'mrdimpz',
+      hostSessionId: 'host_m1abc_z9q1',
+      seq: 1,
+      stateHash: '128:1a2b3c_4d5e6f',
+      state: { puzzleRoundNonce: 1, scoreboard: [] },
+    },
+    expectedAllowed: true,
+  },
+  {
+    description: 'Rejects shadow ghost field (isVerified) in overlay session payload',
+    operation: 'create',
+    authUid: null,
+    sessionKey: 'destackint__ch_m1abc_x9k2p1',
+    payload: {
+      gameId: 'destackint',
+      channel: 'ch_m1abc_x9k2p1',
+      streamer: 'mrdimpz',
+      hostSessionId: 'host_m1abc_z9q1',
+      seq: 1,
+      stateHash: '128:1a2b3c_4d5e6f',
+      state: { puzzleRoundNonce: 1 },
+      isVerified: true,
+    },
+    expectedAllowed: false,
+  },
+  {
+    description: 'Rejects JSON string instead of native Map for state',
+    operation: 'create',
+    authUid: null,
+    sessionKey: 'destackint__ch_m1abc_x9k2p1',
+    payload: {
+      gameId: 'destackint',
+      channel: 'ch_m1abc_x9k2p1',
+      streamer: 'mrdimpz',
+      hostSessionId: 'host_m1abc_z9q1',
+      seq: 1,
+      stateHash: '128:1a2b3c_4d5e6f',
+      state: '{"bad":true}',
+    },
+    expectedAllowed: false,
+  },
+  {
+    description: 'Rejects invalid document ID path poisoning',
+    operation: 'create',
+    authUid: null,
+    sessionKey: 'destackint..$bad!',
+    expectedAllowed: false,
+  },
+];
+

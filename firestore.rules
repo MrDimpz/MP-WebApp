@@ -110,6 +110,29 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidOverlaySyncShape(data) {
+      let keys = [
+        'gameId',
+        'channel',
+        'streamer',
+        'hostSessionId',
+        'seq',
+        'stateHash',
+        'state',
+        'updatedAt'
+      ];
+      return data.keys().hasAll(keys)
+        && data.keys().hasOnly(keys)
+        && data.gameId is string && data.gameId in ['crowdle', 'destackint', 'mpsearchint', 'squaredint', 'wikicon', 'wikirec', 'lexi']
+        && data.channel is string && data.channel.size() <= 64 && data.channel.matches('^[a-z0-9_-]*$')
+        && data.streamer is string && data.streamer.size() <= 80 && data.streamer.matches('^[a-z0-9_.-]*$')
+        && data.hostSessionId is string && data.hostSessionId.size() >= 1 && data.hostSessionId.size() <= 64 && data.hostSessionId.matches('^[a-zA-Z0-9_-]+$')
+        && data.seq is int && data.seq >= 1 && data.seq <= 100000000
+        && data.stateHash is string && data.stateHash.size() >= 1 && data.stateHash.size() <= 64 && data.stateHash.matches('^[a-zA-Z0-9:_-]+$')
+        && data.state is map && data.state.keys().size() >= 1 && data.state.keys().size() <= 100
+        && data.updatedAt is timestamp;
+    }
+
     // Unified Solo Games Leaderboard (publicly readable by visitors; contains no PII)
     match /leaderboard/{entryId} {
       allow get: if true;
@@ -184,6 +207,33 @@ service cloud.firestore {
 
       allow delete: if isSignedIn()
         && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // Real-time TikTok LIVE Studio Browser Source Overlay Sync (no PII; exact-key get only, list disabled)
+    match /overlaySessions/{sessionKey} {
+      allow get: if isValidDocId(sessionKey);
+      allow list: if false;
+
+      allow create: if isValidDocId(sessionKey)
+        && isValidOverlaySyncShape(incoming())
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidDocId(sessionKey)
+        && isValidOverlaySyncShape(incoming())
+        && incoming().gameId == existing().gameId
+        && (incoming().hostSessionId != existing().hostSessionId || incoming().seq >= existing().seq)
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'channel',
+          'streamer',
+          'hostSessionId',
+          'seq',
+          'stateHash',
+          'state',
+          'updatedAt'
+        ])
+        && incoming().updatedAt == request.time;
+
+      allow delete: if isAdmin();
     }
   }
 }

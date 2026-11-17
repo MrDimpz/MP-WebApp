@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import {
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+} from 'firebase/firestore';
+import { auth, db } from '@/firebase';
 
 export type OverlayBackgroundMode = 'transparent' | 'dark';
 
@@ -10,7 +18,85 @@ export interface OverlayConfig {
   channel: string;
 }
 
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+function handleFirestoreError(
+  error: unknown,
+  operationType: OperationType,
+  path: string | null
+): never {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo:
+        auth.currentUser?.providerData?.map((provider) => ({
+          providerId: provider.providerId,
+          email: provider.email,
+        })) || [],
+    },
+    operationType,
+    path,
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+function isFirestorePermissionError(err: unknown): boolean {
+  const msg =
+    err instanceof Error ? err.message : typeof err === 'string' ? err : '';
+  const code =
+    err && typeof err === 'object' && 'code' in err
+      ? String((err as { code?: unknown }).code || '')
+      : '';
+  return (
+    code === 'permission-denied' ||
+    msg.includes('Missing or insufficient permissions') ||
+    msg.includes('permission-denied')
+  );
+}
+
 const OVERLAY_CHANNEL_STORAGE_KEY = 'mp_overlay_channel_v1';
+const OVERLAY_FIRESTORE_COLLECTION = 'overlaySessions';
+const ALLOWED_FIRESTORE_GAMES = new Set([
+  'crowdle',
+  'destackint',
+  'mpsearchint',
+  'squaredint',
+  'wikicon',
+  'wikirec',
+  'lexi',
+]);
+const MAX_FIRESTORE_STATE_BYTES = 750_000;
+
 let inMemoryFallbackChannel = '';
 
 function sanitizeChannelToken(raw: unknown): string {
@@ -26,7 +112,93 @@ function sanitizeStreamerHandle(raw: unknown): string {
     .trim()
     .replace(/^@+/, '')
     .toLowerCase()
+    .replace(/[^a-z0-9_.-]/g, '')
     .slice(0, 80);
+}
+
+function toFirestoreSafeDocSegment(raw: string): string {
+  return raw
+    .replace(/\./g, '_dot_')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .slice(0, 80);
+}
+
+function buildOverlayFirestoreDocIds(
+  gameId: string,
+  streamer: string,
+  channel: string
+): string[] {
+  const cleanGame = String(gameId || '').trim().toLowerCase();
+  if (!ALLOWED_FIRESTORE_GAMES.has(cleanGame)) return [];
+  const ids: string[] = [];
+  if (channel) {
+    const chId = `${cleanGame}__ch_${toFirestoreSafeDocSegment(channel)}`.slice(0, 128);
+    if (/^[a-zA-Z0-9_-]{1,128}$/.test(chId)) {
+      ids.push(chId);
+    }
+  }
+  if (streamer) {
+    const sId = `${cleanGame}__s_${toFirestoreSafeDocSegment(streamer)}`.slice(0, 128);
+    if (/^[a-zA-Z0-9_-]{1,128}$/.test(sId) && !ids.includes(sId)) {
+      ids.push(sId);
+    }
+  }
+  if (ids.length === 0) {
+    ids.push(`${cleanGame}__default`);
+  }
+  return ids;
+}
+
+/**
+ * Converts plain JS objects/arrays into Firestore-native Maps and Lists:
+ * - Strips undefined / function / symbol fields
+ * - Converts non-finite numbers to null
+ * - Wraps nested arrays (`Array<Array<...>>`) in `{ __fsArr: [...] }` so Firestore never rejects 2D boards/pairs
+ */
+function toFirestoreSafeValue(val: unknown, insideArray = false): unknown {
+  if (val === null || typeof val === 'boolean' || typeof val === 'string') {
+    return val;
+  }
+  if (typeof val === 'number') {
+    return Number.isFinite(val) ? val : null;
+  }
+  if (val === undefined || typeof val === 'function' || typeof val === 'symbol') {
+    return null;
+  }
+  if (Array.isArray(val)) {
+    const mapped = val.map((item) => toFirestoreSafeValue(item, true));
+    return insideArray ? { __fsArr: mapped } : mapped;
+  }
+  if (typeof val === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+      if (v === undefined || typeof v === 'function' || typeof v === 'symbol') {
+        continue;
+      }
+      out[k] = toFirestoreSafeValue(v, false);
+    }
+    return out;
+  }
+  return String(val);
+}
+
+function fromFirestoreSafeValue(val: unknown): unknown {
+  if (Array.isArray(val)) {
+    return val.map((item) => fromFirestoreSafeValue(item));
+  }
+  if (val && typeof val === 'object') {
+    const rec = val as Record<string, unknown>;
+    const keys = Object.keys(rec);
+    if (keys.length === 1 && keys[0] === '__fsArr' && Array.isArray(rec.__fsArr)) {
+      return rec.__fsArr.map((item) => fromFirestoreSafeValue(item));
+    }
+    const out: Record<string, unknown> = {};
+    for (const k of keys) {
+      out[k] = fromFirestoreSafeValue(rec[k]);
+    }
+    return out;
+  }
+  return val;
 }
 
 export function getOrCreateHostOverlayChannel(): string {
@@ -96,12 +268,28 @@ export function useOverlayConfig(): OverlayConfig {
   return config;
 }
 
+export function isAiStudioDevHost(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.location.hostname.startsWith('ais-dev-');
+}
+
 export function buildLiveOverlayUrl(
   gameSlug: string,
   streamerHandle?: string | null,
-  bg: OverlayBackgroundMode = 'transparent'
+  bg: OverlayBackgroundMode = 'transparent',
+  options?: { preferPublicOrigin?: boolean }
 ): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  let origin = '';
+  if (typeof window !== 'undefined') {
+    if (options?.preferPublicOrigin && window.location.hostname.startsWith('ais-dev-')) {
+      const publicHostname = window.location.hostname.replace(/^ais-dev-/, 'ais-pre-');
+      origin = `${window.location.protocol}//${publicHostname}${
+        window.location.port ? `:${window.location.port}` : ''
+      }`;
+    } else {
+      origin = window.location.origin;
+    }
+  }
   const params = new URLSearchParams();
   params.set('bg', bg);
   const channel = getOrCreateHostOverlayChannel();
@@ -153,11 +341,11 @@ interface OverlaySyncPacket<T> {
 }
 
 /**
- * Syncs live host game state to TikTok LIVE Studio Browser Source overlays with minimal CPU/memory overhead:
- * 1) Same-origin BroadcastChannel (zero serialization overhead for same-browser Preview Overlay)
- * 2) Throttled/deferred localStorage snapshot (for initial mount hydration without blocking input/frames)
- * 3) Primary Socket.IO overlay room relay (real-time push into TikTok LIVE Studio CEF)
- * 4) Version-checked HTTP REST /api/overlay/state fallback (short-circuits with ~70B when unchanged)
+ * Syncs live host game state to TikTok LIVE Studio Browser Source overlays across same-origin AND cross-origin environments:
+ * 1) Same-origin BroadcastChannel & deferred localStorage (instant preview tabs)
+ * 2) Socket.IO overlay room relay (real-time push on same origin/instance)
+ * 3) Version-checked HTTP REST /api/overlay/state fallback
+ * 4) Firebase Firestore real-time onSnapshot relay (`overlaySessions/{sessionKey}`) for cross-origin / multi-instance Cloud Run sync
  */
 export function useOverlaySync<T>({
   gameId,
@@ -169,6 +357,7 @@ export function useOverlaySync<T>({
 }: UseOverlaySyncOptions<T>): { isReceivingHostSync: boolean } {
   const [isReceivingHostSync, setIsReceivingHostSync] = useState(false);
   const hasReceivingSyncRef = useRef<boolean>(false);
+  const cleanGameId = String(gameId || '').trim().toLowerCase();
   const cleanStreamer = sanitizeStreamerHandle(streamer);
 
   const locationChannel =
@@ -195,6 +384,7 @@ export function useOverlaySync<T>({
   const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const httpTrailingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const localStorageTrailingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firestoreTrailingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const lastTransmittedJsonRef = useRef<string>('');
   const lastTransmittedHashRef = useRef<string>('');
@@ -208,16 +398,24 @@ export function useOverlaySync<T>({
 
   const lastHttpPostAtRef = useRef<number>(0);
   const lastLocalStorageAtRef = useRef<number>(0);
+  const lastFirestoreWriteAtRef = useRef<number>(0);
+  const lastFirestoreSuccessAtRef = useRef<number>(0);
+  const lastFirestoreSentHashRef = useRef<string>('');
   const hostSessionIdRef = useRef<string>(
     `host_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
   );
   const seqRef = useRef<number>(0);
 
-  // Coalesced single-flight HTTP POST state so bursts never exhaust Chromium keepalive/socket limits
+  // Coalesced single-flight HTTP & Firestore write state
   const postInFlightRef = useRef<boolean>(false);
   const postStartedAtRef = useRef<number>(0);
   const queuedPostBodyRef = useRef<{ body: string; seq: number } | null>(null);
   const lastHttpConfirmedSeqRef = useRef<number>(0);
+
+  const fsInFlightRef = useRef<boolean>(false);
+  const fsStartedAtRef = useRef<number>(0);
+  const fsQueuedPacketRef = useRef<OverlaySyncPacket<T> | null>(null);
+
   const isMountedRef = useRef<boolean>(true);
 
   const lastRemoteMetaRef = useRef<{
@@ -226,12 +424,176 @@ export function useOverlaySync<T>({
     serverVersion: number;
     bootId: string;
     stateHash: string;
+    channel: string;
+    updatedAt: number;
     hasDelivered: boolean;
     source: 'local' | 'network';
   } | null>(null);
 
   const roomScope = resolvedChannel || cleanStreamer || 'default';
-  const storageKey = `mp_overlay_snap_${gameId}_${roomScope}`;
+  const storageKey = `mp_overlay_snap_${cleanGameId}_${roomScope}`;
+
+  const flushFirestoreWrite = (packet: OverlaySyncPacket<T>) => {
+    if (isOverlay || !isMountedRef.current || !packet || packet.state === undefined) {
+      return;
+    }
+    if (!ALLOWED_FIRESTORE_GAMES.has(cleanGameId)) return;
+
+    const docIds = buildOverlayFirestoreDocIds(
+      cleanGameId,
+      cleanStreamer,
+      resolvedChannel
+    );
+    if (docIds.length === 0) return;
+
+    const now = Date.now();
+    if (fsInFlightRef.current && now - fsStartedAtRef.current < 5000) {
+      fsQueuedPacketRef.current = packet;
+      return;
+    }
+
+    const sendNextFirestore = (pktToSend: OverlaySyncPacket<T>) => {
+      if (!isMountedRef.current || isOverlay || pktToSend.state === undefined) {
+        fsInFlightRef.current = false;
+        return;
+      }
+      const pktHash = (pktToSend.stateHash || '').slice(0, 64);
+      if (
+        pktHash &&
+        pktHash === lastFirestoreSentHashRef.current &&
+        lastFirestoreSuccessAtRef.current > 0
+      ) {
+        fsInFlightRef.current = false;
+        return;
+      }
+
+      const safeState = toFirestoreSafeValue(pktToSend.state, false);
+      if (
+        !safeState ||
+        typeof safeState !== 'object' ||
+        Array.isArray(safeState)
+      ) {
+        fsInFlightRef.current = false;
+        return;
+      }
+      const topKeys = Object.keys(safeState as Record<string, unknown>);
+      if (topKeys.length === 0 || topKeys.length > 100) {
+        fsInFlightRef.current = false;
+        return;
+      }
+      let safeJsonSize = 0;
+      try {
+        safeJsonSize = JSON.stringify(safeState).length;
+      } catch {
+        fsInFlightRef.current = false;
+        return;
+      }
+      if (safeJsonSize <= 0 || safeJsonSize > MAX_FIRESTORE_STATE_BYTES) {
+        fsInFlightRef.current = false;
+        return;
+      }
+
+      const safeSeq = Math.max(
+        1,
+        Math.min(100_000_000, Math.floor(Number(pktToSend.seq) || 1))
+      );
+      const safeHostSessionId = String(
+        pktToSend.hostSessionId || hostSessionIdRef.current
+      )
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .slice(0, 64);
+
+      const fsPayload = {
+        gameId: cleanGameId,
+        channel: resolvedChannel,
+        streamer: cleanStreamer.slice(0, 80),
+        hostSessionId: safeHostSessionId || 'host_default',
+        seq: safeSeq,
+        stateHash: pktHash || `${safeJsonSize}:0_0`,
+        state: safeState,
+        updatedAt: serverTimestamp(),
+      };
+
+      fsInFlightRef.current = true;
+      fsStartedAtRef.current = Date.now();
+      lastFirestoreWriteAtRef.current = fsStartedAtRef.current;
+
+      Promise.all(
+        docIds.map((id) =>
+          setDoc(doc(db, OVERLAY_FIRESTORE_COLLECTION, id), fsPayload).catch(
+            (err) => {
+              if (isFirestorePermissionError(err)) {
+                handleFirestoreError(
+                  err,
+                  OperationType.WRITE,
+                  `${OVERLAY_FIRESTORE_COLLECTION}/${id}`
+                );
+              }
+              throw err;
+            }
+          )
+        )
+      )
+        .then(() => {
+          lastFirestoreSuccessAtRef.current = Date.now();
+          if (pktHash) {
+            lastFirestoreSentHashRef.current = pktHash;
+          }
+        })
+        .catch(() => {
+          // Non-permission transient network errors retried on next change/heartbeat
+        })
+        .finally(() => {
+          fsInFlightRef.current = false;
+          const queued = fsQueuedPacketRef.current;
+          fsQueuedPacketRef.current = null;
+          if (queued && isMountedRef.current && !isOverlay) {
+            sendNextFirestore(queued);
+          }
+        });
+    };
+
+    sendNextFirestore(packet);
+  };
+
+  const scheduleFirestorePush = (packet: OverlaySyncPacket<T>, forceNow = false) => {
+    if (isOverlay || !isMountedRef.current) return;
+    if (!ALLOWED_FIRESTORE_GAMES.has(cleanGameId)) return;
+
+    const pktHash = packet.stateHash || '';
+    if (
+      pktHash &&
+      pktHash === lastFirestoreSentHashRef.current &&
+      lastFirestoreSuccessAtRef.current > 0
+    ) {
+      return;
+    }
+
+    const nowMs = Date.now();
+    const minIntervalMs = 750;
+    if (
+      forceNow ||
+      lastFirestoreWriteAtRef.current === 0 ||
+      nowMs - lastFirestoreWriteAtRef.current >= minIntervalMs
+    ) {
+      if (firestoreTrailingTimerRef.current) {
+        clearTimeout(firestoreTrailingTimerRef.current);
+        firestoreTrailingTimerRef.current = null;
+      }
+      flushFirestoreWrite(packet);
+    } else if (!firestoreTrailingTimerRef.current) {
+      const waitMs = Math.max(
+        250,
+        minIntervalMs - (nowMs - lastFirestoreWriteAtRef.current) + 50
+      );
+      firestoreTrailingTimerRef.current = setTimeout(() => {
+        firestoreTrailingTimerRef.current = null;
+        if (lastPacketRef.current && isMountedRef.current && !isOverlay) {
+          flushFirestoreWrite(lastPacketRef.current);
+        }
+      }, waitMs);
+    }
+  };
 
   const flushHttpPost = (serializedBody: string, packetSeq = 0) => {
     if (isOverlay || !isMountedRef.current || !serializedBody) return;
@@ -317,7 +679,7 @@ export function useOverlaySync<T>({
   ) => {
     const headerJson = JSON.stringify({
       type: 'state-sync',
-      gameId,
+      gameId: cleanGameId,
       streamer: cleanStreamer,
       channel: resolvedChannel,
       hostSessionId: hostSessionIdRef.current,
@@ -338,12 +700,15 @@ export function useOverlaySync<T>({
     lastSerializedPacketRef.current = '';
     lastHttpPostAtRef.current = 0;
     lastLocalStorageAtRef.current = 0;
+    lastFirestoreWriteAtRef.current = 0;
+    lastFirestoreSuccessAtRef.current = 0;
+    lastFirestoreSentHashRef.current = '';
     lastHttpConfirmedSeqRef.current = 0;
     if (isOverlay) {
       lastRemoteMetaRef.current = null;
     }
 
-    const bcName = `mp_overlay_${gameId}`;
+    const bcName = `mp_overlay_${cleanGameId}`;
     let bc: BroadcastChannel | null = null;
     if (typeof BroadcastChannel !== 'undefined') {
       try {
@@ -361,7 +726,7 @@ export function useOverlaySync<T>({
       reconnectionAttempts: Infinity,
       reconnectionDelay: 800,
       reconnectionDelayMax: 4000,
-      query: { gameId: `${gameId}-overlay` },
+      query: { gameId: `${cleanGameId}-overlay` },
     });
     socketRef.current = socket;
 
@@ -381,7 +746,7 @@ export function useOverlaySync<T>({
       const updatedAt = Date.now();
       const packet: OverlaySyncPacket<T> = {
         type: 'state-sync',
-        gameId,
+        gameId: cleanGameId,
         streamer: cleanStreamer,
         channel: resolvedChannel,
         state: stateObj,
@@ -483,6 +848,9 @@ export function useOverlaySync<T>({
           }
           flushHttpPost(serialized, pktSeq);
         }
+
+        // Cross-origin Firestore sync (immediately if first write or idle, coalesced otherwise)
+        scheduleFirestorePush(packet, lastFirestoreSuccessAtRef.current === 0);
       }
     };
 
@@ -522,6 +890,11 @@ export function useOverlaySync<T>({
           : prevBootId;
       const sameBoot = !prevBootId || !pktBootId || pktBootId === prevBootId;
       const pktHash = typeof packet.stateHash === 'string' ? packet.stateHash : '';
+      const pktChannel = sanitizeChannelToken(packet.channel);
+      const pktUpdatedAt =
+        typeof packet.updatedAt === 'number' && Number.isFinite(packet.updatedAt)
+          ? packet.updatedAt
+          : 0;
 
       if (prev) {
         if (pktSession && pktSession === prev.hostSessionId) {
@@ -536,12 +909,28 @@ export function useOverlaySync<T>({
             }
             return;
           }
-        } else if (
-          source === 'local' &&
-          prev.source === 'network' &&
-          !pktSession
-        ) {
-          return;
+        } else {
+          if (source === 'local' && prev.source === 'network' && !pktSession) {
+            return;
+          }
+          // When resolvedChannel is paired, reject older packets arriving from a stale streamer fallback doc
+          if (
+            resolvedChannel &&
+            prev.channel === resolvedChannel &&
+            pktChannel !== resolvedChannel &&
+            prev.updatedAt > 0 &&
+            (pktUpdatedAt === 0 || pktUpdatedAt <= prev.updatedAt + 2000)
+          ) {
+            return;
+          }
+          // Protect live session from noticeably older cross-session Firestore/cache snapshots
+          if (
+            pktUpdatedAt > 0 &&
+            prev.updatedAt > 0 &&
+            pktUpdatedAt + 2000 < prev.updatedAt
+          ) {
+            return;
+          }
         }
 
         // Skip React re-renders if an on-demand resend or reconnect delivers identical state bytes
@@ -560,6 +949,8 @@ export function useOverlaySync<T>({
             serverVersion: nextServerVer,
             bootId: pktBootId,
             stateHash: pktHash,
+            channel: pktChannel || prev.channel,
+            updatedAt: Math.max(prev.updatedAt, pktUpdatedAt),
             hasDelivered: true,
             source,
           };
@@ -580,6 +971,8 @@ export function useOverlaySync<T>({
         serverVersion: resolvedServerVer,
         bootId: pktBootId,
         stateHash: pktHash,
+        channel: pktChannel || prev?.channel || '',
+        updatedAt: pktUpdatedAt || Date.now(),
         hasDelivered: true,
         source,
       };
@@ -619,7 +1012,7 @@ export function useOverlaySync<T>({
       const joinOverlayRoom = () => {
         if (socket.connected) {
           socket.emit('join-overlay', {
-            gameId,
+            gameId: cleanGameId,
             streamer: cleanStreamer,
             channel: resolvedChannel,
           });
@@ -627,7 +1020,69 @@ export function useOverlaySync<T>({
       };
       joinOverlayRoom();
 
-      // 5) Version-checked HTTP /api/overlay/state fallback polling for TikTok LIVE Studio CEF
+      // 4) Firebase Firestore real-time overlay subscription (bridges ais-dev <-> ais-pre <-> Hostinger <-> Cloud Run instances)
+      const firestoreUnsubs: Array<() => void> = [];
+      const fsDocIds = buildOverlayFirestoreDocIds(
+        cleanGameId,
+        cleanStreamer,
+        resolvedChannel
+      );
+      for (const fsDocId of fsDocIds) {
+        const fsDocPath = `${OVERLAY_FIRESTORE_COLLECTION}/${fsDocId}`;
+        try {
+          const unsub = onSnapshot(
+            doc(db, OVERLAY_FIRESTORE_COLLECTION, fsDocId),
+            (snap) => {
+              if (!isMountedRef.current || !snap.exists()) return;
+              const data = snap.data() as Record<string, unknown> | undefined;
+              if (!data || data.gameId !== cleanGameId || !data.state) return;
+
+              const rawUpdated = data.updatedAt;
+              let updatedAtMs = Date.now();
+              if (rawUpdated instanceof Timestamp) {
+                updatedAtMs = rawUpdated.toMillis();
+              } else if (
+                rawUpdated &&
+                typeof (rawUpdated as { toMillis?: () => number }).toMillis === 'function'
+              ) {
+                updatedAtMs = (rawUpdated as { toMillis: () => number }).toMillis();
+              } else if (typeof rawUpdated === 'number') {
+                updatedAtMs = rawUpdated;
+              }
+
+              const unwrappedState = fromFirestoreSafeValue(data.state) as T;
+              acceptRemotePacket(
+                {
+                  type: 'state-sync',
+                  gameId: String(data.gameId || cleanGameId),
+                  channel: typeof data.channel === 'string' ? data.channel : '',
+                  streamer: typeof data.streamer === 'string' ? data.streamer : '',
+                  hostSessionId:
+                    typeof data.hostSessionId === 'string' ? data.hostSessionId : '',
+                  seq: typeof data.seq === 'number' ? data.seq : 0,
+                  stateHash:
+                    typeof data.stateHash === 'string' ? data.stateHash : '',
+                  state: unwrappedState,
+                  updatedAt: updatedAtMs,
+                },
+                'network'
+              );
+            },
+            (err) => {
+              if (isFirestorePermissionError(err)) {
+                handleFirestoreError(err, OperationType.GET, fsDocPath);
+              }
+            }
+          );
+          firestoreUnsubs.push(unsub);
+        } catch (err) {
+          if (isFirestorePermissionError(err)) {
+            handleFirestoreError(err, OperationType.GET, fsDocPath);
+          }
+        }
+      }
+
+      // 5) Version-checked HTTP /api/overlay/state fallback polling for same-origin REST
       let isCancelled = false;
       let pollInFlight = false;
       let pollStartedAt = 0;
@@ -646,7 +1101,7 @@ export function useOverlaySync<T>({
           : null;
         try {
           const qs = new URLSearchParams({
-            gameId,
+            gameId: cleanGameId,
             _t: String(now),
           });
           if (resolvedChannel) qs.set('channel', resolvedChannel);
@@ -708,7 +1163,7 @@ export function useOverlaySync<T>({
         acceptRemotePacket(packet, 'network');
       });
 
-      // 4) BroadcastChannel subscription (same-browser preview tabs)
+      // BroadcastChannel subscription (same-browser preview tabs)
       if (bc) {
         bc.onmessage = (ev) => {
           const msg = ev.data;
@@ -734,7 +1189,6 @@ export function useOverlaySync<T>({
             socket.connect();
           }
         } else {
-          // Lightweight version-checked HTTP poll (~900ms) guarantees Studio CEF updates even if WS frames stall
           if (tickCount % 2 === 0) {
             void pollHttpSnapshot();
           }
@@ -758,6 +1212,11 @@ export function useOverlaySync<T>({
         isCancelled = true;
         isMountedRef.current = false;
         clearInterval(pollTimer);
+        for (const unsub of firestoreUnsubs) {
+          try {
+            unsub();
+          } catch {}
+        }
         if (typeof window !== 'undefined') {
           window.removeEventListener('storage', handleStorage);
           window.removeEventListener('focus', handleOverlayFocusOrWake);
@@ -776,7 +1235,7 @@ export function useOverlaySync<T>({
       const announceAndPushHostState = (reuseCached = false) => {
         if (socket.connected) {
           socket.emit('register-overlay-host', {
-            gameId,
+            gameId: cleanGameId,
             streamer: cleanStreamer,
             channel: resolvedChannel,
             hostSessionId: hostSessionIdRef.current,
@@ -795,7 +1254,7 @@ export function useOverlaySync<T>({
       socket.on(
         'overlay-request-state',
         (req: { gameId?: string; streamer?: string; channel?: string }) => {
-          if (req?.gameId && req.gameId !== gameId) return;
+          if (req?.gameId && req.gameId !== cleanGameId) return;
           const reqCh = sanitizeChannelToken(req?.channel);
           const reqStr = sanitizeStreamerHandle(req?.streamer);
           if (reqCh && resolvedChannel && reqCh !== resolvedChannel) return;
@@ -809,7 +1268,6 @@ export function useOverlaySync<T>({
           if (ev.data?.type === 'request-state' && localStateRef.current !== null) {
             const reqCh = sanitizeChannelToken(ev.data?.channel);
             if (reqCh && resolvedChannel && reqCh !== resolvedChannel) return;
-            // Send directly over BroadcastChannel using cached packet without bumping seq
             if (lastPacketRef.current) {
               try {
                 bc.postMessage(lastPacketRef.current);
@@ -821,12 +1279,13 @@ export function useOverlaySync<T>({
         };
       }
 
-      // Keepalive: ensure dropped sockets reconnect, confirm latest seq via HTTP, and reinforce room membership
+      // Keepalive: ensure dropped sockets reconnect, confirm HTTP & Firestore latest snapshot
       let beatCount = 0;
       const hostHeartbeat = setInterval(() => {
         beatCount += 1;
         if (localStateRef.current === null) return;
-        const latestSeq = lastPacketRef.current?.seq || 0;
+        const latestPacket = lastPacketRef.current;
+        const latestSeq = latestPacket?.seq || 0;
         if (socket.disconnected && !socket.active) {
           socket.connect();
         }
@@ -836,9 +1295,16 @@ export function useOverlaySync<T>({
         ) {
           flushHttpPost(lastSerializedPacketRef.current, latestSeq);
         }
+        if (
+          latestPacket &&
+          latestPacket.stateHash &&
+          latestPacket.stateHash !== lastFirestoreSentHashRef.current
+        ) {
+          scheduleFirestorePush(latestPacket, false);
+        }
         if (socket.connected && beatCount % 3 === 0) {
           socket.emit('register-overlay-host', {
-            gameId,
+            gameId: cleanGameId,
             streamer: cleanStreamer,
             channel: resolvedChannel,
             hostSessionId: hostSessionIdRef.current,
@@ -859,6 +1325,9 @@ export function useOverlaySync<T>({
             lastSerializedPacketRef.current,
             lastPacketRef.current?.seq || 0
           );
+        }
+        if (lastPacketRef.current) {
+          flushFirestoreWrite(lastPacketRef.current);
         }
       };
       if (typeof window !== 'undefined') {
@@ -882,8 +1351,14 @@ export function useOverlaySync<T>({
           clearTimeout(localStorageTrailingTimerRef.current);
           localStorageTrailingTimerRef.current = null;
         }
+        if (firestoreTrailingTimerRef.current) {
+          clearTimeout(firestoreTrailingTimerRef.current);
+          firestoreTrailingTimerRef.current = null;
+        }
         queuedPostBodyRef.current = null;
         postInFlightRef.current = false;
+        fsQueuedPacketRef.current = null;
+        fsInFlightRef.current = false;
         if (typeof window !== 'undefined') {
           window.removeEventListener('focus', handleHostWake);
           window.removeEventListener('pagehide', handleHostHide);
@@ -891,7 +1366,7 @@ export function useOverlaySync<T>({
         }
         if (socket.connected) {
           socket.emit('overlay-host-leave', {
-            gameId,
+            gameId: cleanGameId,
             streamer: cleanStreamer,
             channel: resolvedChannel,
             hostSessionId: hostSessionIdRef.current,
@@ -907,9 +1382,9 @@ export function useOverlaySync<T>({
         socketRef.current = null;
       };
     }
-  }, [gameId, cleanStreamer, resolvedChannel, isOverlay, storageKey]);
+  }, [cleanGameId, cleanStreamer, resolvedChannel, isOverlay, storageKey]);
 
-  // Host emits state updates cleanly (single pass JSON stringify, coalesced at 120ms, zero redundant 350ms duplicate emit)
+  // Host emits state updates cleanly (single pass JSON stringify, coalesced at 120ms)
   useEffect(() => {
     if (isOverlay || localState === null) return;
 
@@ -949,7 +1424,7 @@ export function useOverlaySync<T>({
       const updatedAt = Date.now();
       const packet: OverlaySyncPacket<T> = {
         type: 'state-sync',
-        gameId,
+        gameId: cleanGameId,
         streamer: cleanStreamer,
         channel: resolvedChannel,
         state: stateToSend,
@@ -1026,6 +1501,9 @@ export function useOverlaySync<T>({
         }
         flushHttpPost(serialized, seq);
       }
+
+      // Cross-origin Firestore sync (runs cleanly across ais-dev, ais-pre, Hostinger, and multi-instance containers)
+      scheduleFirestorePush(packet, lastFirestoreSuccessAtRef.current === 0);
     };
 
     const elapsed = performance.now() - lastEmitAtRef.current;
@@ -1039,7 +1517,7 @@ export function useOverlaySync<T>({
       if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
       pendingTimerRef.current = setTimeout(transmitLatestSnapshot, 125 - elapsed);
     }
-  }, [isOverlay, localState, gameId, cleanStreamer, resolvedChannel, storageKey]);
+  }, [isOverlay, localState, cleanGameId, cleanStreamer, resolvedChannel, storageKey]);
 
   return { isReceivingHostSync };
 }
