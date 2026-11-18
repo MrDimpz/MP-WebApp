@@ -10,6 +10,7 @@ export function Hero() {
           <video
             className="hero-bg-video"
             src="/hero-video.mp4"
+            poster="/hero-image.webp"
             autoPlay
             muted
             loop
@@ -42,11 +43,17 @@ export function Hero() {
       </div>
       <div className="hero-media">
         <span className="vertical-label">BUILT AROUND PLAY</span>
-        <img
-          src={heroImage}
-          alt="Gold game controller and puzzle pieces on a purple background"
-          fetchPriority="high"
-        />
+        <picture>
+          <source srcSet="/hero-image.webp" type="image/webp" />
+          <img
+            src={heroImage}
+            width={1472}
+            height={640}
+            decoding="async"
+            alt="Gold game controller and puzzle pieces on a purple background"
+            fetchPriority="high"
+          />
+        </picture>
         <span className="media-sticker">
           Good content
           <br />

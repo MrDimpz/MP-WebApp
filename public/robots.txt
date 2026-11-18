@@ -1,0 +1,43 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /socket.io/
+
+# OpenAI crawlers
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+
+# Anthropic / Claude crawlers
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /api/
+
+# Perplexity & Google AI crawlers
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://missingpiecepuzzles.fun/sitemap.xml

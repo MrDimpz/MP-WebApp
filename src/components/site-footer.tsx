@@ -51,11 +51,18 @@ export function SiteFooter() {
       <footer className="site-footer">
         <div className="footer-main">
           <Link to="/" className="brand" aria-label="The Missing Piece home">
-            <img
-              className="brand-logo"
-              src="/brand-logo.png"
-              alt="The Missing Piece — Find your space"
-            />
+            <picture>
+              <source srcSet="/brand-logo.webp" type="image/webp" />
+              <img
+                className="brand-logo"
+                src="/brand-logo.png"
+                width={76}
+                height={76}
+                loading="lazy"
+                decoding="async"
+                alt="The Missing Piece — Find your space"
+              />
+            </picture>
             <span className="brand-name">
               THE MISSING
               <br />
