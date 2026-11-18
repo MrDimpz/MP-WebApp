@@ -1,0 +1,247 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <clipPath id="mpDiffClip">
+      <rect x="0" y="0" width="1200" height="720" rx="16" />
+    </clipPath>
+    <linearGradient id="mpDiffBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b0d47" />
+      <stop offset="50%" stop-color="#4a1259" />
+      <stop offset="100%" stop-color="#22072b" />
+    </linearGradient>
+    <linearGradient id="mpDiffGoldBtn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="plateSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1E3A54" />
+      <stop offset="100%" stop-color="#8EB5C9" />
+    </linearGradient>
+    <filter id="mpDiffShadow" x="-10%" y="-10%" width="120%" height="124%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#0d0212" flood-opacity="0.55" />
+    </filter>
+    <clipPath id="loupeGlass">
+      <circle cx="348" cy="196" r="56" />
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#mpDiffClip)">
+    <!-- Royal Purple Canvas Background -->
+    <rect x="0" y="0" width="1200" height="720" fill="url(#mpDiffBg)" />
+
+    <!-- Browser Top Bar -->
+    <rect x="0" y="0" width="1200" height="40" fill="#12021a" />
+    <circle cx="24" cy="20" r="6" fill="#ff5f56" />
+    <circle cx="44" cy="20" r="6" fill="#ffbd2e" />
+    <circle cx="64" cy="20" r="6" fill="#27c93f" />
+    <rect x="330" y="7" width="540" height="26" rx="6" fill="#230730" stroke="#4c1d6e" stroke-width="1" />
+    <text x="600" y="24" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">themissingpiece.fun/solo-games/mpdifference</text>
+
+    <!-- MP Difference Header Bar -->
+    <rect x="0" y="40" width="1200" height="58" fill="#1a0624" stroke="#581c6b" stroke-opacity="0.6" stroke-width="1" />
+    <rect x="24" y="54" width="96" height="30" rx="10" fill="#310d42" stroke="#6b21a8" stroke-width="1" />
+    <text x="72" y="73" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">← Solo Games</text>
+
+    <circle cx="146" cy="69" r="17" fill="#3b0d47" stroke="#fbbf24" stroke-width="2" />
+    <text x="146" y="74" text-anchor="middle" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">10</text>
+    <text x="172" y="66" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="18" font-weight="900">MP <tspan fill="#fbbf24">Difference</tspan></text>
+    <text x="172" y="80" fill="#fcd34d" fill-opacity="0.85" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8.5" font-weight="700" letter-spacing="1.2">THE MISSING PIECE</text>
+
+    <!-- Header Telemetry -->
+    <rect x="420" y="53" width="370" height="32" rx="10" fill="#240830" stroke="#6b21a8" stroke-width="1" />
+    <text x="605" y="73" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="700">#184 · Spotted <tspan fill="#34d399">2/5</tspan> · 00:42 · <tspan fill="#fbbf24">1,140 pts</tspan></text>
+
+    <rect x="920" y="53" width="124" height="32" rx="10" fill="#2d0a3d" stroke="#fbbf24" stroke-opacity="0.6" stroke-width="1.2" />
+    <text x="982" y="73" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">🔍 Loupe (Z)</text>
+    <rect x="1056" y="53" width="120" height="32" rx="10" fill="url(#mpDiffGoldBtn)" />
+    <text x="1116" y="73" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">💡 Hint (H)</text>
+
+    <!-- PICTURE 1: ORIGINAL -->
+    <g transform="translate(36, 108)" filter="url(#mpDiffShadow)">
+      <rect x="0" y="26" width="546" height="414" rx="16" fill="#230733" stroke="#fbbf24" stroke-opacity="0.55" stroke-width="2" />
+      <g transform="translate(10, 36)">
+        <rect x="0" y="0" width="526" height="394" rx="10" fill="url(#plateSky)" />
+        <!-- Horizon & Sea -->
+        <path d="M0 210 Q110 190 230 208 T450 200 T526 210 L526 260 L0 260 Z" fill="#3B6E8C" opacity="0.7" />
+        <rect x="0" y="242" width="526" height="152" fill="#2D5973" />
+        <path d="M0 280 Q75 272 150 280 T300 280 T450 280 T526 280" stroke="#F7E7BD" stroke-width="2" fill="none" opacity="0.35" />
+        <path d="M0 335 L145 322 L185 352 L205 394 L0 394 Z" fill="#D9C7A3" stroke="#17222D" stroke-width="2" />
+        <rect x="290" y="325" width="236" height="16" fill="#F2ECE1" stroke="#17222D" stroke-width="2" />
+
+        <!-- Sun Disc (Original: Amber Rays) -->
+        <g transform="translate(82, 68)">
+          <circle cx="0" cy="0" r="24" fill="#E08C45" stroke="#17222D" stroke-width="2.2" />
+          <circle cx="0" cy="0" r="16" fill="#F7E7BD" opacity="0.65" />
+          <circle cx="0" cy="0" r="32" fill="none" stroke="#E08C45" stroke-width="2.2" stroke-dasharray="5 5" />
+        </g>
+
+        <!-- Cloud -->
+        <path d="M210 66 H274 C282 66 287 60 287 53 C287 46 281 40 273 40 C271 31 262 25 252 25 C244 25 237 30 234 37 C230 34 226 32 221 32 C212 32 204 40 204 50 C200 52 197 56 197 61 C197 64 202 66 210 66 Z" fill="#F2ECE1" stroke="#17222D" stroke-width="2" />
+
+        <!-- DIFF 1: Hot Air Balloon (Original: Coral Stripes) - SPOTTED -->
+        <g transform="translate(428, 76)">
+          <path d="M0 -34 C20 -34 30 -18 25 2 C21 15 10 20 6 24 H-6 C-10 20 -21 15 -25 2 C-30 -18 -20 -34 0 -34 Z" fill="#C94C38" stroke="#17222D" stroke-width="2.2" />
+          <path d="M-11 -32 Q0 -10 -5 24 M11 -32 Q0 -10 5 24" fill="none" stroke="#F7E7BD" stroke-width="4" />
+          <rect x="-8" y="29" width="16" height="10" rx="2" fill="#D9C7A3" stroke="#17222D" stroke-width="2" />
+        </g>
+
+        <!-- Lighthouse -->
+        <g transform="translate(115, 224)">
+          <path d="M-24 62 L-15 -24 H15 L24 62 Z" fill="#F2ECE1" stroke="#17222D" stroke-width="2.4" />
+          <path d="M-20 20 H20 L22 36 H-22 Z" fill="#C94C38" stroke="#17222D" stroke-width="1.8" />
+          <path d="M-17 -6 H17 L18 7 H-18 Z" fill="#C94C38" stroke="#17222D" stroke-width="1.8" />
+          <rect x="-17" y="-32" width="34" height="8" rx="2" fill="#17222D" />
+          <rect x="-12" y="-48" width="24" height="16" fill="#F7E7BD" stroke="#17222D" stroke-width="2" />
+          <polygon points="-16,-48 0,-63 16,-48" fill="#C94C38" stroke="#17222D" stroke-width="2" />
+        </g>
+
+        <!-- DIFF 2: Sailboat (Original: Present facing right) - SPOTTED -->
+        <g transform="translate(268, 250)">
+          <path d="M-32 12 H32 L23 26 H-23 Z" fill="#E08C45" stroke="#17222D" stroke-width="2.2" />
+          <line x1="0" y1="12" x2="0" y2="-38" stroke="#17222D" stroke-width="2.4" />
+          <polygon points="2,-35 26,7 2,7" fill="#F2ECE1" stroke="#17222D" stroke-width="2" />
+          <polygon points="-3,-28 -20,7 -3,7" fill="#F7E7BD" stroke="#17222D" stroke-width="2" />
+        </g>
+
+        <!-- DIFF 3: Buoy (Under Loupe in Plate B — Original: Right Buoy Teal) -->
+        <g transform="translate(392, 260)">
+          <path d="M-18 20 H18 L12 5 H-12 Z" fill="#468BA3" stroke="#17222D" stroke-width="2" />
+          <path d="M-9 5 L-4 -22 H4 L9 5 Z" fill="none" stroke="#17222D" stroke-width="2" />
+          <rect x="-6" y="-29" width="12" height="7" fill="#F7E7BD" stroke="#17222D" stroke-width="1.8" />
+        </g>
+
+        <!-- Pier Flowerpot (Original: 3 flowers) -->
+        <g transform="translate(362, 314)">
+          <rect x="-28" y="0" width="56" height="18" rx="2" fill="#C94C38" stroke="#17222D" stroke-width="2" />
+          <circle cx="-18" cy="-8" r="6" fill="#F7E7BD" stroke="#17222D" stroke-width="1.6" />
+          <circle cx="0" cy="-8" r="6" fill="#E08C45" stroke="#17222D" stroke-width="1.6" />
+          <circle cx="18" cy="-8" r="6" fill="#F7E7BD" stroke="#17222D" stroke-width="1.6" />
+        </g>
+
+        <!-- Found Spot Ring 1 (Balloon) -->
+        <circle cx="428" cy="76" r="42" fill="rgba(16, 185, 129, 0.18)" stroke="#10B981" stroke-width="3.5" />
+        <circle cx="458" cy="46" r="11" fill="#10B981" stroke="#1D0830" stroke-width="2" />
+        <path d="M454 46 l3 3 l5 -6" fill="none" stroke="#1D0830" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+
+        <!-- Found Spot Ring 2 (Sailboat) -->
+        <circle cx="268" cy="245" r="42" fill="rgba(16, 185, 129, 0.18)" stroke="#10B981" stroke-width="3.5" />
+        <circle cx="298" cy="215" r="11" fill="#10B981" stroke="#1D0830" stroke-width="2" />
+        <path d="M294 215 l3 3 l5 -6" fill="none" stroke="#1D0830" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+    </g>
+
+    <!-- PICTURE 2: ALTERED -->
+    <g transform="translate(618, 108)" filter="url(#mpDiffShadow)">
+      <rect x="0" y="26" width="546" height="414" rx="16" fill="#230733" stroke="#fbbf24" stroke-width="2.5" />
+      <g transform="translate(10, 36)">
+        <rect x="0" y="0" width="526" height="394" rx="10" fill="url(#plateSky)" />
+        <path d="M0 210 Q110 190 230 208 T450 200 T526 210 L526 260 L0 260 Z" fill="#3B6E8C" opacity="0.7" />
+        <rect x="0" y="242" width="526" height="152" fill="#2D5973" />
+        <path d="M0 280 Q75 272 150 280 T300 280 T450 280 T526 280" stroke="#F7E7BD" stroke-width="2" fill="none" opacity="0.35" />
+        <path d="M0 335 L145 322 L185 352 L205 394 L0 394 Z" fill="#D9C7A3" stroke="#17222D" stroke-width="2" />
+        <rect x="290" y="325" width="236" height="16" fill="#F2ECE1" stroke="#17222D" stroke-width="2" />
+
+        <!-- Sun Disc (Unchanged) -->
+        <g transform="translate(82, 68)">
+          <circle cx="0" cy="0" r="24" fill="#E08C45" stroke="#17222D" stroke-width="2.2" />
+          <circle cx="0" cy="0" r="16" fill="#F7E7BD" opacity="0.65" />
+          <circle cx="0" cy="0" r="32" fill="none" stroke="#E08C45" stroke-width="2.2" stroke-dasharray="5 5" />
+        </g>
+
+        <!-- Cloud (Altered: raindrops added) -->
+        <path d="M210 66 H274 C282 66 287 60 287 53 C287 46 281 40 273 40 C271 31 262 25 252 25 C244 25 237 30 234 37 C230 34 226 32 221 32 C212 32 204 40 204 50 C200 52 197 56 197 61 C197 64 202 66 210 66 Z" fill="#F2ECE1" stroke="#17222D" stroke-width="2" />
+        <circle cx="228" cy="75" r="3" fill="#468BA3" stroke="#17222D" stroke-width="1.2" />
+        <circle cx="244" cy="77" r="3" fill="#468BA3" stroke="#17222D" stroke-width="1.2" />
+        <circle cx="260" cy="75" r="3" fill="#468BA3" stroke="#17222D" stroke-width="1.2" />
+
+        <!-- DIFF 1: Hot Air Balloon (Altered: Royal Indigo Palette Shift) - SPOTTED -->
+        <g transform="translate(428, 76)">
+          <path d="M0 -34 C20 -34 30 -18 25 2 C21 15 10 20 6 24 H-6 C-10 20 -21 15 -25 2 C-30 -18 -20 -34 0 -34 Z" fill="#6B4CE6" stroke="#17222D" stroke-width="2.2" />
+          <path d="M-11 -32 Q0 -10 -5 24 M11 -32 Q0 -10 5 24" fill="none" stroke="#F2B705" stroke-width="4" />
+          <rect x="-8" y="29" width="16" height="10" rx="2" fill="#D9C7A3" stroke="#17222D" stroke-width="2" />
+        </g>
+
+        <!-- Lighthouse (Altered: light beams switched on!) -->
+        <g transform="translate(115, 224)">
+          <path d="M-24 62 L-15 -24 H15 L24 62 Z" fill="#F2ECE1" stroke="#17222D" stroke-width="2.4" />
+          <path d="M-20 20 H20 L22 36 H-22 Z" fill="#C94C38" stroke="#17222D" stroke-width="1.8" />
+          <path d="M-17 -6 H17 L18 7 H-18 Z" fill="#C94C38" stroke="#17222D" stroke-width="1.8" />
+          <rect x="-17" y="-32" width="34" height="8" rx="2" fill="#17222D" />
+          <rect x="-12" y="-48" width="24" height="16" fill="#F7E7BD" stroke="#17222D" stroke-width="2" />
+          <polygon points="-16,-48 0,-63 16,-48" fill="#C94C38" stroke="#17222D" stroke-width="2" />
+          <path d="M15 -42 L44 -50 M15 -38 L44 -30" stroke="#F6C915" stroke-width="3" stroke-linecap="round" />
+        </g>
+
+        <!-- DIFF 2: Sailboat MISSING on Plate B (shows open sea) - SPOTTED -->
+
+        <!-- DIFF 3: Buoy (Color Shifted to Gold inside Optical Loupe!) -->
+        <g transform="translate(392, 260)">
+          <path d="M-18 20 H18 L12 5 H-12 Z" fill="#F2B705" stroke="#17222D" stroke-width="2" />
+          <path d="M-9 5 L-4 -22 H4 L9 5 Z" fill="none" stroke="#17222D" stroke-width="2" />
+          <rect x="-6" y="-29" width="12" height="7" fill="#C94C38" stroke="#17222D" stroke-width="1.8" />
+        </g>
+
+        <!-- Magnified 2.2x Gold Optical Loupe centered on Buoy -->
+        <g transform="translate(44, 62)">
+          <g clip-path="url(#loupeGlass)">
+            <rect x="280" y="130" width="136" height="136" fill="#2D5973" />
+            <g transform="translate(348, 198) scale(1.8)">
+              <path d="M-18 20 H18 L12 5 H-12 Z" fill="#F2B705" stroke="#17222D" stroke-width="1.5" />
+              <path d="M-9 5 L-4 -22 H4 L9 5 Z" fill="none" stroke="#17222D" stroke-width="1.6" />
+              <rect x="-6" y="-29" width="12" height="7" fill="#C94C38" stroke="#17222D" stroke-width="1.4" />
+              <circle cx="0" cy="-35" r="4.5" fill="#F7E7BD" stroke="#17222D" stroke-width="1.2" />
+            </g>
+          </g>
+          <circle cx="348" cy="196" r="56" fill="none" stroke="#F6C915" stroke-width="5" />
+          <circle cx="348" cy="196" r="59" fill="none" stroke="#2B0938" stroke-width="2" />
+          <path d="M388 236 L418 266" stroke="#F6C915" stroke-width="8" stroke-linecap="round" />
+        </g>
+
+        <!-- Pier Flowerpot (Altered: 4 flowers) -->
+        <g transform="translate(362, 314)">
+          <rect x="-28" y="0" width="56" height="18" rx="2" fill="#C94C38" stroke="#17222D" stroke-width="2" />
+          <circle cx="-20" cy="-8" r="5.5" fill="#F7E7BD" stroke="#17222D" stroke-width="1.6" />
+          <circle cx="-7" cy="-8" r="5.5" fill="#E08C45" stroke="#17222D" stroke-width="1.6" />
+          <circle cx="7" cy="-8" r="5.5" fill="#F7E7BD" stroke="#17222D" stroke-width="1.6" />
+          <circle cx="20" cy="-8" r="5.5" fill="#E08C45" stroke="#17222D" stroke-width="1.6" />
+        </g>
+
+        <!-- Found Spot Ring 1 (Balloon) -->
+        <circle cx="428" cy="76" r="42" fill="rgba(16, 185, 129, 0.18)" stroke="#10B981" stroke-width="3.5" />
+        <circle cx="458" cy="46" r="11" fill="#10B981" stroke="#1D0830" stroke-width="2" />
+        <path d="M454 46 l3 3 l5 -6" fill="none" stroke="#1D0830" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+
+        <!-- Found Spot Ring 2 (Missing Sailboat) -->
+        <circle cx="268" cy="245" r="42" fill="rgba(16, 185, 129, 0.18)" stroke="#10B981" stroke-width="3.5" />
+        <circle cx="298" cy="215" r="11" fill="#10B981" stroke="#1D0830" stroke-width="2" />
+        <path d="M294 215 l3 3 l5 -6" fill="none" stroke="#1D0830" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+    </g>
+
+    <!-- Bottom Feature Strip -->
+    <g transform="translate(36, 588)">
+      <rect x="0" y="0" width="1128" height="96" rx="18" fill="#1a0624" stroke="#6b21a8" stroke-width="1.5" />
+
+      <g transform="translate(26, 22)">
+        <text x="0" y="16" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.4">DAILY SPOT THE DIFFERENCE · 8 WORLDS</text>
+        <text x="0" y="42" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="17" font-weight="900">Twin Illustrated Plates · 2.2× Synchronized Loupe</text>
+      </g>
+
+      <g transform="translate(520, 20)">
+        <rect x="0" y="0" width="180" height="56" rx="12" fill="#240830" stroke="#fbbf24" stroke-opacity="0.45" stroke-width="1.2" />
+        <text x="90" y="23" text-anchor="middle" fill="#fbbf24" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">🔥 DAILY STREAK</text>
+        <text x="90" y="43" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">184-Day Archive</text>
+      </g>
+
+      <g transform="translate(718, 20)">
+        <rect x="0" y="0" width="180" height="56" rx="12" fill="#240830" stroke="#10b981" stroke-opacity="0.45" stroke-width="1.2" />
+        <text x="90" y="23" text-anchor="middle" fill="#34d399" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">6 MUTATION TYPES</text>
+        <text x="90" y="43" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="700">Streaks &amp; Accuracy</text>
+      </g>
+
+      <g transform="translate(918, 20)">
+        <rect x="0" y="0" width="188" height="56" rx="12" fill="url(#mpDiffGoldBtn)" />
+        <text x="94" y="34" text-anchor="middle" fill="#2d0938" font-family="DejaVu Sans, system-ui, sans-serif" font-size="14" font-weight="900">🏆 Play Edition</text>
+      </g>
+    </g>
+  </g>
+</svg>

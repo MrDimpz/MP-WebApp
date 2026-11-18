@@ -105,6 +105,12 @@ const SOLO_GAME_META: Record<
     shortTitle: 'MP Search',
     subtitle: 'Daily 10×10 Word Search & 6-Month Archive High Scores',
   },
+  mpdifference: {
+    number: '10',
+    title: 'MP Difference — Daily Spot the Difference',
+    shortTitle: 'MP Difference',
+    subtitle: 'Daily Illustrated Twin-Plate High Scores & Accuracy',
+  },
 };
 
 const ALLOWED_GAMES: SoloGameId[] = [
@@ -117,6 +123,7 @@ const ALLOWED_GAMES: SoloGameId[] = [
   'wikirec',
   'wikicon',
   'mpsearch',
+  'mpdifference',
 ];
 
 export function UnifiedLeaderboardPanel({
@@ -144,6 +151,7 @@ export function UnifiedLeaderboardPanel({
     wikirec: [],
     wikicon: [],
     mpsearch: [],
+    mpdifference: [],
     cruciverbalist: [],
     crossword: [],
   });

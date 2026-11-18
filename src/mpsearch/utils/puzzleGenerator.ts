@@ -1,4 +1,4 @@
-// Deterministic 10x10 Daily Word Search Generator with 6-Month Archive (184 Days)
+// Deterministic 10x10 Daily Word Search Generator with 12-Month Archive (368 Days)
 import { getLondonTodayDateStr } from '@/lib/daily-streak';
 
 export interface CellCoord {
@@ -28,11 +28,11 @@ export interface DailyPuzzle {
   weekdayShort: string; // e.g., "Sat"
   monthKey: string; // e.g., "2026-11"
   monthLabel: string; // e.g., "November 2026"
-  puzzleNumber: number; // 1 to 184
+  puzzleNumber: number; // 1 to 368
   themeTitle: string;
   category: string;
   grid: string[][]; // 10x10
-  words: PlacedWord[]; // 8 words per puzzle
+  words: PlacedWord[]; // 8-12 words per puzzle
 }
 
 interface ThemeDefinition {
@@ -90,7 +90,7 @@ const THEME_BANK: ThemeDefinition[] = [
   {
     title: 'Watchmaker Bench',
     category: 'Craftsmanship',
-    pool: ['PENDULUM', 'PINION', 'BEZEL', 'CHRONO', 'SPRING', 'JEWEL', 'CALIBER', 'BALANCE', 'QUARTZ', 'DIAL', 'ESCAPEMENT'.slice(0, 8), 'CHIME'],
+    pool: ['PENDULUM', 'PINION', 'BEZEL', 'CHRONO', 'SPRING', 'JEWEL', 'CALIBER', 'BALANCE', 'QUARTZ', 'DIAL', 'MOVEMENT', 'CHIME'],
   },
   {
     title: 'Woodland Wildlife',
@@ -110,7 +110,7 @@ const THEME_BANK: ThemeDefinition[] = [
   {
     title: 'Meteorology Station',
     category: 'Weather',
-    pool: ['CIRRUS', 'MONSOON', 'TEMPEST', 'BREEZE', 'CYCLONE', 'STRATUS', 'BAROMETER'.slice(0, 8), 'SQUALL', 'THUNDER', 'CUMULUS', 'FROST', 'MIST'],
+    pool: ['CIRRUS', 'MONSOON', 'TEMPEST', 'BREEZE', 'CYCLONE', 'STRATUS', 'FORECAST', 'SQUALL', 'THUNDER', 'CUMULUS', 'FROST', 'MIST'],
   },
   {
     title: 'Sourdough Bakery',
@@ -150,7 +150,7 @@ const THEME_BANK: ThemeDefinition[] = [
   {
     title: 'Ceramics Kiln',
     category: 'Craftsmanship',
-    pool: ['PORCELAIN'.slice(0, 8), 'GLAZE', 'POTTERY', 'TERRACOTTA'.slice(0, 8), 'EARTHEN', 'VESSEL', 'AMPHORA', 'CLAY', 'SHARD', 'WHEEL', 'BISQUE', 'KILN'],
+    pool: ['PORCELAIN', 'GLAZE', 'POTTERY', 'CERAMICS', 'EARTHEN', 'VESSEL', 'AMPHORA', 'CLAY', 'SHARD', 'WHEEL', 'BISQUE', 'KILN'],
   },
   {
     title: 'Northern Lights',
@@ -185,7 +185,7 @@ const THEME_BANK: ThemeDefinition[] = [
   {
     title: 'Honeybee Apiary',
     category: 'Nature',
-    pool: ['POLLEN', 'NECTAR', 'BEEHIVE', 'CLOVER', 'WAXCOMB', 'MEADOW', 'SWARM', 'PROPOLIS', 'WORKER', 'QUEEN', 'AMBER', 'BLOOM'],
+    pool: ['POLLEN', 'NECTAR', 'BEEHIVE', 'CLOVER', 'BEESWAX', 'MEADOW', 'SWARM', 'PROPOLIS', 'WORKER', 'QUEEN', 'AMBER', 'BLOOM'],
   },
   {
     title: 'Steam Locomotive',
@@ -240,7 +240,7 @@ const THEME_BANK: ThemeDefinition[] = [
   {
     title: 'Tropical Rainforest',
     category: 'Biodiversity',
-    pool: ['CANOPY', 'TOUCAN', 'JAGUAR', 'MONSOON', 'ORCHID', 'LIANA', 'BROMELIAD'.slice(0, 8), 'MACAW', 'SLOTH', 'BAMBOO', 'FERN', 'VINE'],
+    pool: ['CANOPY', 'TOUCAN', 'JAGUAR', 'MONSOON', 'ORCHID', 'LIANA', 'MANGROVE', 'MACAW', 'SLOTH', 'BAMBOO', 'FERN', 'VINE'],
   },
   {
     title: 'Broadsheet Newsroom',
@@ -250,7 +250,7 @@ const THEME_BANK: ThemeDefinition[] = [
   {
     title: 'Perfumer Laboratory',
     category: 'Fragrance',
-    pool: ['BERGAMOT', 'VETIVER', 'JASMINE', 'AMBER', 'ESSENCE', 'VANILLA', 'PATCHOULI'.slice(0, 8), 'NEROLI', 'CITRUS', 'MUSK', 'ROSE', 'IRIS'],
+    pool: ['BERGAMOT', 'VETIVER', 'JASMINE', 'AMBER', 'ESSENCE', 'VANILLA', 'GARDENIA', 'NEROLI', 'CITRUS', 'MUSK', 'ROSE', 'IRIS'],
   },
   {
     title: 'Cathedral Choir',
@@ -260,7 +260,7 @@ const THEME_BANK: ThemeDefinition[] = [
   {
     title: 'Fossil Excavation',
     category: 'Paleontology',
-    pool: ['AMMONITE', 'TRILOBITE'.slice(0, 8), 'SHALE', 'AMBER', 'BEDROCK', 'STRATA', 'CHISEL', 'MAMMOTHS', 'CALCITE', 'RELIC', 'BONE', 'CLAY'],
+    pool: ['AMMONITE', 'DINOSAUR', 'SHALE', 'AMBER', 'BEDROCK', 'STRATA', 'CHISEL', 'MAMMOTH', 'CALCITE', 'RELIC', 'BONE', 'CLAY'],
   },
   {
     title: 'Regatta Spinnaker',
@@ -275,7 +275,7 @@ const THEME_BANK: ThemeDefinition[] = [
   {
     title: 'Norse Mythology',
     category: 'Legends',
-    pool: ['VALKYRIE', 'RUNESTONE'.slice(0, 8), 'MJOLNIR', 'ASGARD', 'VIKING', 'BIFROST', 'LONGSHIP', 'SHIELD', 'RAVEN', 'REALM', 'SAGA', 'HELM'],
+    pool: ['VALKYRIE', 'VALHALLA', 'MJOLNIR', 'ASGARD', 'VIKING', 'BIFROST', 'LONGSHIP', 'SHIELD', 'RAVEN', 'REALM', 'SAGA', 'HELM'],
   },
   {
     title: 'Grand Opera House',
@@ -300,7 +300,7 @@ const THEME_BANK: ThemeDefinition[] = [
   {
     title: 'Glassblower Furnace',
     category: 'Studio Craft',
-    pool: ['CRUCIBLE', 'MOLTEN', 'CRYSTAL', 'PRISM', 'GOBLET', 'ANNEAL', 'CHANDELIER'.slice(0, 8), 'VESSEL', 'SILICA', 'FLAME', 'VASE', 'GLOW'],
+    pool: ['CRUCIBLE', 'MOLTEN', 'CRYSTAL', 'PRISM', 'GOBLET', 'ANNEAL', 'BLOWPIPE', 'VESSEL', 'SILICA', 'FLAME', 'VASE', 'GLOW'],
   },
   {
     title: 'Equestrian Paddock',
@@ -325,7 +325,7 @@ const THEME_BANK: ThemeDefinition[] = [
   {
     title: 'Beekeeper Meadow',
     category: 'Countryside',
-    pool: ['LAVENDER', 'SUNFLOWER'.slice(0, 8), 'BLOSSOM', 'NECTAR', 'POLLEN', 'APIARY', 'BONNET', 'SMOKER', 'CLOVER', 'HONEY', 'COMB', 'HIVE'],
+    pool: ['LAVENDER', 'DAFFODIL', 'BLOSSOM', 'NECTAR', 'POLLEN', 'APIARY', 'BONNET', 'SMOKER', 'CLOVER', 'HONEY', 'COMB', 'HIVE'],
   },
   {
     title: 'Classic Detective Case',
@@ -340,7 +340,7 @@ const THEME_BANK: ThemeDefinition[] = [
   {
     title: 'Botanical Apothecary',
     category: 'Herbalism',
-    pool: ['CHAMOMILE'.slice(0, 8), 'ROSEMARY', 'MARIGOLD', 'HIBISCUS', 'PRIMROSE', 'INFUSION', 'MORTAR', 'BALSAM', 'TONIC', 'ROOT', 'LEAF', 'HERB'],
+    pool: ['VALERIAN', 'ROSEMARY', 'MARIGOLD', 'HIBISCUS', 'PRIMROSE', 'INFUSION', 'MORTAR', 'BALSAM', 'TONIC', 'ROOT', 'LEAF', 'HERB'],
   },
 ];
 

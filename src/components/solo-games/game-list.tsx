@@ -43,8 +43,8 @@ export function SoloGameList() {
           Solo games to play on your own and weave into your creator content. Explore our daily
           20×20 &amp; 8×8 crosswords, 733+ visual rebus challenges, tactile daily word grids,
           daily word association puzzles, 3D layered word unstacking towers, 26-letter zero-clue
-          crosswords, 8-connected Wikipedia word grids, redacted Wikipedia article discovery, and
-          daily 10×10 word searches.
+          crosswords, 8-connected Wikipedia word grids, redacted Wikipedia article discovery, daily
+          10×10 word searches, and twin-plate spot-the-difference challenges.
         </p>
         <div className="mt-4">
           <a
@@ -84,7 +84,7 @@ export function SoloGameList() {
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
                   Your Google / Email login is synced across Crossword, Missing Rebus, Squared,
-                  Thematix, DeStack, Unolingo, WiKirecTangled, WikiContexto &amp; MP Search.
+                  Thematix, DeStack, Unolingo, WiKirecTangled, WikiContexto, MP Search &amp; MP Difference.
                 </p>
               </>
             ) : (
@@ -96,7 +96,7 @@ export function SoloGameList() {
                   Sign in with Google or Email &amp; Password
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                  Use a single account across all 9 solo games to record your high scores and
+                  Use a single account across all 10 solo games to record your high scores and
                   compete on the visitor leaderboards.
                 </p>
               </>
@@ -539,6 +539,49 @@ export function SoloGameList() {
             <button
               type="button"
               onClick={() => openModal('mpsearch', 'leaderboards')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
+            >
+              <Trophy size={13} />
+              <span>Leaderboard</span>
+            </button>
+          </div>
+        </article>
+
+        <article className="game-card">
+          <div className="card-top">
+            <span className="category-label">
+              <span className="status-dot" /> NOW PLAYING
+            </span>
+            <span className="card-number">10 /</span>
+          </div>
+          <Link
+            to="/solo-games/mpdifference"
+            className="game-art game-art-thumb"
+            aria-label="Open MP Difference Daily Spot the Difference"
+          >
+            <img
+              className="game-thumbnail"
+              src="/mpdifference-website-thumbnail.svg"
+              alt="MP Difference — Daily Spot the Difference website thumbnail"
+              referrerPolicy="no-referrer"
+            />
+          </Link>
+          <h3>MP Difference — Spot the Difference</h3>
+          <p>
+            Compare paired illustrated plates across 8 curated worlds under a 2.2× synchronized
+            optical loupe. Spot missing objects, color shifts, flipped shapes, and swapped details
+            across a 6-month daily archive with streak multipliers.
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-2">
+            <Link className="game-link flex-1" to="/solo-games/mpdifference">
+              Play MP Difference{' '}
+              <span>
+                <ArrowUpRight size={22} />
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => openModal('mpdifference', 'leaderboards')}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
             >
               <Trophy size={13} />

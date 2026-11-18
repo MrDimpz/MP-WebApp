@@ -8,6 +8,12 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase';
+import {
+  isFirestorePermissionError,
+  isFirestoreQuotaError,
+  isFirestoreWritePaused,
+  markFirestoreQuotaExhausted,
+} from './firestore-quota';
 
 export type OverlayBackgroundMode = 'transparent' | 'dark';
 
@@ -69,20 +75,6 @@ function handleFirestoreError(
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
-}
-
-function isFirestorePermissionError(err: unknown): boolean {
-  const msg =
-    err instanceof Error ? err.message : typeof err === 'string' ? err : '';
-  const code =
-    err && typeof err === 'object' && 'code' in err
-      ? String((err as { code?: unknown }).code || '')
-      : '';
-  return (
-    code === 'permission-denied' ||
-    msg.includes('Missing or insufficient permissions') ||
-    msg.includes('permission-denied')
-  );
 }
 
 const OVERLAY_CHANNEL_STORAGE_KEY = 'mp_overlay_channel_v1';
@@ -399,6 +391,45 @@ function computeFastStateHash(str: string): string {
   return `${str.length}:${(h1 >>> 0).toString(36)}_${(h2 >>> 0).toString(36)}`;
 }
 
+const VOLATILE_OVERLAY_TIMER_KEYS = new Set([
+  'timeLeft',
+  'delayLeft',
+  'resetTimeLeft',
+  'autoNextCountdown',
+  'elapsedSeconds',
+  'timerRemaining',
+  'remainingSeconds',
+  'secondsLeft',
+  'countdown',
+  'countdownSeconds',
+  'timeRemaining',
+  'roundTimerSeconds',
+]);
+
+function stripVolatileOverlayTimerFields(val: unknown, depth = 0): unknown {
+  if (val === null || typeof val !== 'object' || depth > 2) {
+    return val;
+  }
+  if (Array.isArray(val)) {
+    return val;
+  }
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+    if (VOLATILE_OVERLAY_TIMER_KEYS.has(k)) continue;
+    out[k] = depth < 2 ? stripVolatileOverlayTimerFields(v, depth + 1) : v;
+  }
+  return out;
+}
+
+function computeSemanticOverlayHash(state: unknown): string {
+  try {
+    const stripped = stripVolatileOverlayTimerFields(state, 0);
+    return computeFastStateHash(JSON.stringify(stripped) || '');
+  } catch {
+    return '';
+  }
+}
+
 interface UseOverlaySyncOptions<T> {
   gameId: string;
   streamer?: string | null;
@@ -487,6 +518,10 @@ export function useOverlaySync<T>({
   const lastFirestoreWriteAtRef = useRef<number>(0);
   const lastFirestoreSuccessAtRef = useRef<number>(0);
   const lastFirestoreSentHashRef = useRef<string>('');
+  const lastFirestoreSentSemanticHashRef = useRef<string>('');
+  const lastSecondaryAliasWriteAtRef = useRef<number>(0);
+  const fsCooldownUntilRef = useRef<number>(0);
+  const fsBackoffMsRef = useRef<number>(0);
   const hostSessionIdRef = useRef<string>(
     `host_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
   );
@@ -519,11 +554,23 @@ export function useOverlaySync<T>({
   const roomScope = resolvedChannel || cleanStreamer || 'default';
   const storageKey = `mp_overlay_snap_${cleanGameId}_${roomScope}`;
 
+  const clearPendingFirestorePush = () => {
+    if (firestoreTrailingTimerRef.current) {
+      clearTimeout(firestoreTrailingTimerRef.current);
+      firestoreTrailingTimerRef.current = null;
+    }
+    fsQueuedPacketRef.current = null;
+  };
+
   const flushFirestoreWrite = (packet: OverlaySyncPacket<T>) => {
     if (isOverlay || !isMountedRef.current || !packet || packet.state === undefined) {
       return;
     }
     if (!ALLOWED_FIRESTORE_GAMES.has(cleanGameId)) return;
+    if (isFirestoreWritePaused()) {
+      clearPendingFirestorePush();
+      return;
+    }
 
     const docIds = buildOverlayFirestoreDocIds(
       cleanGameId,
@@ -533,14 +580,24 @@ export function useOverlaySync<T>({
     if (docIds.length === 0) return;
 
     const now = Date.now();
-    if (fsInFlightRef.current && now - fsStartedAtRef.current < 5000) {
+    if (now < fsCooldownUntilRef.current) {
+      return;
+    }
+    if (fsInFlightRef.current && now - fsStartedAtRef.current < 25000) {
       fsQueuedPacketRef.current = packet;
       return;
     }
 
     const sendNextFirestore = (pktToSend: OverlaySyncPacket<T>) => {
-      if (!isMountedRef.current || isOverlay || pktToSend.state === undefined) {
+      if (
+        !isMountedRef.current ||
+        isOverlay ||
+        pktToSend.state === undefined ||
+        isFirestoreWritePaused() ||
+        Date.now() < fsCooldownUntilRef.current
+      ) {
         fsInFlightRef.current = false;
+        clearPendingFirestorePush();
         return;
       }
       const pktHash = (pktToSend.stateHash || '').slice(0, 64);
@@ -552,6 +609,11 @@ export function useOverlaySync<T>({
         fsInFlightRef.current = false;
         return;
       }
+
+      const semanticHash = computeSemanticOverlayHash(pktToSend.state);
+      const semanticChanged =
+        !lastFirestoreSentSemanticHashRef.current ||
+        semanticHash !== lastFirestoreSentSemanticHashRef.current;
 
       const safeState = toFirestoreSafeValue(pktToSend.state, false);
       if (
@@ -600,12 +662,20 @@ export function useOverlaySync<T>({
         updatedAt: serverTimestamp(),
       };
 
+      // Write primary doc always; only refresh secondary streamer alias doc on initial write or >=60s after semantic change
+      const startedAt = Date.now();
+      const shouldIncludeAliasDoc =
+        docIds.length > 1 &&
+        (lastSecondaryAliasWriteAtRef.current === 0 ||
+          (semanticChanged && startedAt - lastSecondaryAliasWriteAtRef.current >= 60_000));
+      const targetDocIds = shouldIncludeAliasDoc ? docIds : [docIds[0]];
+
       fsInFlightRef.current = true;
-      fsStartedAtRef.current = Date.now();
-      lastFirestoreWriteAtRef.current = fsStartedAtRef.current;
+      fsStartedAtRef.current = startedAt;
+      lastFirestoreWriteAtRef.current = startedAt;
 
       Promise.all(
-        docIds.map((id) =>
+        targetDocIds.map((id) =>
           setDoc(doc(db, OVERLAY_FIRESTORE_COLLECTION, id), fsPayload).catch(
             (err) => {
               if (isFirestorePermissionError(err)) {
@@ -621,20 +691,51 @@ export function useOverlaySync<T>({
         )
       )
         .then(() => {
-          lastFirestoreSuccessAtRef.current = Date.now();
+          const completedAt = Date.now();
+          fsBackoffMsRef.current = 0;
+          fsCooldownUntilRef.current = 0;
+          lastFirestoreSuccessAtRef.current = completedAt;
           if (pktHash) {
             lastFirestoreSentHashRef.current = pktHash;
           }
+          if (semanticHash) {
+            lastFirestoreSentSemanticHashRef.current = semanticHash;
+          }
+          if (targetDocIds.length > 1) {
+            lastSecondaryAliasWriteAtRef.current = completedAt;
+          }
         })
-        .catch(() => {
-          // Non-permission transient network errors retried on next change/heartbeat
+        .catch((err) => {
+          if (isFirestoreQuotaError(err)) {
+            markFirestoreQuotaExhausted(err);
+            clearPendingFirestorePush();
+            return;
+          }
+          const nextBackoff =
+            fsBackoffMsRef.current > 0
+              ? Math.min(120_000, fsBackoffMsRef.current * 2)
+              : 15_000;
+          fsBackoffMsRef.current = nextBackoff;
+          fsCooldownUntilRef.current = Date.now() + nextBackoff;
         })
         .finally(() => {
           fsInFlightRef.current = false;
           const queued = fsQueuedPacketRef.current;
           fsQueuedPacketRef.current = null;
-          if (queued && isMountedRef.current && !isOverlay) {
-            sendNextFirestore(queued);
+          if (
+            queued &&
+            isMountedRef.current &&
+            !isOverlay &&
+            !isFirestoreWritePaused() &&
+            Date.now() >= fsCooldownUntilRef.current
+          ) {
+            const qSemanticHash = computeSemanticOverlayHash(queued.state);
+            const qSemanticChanged =
+              !lastFirestoreSentSemanticHashRef.current ||
+              qSemanticHash !== lastFirestoreSentSemanticHashRef.current;
+            if (qSemanticChanged) {
+              sendNextFirestore(queued);
+            }
           }
         });
     };
@@ -643,8 +744,12 @@ export function useOverlaySync<T>({
   };
 
   const scheduleFirestorePush = (packet: OverlaySyncPacket<T>, forceNow = false) => {
-    if (isOverlay || !isMountedRef.current) return;
+    if (isOverlay || !isMountedRef.current || packet.state === undefined) return;
     if (!ALLOWED_FIRESTORE_GAMES.has(cleanGameId)) return;
+    if (isFirestoreWritePaused()) {
+      clearPendingFirestorePush();
+      return;
+    }
 
     const pktHash = packet.stateHash || '';
     if (
@@ -656,9 +761,30 @@ export function useOverlaySync<T>({
     }
 
     const nowMs = Date.now();
-    const minIntervalMs = 750;
+    if (nowMs < fsCooldownUntilRef.current) {
+      return;
+    }
+
+    const semanticHash = computeSemanticOverlayHash(packet.state);
+    const semanticChanged =
+      !lastFirestoreSentSemanticHashRef.current ||
+      semanticHash !== lastFirestoreSentSemanticHashRef.current;
+
+    // If only countdown/elapsed timers ticked while the tab is hidden, skip Firestore writes
     if (
-      forceNow ||
+      !forceNow &&
+      !semanticChanged &&
+      lastFirestoreSuccessAtRef.current > 0 &&
+      typeof document !== 'undefined' &&
+      document.hidden
+    ) {
+      return;
+    }
+
+    // Coalesce real gameplay changes at >=3s and routine timer-only updates at >=30s
+    const minIntervalMs = semanticChanged ? 3000 : 30_000;
+    if (
+      (forceNow && semanticChanged) ||
       lastFirestoreWriteAtRef.current === 0 ||
       nowMs - lastFirestoreWriteAtRef.current >= minIntervalMs
     ) {
@@ -669,12 +795,17 @@ export function useOverlaySync<T>({
       flushFirestoreWrite(packet);
     } else if (!firestoreTrailingTimerRef.current) {
       const waitMs = Math.max(
-        250,
+        500,
         minIntervalMs - (nowMs - lastFirestoreWriteAtRef.current) + 50
       );
       firestoreTrailingTimerRef.current = setTimeout(() => {
         firestoreTrailingTimerRef.current = null;
-        if (lastPacketRef.current && isMountedRef.current && !isOverlay) {
+        if (
+          lastPacketRef.current &&
+          isMountedRef.current &&
+          !isOverlay &&
+          !isFirestoreWritePaused()
+        ) {
           flushFirestoreWrite(lastPacketRef.current);
         }
       }, waitMs);
@@ -836,6 +967,10 @@ export function useOverlaySync<T>({
     lastFirestoreWriteAtRef.current = 0;
     lastFirestoreSuccessAtRef.current = 0;
     lastFirestoreSentHashRef.current = '';
+    lastFirestoreSentSemanticHashRef.current = '';
+    lastSecondaryAliasWriteAtRef.current = 0;
+    fsCooldownUntilRef.current = 0;
+    fsBackoffMsRef.current = 0;
     lastHttpConfirmedSeqRef.current = 0;
     if (isOverlay) {
       lastRemoteMetaRef.current = null;
@@ -1503,7 +1638,9 @@ export function useOverlaySync<T>({
         if (
           latestPacket &&
           latestPacket.stateHash &&
-          latestPacket.stateHash !== lastFirestoreSentHashRef.current
+          latestPacket.stateHash !== lastFirestoreSentHashRef.current &&
+          !isFirestoreWritePaused() &&
+          Date.now() >= fsCooldownUntilRef.current
         ) {
           scheduleFirestorePush(latestPacket, false);
         }
@@ -1531,8 +1668,12 @@ export function useOverlaySync<T>({
             lastPacketRef.current?.seq || 0
           );
         }
-        if (lastPacketRef.current) {
-          flushFirestoreWrite(lastPacketRef.current);
+        if (
+          lastPacketRef.current &&
+          !isFirestoreWritePaused() &&
+          lastPacketRef.current.stateHash !== lastFirestoreSentHashRef.current
+        ) {
+          scheduleFirestorePush(lastPacketRef.current, true);
         }
       };
       if (typeof window !== 'undefined') {

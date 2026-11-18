@@ -24,6 +24,11 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../../../firebase-applet-config.json';
 import { auth, db } from '@/firebase';
+import {
+  isFirestoreQuotaError,
+  isFirestoreWritePaused,
+  markFirestoreQuotaExhausted,
+} from '@/lib/firestore-quota';
 import { recordRegisteredUser } from '@/lib/unified-game-auth';
 import { GameModeId } from './puzzleGenerator';
 
@@ -31,6 +36,17 @@ export { db, auth };
 
 // Validate connection to Firestore on boot as required
 async function testConnection() {
+  if (typeof window !== 'undefined') {
+    const cleanPath = window.location.pathname.toLowerCase().replace(/\/+$/, '');
+    const params = new URLSearchParams(window.location.search);
+    if (
+      cleanPath.endsWith('/overlay') ||
+      params.get('overlay') === '1' ||
+      params.get('clean') === '1'
+    ) {
+      return;
+    }
+  }
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
@@ -210,6 +226,10 @@ export async function saveHighScoreToFirestore(params: {
   const safeWordsFound = Math.max(0, Math.min(safeTotalWords, Math.floor(wordsFound)));
   const safeBonusCount = Math.max(0, Math.min(500, Math.floor(bonusWordsCount)));
 
+  if (isFirestoreWritePaused()) {
+    return;
+  }
+
   const docPath = `highscores/${scoreId}`;
   const docRef = doc(db, 'highscores', scoreId);
 
@@ -253,6 +273,10 @@ export async function saveHighScoreToFirestore(params: {
       }
     }
   } catch (error) {
+    if (isFirestoreQuotaError(error)) {
+      markFirestoreQuotaExhausted(error);
+      return;
+    }
     handleFirestoreError(error, OperationType.WRITE, docPath);
   }
 }

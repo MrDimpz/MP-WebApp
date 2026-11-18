@@ -19,6 +19,7 @@ import UnolingoPage from '@/routes/unolingo';
 import WikiRecSoloPage from '@/routes/wikirec-solo';
 import WikiConSoloPage from '@/routes/wikicon-solo';
 import MPSearchPage from '@/routes/mpsearch';
+import MPDifferencePage from '@/routes/mpdifference';
 import SquaredIntGamePage from '@/routes/squaredint-game';
 import WikirecGamePage from '@/routes/wikirec-game';
 import WikiconGamePage from '@/routes/wikicon-game';
@@ -61,6 +62,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/solo-games/wikirec': 'WiKirecTangled — Solo Wikipedia Word Grid — The Missing Piece',
   '/solo-games/wikicon': 'WikiContexto — Solo Article Discovery — The Missing Piece',
   '/solo-games/mpsearch': 'MP Search — Daily 10×10 Word Search — The Missing Piece',
+  '/solo-games/mpdifference': 'MP Difference — Daily Spot the Difference — The Missing Piece',
 };
 
 const STANDALONE_GAME_PATHS = new Set([
@@ -72,6 +74,7 @@ const STANDALONE_GAME_PATHS = new Set([
   '/solo-games/wikirec',
   '/solo-games/wikicon',
   '/solo-games/mpsearch',
+  '/solo-games/mpdifference',
   '/interactive-games/overlays',
   '/interactive-games/wikirec',
   '/interactive-games/wikirec/overlay',
@@ -126,6 +129,7 @@ function AppShell() {
         <Route path="/solo-games/wikirec" element={<WikiRecSoloPage />} />
         <Route path="/solo-games/wikicon" element={<WikiConSoloPage />} />
         <Route path="/solo-games/mpsearch" element={<MPSearchPage />} />
+        <Route path="/solo-games/mpdifference" element={<MPDifferencePage />} />
         <Route path="/interactive-games/overlays" element={<InteractiveOverlaysWallPage />} />
         <Route path="/interactive-games/wikirec" element={<WikirecGamePage />} />
         <Route path="/interactive-games/wikirec/overlay" element={<WikirecGamePage />} />

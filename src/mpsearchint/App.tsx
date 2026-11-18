@@ -232,11 +232,7 @@ export default function MPSearchInteractiveApp() {
   // TikTok Live Connection State
   const [tiktokUsername, setTiktokUsername] = useState<string>(() => {
     try {
-      return (
-        localStorage.getItem('mp_tiktok_bridge_username') ||
-        localStorage.getItem('mp_tiktok_ bridge_username') ||
-        ''
-      );
+      return localStorage.getItem('mp_tiktok_bridge_username') || '';
     } catch {
       return '';
     }
@@ -927,7 +923,9 @@ export default function MPSearchInteractiveApp() {
                       </span>
                     </div>
                     <div className="text-[10px] text-slate-300/85 truncate">
-                      {second ? `${second.wordsFound} words found` : 'Open slot'}
+                      {second
+                        ? `${second.wordsFound} word${second.wordsFound === 1 ? '' : 's'} found`
+                        : 'Open slot'}
                     </div>
                   </div>
                 </div>
@@ -957,7 +955,9 @@ export default function MPSearchInteractiveApp() {
                       </span>
                     </div>
                     <div className="text-[10px] text-amber-200/80 truncate">
-                      {third ? `${third.wordsFound} words found` : 'Open slot'}
+                      {third
+                        ? `${third.wordsFound} word${third.wordsFound === 1 ? '' : 's'} found`
+                        : 'Open slot'}
                     </div>
                   </div>
                 </div>

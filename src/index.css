@@ -486,6 +486,23 @@
   100% { background-color: transparent; }
 }
 .animate-flash-green { animation: flash-green 0.7s ease-out; }
+.font-mono-tabular { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+@keyframes spot-ring {
+  0% { transform: scale(0.45); opacity: 0; }
+  40% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes miss-flash {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+@keyframes hint-pulse {
+  0%, 100% { transform: scale(0.92); opacity: 0.75; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+.animate-spot-ring { animation: spot-ring 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-miss-flash { animation: miss-flash 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-hint-pulse { animation: hint-pulse 1.3s ease-in-out infinite; }
 
 .gorilla-shack-tile-wrapper {
   display: flex;

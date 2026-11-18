@@ -34,6 +34,11 @@ import {
   MAX_PUZZLE_ID_LENGTH,
   MAX_DISPLAY_NAME_LENGTH,
 } from '@/lib/unified-game-auth';
+import {
+  isFirestoreQuotaError,
+  isFirestoreWritePaused,
+  markFirestoreQuotaExhausted,
+} from '@/lib/firestore-quota';
 import { GameModeId } from './puzzleGenerator';
 
 export {
@@ -207,7 +212,7 @@ export async function saveHighScoreToFirestore(params: {
     subMetricLabel: `Words ${safeWordsFound}/${safeTotalWords}${foundFeatured ? ' · ★ Missing Piece' : ''}`,
   });
 
-  if (!auth.currentUser || auth.currentUser.uid !== user.uid) {
+  if (!auth.currentUser || auth.currentUser.uid !== user.uid || isFirestoreWritePaused()) {
     return;
   }
 
@@ -258,6 +263,10 @@ export async function saveHighScoreToFirestore(params: {
       }
     }
   } catch (error) {
+    if (isFirestoreQuotaError(error)) {
+      markFirestoreQuotaExhausted(error);
+      return;
+    }
     handleFirestoreError(error, OperationType.WRITE, docPath);
   }
 }

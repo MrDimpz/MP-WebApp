@@ -24,6 +24,11 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { triggerNewHighScoreConfetti } from "./confetti";
+import {
+  isFirestoreQuotaError,
+  isFirestoreWritePaused,
+  markFirestoreQuotaExhausted,
+} from "./firestore-quota";
 
 export { auth, db, onAuthStateChanged };
 export type { User };
@@ -37,6 +42,7 @@ export type SoloGameId =
   | "wikirec"
   | "wikicon"
   | "mpsearch"
+  | "mpdifference"
   | "cruciverbalist"
   | "crossword";
 
@@ -151,6 +157,10 @@ export const SOLO_GAME_LABELS: Record<
   wikirec: { title: "WiKirecTangled", metric: "Solo Article & Grid Score" },
   wikicon: { title: "WikiContexto", metric: "Solo Discovery Score" },
   mpsearch: { title: "MP Search", metric: "Daily 10×10 Word Search Score" },
+  mpdifference: {
+    title: "MP Difference",
+    metric: "Daily Spot-the-Difference Score",
+  },
   cruciverbalist: {
     title: "Cruciverbalist Crossword",
     metric: "Crossword Rating",
@@ -588,6 +598,8 @@ function toMillisSafe(val: unknown, fallback = Date.now()): number {
 }
 
 const firebaseSyncQueue = new Map<string, Promise<void>>();
+const syncedRegisteredUserSignatures = new Set<string>();
+let didInitialLocalDirectorySync = false;
 let pendingRegistrationMeta: {
   email: string;
   displayName: string;
@@ -599,14 +611,37 @@ export async function syncFirebaseRegisteredUser(
   explicitTikTokUpdate = false,
 ): Promise<void> {
   if (typeof window === "undefined") return;
+  if (isFirestoreWritePaused()) return;
   const uid = String(record.uid || "").trim();
   if (!uid || uid === "local-guest") return;
   if (!ID_REGEX.test(uid) || uid.length > MAX_ID_LENGTH) return;
+
+  const safeNamePreview = sanitizePublicIdentity(record.displayName, "Player").slice(
+    0,
+    60,
+  );
+  const safeHandlePreview = normalizeTikTokHandle(record.linkedTikTokHandle).slice(
+    0,
+    40,
+  );
+  const safeProviderPreview =
+    record.authProvider === "google" ||
+    record.authProvider === "email" ||
+    record.authProvider === "site"
+      ? record.authProvider
+      : uid.startsWith("google_")
+        ? "google"
+        : "email";
+  const syncSignature = `${uid}|${safeNamePreview}|${safeHandlePreview}|${safeProviderPreview}`;
+  if (!explicitTikTokUpdate && syncedRegisteredUserSignatures.has(syncSignature)) {
+    return;
+  }
 
   const previousTask = firebaseSyncQueue.get(uid) || Promise.resolve();
   const nextTask = previousTask
     .catch(() => {})
     .then(async () => {
+      if (isFirestoreWritePaused()) return;
       const fbUser = auth.currentUser;
       const safeName = sanitizePublicIdentity(record.displayName, "Player").slice(
         0,
@@ -635,6 +670,7 @@ export async function syncFirebaseRegisteredUser(
       try {
         const snap = await getDoc(docRef);
         if (!snap.exists()) {
+          if (isFirestoreWritePaused()) return;
           await setDoc(docRef, {
             userId: uid,
             displayName: safeName,
@@ -644,6 +680,7 @@ export async function syncFirebaseRegisteredUser(
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
+          syncedRegisteredUserSignatures.add(syncSignature);
         } else {
           const existing = snap.data();
           const prevHandle = normalizeTikTokHandle(existing?.linkedTikTokHandle);
@@ -670,6 +707,7 @@ export async function syncFirebaseRegisteredUser(
             existing?.authProvider !== finalProvider;
 
           if (shouldUpdate) {
+            if (isFirestoreWritePaused()) return;
             await updateDoc(docRef, {
               userId: uid,
               displayName: finalName,
@@ -679,8 +717,16 @@ export async function syncFirebaseRegisteredUser(
               updatedAt: serverTimestamp(),
             });
           }
+          syncedRegisteredUserSignatures.add(syncSignature);
+          syncedRegisteredUserSignatures.add(
+            `${uid}|${finalName}|${finalHandle}|${finalProvider}`,
+          );
         }
       } catch (err) {
+        if (isFirestoreQuotaError(err)) {
+          markFirestoreQuotaExhausted(err);
+          return;
+        }
         handleFirestoreError(err, OperationType.WRITE, docPath);
       }
     });
@@ -1166,14 +1212,34 @@ export async function fetchRegisteredUsersDirectory(): Promise<
         REGISTERED_USERS_DIRECTORY_KEY,
         JSON.stringify(sorted),
       );
-      // Sync newly discovered local/Firestore records back to server directory and Firestore
+      // Sync newly discovered local/Firestore records back to server directory and missing Firestore entries
       fetch("/api/registered-users/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ users: sorted }),
       }).catch(() => {});
-      for (const item of localList) {
-        void syncFirebaseRegisteredUser(item, false);
+
+      if (!isFirestoreWritePaused()) {
+        const firestoreByUid = new Map<string, Partial<RegisteredUserRecord>>();
+        for (const fbItem of firestoreUsers) {
+          if (fbItem?.uid) {
+            firestoreByUid.set(fbItem.uid, fbItem);
+          }
+        }
+        for (const item of localList) {
+          const existingRemote = firestoreByUid.get(item.uid);
+          const needsRemoteSync =
+            !existingRemote ||
+            (item.linkedTikTokHandle &&
+              normalizeTikTokHandle(existingRemote.linkedTikTokHandle) !==
+                normalizeTikTokHandle(item.linkedTikTokHandle)) ||
+            (item.displayName &&
+              item.displayName !== "Player" &&
+              existingRemote.displayName !== item.displayName);
+          if (needsRemoteSync) {
+            void syncFirebaseRegisteredUser(item, false);
+          }
+        }
       }
     }
 
@@ -1953,16 +2019,21 @@ export function useUnifiedAuth() {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Proactively sync any locally stored registered users to server and Firestore
-    const existingLocalUsers = getRegisteredUsersDirectory();
-    if (existingLocalUsers.length > 0) {
-      fetch("/api/registered-users/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ users: existingLocalUsers }),
-      }).catch(() => {});
-      for (const item of existingLocalUsers) {
-        void syncFirebaseRegisteredUser(item, false);
+    // Proactively sync locally stored registered users once per session
+    if (!didInitialLocalDirectorySync) {
+      didInitialLocalDirectorySync = true;
+      const existingLocalUsers = getRegisteredUsersDirectory();
+      if (existingLocalUsers.length > 0) {
+        fetch("/api/registered-users/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ users: existingLocalUsers }),
+        }).catch(() => {});
+        if (!isFirestoreWritePaused()) {
+          for (const item of existingLocalUsers) {
+            void syncFirebaseRegisteredUser(item, false);
+          }
+        }
       }
     }
 
@@ -2091,7 +2162,12 @@ export async function saveUnifiedLeaderboardScore(params: {
     .slice(0, 64);
   const safeDocId = `${normalizedGameId}_${safeUid}`.slice(0, MAX_ID_LENGTH);
 
-  if (ID_REGEX.test(safeUid) && ID_REGEX.test(safePuzzleId) && ID_REGEX.test(safeDocId)) {
+  if (
+    !isFirestoreWritePaused() &&
+    ID_REGEX.test(safeUid) &&
+    ID_REGEX.test(safePuzzleId) &&
+    ID_REGEX.test(safeDocId)
+  ) {
     const docPath = `leaderboard/${safeDocId}`;
     const docRef = doc(db, "leaderboard", safeDocId);
     try {
@@ -2137,7 +2213,11 @@ export async function saveUnifiedLeaderboardScore(params: {
         }
       }
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, docPath);
+      if (isFirestoreQuotaError(err)) {
+        markFirestoreQuotaExhausted(err);
+      } else {
+        handleFirestoreError(err, OperationType.WRITE, docPath);
+      }
     }
   }
 
@@ -2161,6 +2241,7 @@ export function subscribeToAllLeaderboards(
       wikirec: [],
       wikicon: [],
       mpsearch: [],
+      mpdifference: [],
       cruciverbalist: [],
       crossword: [],
     };

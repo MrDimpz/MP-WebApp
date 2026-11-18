@@ -71,7 +71,7 @@ export const ProgressArchiveModal: React.FC<ProgressArchiveModalProps> = ({
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [scoreSort, setScoreSort] = useState<'score' | 'time'>('score');
 
-  // Aggregate Player Progress Statistics across all 184 days
+  // Aggregate Player Progress Statistics across all 368 days
   const stats = useMemo(() => {
     let completedPuzzles = 0;
     let inProgressPuzzles = 0;
@@ -188,7 +188,7 @@ export const ProgressArchiveModal: React.FC<ProgressArchiveModalProps> = ({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#12031d]/75 backdrop-blur-xs p-0 sm:p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
-      aria-label="Progress Tracker and 6-Month Puzzle Archive"
+      aria-label="Progress Tracker and 12-Month Puzzle Archive"
     >
       <div className="w-full max-w-6xl max-h-[92vh] flex flex-col rounded-t-3xl sm:rounded-2xl bg-[#FAF6EE] dark:bg-[#1a0529] border-2 border-purple-200 dark:border-amber-400/35 shadow-2xl overflow-hidden">
         {/* Mobile Sheet Handle */}
@@ -540,7 +540,7 @@ export const ProgressArchiveModal: React.FC<ProgressArchiveModalProps> = ({
             </div>
           )}
 
-          {/* VIEW 2 & 3: 6-MONTH ARCHIVE CALENDAR OR LIST */}
+          {/* VIEW 2 & 3: 12-MONTH ARCHIVE CALENDAR OR LIST */}
           {viewMode !== 'highscores' && (
             <div className="space-y-4">
               {/* Month Tabs Bar (shown in Calendar mode when not searching) */}
