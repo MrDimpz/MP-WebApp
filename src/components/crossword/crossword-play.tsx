@@ -80,23 +80,23 @@ const THEME_COLORS: Record<VisualThemeId, VisualTheme> & {
 	editorial: {
 		id: 'editorial',
 		name: 'Broadsheet Ink',
-		subtitle: 'Crisp newsprint & charcoal',
-		bgCanvas: '#F8FAFC',
-		bgSurface: '#FFFFFF',
-		bgElevated: '#F1F5F9',
-		textPrimary: '#0F172A',
-		textSecondary: '#334155',
-		textMuted: '#64748B',
-		borderSubtle: '#CBD5E1',
-		gridBlocked: '#1E293B',
-		gridCellBg: '#FFFFFF',
-		gridCellActiveWord: '#FEF3C7',
-		gridCellFocused: '#D97706',
-		gridCellText: '#0F172A',
-		gridCellFocusedText: '#FFFFFF',
-		accentBg: '#0F172A',
-		accentText: '#FFFFFF',
-		accentBorder: '#0F172A',
+		subtitle: 'Royal purple & starlight gold',
+		bgCanvas: '#160524',
+		bgSurface: '#240838',
+		bgElevated: '#340C52',
+		textPrimary: '#F8FAFC',
+		textSecondary: '#E9D5FF',
+		textMuted: '#C084FC',
+		borderSubtle: '#4C1D6E',
+		gridBlocked: '#0D0216',
+		gridCellBg: '#240838',
+		gridCellActiveWord: '#3B0D54',
+		gridCellFocused: '#F59E0B',
+		gridCellText: '#F8FAFC',
+		gridCellFocusedText: '#160524',
+		accentBg: '#F59E0B',
+		accentText: '#160524',
+		accentBorder: '#F59E0B',
 	},
 	observatory: {
 		id: 'observatory',
@@ -171,7 +171,7 @@ interface PlayProps {
 export function CrosswordPlay({ puzzle, onExit }: PlayProps) {
 	const size = puzzle.gridSize;
 	const theme = THEME_COLORS[puzzle.recommendedVisualTheme] ?? THEME_COLORS.editorial;
-	const isDark = ['observatory', 'botanical', 'mahogany'].includes(theme.id);
+	const isDark = ['editorial', 'observatory', 'botanical', 'mahogany'].includes(theme.id);
 
 	const [letters, setLetters] = useState<string[][]>(() => {
 		const saved = loadSavedGrid(puzzle.id);

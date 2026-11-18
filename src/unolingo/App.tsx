@@ -91,7 +91,7 @@ export default function App() {
     return 'TITLE';
   });
 
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [showHowToPlay, setShowHowToPlay] = useState<boolean>(false);
 
   // Unified Solo Games Auth & Leaderboard Modal State

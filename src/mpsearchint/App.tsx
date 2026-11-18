@@ -113,7 +113,7 @@ interface MPSearchOverlayPayload {
   hintTier: number;
 }
 
-const LOCAL_STORAGE_THEME_KEY = 'mpsearchint_dark_mode';
+const LOCAL_STORAGE_THEME_KEY = 'mpsearchint_dark_mode_v2';
 const LOCAL_STORAGE_LARGE_PRINT_KEY = 'mpsearchint_large_print';
 const AUTO_ADVANCE_SECONDS = 15;
 
@@ -254,6 +254,12 @@ export default function MPSearchInteractiveApp() {
   );
 
   useEffect(() => {
+    const root = document.documentElement;
+    if (darkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
     try {
       localStorage.setItem(LOCAL_STORAGE_THEME_KEY, String(darkMode));
     } catch {

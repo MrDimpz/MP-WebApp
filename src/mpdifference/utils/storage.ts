@@ -4,7 +4,7 @@ import type { DifferenceCompletion } from '../types/game';
 
 const BASE_COMPLETIONS_KEY = 'mp_difference_completions_v1';
 const MUTED_STORAGE_KEY = 'mp_difference_muted_v1';
-const DARK_MODE_STORAGE_KEY = 'mpdifference_dark_mode';
+const DARK_MODE_STORAGE_KEY = 'mpdifference_dark_mode_v2';
 
 function getCompletionsStorageKey(): string {
   return `${BASE_COMPLETIONS_KEY}_${getCurrentUserSessionPrefix()}`;
@@ -52,14 +52,14 @@ export function saveLocalMuted(muted: boolean): void {
 }
 
 export function loadDarkModePreference(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined') return true;
   try {
     const saved = window.localStorage.getItem(DARK_MODE_STORAGE_KEY);
-    if (saved !== null) return saved === 'true';
+    if (saved !== null) return saved !== 'false';
   } catch {
     // Ignore
   }
-  return false;
+  return true;
 }
 
 export function saveDarkModePreference(dark: boolean): void {

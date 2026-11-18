@@ -165,17 +165,18 @@ export default function App() {
     return () => unsubscribe();
   }, [currentUser?.uid, isOverlay]);
 
-  // Board Dark / Light mode toggle state (affects the game board and tiles rather than the whole page)
+  // Board Dark / Light mode toggle state (defaults to dark mode)
   const [boardDarkMode, setBoardDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem('missing_piece_board_dark');
-    return saved === 'true';
+    const saved = localStorage.getItem('missing_piece_board_dark_v2');
+    if (saved !== null) return saved === 'true';
+    return true;
   });
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
     if (!isOverlay) {
       try {
-        localStorage.setItem('missing_piece_board_dark', String(boardDarkMode));
+        localStorage.setItem('missing_piece_board_dark_v2', String(boardDarkMode));
       } catch {
         // ignore
       }

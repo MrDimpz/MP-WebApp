@@ -57,7 +57,7 @@ import {
 
 type GameState = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'ROUND_SUMMARY';
 
-const LOCAL_STORAGE_THEME_KEY = 'mpsearch_dark_mode';
+const LOCAL_STORAGE_THEME_KEY = 'mpsearch_dark_mode_v2';
 const LOCAL_STORAGE_LARGE_PRINT_KEY = 'mpsearch_large_print';
 
 export default function App() {
@@ -86,15 +86,15 @@ export default function App() {
     setShowAuthModal(true);
   }, []);
 
-  // Dark Mode & Readability state
+  // Dark Mode & Readability state (defaults to dark mode)
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_THEME_KEY);
-      if (saved !== null) return saved === 'true';
+      if (saved !== null) return saved !== 'false';
     } catch {
       // Ignore
     }
-    return false;
+    return true;
   });
 
   const [largePrint, setLargePrint] = useState<boolean>(() => {

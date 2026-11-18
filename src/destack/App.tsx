@@ -38,7 +38,7 @@ export default function App() {
   const [difficulty, setDifficulty] = useState<DifficultyMode>('normal');
   const [layoutSelection, setLayoutSelection] = useState<LayoutSelection>('daily');
 
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [showHowToPlay, setShowHowToPlay] = useState<boolean>(false);
 

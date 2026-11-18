@@ -91,7 +91,7 @@ export default function App() {
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('daily');
   const [timerDuration, setTimerDuration] = useState<TimerDuration>(30);
 
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [showHowToPlay, setShowHowToPlay] = useState<boolean>(false);
 

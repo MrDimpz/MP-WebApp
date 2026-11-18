@@ -4,7 +4,9 @@ import MPDifferenceApp from '@/mpdifference/App';
 export default function MPDifferencePage() {
   useEffect(() => {
     return () => {
-      document.documentElement.classList.remove('dark');
+      if (localStorage.getItem('mp_site_dark_mode_v2') !== 'false') {
+        document.documentElement.classList.add('dark');
+      }
     };
   }, []);
 

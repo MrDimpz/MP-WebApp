@@ -106,16 +106,71 @@
     color: var(--ink);
     min-height: 100vh;
   }
+  html.dark .mp-site {
+    --paper: #160524;
+    --ink: #F5F3F7;
+    --quiet: #D6CBE2;
+    --line: rgba(212, 164, 55, 0.25);
+    background: linear-gradient(180deg, #160524 0%, #1E0633 50%, #11031A 100%);
+    color: #F5F3F7;
+  }
   button, a { -webkit-tap-highlight-color: transparent; }
   button { font: inherit; cursor: pointer; }
   a { text-decoration: none; color: inherit; }
   .mp-site button, .mp-site a { transition: transform 180ms ease-out, background-color 180ms ease-out, color 180ms ease-out; }
   .mp-site button:active, .mp-site .button:active { transform: translateY(2px); }
   .mp-site a:focus-visible, .mp-site button:focus-visible, .mp-site input:focus-visible { outline: 3px solid var(--ink); outline-offset: 5px; }
-  ::selection { background: var(--yellow); color: var(--ink); }
+  ::selection { background: var(--yellow); color: #2B0938; }
 }
 .mp-site { color: var(--ink); }
 .mp-site a { color: var(--ink); text-decoration: none; }
+html.dark .collection-card,
+html.dark .game-card,
+html.dark .interactive-hero-card,
+html.dark .media-sticker,
+html.dark .crossword-solved-banner,
+html.dark .leaderboard-row:first-child {
+  --ink: #2B0938;
+  --paper: #faf8f4;
+  color: #2B0938;
+}
+html.dark .collection-card a,
+html.dark .game-card a,
+html.dark .interactive-hero-card a {
+  color: #2B0938;
+}
+html.dark .header-auth-btn,
+html.dark .crossword-tabs-cta,
+html.dark .hero-copy .button-dark,
+html.dark .mp-site .hero-copy a.button-dark {
+  --ink: #2B0938;
+  color: #2B0938;
+}
+html.dark .header-auth-btn:hover {
+  background: #FFE047;
+  color: #1D0830;
+}
+html.dark .header-action:hover {
+  color: #2B0938;
+}
+html.dark .crossword-active-clue,
+html.dark .collection-notice {
+  background: #240838;
+  color: #F5F3F7;
+}
+html.dark .crossword-clue:hover {
+  background: rgba(246, 201, 21, 0.14);
+}
+html.dark .crossword-clue.active,
+html.dark .crossword-controls button:hover,
+html.dark .crossword-puzzle-tabs button:hover,
+html.dark .crossword-difficulty-row button:hover,
+html.dark .crossword-tabs button:hover,
+html.dark .create-chips button:hover,
+html.dark .create-add:hover,
+html.dark .cookie-actions button:hover {
+  color: #2B0938;
+}
 .site-header { max-width: 1440px; margin: auto; height: 102px; padding: 0 5.5%; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 10px; font-size: 24px; line-height: .95; font-weight: 700; letter-spacing: -1.1px; color: var(--ink); }
 .brand-logo { width: 76px; height: 76px; object-fit: contain; flex-shrink: 0; }

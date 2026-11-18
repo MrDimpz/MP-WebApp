@@ -81,6 +81,7 @@ export default function App() {
   );
 
   useEffect(() => {
+    document.documentElement.classList.add('dark');
     const interval = setInterval(() => {
       const msLeft = getMsUntilNextLondonMidnight();
       setCountdownText(formatTimeRemaining(msLeft));

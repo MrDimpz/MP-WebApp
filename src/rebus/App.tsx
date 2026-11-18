@@ -67,7 +67,7 @@ interface GameProgress {
 function getRebusStorageKey(): string {
   return `pad_rebus_edition_v3_${getCurrentUserSessionPrefix()}`;
 }
-const THEME_STORAGE_KEY = 'pad_rebus_dark_mode_v1';
+const THEME_STORAGE_KEY = 'pad_rebus_dark_mode_v2';
 const BRAND_THEME_STORAGE_KEY = 'pad_rebus_brand_theme_v1';
 
 function getDailyRebusPuzzle(dateStr: string): RebusChallenge {
@@ -173,7 +173,7 @@ export default function App() {
   const solvedTodayRebus = Boolean(dailyRebusPuzzle && progress.solvedIds[dailyRebusPuzzle.id]);
   const dailyStreak = useDailyStreak('rebus', todayDateStr, solvedTodayRebus);
 
-  // Dark Mode State
+  // Dark Mode State (defaults to true)
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem(THEME_STORAGE_KEY);
@@ -181,7 +181,7 @@ export default function App() {
     } catch {
       // ignore
     }
-    return false;
+    return true;
   });
 
   // Brand Theme State ('logo' = Royal Purple & Metallic Gold from user's logo by default; 'classic' = Emerald & Paper)

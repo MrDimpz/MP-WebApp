@@ -5,7 +5,9 @@ import { InteractiveStreamGate } from '../components/interactive-games/interacti
 export function DeStackIntGamePage() {
   useEffect(() => {
     return () => {
-      document.documentElement.classList.remove('dark');
+      if (localStorage.getItem('mp_site_dark_mode_v2') !== 'false') {
+        document.documentElement.classList.add('dark');
+      }
     };
   }, []);
 
