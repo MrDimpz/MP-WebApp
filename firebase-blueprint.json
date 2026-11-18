@@ -21,7 +21,7 @@
         "gameId": {
           "type": "string",
           "description": "Identifier of the solo game.",
-          "enum": ["crossword", "rebus", "squared", "thematix", "destack", "unolingo", "wikirec", "wikicon", "mpsearch", "mpdifference"]
+          "enum": ["crossword", "rebus", "squared", "thematix", "destack", "unolingo", "wikirec", "wikicon", "mpsearch", "mpdifference", "mpcolossal"]
         },
         "puzzleId": {
           "type": "string",

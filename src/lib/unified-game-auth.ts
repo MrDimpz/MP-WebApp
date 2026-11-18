@@ -43,6 +43,7 @@ export type SoloGameId =
   | "wikicon"
   | "mpsearch"
   | "mpdifference"
+  | "mpcolossal"
   | "cruciverbalist"
   | "crossword";
 
@@ -160,6 +161,10 @@ export const SOLO_GAME_LABELS: Record<
   mpdifference: {
     title: "MP Difference",
     metric: "Daily Spot-the-Difference Score",
+  },
+  mpcolossal: {
+    title: "MP Colossal",
+    metric: "Colossal Atlas Score",
   },
   cruciverbalist: {
     title: "Cruciverbalist Crossword",
@@ -2242,6 +2247,7 @@ export function subscribeToAllLeaderboards(
       wikicon: [],
       mpsearch: [],
       mpdifference: [],
+      mpcolossal: [],
       cruciverbalist: [],
       crossword: [],
     };

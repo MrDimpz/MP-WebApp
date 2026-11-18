@@ -111,6 +111,12 @@ const SOLO_GAME_META: Record<
     shortTitle: 'MP Difference',
     subtitle: 'Daily Illustrated Twin-Plate High Scores & Accuracy',
   },
+  mpcolossal: {
+    number: '11',
+    title: 'MP Colossal — 200×200 Crossword Atlas',
+    shortTitle: 'MP Colossal',
+    subtitle: '200×200 Colossal Crossword Atlas & Quest Scores',
+  },
 };
 
 const ALLOWED_GAMES: SoloGameId[] = [
@@ -124,6 +130,7 @@ const ALLOWED_GAMES: SoloGameId[] = [
   'wikicon',
   'mpsearch',
   'mpdifference',
+  'mpcolossal',
 ];
 
 export function UnifiedLeaderboardPanel({
@@ -152,6 +159,7 @@ export function UnifiedLeaderboardPanel({
     wikicon: [],
     mpsearch: [],
     mpdifference: [],
+    mpcolossal: [],
     cruciverbalist: [],
     crossword: [],
   });

@@ -15,6 +15,7 @@ export type DailyStreakGameId =
   | 'mpsearch'
   | 'mpsearchint'
   | 'mpdifference'
+  | 'mpcolossal'
   | 'lexi'
   | 'crowdle';
 

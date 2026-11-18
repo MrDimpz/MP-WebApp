@@ -1,0 +1,354 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <clipPath id="mpColClip">
+      <rect x="0" y="0" width="1200" height="720" rx="16" />
+    </clipPath>
+    <linearGradient id="mpColBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#190529" />
+      <stop offset="55%" stop-color="#11031A" />
+      <stop offset="100%" stop-color="#220736" />
+    </linearGradient>
+    <linearGradient id="mpColGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <filter id="mpColShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#07010d" flood-opacity="0.65" />
+    </filter>
+  </defs>
+
+  <g clip-path="url(#mpColClip)">
+    <!-- Background -->
+    <rect x="0" y="0" width="1200" height="720" fill="url(#mpColBg)" />
+
+    <!-- Browser Chrome -->
+    <rect x="0" y="0" width="1200" height="38" fill="#12021a" />
+    <circle cx="24" cy="19" r="5.5" fill="#ff5f56" />
+    <circle cx="44" cy="19" r="5.5" fill="#ffbd2e" />
+    <circle cx="64" cy="19" r="5.5" fill="#27c93f" />
+    <rect x="330" y="7" width="540" height="24" rx="6" fill="#230730" stroke="#4c1d6e" stroke-width="1" />
+    <text x="600" y="23" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="600">themissingpiece.fun/solo-games/mpcolossal</text>
+
+    <!-- MP Colossal Top HUD Header -->
+    <rect x="0" y="38" width="1200" height="54" fill="#1a0624" stroke="#4c1d6e" stroke-opacity="0.7" stroke-width="1" />
+    <rect x="18" y="51" width="96" height="28" rx="8" fill="#2e0a3f" stroke="#6b21a8" stroke-width="1" />
+    <text x="66" y="69" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">← Solo Games</text>
+
+    <circle cx="136" cy="65" r="14" fill="#3b0d47" stroke="#F6C915" stroke-width="1.8" />
+    <text x="136" y="69.5" text-anchor="middle" fill="#F6C915" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="900">11</text>
+    <text x="160" y="70" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="16" font-weight="900">MP <tspan fill="#F6C915">Colossal</tspan></text>
+    <text x="275" y="69" fill="#c084fc" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="700">· <tspan fill="#F6C915">200×200</tspan> · 01. Silver Screen &amp; Cinema</text>
+
+    <!-- Header Center Telemetry Pill -->
+    <rect x="536" y="49" width="290" height="32" rx="9" fill="#240938" stroke="#6b21a8" stroke-opacity="0.75" stroke-width="1" />
+    <text x="681" y="69" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="700">Words: <tspan fill="#ffffff">142</tspan>/4,100 · Quests: <tspan fill="#34d399">3</tspan>/25 · Score: <tspan fill="#F6C915">18,450</tspan></text>
+
+    <!-- Header Right Controls -->
+    <rect x="850" y="51" width="76" height="28" rx="7" fill="#11031A" stroke="#581c87" stroke-width="1" />
+    <text x="888" y="69" text-anchor="middle" fill="#F6C915" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="700">-  48px  +</text>
+    <rect x="934" y="51" width="66" height="28" rx="7" fill="#240938" stroke="#581c87" stroke-width="1" />
+    <text x="967" y="69" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Center</text>
+    <rect x="1008" y="51" width="58" height="28" rx="7" fill="#240938" stroke="#581c87" stroke-width="1" />
+    <text x="1037" y="69" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Check</text>
+    <rect x="1074" y="51" width="56" height="28" rx="7" fill="#F6C915" />
+    <text x="1102" y="69" text-anchor="middle" fill="#1D0830" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">Clues</text>
+    <rect x="1136" y="51" width="50" height="28" rx="7" fill="url(#mpColGold)" />
+    <text x="1161" y="69" text-anchor="middle" fill="#1D0830" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">Menu</text>
+
+    <!-- Top Active Clue Bar -->
+    <rect x="0" y="92" width="904" height="44" fill="#1a0624" stroke="#4c1d6e" stroke-opacity="0.6" stroke-width="1" />
+    <rect x="16" y="101" width="26" height="26" rx="6" fill="#240938" stroke="#581c87" stroke-width="1" />
+    <text x="29" y="118" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="700">‹</text>
+    <rect x="50" y="99" width="804" height="30" rx="8" fill="#240938" stroke="#F6C915" stroke-opacity="0.45" stroke-width="1" />
+    <rect x="58" y="104" width="82" height="20" rx="5" fill="#F6C915" />
+    <text x="99" y="118" text-anchor="middle" fill="#1D0830" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="900">14 ACROSS</text>
+    <text x="150" y="118" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">Golden Academy Award statuette presented in Hollywood (5)</text>
+    <text x="842" y="118" text-anchor="end" fill="#c084fc" font-family="DejaVu Sans Mono, monospace" font-size="10.5">Silver Screen · R12:C18 ⇄</text>
+    <rect x="862" y="101" width="26" height="26" rx="6" fill="#240938" stroke="#581c87" stroke-width="1" />
+    <text x="875" y="118" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="700">›</text>
+
+    <!-- Main Pan-and-Zoom Board Area -->
+    <g transform="translate(0, 136)">
+      <!-- Subtle cartographic sector grid lines -->
+      <line x1="226" y1="0" x2="226" y2="530" stroke="#7e22ce" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="6 6" />
+      <line x1="678" y1="0" x2="678" y2="530" stroke="#7e22ce" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="6 6" />
+      <line x1="0" y1="265" x2="904" y2="265" stroke="#7e22ce" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="6 6" />
+
+      <!-- Atlas Board Frame & Sector Watermark -->
+      <rect x="34" y="20" width="836" height="486" rx="14" fill="#180526" stroke="#F6C915" stroke-opacity="0.45" stroke-width="2" />
+      <text x="54" y="46" fill="#F6C915" fill-opacity="0.72" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.4">SECTOR 01 · SILVER SCREEN &amp; CINEMA · 200×200 ATLAS</text>
+
+      <!-- Crossword Matrix (14 cols x 8 rows of 50px cells centered) -->
+      <g transform="translate(88, 66)" filter="url(#mpColShadow)">
+        <!-- Grid dark void plate -->
+        <rect x="0" y="0" width="700" height="400" rx="8" fill="#240938" stroke="#6b21a8" stroke-width="2" />
+
+        <!-- Subtle void cell outlines -->
+        <!-- Row 0 (y=0): C(1,0) S(3,0) A(5,0) M(8,0) F(11,0) -->
+        <g font-family="DejaVu Sans, system-ui, sans-serif" font-weight="800" text-anchor="middle">
+          <!-- Row 0: cols 1..6 C I N E M A -->
+          <rect x="52" y="2" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="60" y="13" fill="#4a1259" font-size="9" font-weight="700" text-anchor="start">1</text>
+          <text x="75" y="34" fill="#1D0830" font-size="22">C</text>
+
+          <rect x="102" y="2" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="125" y="34" fill="#1D0830" font-size="22">I</text>
+
+          <rect x="152" y="2" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="160" y="13" fill="#4a1259" font-size="9" font-weight="700" text-anchor="start">4</text>
+          <text x="175" y="34" fill="#1D0830" font-size="22">N</text>
+
+          <rect x="202" y="2" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="225" y="34" fill="#1D0830" font-size="22">E</text>
+
+          <rect x="252" y="2" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="260" y="13" fill="#4a1259" font-size="9" font-weight="700" text-anchor="start">7</text>
+          <text x="275" y="34" fill="#1D0830" font-size="22">M</text>
+
+          <rect x="302" y="2" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="325" y="34" fill="#1D0830" font-size="22">A</text>
+
+          <!-- Also col 9: S C O R E down, row 0 = S -->
+          <rect x="452" y="2" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="460" y="13" fill="#4a1259" font-size="9" font-weight="700" text-anchor="start">9</text>
+          <text x="475" y="34" fill="#1D0830" font-size="22">S</text>
+
+          <!-- Also col 11..13 F I L M -->
+          <rect x="552" y="2" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="560" y="13" fill="#4a1259" font-size="9" font-weight="700" text-anchor="start">11</text>
+          <text x="575" y="34" fill="#1D0830" font-size="22">F</text>
+
+          <!-- Row 1 (y=50): col 1 A, col 3 O, col 5 A, col 9 C, col 11 I -->
+          <rect x="52" y="52" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="75" y="84" fill="#1D0830" font-size="22">A</text>
+
+          <rect x="152" y="52" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="175" y="84" fill="#1D0830" font-size="22">O</text>
+
+          <rect x="252" y="52" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="275" y="84" fill="#1D0830" font-size="22">A</text>
+
+          <rect x="452" y="52" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="475" y="84" fill="#1D0830" font-size="22">C</text>
+
+          <rect x="552" y="52" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="575" y="84" fill="#1D0830" font-size="22">I</text>
+
+          <!-- Row 2 (y=100): col 1 S, col 3 I, col 5..10 T R I L O G (no let's make clean real words!) -->
+          <!-- Let's do Col 1 Down = C A S T, Col 3 Down = N O I R, Col 5 Down = M A T R I X, Col 9 Down = S C O R E, Row 2 Col 8..12 = A C T O R! -->
+          <!-- Wait at (col 9, row 2): S(0) C(1) O(2) => Row 2 Col 9 is O! So Col 7..11 = A C O R N? Wait: A C T O R has O at pos 3! So Col 6..10 = A C T O R -> A(6) C(7) T(8) O(9) R(10). Matches O at Col 9! -->
+          <!-- And Col 5 Down at row 2: T? Wait M(0) A(1) T(2) R(3) I(4) X(5)! Row 2 Col 5 is T! Matches nothing if across is Col 6..10 (A C T O R -> wait T at pos 2? Let's make across Col 5..10 = T R O P E S? Or Col 5 Down = S C R I P T? Wait Row 0 Col 5 was M! Let's make Row 0 Col 5 = M, Row 1 Col 5 = A, Row 2 Col 5 = T, Row 3 Col 5 = R, Row 4 Col 5 = I, Row 5 Col 5 = X! -->
+          <!-- And Row 2 Across Col 5..9: T E M P O! Matches T at Col 5 and O at Col 9! Perfect crossword intersection! -->
+          <rect x="52" y="102" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="75" y="134" fill="#1D0830" font-size="22">S</text>
+
+          <rect x="152" y="102" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="175" y="134" fill="#1D0830" font-size="22">I</text>
+
+          <!-- Row 2 Across Col 5..9 = T E M P O -->
+          <rect x="252" y="102" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="260" y="113" fill="#4a1259" font-size="9" font-weight="700" text-anchor="start">12</text>
+          <text x="275" y="134" fill="#1D0830" font-size="22">T</text>
+
+          <rect x="302" y="102" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="325" y="134" fill="#1D0830" font-size="22">E</text>
+
+          <rect x="352" y="102" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="375" y="134" fill="#1D0830" font-size="22">M</text>
+
+          <rect x="402" y="102" width="46" height="46" rx="4" fill="#D1FAE5" stroke="#059669" stroke-width="1.5" />
+          <text x="441" y="113" fill="#059669" font-size="9" font-weight="900">★</text>
+          <text x="425" y="134" fill="#065F46" font-size="22">P</text>
+
+          <rect x="452" y="102" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="475" y="134" fill="#1D0830" font-size="22">O</text>
+
+          <rect x="552" y="102" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="575" y="134" fill="#1D0830" font-size="22">L</text>
+
+          <!-- Row 3 (y=150): Col 1 = T (finishes CAST), Col 3 = R (finishes NOIR), Col 5 = R (MATRIX) -->
+          <!-- Plus Row 3 Col 9 = R (S C O R E), Row 3 Col 11 = M (F I L M) -->
+          <!-- Highlighted ACTIVE WORD: 14 ACROSS = O S C A R at Row 4 Col 7..11! Wait let's make Row 4 Col 5 = I (from MATRIX), Row 4 Col 7..11 = O S C A R, or Row 4 Col 8..12 = O S C A R and Col 9 = E (S C O R E -> Row 4 Col 9 is E)! Wait if Row 4 Col 9 is E, then Row 4 Col 7..11 can be S C E N E! S(7) C(8) E(9) N(10) E(11)! And let's make Row 5 Col 3..7 = O S C A R (selected!) -->
+          <rect x="52" y="152" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="75" y="184" fill="#1D0830" font-size="22">T</text>
+
+          <rect x="152" y="152" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="175" y="184" fill="#1D0830" font-size="22">R</text>
+
+          <rect x="252" y="152" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="275" y="184" fill="#1D0830" font-size="22">R</text>
+
+          <rect x="452" y="152" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="475" y="184" fill="#1D0830" font-size="22">R</text>
+
+          <rect x="552" y="152" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="575" y="184" fill="#1D0830" font-size="22">M</text>
+
+          <!-- Row 4 (y=200): Col 5 = I (MATRIX), Col 7..11 = S C E N E (E intersects SCORE) -->
+          <rect x="252" y="202" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="275" y="234" fill="#1D0830" font-size="22">I</text>
+
+          <rect x="352" y="202" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="360" y="213" fill="#4a1259" font-size="9" font-weight="700" text-anchor="start">18</text>
+          <text x="375" y="234" fill="#1D0830" font-size="22">S</text>
+
+          <rect x="402" y="202" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="425" y="234" fill="#1D0830" font-size="22">C</text>
+
+          <rect x="452" y="202" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="475" y="234" fill="#1D0830" font-size="22">E</text>
+
+          <rect x="502" y="202" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="525" y="234" fill="#1D0830" font-size="22">N</text>
+
+          <rect x="552" y="202" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="575" y="234" fill="#1D0830" font-size="22">E</text>
+
+          <!-- Row 5 (y=250): Col 5 = X (MATRIX)! And Col 2..6 = O S C A R (selected word)! Wait pos 3 of OSCAR is A, pos 4 is R. For X at Col 5: X is in nothing of OSCAR! Wait: what 5-letter cinema word ends with or has X at Col 5? R E M I X! Or P I X A R (X at pos 2)! -->
+          <!-- Let's make Row 5 Col 3..7 = P I X A R! P(3) I(4) X(5) A(6) R(7)! Wait: even better for OSCAR, let's put 14 ACROSS = O S C A R cleanly at Row 5 Col 2..6 and make Col 5 Down = M A T R I C (no) — wait: what down word has C at row 0, E at row 5? C R E A T E! Or A C T O R has A at Row 5! Or D R A M A (M A T R I A no). Or C A M E R A (A at row 5)! C(0) A(1) M(2) E(3) R(4) A(5)! Wait: Row 0 Col 5 was A in C I N E M A! Let's check: Col 5 Row 0 = M in CINEMA -> M E D I A (5 letters: Row 0=M, Row 1=E, Row 2=D, Row 3=I, Row 4=A)! Then Row 5 Col 5 can be blank, or Col 5 Row 0 = M(0) A(1) R(2) V(3) E(4) L(5)!! Row 5 Col 5 is L! -->
+          <!-- Or even simpler: Row 6 Col 1..5 = O S C A R (highlighted yellow!) intersecting Row 5! Let's highlight 14 ACROSS: O S C A R at Row 6 Col 2..6, with A at Col 5? Wait: Col 5 Row 0..5 = M A T R I X (Row 5=X), and Row 6 Col 2..6 = O S C A R cleanly below Row 5, with Col 2 Down = D R A M A intersecting Row 6 Col 2 = O? Wait D R A M A doesn't have O. A C T O R (Row 6=O at Col 2, so Row 3=A, Row 4=C, Row 5=T, Row 6=O, Row 7=R)! -->
+          <!-- Let's trace that cleanly:
+               Col 5 Down (Rows 0..5): M A T R I X (intersects Row 0 CINEMA at M, Row 2 TEMPO at T)
+               Col 2 Down (Rows 3..7): A C T O R (Row 3=A, Row 4=C, Row 5=T, Row 6=O, Row 7=R)
+               Row 6 Across (Cols 2..6): O S C A R (14 ACROSS, HIGHLIGHTED #FEF08A + selected cell #F6C915 on 'C'!) -->
+          <rect x="252" y="252" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="275" y="284" fill="#1D0830" font-size="22">X</text>
+
+          <!-- Col 2 Down = A C T O R (Rows 3..7) -->
+          <rect x="102" y="152" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="110" y="163" fill="#4a1259" font-size="9" font-weight="700" text-anchor="start">15</text>
+          <text x="125" y="184" fill="#1D0830" font-size="22">A</text>
+
+          <rect x="102" y="202" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="125" y="234" fill="#1D0830" font-size="22">C</text>
+
+          <rect x="102" y="252" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="125" y="284" fill="#1D0830" font-size="22">T</text>
+
+          <!-- Row 6 Across Cols 2..6 = 14 ACROSS: O S C _ R (ACTIVE WORD) -->
+          <rect x="102" y="302" width="46" height="46" rx="4" fill="#FEF08A" stroke="#F6C915" stroke-width="2" />
+          <text x="110" y="313" fill="#4a1259" font-size="9" font-weight="900" text-anchor="start">14</text>
+          <text x="125" y="334" fill="#1D0830" font-size="22">O</text>
+
+          <rect x="152" y="302" width="46" height="46" rx="4" fill="#FEF08A" stroke="#F6C915" stroke-width="2" />
+          <text x="175" y="334" fill="#1D0830" font-size="22">S</text>
+
+          <!-- Selected Cursor Square (C in OSCAR) -->
+          <rect x="202" y="302" width="46" height="46" rx="4" fill="#F6C915" stroke="#ffffff" stroke-width="2.5" />
+          <text x="225" y="334" fill="#1D0830" font-size="22" font-weight="900">C</text>
+
+          <rect x="252" y="302" width="46" height="46" rx="4" fill="#FEF08A" stroke="#F6C915" stroke-width="2" />
+          <text x="275" y="334" fill="#9ca3af" font-size="20"> </text>
+
+          <rect x="302" y="302" width="46" height="46" rx="4" fill="#FEF08A" stroke="#F6C915" stroke-width="2" />
+          <text x="325" y="334" fill="#9ca3af" font-size="20"> </text>
+
+          <!-- Row 7 Col 2 = R (finishes ACTOR) -->
+          <rect x="102" y="352" width="46" height="46" rx="4" fill="#FFFDF7" stroke="#4a1259" stroke-width="1.5" />
+          <text x="125" y="384" fill="#1D0830" font-size="22">R</text>
+        </g>
+      </g>
+
+      <!-- Floating Atlas Radar Popup (Bottom-Right of Board) -->
+      <g transform="translate(698, 286)" filter="url(#mpColShadow)">
+        <rect x="0" y="0" width="192" height="226" rx="12" fill="#1a0624" stroke="#D4A437" stroke-width="1.6" />
+        <rect x="0" y="0" width="192" height="32" rx="12" fill="#240938" />
+        <rect x="0" y="20" width="192" height="12" fill="#240938" />
+        <text x="12" y="21" fill="#F6C915" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800">ATLAS RADAR · 200×200</text>
+        <text x="176" y="21" text-anchor="middle" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="700">×</text>
+
+        <!-- Radar Canvas -->
+        <rect x="12" y="40" width="168" height="156" rx="6" fill="#11031A" stroke="#4c1d6e" stroke-width="1" />
+        <!-- 5x5 sector hairlines -->
+        <line x1="45" y1="40" x2="45" y2="196" stroke="#7e22ce" stroke-opacity="0.3" stroke-width="0.7" />
+        <line x1="79" y1="40" x2="79" y2="196" stroke="#7e22ce" stroke-opacity="0.3" stroke-width="0.7" />
+        <line x1="112" y1="40" x2="112" y2="196" stroke="#7e22ce" stroke-opacity="0.3" stroke-width="0.7" />
+        <line x1="146" y1="40" x2="146" y2="196" stroke="#7e22ce" stroke-opacity="0.3" stroke-width="0.7" />
+        <line x1="12" y1="71" x2="180" y2="71" stroke="#7e22ce" stroke-opacity="0.3" stroke-width="0.7" />
+        <line x1="12" y1="102" x2="180" y2="102" stroke="#7e22ce" stroke-opacity="0.3" stroke-width="0.7" />
+        <line x1="12" y1="133" x2="180" y2="133" stroke="#7e22ce" stroke-opacity="0.3" stroke-width="0.7" />
+        <line x1="12" y1="164" x2="180" y2="164" stroke="#7e22ce" stroke-opacity="0.3" stroke-width="0.7" />
+
+        <!-- Solved emerald cluster + world dots -->
+        <rect x="24" y="48" width="16" height="12" fill="#34d399" fill-opacity="0.85" rx="1" />
+        <rect x="52" y="54" width="22" height="14" fill="#34d399" fill-opacity="0.7" rx="1" />
+        <rect x="86" y="46" width="18" height="10" fill="#a855f7" fill-opacity="0.55" rx="1" />
+        <rect x="30" y="78" width="24" height="16" fill="#a855f7" fill-opacity="0.55" rx="1" />
+        <rect x="92" y="82" width="26" height="18" fill="#34d399" fill-opacity="0.75" rx="1" />
+        <rect x="128" y="60" width="32" height="22" fill="#a855f7" fill-opacity="0.5" rx="1" />
+        <rect x="64" y="114" width="34" height="20" fill="#a855f7" fill-opacity="0.5" rx="1" />
+        <rect x="118" y="118" width="36" height="24" fill="#a855f7" fill-opacity="0.55" rx="1" />
+        <rect x="24" y="148" width="30" height="20" fill="#a855f7" fill-opacity="0.5" rx="1" />
+        <rect x="82" y="154" width="44" height="22" fill="#34d399" fill-opacity="0.65" rx="1" />
+
+        <!-- Viewport Reticle -->
+        <rect x="20" y="45" width="36" height="24" fill="#F6C915" fill-opacity="0.18" stroke="#F6C915" stroke-width="1.6" />
+        <text x="96" y="213" text-anchor="middle" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="9.5" font-weight="600">Tap any sector to pan viewport</text>
+      </g>
+    </g>
+
+    <!-- Bottom Action & 3-Tier Hint Bar -->
+    <rect x="0" y="666" width="904" height="54" fill="#1a0624" stroke="#4c1d6e" stroke-opacity="0.7" stroke-width="1" />
+    <text x="20" y="698" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">← → ↑ ↓ Move · Space Flip Direction · Drag Board to Explore</text>
+
+    <rect x="444" y="678" width="110" height="30" rx="8" fill="#240938" stroke="#581c87" stroke-width="1" />
+    <text x="499" y="697" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">? 1. Edge Letter</text>
+
+    <rect x="562" y="678" width="116" height="30" rx="8" fill="#240938" stroke="#581c87" stroke-width="1" />
+    <text x="620" y="697" text-anchor="middle" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">◈ 2. Reveal Square</text>
+
+    <rect x="686" y="678" width="106" height="30" rx="8" fill="#422006" stroke="#f59e0b" stroke-opacity="0.55" stroke-width="1" />
+    <text x="739" y="697" text-anchor="middle" fill="#F6C915" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">✦ 3. Reveal Word</text>
+
+    <rect x="800" y="678" width="92" height="30" rx="8" fill="#F6C915" />
+    <text x="846" y="697" text-anchor="middle" fill="#1D0830" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">🗺 Atlas Radar</text>
+
+    <!-- Right Sidebar (Atlas Sidebar) -->
+    <rect x="904" y="92" width="296" height="628" fill="#1a0624" stroke="#4c1d6e" stroke-opacity="0.7" stroke-width="1" />
+    <!-- Mode Tabs -->
+    <rect x="918" y="106" width="268" height="36" rx="9" fill="#11031A" stroke="#4c1d6e" stroke-width="1" />
+    <rect x="922" y="110" width="130" height="28" rx="7" fill="#F6C915" />
+    <text x="987" y="128" text-anchor="middle" fill="#1D0830" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">Quest Mode (25)</text>
+    <text x="1118" y="128" text-anchor="middle" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Classic (4,100+)</text>
+
+    <!-- Quest Card Header -->
+    <rect x="918" y="154" width="268" height="84" rx="10" fill="#240938" stroke="#F6C915" stroke-opacity="0.45" stroke-width="1" />
+    <text x="932" y="174" fill="#F6C915" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="800">QUEST 01 · DIRECTOR'S CUT</text>
+    <text x="932" y="194" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13.5" font-weight="800">Silver Screen &amp; Cinema</text>
+    <text x="932" y="212" fill="#d8b4fe" font-family="DejaVu Sans Mono, monospace" font-size="10.5">4 / 7 Expedition Words Solved</text>
+    <rect x="932" y="222" width="240" height="6" rx="3" fill="#11031A" />
+    <rect x="932" y="222" width="138" height="6" rx="3" fill="#34d399" />
+
+    <!-- Quest Clue Items -->
+    <!-- Item 1: Solved -->
+    <rect x="918" y="252" width="268" height="62" rx="9" fill="#064e3b" fill-opacity="0.35" stroke="#10b981" stroke-opacity="0.5" stroke-width="1" />
+    <text x="932" y="272" fill="#34d399" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="800">✓ 1A · CINEMA (6)</text>
+    <text x="932" y="292" fill="#a7f3d0" fill-opacity="0.85" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" text-decoration="line-through">Darkened theater where films premiere</text>
+
+    <!-- Item 2: Solved -->
+    <rect x="918" y="324" width="268" height="62" rx="9" fill="#064e3b" fill-opacity="0.35" stroke="#10b981" stroke-opacity="0.5" stroke-width="1" />
+    <text x="932" y="344" fill="#34d399" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="800">✓ 7D · MATRIX (6)</text>
+    <text x="932" y="364" fill="#a7f3d0" fill-opacity="0.85" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" text-decoration="line-through">1999 sci-fi hit starring Keanu Reeves</text>
+
+    <!-- Item 3: Active Selected -->
+    <rect x="918" y="396" width="268" height="72" rx="9" fill="#F6C915" fill-opacity="0.16" stroke="#F6C915" stroke-width="1.8" />
+    <text x="932" y="416" fill="#F6C915" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="800">▶ 14A · 5 LETTERS · ACTIVE</text>
+    <text x="932" y="435" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">Golden Academy Award statuette</text>
+    <text x="932" y="452" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11">presented in Hollywood</text>
+
+    <!-- Item 4: Unsolved -->
+    <rect x="918" y="478" width="268" height="66" rx="9" fill="#240938" stroke="#4c1d6e" stroke-width="1" />
+    <text x="932" y="498" fill="#c084fc" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="700">15D · 5 LETTERS</text>
+    <text x="932" y="517" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11">Performer in a leading dramatic role</text>
+
+    <!-- Item 5: Unsolved -->
+    <rect x="918" y="554" width="268" height="66" rx="9" fill="#240938" stroke="#4c1d6e" stroke-width="1" />
+    <text x="932" y="574" fill="#c084fc" font-family="DejaVu Sans Mono, monospace" font-size="10.5" font-weight="700">18A · 5 LETTERS</text>
+    <text x="932" y="593" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11">Single continuous sequence on set</text>
+
+    <!-- Sidebar Footer Stats -->
+    <rect x="918" y="636" width="268" height="64" rx="10" fill="#11031A" stroke="#4c1d6e" stroke-width="1" />
+    <text x="934" y="660" fill="#F6C915" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">25 THEMED SECTORS</text>
+    <text x="934" y="680" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5">40,000 Squares · 3 Scales · 12×12 Stream</text>
+  </g>
+</svg>

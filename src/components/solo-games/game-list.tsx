@@ -42,9 +42,10 @@ export function SoloGameList() {
         <p>
           Solo games to play on your own and weave into your creator content. Explore our daily
           20×20 &amp; 8×8 crosswords, 733+ visual rebus challenges, tactile daily word grids,
-          daily word association puzzles, 3D layered word unstacking towers, 26-letter zero-clue
-          crosswords, 8-connected Wikipedia word grids, redacted Wikipedia article discovery, daily
-          10×10 word searches, and twin-plate spot-the-difference challenges.
+          daily word association puzzles, 3D layered word unstacking towers, the colossal
+          200×200 crossword atlas, 26-letter zero-clue crosswords, 8-connected Wikipedia word
+          grids, redacted Wikipedia article discovery, daily 10×10 word searches, and twin-plate
+          spot-the-difference challenges.
         </p>
         <div className="mt-4">
           <a
@@ -84,7 +85,8 @@ export function SoloGameList() {
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
                   Your Google / Email login is synced across Crossword, Missing Rebus, Squared,
-                  Thematix, DeStack, Unolingo, WiKirecTangled, WikiContexto, MP Search &amp; MP Difference.
+                  Thematix, DeStack, MP Colossal, Unolingo, WiKirecTangled, WikiContexto, MP Search
+                  &amp; MP Difference.
                 </p>
               </>
             ) : (
@@ -96,7 +98,7 @@ export function SoloGameList() {
                   Sign in with Google or Email &amp; Password
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                  Use a single account across all 10 solo games to record your high scores and
+                  Use a single account across all 11 solo games to record your high scores and
                   compete on the visitor leaderboards.
                 </p>
               </>
@@ -290,7 +292,7 @@ export function SoloGameList() {
           </div>
         </article>
 
-        <article className="game-card">
+        <article className="game-card is-wide-pair">
           <div className="card-top">
             <span className="category-label">
               <span className="status-dot" /> NOW PLAYING
@@ -332,7 +334,7 @@ export function SoloGameList() {
           </div>
         </article>
 
-        <article className="game-card">
+        <article className="game-card is-wide-pair">
           <div className="card-top">
             <span className="category-label">
               <span className="status-dot" /> NOW PLAYING
@@ -375,7 +377,66 @@ export function SoloGameList() {
           </div>
         </article>
 
-        <article className="game-card">
+        <article className="game-card is-featured">
+          <div className="card-top">
+            <span className="category-label">
+              <span className="status-dot" /> CENTERPIECE · 200×200 CROSSWORD ATLAS
+            </span>
+            <span className="card-number">11 /</span>
+          </div>
+          <div className="featured-layout">
+            <Link
+              to="/solo-games/mpcolossal"
+              className="game-art game-art-thumb"
+              aria-label="Open MP Colossal 200×200 Giant Crossword Atlas"
+            >
+              <img
+                className="game-thumbnail"
+                src="/mpcolossal-website-thumbnail.svg"
+                alt="MP Colossal — 200×200 Giant Crossword Atlas website thumbnail"
+                referrerPolicy="no-referrer"
+              />
+            </Link>
+            <div className="featured-body">
+              <h3>
+                MP <span className="text-[#F6C915]">Colossal</span> — Giant Atlas
+              </h3>
+              <p>
+                Navigate a seamless 40,000-square pan-and-zoom crossword atlas spanning 25 themed
+                knowledge sectors and over 4,100 clues. Choose Colossal (200×200), Grand (120×120),
+                or District (60×60) scales, embark on Expedition Quests, jump instantly with the
+                Atlas Radar minimap, or switch on 12×12 Stream Layout.
+              </p>
+              <div className="featured-meta">
+                <span>40,000 Squares</span>
+                <span aria-hidden="true">·</span>
+                <span>25 Quest Sectors</span>
+                <span aria-hidden="true">·</span>
+                <span>Atlas Radar</span>
+                <span aria-hidden="true">·</span>
+                <span>3-Tier Hints</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-2">
+                <Link className="game-link flex-1" to="/solo-games/mpcolossal">
+                  Enter MP Colossal Atlas{' '}
+                  <span>
+                    <ArrowUpRight size={22} />
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => openModal('mpcolossal', 'leaderboards')}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg bg-[#F6C915] text-[#1D0830] hover:bg-[#FFE047] text-xs font-extrabold transition-colors cursor-pointer mt-3 shadow-sm"
+                >
+                  <Trophy size={14} />
+                  <span>Leaderboard</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article className="game-card is-wide-pair">
           <div className="card-top">
             <span className="category-label">
               <span className="status-dot" /> NOW PLAYING
@@ -418,7 +479,7 @@ export function SoloGameList() {
           </div>
         </article>
 
-        <article className="game-card">
+        <article className="game-card is-wide-pair">
           <div className="card-top">
             <span className="category-label">
               <span className="status-dot" /> NOW PLAYING
