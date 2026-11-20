@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <clipPath id="teksClip">
+      <rect x="0" y="0" width="1200" height="720" rx="16" />
+    </clipPath>
+    <linearGradient id="teksBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b0d47" />
+      <stop offset="50%" stop-color="#4a1259" />
+      <stop offset="100%" stop-color="#22072b" />
+    </linearGradient>
+    <linearGradient id="teksGoldBtn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="teksCardBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#27093b" />
+      <stop offset="100%" stop-color="#190529" />
+    </linearGradient>
+    <filter id="teksShadow" x="-10%" y="-10%" width="120%" height="124%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#0d0212" flood-opacity="0.55" />
+    </filter>
+  </defs>
+
+  <g clip-path="url(#teksClip)">
+    <!-- Royal Purple Canvas -->
+    <rect x="0" y="0" width="1200" height="720" fill="url(#teksBg)" />
+
+    <!-- Browser Top Bar -->
+    <rect x="0" y="0" width="1200" height="40" fill="#12021a" />
+    <circle cx="24" cy="20" r="6" fill="#ff5f56" />
+    <circle cx="44" cy="20" r="6" fill="#ffbd2e" />
+    <circle cx="64" cy="20" r="6" fill="#27c93f" />
+    <rect x="330" y="7" width="540" height="26" rx="6" fill="#230730" stroke="#4c1d6e" stroke-width="1" />
+    <text x="600" y="24" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">themissingpiece.fun/solo-games/tekscodle</text>
+
+    <!-- TEKSCOdle Header Bar -->
+    <rect x="0" y="40" width="1200" height="62" fill="#1a0624" stroke="#581c6b" stroke-opacity="0.6" stroke-width="1" />
+    <rect x="24" y="56" width="96" height="30" rx="10" fill="#310d42" stroke="#6b21a8" stroke-width="1" />
+    <text x="72" y="75" text-anchor="middle" fill="#fcd34d" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">← Solo Games</text>
+
+    <circle cx="146" cy="71" r="17" fill="#3b0d47" stroke="#F6C915" stroke-width="2" />
+    <text x="146" y="76" text-anchor="middle" fill="#F6C915" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12" font-weight="900">12</text>
+    <text x="172" y="69" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="19" font-weight="900">TEKSCO<tspan fill="#F6C915">dle</tspan></text>
+    <rect x="172" y="73" width="92" height="3" rx="1.5" fill="#F6C915" />
+    <text x="172" y="88" fill="#fcd34d" fill-opacity="0.85" font-family="DejaVu Sans, system-ui, sans-serif" font-size="8.5" font-weight="700" letter-spacing="1.2">THE MISSING PIECE</text>
+
+    <!-- Round Stepper Pill -->
+    <rect x="420" y="55" width="380" height="32" rx="10" fill="#240830" stroke="#6b21a8" stroke-width="1" />
+    <text x="610" y="75" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="700">R1: 1 Item · <tspan fill="#F6C915">R2: 3 Items</tspan> · R3: 5 Items</text>
+
+    <!-- Right Header Badges -->
+    <rect x="890" y="55" width="136" height="32" rx="10" fill="#2d0a3d" stroke="#F6C915" stroke-opacity="0.6" stroke-width="1.2" />
+    <text x="958" y="75" text-anchor="middle" fill="#fde047" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">Daily Basket</text>
+    <rect x="1038" y="55" width="138" height="32" rx="10" fill="url(#teksGoldBtn)" />
+    <text x="1107" y="75" text-anchor="middle" fill="#1D0830" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="800">⚡ Quick Play</text>
+
+    <!-- LEFT: 3-ITEM BASKET GRID -->
+    <g transform="translate(36, 124)">
+      <text x="0" y="20" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">Round 2: Midweek Top-Up</text>
+      <text x="0" y="42" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="600">Estimate the combined checkout total for all 3 UK supermarket items.</text>
+
+      <!-- Card 1: British Milk Carton -->
+      <g transform="translate(0, 64)" filter="url(#teksShadow)">
+        <rect x="0" y="0" width="232" height="346" rx="16" fill="url(#teksCardBg)" stroke="#7e22ce" stroke-width="1.6" />
+        <rect x="12" y="12" width="208" height="176" rx="12" fill="#ffffff" />
+        <!-- Milk bottle SVG illustration -->
+        <rect x="92" y="26" width="48" height="14" rx="4" fill="#00539F" />
+        <path d="M84 44 L148 44 L158 78 L158 164 C158 172 152 178 142 178 L90 178 C80 178 74 172 74 164 L74 78 Z" fill="#EBF3FA" stroke="#CBD5E1" stroke-width="2" />
+        <rect x="82" y="88" width="68" height="58" rx="6" fill="#00539F" />
+        <rect x="88" y="96" width="56" height="12" rx="2" fill="#F6C915" />
+        <text x="116" y="130" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="13" font-weight="900">4 PINT</text>
+        <text x="16" y="214" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">Dairy &amp; Chilled · 2.272L</text>
+        <text x="16" y="240" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="16" font-weight="800">British Whole Milk</text>
+        <text x="16" y="266" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11">Classic UK fridge staple sold</text>
+        <text x="16" y="282" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11">in 4-pint HDPE jugs.</text>
+        <line x1="16" y1="306" x2="216" y2="306" stroke="#4c1d95" stroke-width="1" />
+        <text x="16" y="328" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Item 1 of 3</text>
+        <text x="216" y="328" text-anchor="end" fill="#F6C915" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">£?.??</text>
+      </g>
+
+      <!-- Card 2: Baked Beans Tin -->
+      <g transform="translate(248, 64)" filter="url(#teksShadow)">
+        <rect x="0" y="0" width="232" height="346" rx="16" fill="url(#teksCardBg)" stroke="#7e22ce" stroke-width="1.6" />
+        <rect x="12" y="12" width="208" height="176" rx="12" fill="#ffffff" />
+        <!-- Tin SVG illustration -->
+        <ellipse cx="116" cy="48" rx="42" ry="10" fill="#CBD5E1" />
+        <path d="M74 48 L74 160 C74 168 92 174 116 174 C140 174 158 168 158 160 L158 48 Z" fill="#0E7490" />
+        <rect x="84" y="72" width="64" height="66" rx="6" fill="#FFFFFF" />
+        <rect x="84" y="72" width="64" height="14" rx="2" fill="#EE1C2E" />
+        <circle cx="116" cy="114" r="16" fill="#F59E0B" />
+        <text x="16" y="214" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">Pantry &amp; Tins · 415g</text>
+        <text x="16" y="240" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="16" font-weight="800">Baked Beans in Sauce</text>
+        <text x="16" y="266" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11">Britain sells over 400m</text>
+        <text x="16" y="282" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11">tins every single year.</text>
+        <line x1="16" y1="306" x2="216" y2="306" stroke="#4c1d95" stroke-width="1" />
+        <text x="16" y="328" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Item 2 of 3</text>
+        <text x="216" y="328" text-anchor="end" fill="#F6C915" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">£?.??</text>
+      </g>
+
+      <!-- Card 3: Mature Cheddar -->
+      <g transform="translate(496, 64)" filter="url(#teksShadow)">
+        <rect x="0" y="0" width="232" height="346" rx="16" fill="url(#teksCardBg)" stroke="#7e22ce" stroke-width="1.6" />
+        <rect x="12" y="12" width="208" height="176" rx="12" fill="#ffffff" />
+        <!-- Cheese Block SVG illustration -->
+        <rect x="66" y="54" width="100" height="110" rx="10" fill="#F59E0B" />
+        <rect x="76" y="66" width="80" height="86" rx="6" fill="#FFFFFF" />
+        <rect x="76" y="66" width="80" height="18" rx="3" fill="#581C87" />
+        <polygon points="88,128 116,96 144,128" fill="#FACC15" />
+        <text x="16" y="214" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="10.5" font-weight="700">Dairy &amp; Chilled · 350g</text>
+        <text x="16" y="240" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="16" font-weight="800">Mature Cheddar Block</text>
+        <text x="16" y="266" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11">Aged 12+ months for sharp</text>
+        <text x="16" y="282" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11">Somerset tang.</text>
+        <line x1="16" y1="306" x2="216" y2="306" stroke="#4c1d95" stroke-width="1" />
+        <text x="16" y="328" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="600">Item 3 of 3</text>
+        <text x="216" y="328" text-anchor="end" fill="#F6C915" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">£?.??</text>
+      </g>
+    </g>
+
+    <!-- RIGHT: CHECKOUT TILL CONSOLE -->
+    <g transform="translate(792, 134)" filter="url(#teksShadow)">
+      <rect x="0" y="0" width="372" height="400" rx="18" fill="#220836" stroke="#F6C915" stroke-width="2" />
+      <!-- Till Header -->
+      <rect x="0" y="0" width="372" height="92" rx="18" fill="#2d0948" />
+      <rect x="0" y="64" width="372" height="28" fill="#2d0948" />
+      <line x1="0" y1="92" x2="372" y2="92" stroke="#F6C915" stroke-opacity="0.4" stroke-width="1.5" />
+      <text x="22" y="28" fill="#d8b4fe" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="700">Round 2 of 3</text>
+      <text x="350" y="28" text-anchor="end" fill="#F6C915" font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="800">Medium · ±10% zone</text>
+      <text x="22" y="62" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="22" font-weight="900">Guess the 3-item total</text>
+      <text x="22" y="80" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11">Up to 1,000 pts for an exact match</text>
+
+      <!-- Till Input Box -->
+      <text x="22" y="122" fill="#e9d5ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5" font-weight="700">Your Total Estimate (GBP)</text>
+      <rect x="22" y="132" width="328" height="58" rx="12" fill="#140421" stroke="#7e22ce" stroke-width="1.8" />
+      <text x="42" y="171" fill="#a855f7" font-family="DejaVu Sans Mono, monospace" font-size="26" font-weight="800">£</text>
+      <text x="72" y="172" fill="#F6C915" font-family="DejaVu Sans Mono, monospace" font-size="32" font-weight="900">6.15</text>
+
+      <!-- Slider Track -->
+      <rect x="22" y="216" width="328" height="8" rx="4" fill="#3b0d47" />
+      <rect x="22" y="216" width="196" height="8" rx="4" fill="#F6C915" />
+      <circle cx="218" cy="220" r="9" fill="#F6C915" stroke="#140421" stroke-width="3" />
+
+      <!-- Nudge Pills -->
+      <g transform="translate(22, 246)" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="700">
+        <rect x="0" y="0" width="102" height="32" rx="8" fill="#310d42" stroke="#6b21a8" stroke-width="1" />
+        <text x="51" y="20" text-anchor="middle" fill="#f3e8ff">-£1</text>
+        <rect x="113" y="0" width="102" height="32" rx="8" fill="#310d42" stroke="#6b21a8" stroke-width="1" />
+        <text x="164" y="20" text-anchor="middle" fill="#f3e8ff">-25p</text>
+        <rect x="226" y="0" width="102" height="32" rx="8" fill="#310d42" stroke="#6b21a8" stroke-width="1" />
+        <text x="277" y="20" text-anchor="middle" fill="#f3e8ff">+25p</text>
+      </g>
+
+      <!-- Submit Button -->
+      <rect x="22" y="298" width="328" height="48" rx="12" fill="url(#teksGoldBtn)" />
+      <text x="186" y="327" text-anchor="middle" fill="#1D0830" font-family="DejaVu Sans, system-ui, sans-serif" font-size="15" font-weight="900">✓ Submit Checkout Guess</text>
+
+      <!-- Session Footer -->
+      <line x1="22" y1="364" x2="350" y2="364" stroke="#4c1d95" stroke-width="1" />
+      <text x="22" y="384" fill="#c084fc" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11.5">Current Session Score</text>
+      <text x="350" y="384" text-anchor="end" fill="#F6C915" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">942 / 3,000 pts</text>
+    </g>
+
+    <!-- Bottom Feature Strip -->
+    <g transform="translate(36, 588)">
+      <rect x="0" y="0" width="1128" height="96" rx="18" fill="#1a0624" stroke="#6b21a8" stroke-width="1.5" />
+
+      <g transform="translate(26, 22)">
+        <text x="0" y="16" fill="#F6C915" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.4">UK SUPERMARKET CHECKOUT · 270+ REAL PRODUCTS</text>
+        <text x="0" y="42" fill="#ffffff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="17" font-weight="900">1-Item, 3-Item &amp; 5-Item Baskets · Proximity Scoring</text>
+      </g>
+
+      <g transform="translate(520, 20)">
+        <rect x="0" y="0" width="180" height="56" rx="12" fill="#240830" stroke="#F6C915" stroke-opacity="0.45" stroke-width="1.2" />
+        <text x="90" y="23" text-anchor="middle" fill="#F6C915" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">🔥 DAILY STREAK</text>
+        <text x="90" y="43" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans Mono, monospace" font-size="13" font-weight="800">Daily + Quick Play</text>
+      </g>
+
+      <g transform="translate(718, 20)">
+        <rect x="0" y="0" width="180" height="56" rx="12" fill="#240830" stroke="#10b981" stroke-opacity="0.45" stroke-width="1.2" />
+        <text x="90" y="23" text-anchor="middle" fill="#34d399" font-family="DejaVu Sans, system-ui, sans-serif" font-size="11" font-weight="800">3 DIFFICULTIES</text>
+        <text x="90" y="43" text-anchor="middle" fill="#f3e8ff" font-family="DejaVu Sans, system-ui, sans-serif" font-size="12.5" font-weight="700">Easy · Medium · Hard</text>
+      </g>
+
+      <g transform="translate(918, 20)">
+        <rect x="0" y="0" width="188" height="56" rx="12" fill="url(#teksGoldBtn)" />
+        <text x="94" y="34" text-anchor="middle" fill="#1D0830" font-family="DejaVu Sans, system-ui, sans-serif" font-size="14" font-weight="900">🛒 Play Basket</text>
+      </g>
+    </g>
+  </g>
+</svg>

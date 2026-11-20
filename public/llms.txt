@@ -6,12 +6,12 @@
 
 The Missing Piece (`https://missingpiecepuzzles.fun`) is a free web gaming platform offering two main collections:
 1. **TikTok Interactive Games** — Real-time audience-driven word and puzzle games with transparent browser-source overlays for TikTok LIVE Studio and OBS Studio so livestream viewers can play directly through chat commands.
-2. **Solo Games** — 11 free, browser-playable daily and endless word, trivia, crossword, and visual puzzles featuring unified Google/Email accounts, daily streaks, and public leaderboards.
+2. **Solo Games** — 12 free, browser-playable daily and endless word, trivia, crossword, and supermarket price puzzles featuring unified Google/Email accounts, daily streaks, and public leaderboards.
 
 ## Core Pages
 
 - [Home](https://missingpiecepuzzles.fun/): Platform overview and featured interactive/solo game collections.
-- [Solo Games Hub](https://missingpiecepuzzles.fun/solo-games): Directory of all 11 solo puzzles with unified accounts and public leaderboards.
+- [Solo Games Hub](https://missingpiecepuzzles.fun/solo-games): Directory of all 12 solo puzzles with unified accounts and public leaderboards.
 - [TikTok Interactive Games](https://missingpiecepuzzles.fun/interactive-games): Directory of creator livestream games and chat-driven overlays.
 - [All Interactive Overlays](https://missingpiecepuzzles.fun/interactive-games/overlays): Combined live overlay wall for livestream setup.
 
@@ -28,6 +28,7 @@ The Missing Piece (`https://missingpiecepuzzles.fun`) is a free web gaming platf
 - [WikiContexto (Solo)](https://missingpiecepuzzles.fun/solo-games/wikicon): Redacted Wikipedia article discovery using semantic closeness rankings.
 - [MP Search — Daily Word Search](https://missingpiecepuzzles.fun/solo-games/mpsearch): Tactile 10×10 letterpress word search puzzles with a 368-day archive.
 - [MP Difference — Spot the Difference](https://missingpiecepuzzles.fun/solo-games/mpdifference): Side-by-side illustrated visual spot-the-difference game with a 2.2× optical loupe across 8 worlds.
+- [TEKSCOdle — UK Supermarket Price Guesser](https://missingpiecepuzzles.fun/solo-games/tekscodle): Price 1-item, 3-item, and 5-item UK supermarket baskets in Daily Basket, Endless Practice, and Quick Play modes.
 
 ## TikTok Interactive Live Games
 

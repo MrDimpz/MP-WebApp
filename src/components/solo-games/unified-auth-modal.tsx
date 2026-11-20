@@ -117,6 +117,12 @@ const SOLO_GAME_META: Record<
     shortTitle: 'MP Colossal',
     subtitle: '200×200 Colossal Crossword Atlas & Quest Scores',
   },
+  tekscodle: {
+    number: '12',
+    title: 'TEKSCOdle — UK Supermarket Price Guesser',
+    shortTitle: 'TEKSCOdle',
+    subtitle: '3-Round Daily & Endless Supermarket Checkout Scores',
+  },
 };
 
 const ALLOWED_GAMES: SoloGameId[] = [
@@ -131,6 +137,7 @@ const ALLOWED_GAMES: SoloGameId[] = [
   'mpsearch',
   'mpdifference',
   'mpcolossal',
+  'tekscodle',
 ];
 
 export function UnifiedLeaderboardPanel({
@@ -160,6 +167,7 @@ export function UnifiedLeaderboardPanel({
     mpsearch: [],
     mpdifference: [],
     mpcolossal: [],
+    tekscodle: [],
     cruciverbalist: [],
     crossword: [],
   });

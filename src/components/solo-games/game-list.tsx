@@ -44,8 +44,8 @@ export function SoloGameList() {
           20×20 &amp; 8×8 crosswords, 733+ visual rebus challenges, tactile daily word grids,
           daily word association puzzles, 3D layered word unstacking towers, the colossal
           200×200 crossword atlas, 26-letter zero-clue crosswords, 8-connected Wikipedia word
-          grids, redacted Wikipedia article discovery, daily 10×10 word searches, and twin-plate
-          spot-the-difference challenges.
+          grids, redacted Wikipedia article discovery, daily 10×10 word searches, twin-plate
+          spot-the-difference challenges, and UK supermarket basket price-guessing in TEKSCOdle.
         </p>
         <div className="mt-4">
           <a
@@ -85,8 +85,8 @@ export function SoloGameList() {
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
                   Your Google / Email login is synced across Crossword, Missing Rebus, Squared,
-                  Thematix, DeStack, MP Colossal, Unolingo, WiKirecTangled, WikiContexto, MP Search
-                  &amp; MP Difference.
+                  Thematix, DeStack, MP Colossal, Unolingo, WiKirecTangled, WikiContexto, MP Search,
+                  MP Difference &amp; TEKSCOdle.
                 </p>
               </>
             ) : (
@@ -98,7 +98,7 @@ export function SoloGameList() {
                   Sign in with Google or Email &amp; Password
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                  Use a single account across all 11 solo games to record your high scores and
+                  Use a single account across all 12 solo games to record your high scores and
                   compete on the visitor leaderboards.
                 </p>
               </>
@@ -643,6 +643,49 @@ export function SoloGameList() {
             <button
               type="button"
               onClick={() => openModal('mpdifference', 'leaderboards')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
+            >
+              <Trophy size={13} />
+              <span>Leaderboard</span>
+            </button>
+          </div>
+        </article>
+
+        <article className="game-card">
+          <div className="card-top">
+            <span className="category-label">
+              <span className="status-dot" /> NOW PLAYING
+            </span>
+            <span className="card-number">12 /</span>
+          </div>
+          <Link
+            to="/solo-games/tekscodle"
+            className="game-art game-art-thumb"
+            aria-label="Open TEKSCOdle UK Supermarket Price Guesser"
+          >
+            <img
+              className="game-thumbnail"
+              src="/tekscodle-website-thumbnail.svg"
+              alt="TEKSCOdle — UK Supermarket Price Guesser website thumbnail"
+              referrerPolicy="no-referrer"
+            />
+          </Link>
+          <h3>TEKSCOdle — Price Guesser</h3>
+          <p>
+            Price UK supermarket baskets across 1-item, 3-item, and 5-item rounds before the till
+            rings. Features Daily Basket challenges, Endless Practice, instant Quick Play, 3 difficulty
+            margins, and proximity till scoring.
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-2">
+            <Link className="game-link flex-1" to="/solo-games/tekscodle">
+              Play TEKSCOdle{' '}
+              <span>
+                <ArrowUpRight size={22} />
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => openModal('tekscodle', 'leaderboards')}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
             >
               <Trophy size={13} />

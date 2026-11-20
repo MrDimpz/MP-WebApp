@@ -958,7 +958,7 @@ export default function App() {
                       Sign in with Google or Email &amp; Password
                     </div>
                     <p className="text-xs text-[#D6CBE2]">
-                      Use one account across all 11 solo games to record your MP Search high scores.
+                      Use one account across all 12 solo games to record your MP Search high scores.
                     </p>
                   </>
                 )}

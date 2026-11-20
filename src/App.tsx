@@ -22,6 +22,7 @@ const WikiConSoloPage = lazy(() => import('@/routes/wikicon-solo'));
 const MPSearchPage = lazy(() => import('@/routes/mpsearch'));
 const MPDifferencePage = lazy(() => import('@/routes/mpdifference'));
 const MPColossalPage = lazy(() => import('@/routes/mpcolossal'));
+const TekscodlePage = lazy(() => import('@/routes/tekscodle'));
 const SquaredIntGamePage = lazy(() => import('@/routes/squaredint-game'));
 const WikirecGamePage = lazy(() => import('@/routes/wikirec-game'));
 const WikiconGamePage = lazy(() => import('@/routes/wikicon-game'));
@@ -37,7 +38,7 @@ const SITE_ORIGIN = 'https://missingpiecepuzzles.fun';
 
 const DEFAULT_TITLE = 'The Missing Piece — TikTok Interactive & Solo Games';
 const DEFAULT_DESCRIPTION =
-  'Play free TikTok LIVE interactive games and 11 solo word, trivia, and crossword puzzles—including MP Colossal, Rebus, Squared, Thematix, and Unolingo.';
+  'Play free TikTok LIVE interactive games and 12 solo word, trivia, crossword, and supermarket price puzzles—including MP Colossal, Rebus, Squared, Thematix, Unolingo, and TEKSCOdle.';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': DEFAULT_TITLE,
@@ -63,7 +64,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/interactive-games/mpsearch/overlay': 'MP Search Interactive — TikTok LIVE Studio Overlay',
   '/interactive-games/mpsearchint': 'MP Search Interactive — TikTok Live Word Search — The Missing Piece',
   '/interactive-games/mpsearchint/overlay': 'MP Search Interactive — TikTok LIVE Studio Overlay',
-  '/solo-games': 'Solo Games Hub (11 Puzzles) — The Missing Piece',
+  '/solo-games': 'Solo Games Hub (12 Puzzles) — The Missing Piece',
   '/solo-games/rebus': 'Missing Rebus — Visual Rebus Archive — The Missing Piece',
   '/solo-games/squared': 'Squared — Daily Word Grid — The Missing Piece',
   '/solo-games/thematix': 'Thematix — Daily Word Association — The Missing Piece',
@@ -74,16 +75,19 @@ const PAGE_TITLES: Record<string, string> = {
   '/solo-games/mpsearch': 'MP Search — Daily 10×10 Word Search — The Missing Piece',
   '/solo-games/mpdifference': 'MP Difference — Daily Spot the Difference — The Missing Piece',
   '/solo-games/mpcolossal': 'MP Colossal — 200×200 Giant Crossword Atlas — The Missing Piece',
+  '/solo-games/tekscodle': 'TEKSCOdle — UK Supermarket Price Guesser — The Missing Piece',
 };
 
 const PAGE_DESCRIPTIONS: Record<string, string> = {
   '/': DEFAULT_DESCRIPTION,
   '/solo-games':
-    'Play all 11 free solo browser games from The Missing Piece including MP Colossal, Cruciverbalist, Missing Rebus, Squared, Thematix, DeStack, Unolingo, and MP Difference.',
+    'Play all 12 free solo browser games from The Missing Piece including MP Colossal, Cruciverbalist, Missing Rebus, Squared, Thematix, DeStack, Unolingo, MP Difference, and TEKSCOdle.',
   '/solo-games/mpcolossal':
     'Explore a 40,000-square 200x200 giant crossword atlas across 25 themed sectors with Expedition Quests, Atlas Radar minimap, 3-tier hints, and 12x12 Stream Layout.',
   '/solo-games/mpdifference':
     'Compare paired illustrated plates under a 2.2x optical loupe in MP Difference, featuring 8 worlds and a 6-month daily archive.',
+  '/solo-games/tekscodle':
+    'Guess real UK supermarket prices across 1-item, 3-item, and 5-item baskets in TEKSCOdle—featuring Daily Basket, Endless Practice, and Quick Play modes.',
   '/interactive-games':
     'Launch real-time TikTok LIVE interactive games with transparent browser-source overlays for TikTok LIVE Studio and OBS Studio.',
 };
@@ -99,6 +103,7 @@ const STANDALONE_GAME_PATHS = new Set([
   '/solo-games/mpsearch',
   '/solo-games/mpdifference',
   '/solo-games/mpcolossal',
+  '/solo-games/tekscodle',
   '/interactive-games/overlays',
   '/interactive-games/wikirec',
   '/interactive-games/wikirec/overlay',
@@ -205,6 +210,7 @@ function AppShell() {
           <Route path="/solo-games/mpsearch" element={<MPSearchPage />} />
           <Route path="/solo-games/mpdifference" element={<MPDifferencePage />} />
           <Route path="/solo-games/mpcolossal" element={<MPColossalPage />} />
+          <Route path="/solo-games/tekscodle" element={<TekscodlePage />} />
           <Route path="/interactive-games/overlays" element={<InteractiveOverlaysWallPage />} />
           <Route path="/interactive-games/wikirec" element={<WikirecGamePage />} />
           <Route path="/interactive-games/wikirec/overlay" element={<WikirecGamePage />} />

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowUpRight, LogIn, Moon, Sun } from 'lucide-react';
+import { ArrowUpRight, LogIn, Mail, Moon, Sun } from 'lucide-react';
 import { getCleanDisplayName, useUnifiedAuth } from '@/lib/unified-game-auth';
 import { LoggedInIndicator } from '@/components/logged-in-indicator';
 import { UserProfileIcon } from '@/components/user-profile-icon';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import { AdminPortalModal } from '@/components/interactive-games/admin-portal-modal';
+import { ContactUsModal } from '@/components/contact-us-modal';
 
 const SITE_DARK_MODE_KEY = 'mp_site_dark_mode_v2';
 
@@ -14,6 +15,7 @@ export function SiteHeader() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'account' | 'leaderboards'>('account');
   const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem(SITE_DARK_MODE_KEY);
@@ -119,6 +121,15 @@ export function SiteHeader() {
           >
             {darkMode ? <Sun size={16} /> : <Moon size={16} />}
           </button>
+          <button
+            type="button"
+            onClick={() => setContactModalOpen(true)}
+            className="header-action"
+            aria-label="Contact us by email"
+          >
+            <Mail size={15} />
+            <span>Contact us</span>
+          </button>
           <Link className="header-action" to="/#games">
             Find your game <ArrowUpRight size={17} />
           </Link>
@@ -134,6 +145,10 @@ export function SiteHeader() {
       <AdminPortalModal
         open={adminModalOpen}
         onClose={() => setAdminModalOpen(false)}
+      />
+      <ContactUsModal
+        open={contactModalOpen}
+        onClose={() => setContactModalOpen(false)}
       />
     </>
   );

@@ -44,6 +44,7 @@ export type SoloGameId =
   | "mpsearch"
   | "mpdifference"
   | "mpcolossal"
+  | "tekscodle"
   | "cruciverbalist"
   | "crossword";
 
@@ -165,6 +166,10 @@ export const SOLO_GAME_LABELS: Record<
   mpcolossal: {
     title: "MP Colossal",
     metric: "Colossal Atlas Score",
+  },
+  tekscodle: {
+    title: "TEKSCOdle",
+    metric: "Supermarket Basket Score",
   },
   cruciverbalist: {
     title: "Cruciverbalist Crossword",
@@ -2248,6 +2253,7 @@ export function subscribeToAllLeaderboards(
       mpsearch: [],
       mpdifference: [],
       mpcolossal: [],
+      tekscodle: [],
       cruciverbalist: [],
       crossword: [],
     };

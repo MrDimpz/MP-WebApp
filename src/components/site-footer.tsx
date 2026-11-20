@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowUpRight, Download, KeyRound, LoaderCircle, MonitorPlay, Users } from 'lucide-react';
+import { ArrowUpRight, Download, KeyRound, LoaderCircle, Mail, MonitorPlay, Users } from 'lucide-react';
 import { openCookiePreferences } from '@/lib/cookie-consent';
 import { AdminPortalModal } from '@/components/interactive-games/admin-portal-modal';
 import { AdminPanelModal } from '@/components/admin-panel-modal';
+import { ContactUsModal } from '@/components/contact-us-modal';
 
 export function SiteFooter() {
   const [downloadingZip, setDownloadingZip] = useState(false);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
 
   const showHostingerDownload =
     typeof window !== 'undefined' &&
@@ -77,6 +79,15 @@ export function SiteFooter() {
             >
               <MonitorPlay size={15} /> All interactive overlays
             </Link>
+            <button
+              type="button"
+              onClick={() => setContactModalOpen(true)}
+              className="header-action py-2 px-3.5 text-xs"
+              aria-label="Contact us by email"
+            >
+              <Mail size={14} />
+              <span>Contact us</span>
+            </button>
             <Link
               to="/#games"
               className="inline-flex items-center gap-2 text-xs font-medium hover:underline underline-offset-4 whitespace-nowrap"
@@ -154,6 +165,10 @@ export function SiteFooter() {
       <AdminPanelModal
         open={adminPanelOpen}
         onClose={() => setAdminPanelOpen(false)}
+      />
+      <ContactUsModal
+        open={contactModalOpen}
+        onClose={() => setContactModalOpen(false)}
       />
     </>
   );
