@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { defineConfig, type Plugin } from 'vite';
 
-const ROOT_DIR = import.meta.dirname || __dirname;
+const ROOT_DIR = import.meta.dirname || process.cwd();
 const DIST_DIR = path.resolve(ROOT_DIR, 'dist');
 const PUBLIC_ZIP_PATH = path.resolve(ROOT_DIR, 'public/the-missing-piece-hostinger.zip');
 
@@ -182,7 +182,8 @@ export default defineConfig(() => {
     },
     server: {
       // HMR is disabled in AI Studio.
-      hmr: false,
+      hmr: false as const,
+      ws: false as const,
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },

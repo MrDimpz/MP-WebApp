@@ -1,7 +1,30 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Keyboard } from 'lucide-react';
-import { GameMode, WordValidationStatus } from '../types/game';
+import { GameMode, GameStats, WordValidationStatus } from '../types/game';
 import { getWordBreakAfterIndices } from '../utils/wordSplits';
+
+const GUESS_COUNT_BUCKETS: Array<{
+  key: string;
+  label: string;
+  getCount: (dist: Record<number, number>) => number;
+}> = [
+  { key: '1', label: '1 guess', getCount: (d) => d[1] || 0 },
+  { key: '2', label: '2 guesses', getCount: (d) => d[2] || 0 },
+  { key: '3', label: '3 guesses', getCount: (d) => d[3] || 0 },
+  { key: '4', label: '4 guesses', getCount: (d) => d[4] || 0 },
+  { key: '5', label: '5 guesses', getCount: (d) => d[5] || 0 },
+  { key: '6', label: '6 guesses', getCount: (d) => d[6] || 0 },
+  { key: '7', label: '7 guesses', getCount: (d) => d[7] || 0 },
+  {
+    key: '8+',
+    label: '8+ guesses',
+    getCount: (d) =>
+      Object.entries(d).reduce((sum, [k, v]) => {
+        const num = Number(k);
+        return Number.isFinite(num) && num >= 8 ? sum + (Number(v) || 0) : sum;
+      }, 0),
+  },
+];
 
 interface ThematikBoardProps {
   themeClue: string;
@@ -17,6 +40,7 @@ interface ThematikBoardProps {
   activeLetterIndex: number;
   validationStatus: WordValidationStatus[];
   isSolved: boolean;
+  stats: GameStats;
   onSelectCell: (wordIndex: number, letterIndex: number) => void;
   onSelectThemeCell: (letterIndex: number) => void;
   onOpenMobileKeyboard?: () => void;
@@ -36,6 +60,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
   activeLetterIndex,
   validationStatus,
   isSolved,
+  stats,
   onSelectCell,
   onSelectThemeCell,
   onOpenMobileKeyboard,
@@ -410,6 +435,40 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
             <Keyboard className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-85 shrink-0" />
             <span>{isGuessMode ? 'Guess a letter' : 'Tap any tile to type'}</span>
           </button>
+        </div>
+      </div>
+
+      {/* Centralised 1-Line Counter: Guess Distribution (1 guess .. 8+ guesses) */}
+      <div
+        className="w-full mt-3 sm:mt-3.5 mx-auto rounded-xl sm:rounded-2xl bg-[#1c042b]/90 border border-[#f5b82e]/30 px-1.5 py-2 sm:px-2.5 sm:py-2.5 shadow-lg text-center"
+        aria-label="Guess count summary"
+      >
+        <div className="grid grid-cols-8 gap-1 sm:gap-1.5">
+          {GUESS_COUNT_BUCKETS.map((bucket) => {
+            const count = bucket.getCount(stats.guessDistribution || {});
+            const hasCount = count > 0;
+            return (
+              <div
+                key={bucket.key}
+                className={`min-w-0 flex flex-col items-center justify-center rounded-lg sm:rounded-xl px-0.5 py-1.5 border transition-colors ${
+                  hasCount
+                    ? 'bg-[#3b0f54]/85 border-[#f5b82e]/50 text-white shadow-xs'
+                    : 'bg-[#14021f]/75 border-purple-900/40 text-purple-300/60'
+                }`}
+              >
+                <span
+                  className={`text-xs sm:text-sm font-mono font-black tabular-nums leading-none ${
+                    hasCount ? 'text-[#f5b82e]' : 'text-purple-300/45'
+                  }`}
+                >
+                  {count}
+                </span>
+                <span className="mt-1 text-[7.5px] sm:text-[9px] font-semibold tracking-tight leading-none whitespace-nowrap">
+                  {bucket.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

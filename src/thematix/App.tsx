@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { GameMode, Puzzle, WordValidationStatus } from './types/game';
+import { GameMode, GameStats, Puzzle, WordValidationStatus } from './types/game';
 import { DAILY_PUZZLES, getTodayPuzzle, getRandomPuzzle } from './data/puzzles';
 import {
   loadPuzzleProgress,
@@ -130,6 +130,18 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authModalTab, setAuthModalTab] = useState<'account' | 'leaderboards'>('leaderboards');
   const { user: currentUser, authReady } = useUnifiedAuth();
+  const [stats, setStats] = useState<GameStats>(() => loadStats());
+
+  useEffect(() => {
+    const refreshStats = () => setStats(loadStats());
+    refreshStats();
+    window.addEventListener('storage', refreshStats);
+    window.addEventListener('unified-auth-updated', refreshStats);
+    return () => {
+      window.removeEventListener('storage', refreshStats);
+      window.removeEventListener('unified-auth-updated', refreshStats);
+    };
+  }, [currentUser?.uid]);
 
   const todayLondonDate = useMemo(() => getLondonDateString(), []);
   const legacySolvedToday = useMemo(() => {
@@ -383,6 +395,7 @@ export default function App() {
         sound.playWin();
         triggerConfetti(newGuessesCount);
         const updatedStats = recordWin(newGuessesCount, puzzle.date);
+        setStats(updatedStats);
         if (puzzle.date === todayLondonDate) {
           recordDailyPuzzleSolved('thematix', todayLondonDate, updatedStats.currentStreak);
         }
@@ -854,6 +867,7 @@ export default function App() {
       sound.playWin();
       triggerConfetti(letterGuessesCount);
       const updatedStats = recordWin(letterGuessesCount, puzzle.date);
+      setStats(updatedStats);
       if (puzzle.date === todayLondonDate) {
         recordDailyPuzzleSolved('thematix', todayLondonDate, updatedStats.currentStreak);
       }
@@ -885,7 +899,8 @@ export default function App() {
     setIsSolved(true);
     setThemeValidation('correct');
     setWordValidation(['correct', 'correct', 'correct', 'correct', 'correct', 'correct']);
-    recordLoss(puzzle.date);
+    const updatedStats = recordLoss(puzzle.date);
+    setStats(updatedStats);
     persistProgress(
       guessedLetters,
       letterGuessesCount,
@@ -1146,6 +1161,7 @@ export default function App() {
             activeLetterIndex={activeLetterIndex}
             validationStatus={wordValidation}
             isSolved={isSolved}
+            stats={stats}
             onSelectCell={handleSelectWordCell}
             onSelectThemeCell={handleSelectThemeCell}
             onOpenMobileKeyboard={focusMobileKeyboard}
