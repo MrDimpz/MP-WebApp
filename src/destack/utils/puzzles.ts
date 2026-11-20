@@ -1,4 +1,5 @@
 import { WordPuzzle, TileData, DifficultyMode, LayoutId, LayoutSelection } from '../types';
+import { dictionary } from '../../crowdle/dictionary';
 
 export interface PatternSlot {
   gridX: number;
@@ -53,192 +54,114 @@ export const TILE_LAYOUTS: TileLayoutMeta[] = [
 export const NORMAL_PATTERNS: Record<LayoutId, PatternSlot[]> = {
   // 1. Classic Diamond (10 + 8 + 8 + 4 = 30)
   pyramid: [
-    // Layer 0 (Bottom - 10 tiles)
-    { gridX: -1.0, gridY: -2.0, layer: 0 },
-    { gridX:  1.0, gridY: -2.0, layer: 0 },
-    { gridX: -2.0, gridY: -1.0, layer: 0 },
-    { gridX: -2.0, gridY:  0.0, layer: 0 },
-    { gridX: -2.0, gridY:  1.0, layer: 0 },
-    { gridX:  2.0, gridY: -1.0, layer: 0 },
-    { gridX:  2.0, gridY:  0.0, layer: 0 },
-    { gridX:  2.0, gridY:  1.0, layer: 0 },
-    { gridX: -1.0, gridY:  2.0, layer: 0 },
-    { gridX:  1.0, gridY:  2.0, layer: 0 },
-    // Layer 1 (8 tiles)
-    { gridX: -0.5, gridY: -1.5, layer: 1 },
-    { gridX:  0.5, gridY: -1.5, layer: 1 },
-    { gridX: -1.5, gridY: -0.5, layer: 1 },
-    { gridX: -1.5, gridY:  0.5, layer: 1 },
-    { gridX:  1.5, gridY: -0.5, layer: 1 },
-    { gridX:  1.5, gridY:  0.5, layer: 1 },
-    { gridX: -0.5, gridY:  1.5, layer: 1 },
-    { gridX:  0.5, gridY:  1.5, layer: 1 },
-    // Layer 2 (8 tiles)
-    { gridX: -1.0, gridY: -1.0, layer: 2 },
-    { gridX:  0.0, gridY: -1.0, layer: 2 },
-    { gridX:  1.0, gridY: -1.0, layer: 2 },
-    { gridX: -1.0, gridY:  0.0, layer: 2 },
-    { gridX:  1.0, gridY:  0.0, layer: 2 },
-    { gridX: -1.0, gridY:  1.0, layer: 2 },
-    { gridX:  0.0, gridY:  1.0, layer: 2 },
-    { gridX:  1.0, gridY:  1.0, layer: 2 },
-    // Layer 3 (Top - 4 tiles)
-    { gridX: -0.5, gridY: -0.5, layer: 3 },
-    { gridX:  0.5, gridY: -0.5, layer: 3 },
-    { gridX: -0.5, gridY:  0.5, layer: 3 },
-    { gridX:  0.5, gridY:  0.5, layer: 3 },
+    // Layer 0 (10 tiles - integer)
+    { gridX: -1.0, gridY: -2.0, layer: 0 }, { gridX:  1.0, gridY: -2.0, layer: 0 },
+    { gridX: -2.0, gridY: -1.0, layer: 0 }, { gridX: -2.0, gridY:  0.0, layer: 0 },
+    { gridX: -2.0, gridY:  1.0, layer: 0 }, { gridX:  2.0, gridY: -1.0, layer: 0 },
+    { gridX:  2.0, gridY:  0.0, layer: 0 }, { gridX:  2.0, gridY:  1.0, layer: 0 },
+    { gridX: -1.0, gridY:  2.0, layer: 0 }, { gridX:  1.0, gridY:  2.0, layer: 0 },
+    // Layer 1 (8 tiles - half-integer)
+    { gridX: -0.5, gridY: -1.5, layer: 1 }, { gridX:  0.5, gridY: -1.5, layer: 1 },
+    { gridX: -1.5, gridY: -0.5, layer: 1 }, { gridX: -1.5, gridY:  0.5, layer: 1 },
+    { gridX:  1.5, gridY: -0.5, layer: 1 }, { gridX:  1.5, gridY:  0.5, layer: 1 },
+    { gridX: -0.5, gridY:  1.5, layer: 1 }, { gridX:  0.5, gridY:  1.5, layer: 1 },
+    // Layer 2 (8 tiles - integer)
+    { gridX: -1.0, gridY: -1.0, layer: 2 }, { gridX:  0.0, gridY: -1.0, layer: 2 },
+    { gridX:  1.0, gridY: -1.0, layer: 2 }, { gridX: -1.0, gridY:  0.0, layer: 2 },
+    { gridX:  1.0, gridY:  0.0, layer: 2 }, { gridX: -1.0, gridY:  1.0, layer: 2 },
+    { gridX:  0.0, gridY:  1.0, layer: 2 }, { gridX:  1.0, gridY:  1.0, layer: 2 },
+    // Layer 3 (4 tiles - half-integer)
+    { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -0.5, layer: 3 },
+    { gridX: -0.5, gridY:  0.5, layer: 3 }, { gridX:  0.5, gridY:  0.5, layer: 3 },
   ],
 
-  // 2. Twin Towers (10 + 8 + 8 + 4 = 30, stacked 0.5-step pillars)
+  // 2. Twin Towers (10 + 8 + 8 + 4 = 30)
   twin_towers: [
-    // Layer 0 (10 tiles: 5 left, 5 right)
-    { gridX: -2.0, gridY: -1.5, layer: 0 },
-    { gridX: -1.0, gridY: -1.5, layer: 0 },
-    { gridX: -2.0, gridY:  0.0, layer: 0 },
-    { gridX: -2.0, gridY:  1.5, layer: 0 },
-    { gridX: -1.0, gridY:  1.5, layer: 0 },
-    { gridX:  1.0, gridY: -1.5, layer: 0 },
-    { gridX:  2.0, gridY: -1.5, layer: 0 },
-    { gridX:  2.0, gridY:  0.0, layer: 0 },
-    { gridX:  1.0, gridY:  1.5, layer: 0 },
-    { gridX:  2.0, gridY:  1.5, layer: 0 },
-    // Layer 1 (8 tiles: 4 left, 4 right)
-    { gridX: -1.5, gridY: -1.0, layer: 1 },
-    { gridX: -1.5, gridY: -0.5, layer: 1 },
-    { gridX: -1.5, gridY:  0.5, layer: 1 },
-    { gridX: -1.5, gridY:  1.0, layer: 1 },
-    { gridX:  1.5, gridY: -1.0, layer: 1 },
-    { gridX:  1.5, gridY: -0.5, layer: 1 },
-    { gridX:  1.5, gridY:  0.5, layer: 1 },
-    { gridX:  1.5, gridY:  1.0, layer: 1 },
-    // Layer 2 (8 tiles: 4 left, 4 right)
-    { gridX: -2.0, gridY: -0.5, layer: 2 },
-    { gridX: -1.0, gridY: -0.5, layer: 2 },
-    { gridX: -2.0, gridY:  0.5, layer: 2 },
-    { gridX: -1.0, gridY:  0.5, layer: 2 },
-    { gridX:  1.0, gridY: -0.5, layer: 2 },
-    { gridX:  2.0, gridY: -0.5, layer: 2 },
-    { gridX:  1.0, gridY:  0.5, layer: 2 },
-    { gridX:  2.0, gridY:  0.5, layer: 2 },
-    // Layer 3 (Top - 4 tiles: 2 left, 2 right)
-    { gridX: -1.5, gridY: -0.5, layer: 3 },
-    { gridX: -1.5, gridY:  0.5, layer: 3 },
-    { gridX:  1.5, gridY: -0.5, layer: 3 },
-    { gridX:  1.5, gridY:  0.5, layer: 3 },
+    // Layer 0 (10 tiles: 5 left, 5 right - integer)
+    { gridX: -2.0, gridY: -2.0, layer: 0 }, { gridX: -1.0, gridY: -2.0, layer: 0 },
+    { gridX: -2.0, gridY:  0.0, layer: 0 }, { gridX: -2.0, gridY:  2.0, layer: 0 }, { gridX: -1.0, gridY:  2.0, layer: 0 },
+    { gridX:  1.0, gridY: -2.0, layer: 0 }, { gridX:  2.0, gridY: -2.0, layer: 0 },
+    { gridX:  2.0, gridY:  0.0, layer: 0 }, { gridX:  1.0, gridY:  2.0, layer: 0 }, { gridX:  2.0, gridY:  2.0, layer: 0 },
+    // Layer 1 (8 tiles: 4 left, 4 right - half-integer)
+    { gridX: -2.5, gridY: -1.5, layer: 1 }, { gridX: -0.5, gridY: -1.5, layer: 1 },
+    { gridX: -2.5, gridY:  1.5, layer: 1 }, { gridX: -0.5, gridY:  1.5, layer: 1 },
+    { gridX:  0.5, gridY: -1.5, layer: 1 }, { gridX:  2.5, gridY: -1.5, layer: 1 },
+    { gridX:  0.5, gridY:  1.5, layer: 1 }, { gridX:  2.5, gridY:  1.5, layer: 1 },
+    // Layer 2 (8 tiles: 4 left, 4 right - integer)
+    { gridX: -2.0, gridY: -1.0, layer: 2 }, { gridX: -1.0, gridY: -1.0, layer: 2 },
+    { gridX: -2.0, gridY:  1.0, layer: 2 }, { gridX: -1.0, gridY:  1.0, layer: 2 },
+    { gridX:  1.0, gridY: -1.0, layer: 2 }, { gridX:  2.0, gridY: -1.0, layer: 2 },
+    { gridX:  1.0, gridY:  1.0, layer: 2 }, { gridX:  2.0, gridY:  1.0, layer: 2 },
+    // Layer 3 (Top - 4 tiles: 2 left, 2 right - half-integer)
+    { gridX: -1.5, gridY: -0.5, layer: 3 }, { gridX: -1.5, gridY:  0.5, layer: 3 },
+    { gridX:  1.5, gridY: -0.5, layer: 3 }, { gridX:  1.5, gridY:  0.5, layer: 3 },
   ],
 
   // 3. Cross Fortress (12 + 8 + 6 + 4 = 30)
   cross_fortress: [
-    // Layer 0 (12 tiles)
-    { gridX: -0.5, gridY: -2.0, layer: 0 },
-    { gridX:  0.5, gridY: -2.0, layer: 0 },
-    { gridX: -0.5, gridY:  2.0, layer: 0 },
-    { gridX:  0.5, gridY:  2.0, layer: 0 },
-    { gridX: -2.0, gridY: -0.5, layer: 0 },
-    { gridX: -2.0, gridY:  0.5, layer: 0 },
-    { gridX:  2.0, gridY: -0.5, layer: 0 },
-    { gridX:  2.0, gridY:  0.5, layer: 0 },
-    { gridX: -1.0, gridY: -1.0, layer: 0 },
-    { gridX:  1.0, gridY: -1.0, layer: 0 },
-    { gridX: -1.0, gridY:  1.0, layer: 0 },
-    { gridX:  1.0, gridY:  1.0, layer: 0 },
-    // Layer 1 (8 tiles)
-    { gridX:  0.0, gridY: -1.5, layer: 1 },
-    { gridX:  0.0, gridY:  1.5, layer: 1 },
-    { gridX: -1.5, gridY:  0.0, layer: 1 },
-    { gridX:  1.5, gridY:  0.0, layer: 1 },
-    { gridX: -0.5, gridY: -0.5, layer: 1 },
-    { gridX:  0.5, gridY: -0.5, layer: 1 },
-    { gridX: -0.5, gridY:  0.5, layer: 1 },
-    { gridX:  0.5, gridY:  0.5, layer: 1 },
-    // Layer 2 (6 tiles)
-    { gridX: -0.5, gridY: -1.0, layer: 2 },
-    { gridX:  0.5, gridY: -1.0, layer: 2 },
-    { gridX: -1.0, gridY:  0.0, layer: 2 },
-    { gridX:  1.0, gridY:  0.0, layer: 2 },
-    { gridX: -0.5, gridY:  1.0, layer: 2 },
-    { gridX:  0.5, gridY:  1.0, layer: 2 },
-    // Layer 3 (Top - 4 tiles)
-    { gridX: -0.5, gridY: -0.5, layer: 3 },
-    { gridX:  0.5, gridY: -0.5, layer: 3 },
-    { gridX: -0.5, gridY:  0.5, layer: 3 },
-    { gridX:  0.5, gridY:  0.5, layer: 3 },
+    // Layer 0 (12 tiles - integer outer bastions)
+    { gridX: -1.0, gridY: -2.0, layer: 0 }, { gridX:  0.0, gridY: -2.0, layer: 0 }, { gridX:  1.0, gridY: -2.0, layer: 0 },
+    { gridX: -1.0, gridY:  2.0, layer: 0 }, { gridX:  0.0, gridY:  2.0, layer: 0 }, { gridX:  1.0, gridY:  2.0, layer: 0 },
+    { gridX: -2.0, gridY: -1.0, layer: 0 }, { gridX: -2.0, gridY:  0.0, layer: 0 }, { gridX: -2.0, gridY:  1.0, layer: 0 },
+    { gridX:  2.0, gridY: -1.0, layer: 0 }, { gridX:  2.0, gridY:  0.0, layer: 0 }, { gridX:  2.0, gridY:  1.0, layer: 0 },
+    // Layer 1 (8 tiles - half-integer cross wings)
+    { gridX: -0.5, gridY: -1.5, layer: 1 }, { gridX:  0.5, gridY: -1.5, layer: 1 },
+    { gridX: -0.5, gridY:  1.5, layer: 1 }, { gridX:  0.5, gridY:  1.5, layer: 1 },
+    { gridX: -1.5, gridY: -0.5, layer: 1 }, { gridX: -1.5, gridY:  0.5, layer: 1 },
+    { gridX:  1.5, gridY: -0.5, layer: 1 }, { gridX:  1.5, gridY:  0.5, layer: 1 },
+    // Layer 2 (6 tiles - integer inner citadel)
+    { gridX: -1.0, gridY: -1.0, layer: 2 }, { gridX:  1.0, gridY: -1.0, layer: 2 },
+    { gridX: -1.0, gridY:  0.0, layer: 2 }, { gridX:  1.0, gridY:  0.0, layer: 2 },
+    { gridX: -1.0, gridY:  1.0, layer: 2 }, { gridX:  1.0, gridY:  1.0, layer: 2 },
+    // Layer 3 (Top - 4 tiles - half-integer central keep)
+    { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -0.5, layer: 3 },
+    { gridX: -0.5, gridY:  0.5, layer: 3 }, { gridX:  0.5, gridY:  0.5, layer: 3 },
   ],
 
-  // 4. Hourglass (10 + 8 + 8 + 4 = 30, stacked 0.5-step waist)
+  // 4. Hourglass (10 + 8 + 8 + 4 = 30)
   hourglass: [
-    // Layer 0 (10 tiles)
-    { gridX: -2.0, gridY: -1.5, layer: 0 },
-    { gridX: -1.0, gridY: -1.5, layer: 0 },
-    { gridX:  0.0, gridY: -1.5, layer: 0 },
-    { gridX:  1.0, gridY: -1.5, layer: 0 },
-    { gridX:  2.0, gridY: -1.5, layer: 0 },
-    { gridX: -2.0, gridY:  1.5, layer: 0 },
-    { gridX: -1.0, gridY:  1.5, layer: 0 },
-    { gridX:  0.0, gridY:  1.5, layer: 0 },
-    { gridX:  1.0, gridY:  1.5, layer: 0 },
-    { gridX:  2.0, gridY:  1.5, layer: 0 },
-    // Layer 1 (8 tiles)
-    { gridX: -1.5, gridY: -1.0, layer: 1 },
-    { gridX: -0.5, gridY: -1.0, layer: 1 },
-    { gridX:  0.5, gridY: -1.0, layer: 1 },
-    { gridX:  1.5, gridY: -1.0, layer: 1 },
-    { gridX: -1.5, gridY:  1.0, layer: 1 },
-    { gridX: -0.5, gridY:  1.0, layer: 1 },
-    { gridX:  0.5, gridY:  1.0, layer: 1 },
-    { gridX:  1.5, gridY:  1.0, layer: 1 },
-    // Layer 2 (8 tiles)
-    { gridX: -1.0, gridY: -0.5, layer: 2 },
-    { gridX:  0.0, gridY: -0.5, layer: 2 },
-    { gridX:  1.0, gridY: -0.5, layer: 2 },
-    { gridX: -0.5, gridY:  0.0, layer: 2 },
-    { gridX:  0.5, gridY:  0.0, layer: 2 },
-    { gridX: -1.0, gridY:  0.5, layer: 2 },
-    { gridX:  0.0, gridY:  0.5, layer: 2 },
-    { gridX:  1.0, gridY:  0.5, layer: 2 },
-    // Layer 3 (Top - 4 tiles)
-    { gridX: -0.5, gridY: -0.5, layer: 3 },
-    { gridX:  0.5, gridY: -0.5, layer: 3 },
-    { gridX: -0.5, gridY:  0.5, layer: 3 },
-    { gridX:  0.5, gridY:  0.5, layer: 3 },
+    // Layer 0 (10 tiles wide top/bottom - integer)
+    { gridX: -2.0, gridY: -2.0, layer: 0 }, { gridX: -1.0, gridY: -2.0, layer: 0 },
+    { gridX:  0.0, gridY: -2.0, layer: 0 }, { gridX:  1.0, gridY: -2.0, layer: 0 },
+    { gridX:  2.0, gridY: -2.0, layer: 0 }, { gridX: -2.0, gridY:  2.0, layer: 0 },
+    { gridX: -1.0, gridY:  2.0, layer: 0 }, { gridX:  0.0, gridY:  2.0, layer: 0 },
+    { gridX:  1.0, gridY:  2.0, layer: 0 }, { gridX:  2.0, gridY:  2.0, layer: 0 },
+    // Layer 1 (8 tiles tapering - half-integer)
+    { gridX: -1.5, gridY: -1.5, layer: 1 }, { gridX: -0.5, gridY: -1.5, layer: 1 },
+    { gridX:  0.5, gridY: -1.5, layer: 1 }, { gridX:  1.5, gridY: -1.5, layer: 1 },
+    { gridX: -1.5, gridY:  1.5, layer: 1 }, { gridX: -0.5, gridY:  1.5, layer: 1 },
+    { gridX:  0.5, gridY:  1.5, layer: 1 }, { gridX:  1.5, gridY:  1.5, layer: 1 },
+    // Layer 2 (8 tiles waist & collar - integer)
+    { gridX: -1.0, gridY: -1.0, layer: 2 }, { gridX:  0.0, gridY: -1.0, layer: 2 },
+    { gridX:  1.0, gridY: -1.0, layer: 2 }, { gridX: -1.0, gridY:  0.0, layer: 2 },
+    { gridX:  1.0, gridY:  0.0, layer: 2 }, { gridX: -1.0, gridY:  1.0, layer: 2 },
+    { gridX:  0.0, gridY:  1.0, layer: 2 }, { gridX:  1.0, gridY:  1.0, layer: 2 },
+    // Layer 3 (4 tiles center waist - half-integer)
+    { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -0.5, layer: 3 },
+    { gridX: -0.5, gridY:  0.5, layer: 3 }, { gridX:  0.5, gridY:  0.5, layer: 3 },
   ],
 
   // 5. Diagonal Cascade (12 + 8 + 6 + 4 = 30)
   staircase: [
-    // Layer 0 (12 tiles)
-    { gridX: -2.0, gridY: -2.0, layer: 0 },
-    { gridX: -1.0, gridY: -2.0, layer: 0 },
-    { gridX:  0.0, gridY: -2.0, layer: 0 },
-    { gridX: -2.0, gridY: -1.0, layer: 0 },
-    { gridX: -2.0, gridY:  0.0, layer: 0 },
-    { gridX:  2.0, gridY:  0.0, layer: 0 },
-    { gridX:  2.0, gridY:  1.0, layer: 0 },
-    { gridX:  0.0, gridY:  2.0, layer: 0 },
-    { gridX:  1.0, gridY:  2.0, layer: 0 },
-    { gridX:  2.0, gridY:  2.0, layer: 0 },
-    { gridX: -1.0, gridY:  1.0, layer: 0 },
-    { gridX:  1.0, gridY: -1.0, layer: 0 },
-    // Layer 1 (8 tiles)
-    { gridX: -1.5, gridY: -1.5, layer: 1 },
-    { gridX: -0.5, gridY: -1.5, layer: 1 },
-    { gridX: -1.5, gridY: -0.5, layer: 1 },
-    { gridX:  0.5, gridY: -0.5, layer: 1 },
-    { gridX: -0.5, gridY:  0.5, layer: 1 },
-    { gridX:  1.5, gridY:  0.5, layer: 1 },
-    { gridX:  0.5, gridY:  1.5, layer: 1 },
-    { gridX:  1.5, gridY:  1.5, layer: 1 },
-    // Layer 2 (6 tiles)
-    { gridX: -1.0, gridY: -1.0, layer: 2 },
-    { gridX:  0.0, gridY: -1.0, layer: 2 },
-    { gridX: -1.0, gridY:  0.0, layer: 2 },
-    { gridX:  1.0, gridY:  0.0, layer: 2 },
-    { gridX:  0.0, gridY:  1.0, layer: 2 },
-    { gridX:  1.0, gridY:  1.0, layer: 2 },
-    // Layer 3 (Top - 4 tiles)
-    { gridX: -0.5, gridY: -0.5, layer: 3 },
-    { gridX:  0.5, gridY: -0.5, layer: 3 },
-    { gridX: -0.5, gridY:  0.5, layer: 3 },
-    { gridX:  0.5, gridY:  0.5, layer: 3 },
+    // Layer 0 (12 tiles - integer)
+    { gridX: -2.0, gridY: -2.0, layer: 0 }, { gridX: -1.0, gridY: -2.0, layer: 0 },
+    { gridX:  0.0, gridY: -2.0, layer: 0 }, { gridX: -2.0, gridY: -1.0, layer: 0 },
+    { gridX: -2.0, gridY:  0.0, layer: 0 }, { gridX:  2.0, gridY:  0.0, layer: 0 },
+    { gridX:  2.0, gridY:  1.0, layer: 0 }, { gridX:  0.0, gridY:  2.0, layer: 0 },
+    { gridX:  1.0, gridY:  2.0, layer: 0 }, { gridX:  2.0, gridY:  2.0, layer: 0 },
+    { gridX: -1.0, gridY:  1.0, layer: 0 }, { gridX:  1.0, gridY: -1.0, layer: 0 },
+    // Layer 1 (8 tiles - half-integer)
+    { gridX: -1.5, gridY: -1.5, layer: 1 }, { gridX: -0.5, gridY: -1.5, layer: 1 },
+    { gridX: -1.5, gridY: -0.5, layer: 1 }, { gridX:  0.5, gridY: -1.5, layer: 1 },
+    { gridX: -0.5, gridY:  1.5, layer: 1 }, { gridX:  1.5, gridY:  0.5, layer: 1 },
+    { gridX:  0.5, gridY:  1.5, layer: 1 }, { gridX:  1.5, gridY:  1.5, layer: 1 },
+    // Layer 2 (6 tiles - integer)
+    { gridX: -1.0, gridY: -1.0, layer: 2 }, { gridX:  0.0, gridY: -1.0, layer: 2 },
+    { gridX: -1.0, gridY:  0.0, layer: 2 }, { gridX:  1.0, gridY:  0.0, layer: 2 },
+    { gridX:  0.0, gridY:  1.0, layer: 2 }, { gridX:  1.0, gridY:  1.0, layer: 2 },
+    // Layer 3 (Top - 4 tiles core - half-integer)
+    { gridX: -0.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -0.5, layer: 3 },
+    { gridX: -0.5, gridY:  0.5, layer: 3 }, { gridX:  0.5, gridY:  0.5, layer: 3 },
   ],
 };
 
@@ -249,302 +172,172 @@ export const NORMAL_PATTERNS: Record<LayoutId, PatternSlot[]> = {
 export const HARD_PATTERNS: Record<LayoutId, PatternSlot[]> = {
   // 1. Classic Diamond (8 + 12 + 10 + 8 + 8 + 4 = 50)
   pyramid: [
-    // Layer 0 (8 tiles)
-    { gridX:  0.0, gridY: -3.0, layer: 0 },
-    { gridX: -2.0, gridY: -2.0, layer: 0 },
-    { gridX:  2.0, gridY: -2.0, layer: 0 },
-    { gridX: -3.0, gridY:  0.0, layer: 0 },
-    { gridX:  3.0, gridY:  0.0, layer: 0 },
-    { gridX: -2.0, gridY:  2.0, layer: 0 },
-    { gridX:  2.0, gridY:  2.0, layer: 0 },
-    { gridX:  0.0, gridY:  3.0, layer: 0 },
-    // Layer 1 (12 tiles)
-    { gridX: -1.5, gridY: -2.5, layer: 1 },
-    { gridX: -0.5, gridY: -2.5, layer: 1 },
-    { gridX:  0.5, gridY: -2.5, layer: 1 },
-    { gridX:  1.5, gridY: -2.5, layer: 1 },
-    { gridX: -2.5, gridY: -0.5, layer: 1 },
-    { gridX: -2.5, gridY:  0.5, layer: 1 },
-    { gridX:  2.5, gridY: -0.5, layer: 1 },
-    { gridX:  2.5, gridY:  0.5, layer: 1 },
-    { gridX: -1.5, gridY:  2.5, layer: 1 },
-    { gridX: -0.5, gridY:  2.5, layer: 1 },
-    { gridX:  0.5, gridY:  2.5, layer: 1 },
-    { gridX:  1.5, gridY:  2.5, layer: 1 },
-    // Layer 2 (10 tiles)
-    { gridX: -1.0, gridY: -2.0, layer: 2 },
-    { gridX:  1.0, gridY: -2.0, layer: 2 },
-    { gridX: -2.0, gridY: -1.0, layer: 2 },
-    { gridX: -2.0, gridY:  0.0, layer: 2 },
-    { gridX: -2.0, gridY:  1.0, layer: 2 },
-    { gridX:  2.0, gridY: -1.0, layer: 2 },
-    { gridX:  2.0, gridY:  0.0, layer: 2 },
-    { gridX:  2.0, gridY:  1.0, layer: 2 },
-    { gridX: -1.0, gridY:  2.0, layer: 2 },
-    { gridX:  1.0, gridY:  2.0, layer: 2 },
-    // Layer 3 (8 tiles)
-    { gridX: -0.5, gridY: -1.5, layer: 3 },
-    { gridX:  0.5, gridY: -1.5, layer: 3 },
-    { gridX: -1.5, gridY: -0.5, layer: 3 },
-    { gridX: -1.5, gridY:  0.5, layer: 3 },
-    { gridX:  1.5, gridY: -0.5, layer: 3 },
-    { gridX:  1.5, gridY:  0.5, layer: 3 },
-    { gridX: -0.5, gridY:  1.5, layer: 3 },
-    { gridX:  0.5, gridY:  1.5, layer: 3 },
-    // Layer 4 (8 tiles)
-    { gridX: -1.0, gridY: -1.0, layer: 4 },
-    { gridX:  0.0, gridY: -1.0, layer: 4 },
-    { gridX:  1.0, gridY: -1.0, layer: 4 },
-    { gridX: -1.0, gridY:  0.0, layer: 4 },
-    { gridX:  1.0, gridY:  0.0, layer: 4 },
-    { gridX: -1.0, gridY:  1.0, layer: 4 },
-    { gridX:  0.0, gridY:  1.0, layer: 4 },
-    { gridX:  1.0, gridY:  1.0, layer: 4 },
-    // Layer 5 (Top - 4 tiles)
-    { gridX: -0.5, gridY: -0.5, layer: 5 },
-    { gridX:  0.5, gridY: -0.5, layer: 5 },
-    { gridX: -0.5, gridY:  0.5, layer: 5 },
-    { gridX:  0.5, gridY:  0.5, layer: 5 },
+    // Layer 0 (8 tiles - integer)
+    { gridX:  0.0, gridY: -3.0, layer: 0 }, { gridX: -2.0, gridY: -2.0, layer: 0 },
+    { gridX:  2.0, gridY: -2.0, layer: 0 }, { gridX: -3.0, gridY:  0.0, layer: 0 },
+    { gridX:  3.0, gridY:  0.0, layer: 0 }, { gridX: -2.0, gridY:  2.0, layer: 0 },
+    { gridX:  2.0, gridY:  2.0, layer: 0 }, { gridX:  0.0, gridY:  3.0, layer: 0 },
+    // Layer 1 (12 tiles - half-integer)
+    { gridX: -1.5, gridY: -2.5, layer: 1 }, { gridX: -0.5, gridY: -2.5, layer: 1 },
+    { gridX:  0.5, gridY: -2.5, layer: 1 }, { gridX:  1.5, gridY: -2.5, layer: 1 },
+    { gridX: -2.5, gridY: -0.5, layer: 1 }, { gridX: -2.5, gridY:  0.5, layer: 1 },
+    { gridX:  2.5, gridY: -0.5, layer: 1 }, { gridX:  2.5, gridY:  0.5, layer: 1 },
+    { gridX: -1.5, gridY:  2.5, layer: 1 }, { gridX: -0.5, gridY:  2.5, layer: 1 },
+    { gridX:  0.5, gridY:  2.5, layer: 1 }, { gridX:  1.5, gridY:  2.5, layer: 1 },
+    // Layer 2 (10 tiles - integer)
+    { gridX: -1.0, gridY: -2.0, layer: 2 }, { gridX:  1.0, gridY: -2.0, layer: 2 },
+    { gridX: -2.0, gridY: -1.0, layer: 2 }, { gridX: -2.0, gridY:  0.0, layer: 2 },
+    { gridX: -2.0, gridY:  1.0, layer: 2 }, { gridX:  2.0, gridY: -1.0, layer: 2 },
+    { gridX:  2.0, gridY:  0.0, layer: 2 }, { gridX:  2.0, gridY:  1.0, layer: 2 },
+    { gridX: -1.0, gridY:  2.0, layer: 2 }, { gridX:  1.0, gridY:  2.0, layer: 2 },
+    // Layer 3 (8 tiles - half-integer)
+    { gridX: -0.5, gridY: -1.5, layer: 3 }, { gridX:  0.5, gridY: -1.5, layer: 3 },
+    { gridX: -1.5, gridY: -0.5, layer: 3 }, { gridX: -1.5, gridY:  0.5, layer: 3 },
+    { gridX:  1.5, gridY: -0.5, layer: 3 }, { gridX:  1.5, gridY:  0.5, layer: 3 },
+    { gridX: -0.5, gridY:  1.5, layer: 3 }, { gridX:  0.5, gridY:  1.5, layer: 3 },
+    // Layer 4 (8 tiles - integer)
+    { gridX: -1.0, gridY: -1.0, layer: 4 }, { gridX:  0.0, gridY: -1.0, layer: 4 },
+    { gridX:  1.0, gridY: -1.0, layer: 4 }, { gridX: -1.0, gridY:  0.0, layer: 4 },
+    { gridX:  1.0, gridY:  0.0, layer: 4 }, { gridX: -1.0, gridY:  1.0, layer: 4 },
+    { gridX:  0.0, gridY:  1.0, layer: 4 }, { gridX:  1.0, gridY:  1.0, layer: 4 },
+    // Layer 5 (4 tiles - half-integer)
+    { gridX: -0.5, gridY: -0.5, layer: 5 }, { gridX:  0.5, gridY: -0.5, layer: 5 },
+    { gridX: -0.5, gridY:  0.5, layer: 5 }, { gridX:  0.5, gridY:  0.5, layer: 5 },
   ],
 
-  // 2. Twin Citadels (12 + 12 + 8 + 8 + 6 + 4 = 50, stacked 0.5-step pillars)
+  // 2. Twin Towers Hard (12 + 10 + 10 + 8 + 6 + 4 = 50)
   twin_towers: [
-    // Layer 0 (12 tiles: 6 left, 6 right)
-    { gridX: -2.5, gridY: -2.0, layer: 0 },
-    { gridX: -1.5, gridY: -2.0, layer: 0 },
-    { gridX: -0.5, gridY: -2.0, layer: 0 },
-    { gridX: -2.5, gridY:  2.0, layer: 0 },
-    { gridX: -1.5, gridY:  2.0, layer: 0 },
-    { gridX: -0.5, gridY:  2.0, layer: 0 },
-    { gridX:  0.5, gridY: -2.0, layer: 0 },
-    { gridX:  1.5, gridY: -2.0, layer: 0 },
-    { gridX:  2.5, gridY: -2.0, layer: 0 },
-    { gridX:  0.5, gridY:  2.0, layer: 0 },
-    { gridX:  1.5, gridY:  2.0, layer: 0 },
-    { gridX:  2.5, gridY:  2.0, layer: 0 },
-    // Layer 1 (12 tiles: 6 left, 6 right)
-    { gridX: -2.0, gridY: -1.5, layer: 1 },
-    { gridX: -1.0, gridY: -1.5, layer: 1 },
-    { gridX: -2.5, gridY:  0.0, layer: 1 },
-    { gridX: -0.5, gridY:  0.0, layer: 1 },
-    { gridX: -2.0, gridY:  1.5, layer: 1 },
-    { gridX: -1.0, gridY:  1.5, layer: 1 },
-    { gridX:  1.0, gridY: -1.5, layer: 1 },
-    { gridX:  2.0, gridY: -1.5, layer: 1 },
-    { gridX:  0.5, gridY:  0.0, layer: 1 },
-    { gridX:  2.5, gridY:  0.0, layer: 1 },
-    { gridX:  1.0, gridY:  1.5, layer: 1 },
-    { gridX:  2.0, gridY:  1.5, layer: 1 },
-    // Layer 2 (8 tiles: 4 left, 4 right)
-    { gridX: -2.0, gridY: -1.0, layer: 2 },
-    { gridX: -1.0, gridY: -1.0, layer: 2 },
-    { gridX: -2.0, gridY:  1.0, layer: 2 },
-    { gridX: -1.0, gridY:  1.0, layer: 2 },
-    { gridX:  1.0, gridY: -1.0, layer: 2 },
-    { gridX:  2.0, gridY: -1.0, layer: 2 },
-    { gridX:  1.0, gridY:  1.0, layer: 2 },
-    { gridX:  2.0, gridY:  1.0, layer: 2 },
-    // Layer 3 (8 tiles: 4 left, 4 right)
-    { gridX: -2.0, gridY: -0.5, layer: 3 },
-    { gridX: -1.0, gridY: -0.5, layer: 3 },
-    { gridX: -2.0, gridY:  0.5, layer: 3 },
-    { gridX: -1.0, gridY:  0.5, layer: 3 },
-    { gridX:  1.0, gridY: -0.5, layer: 3 },
-    { gridX:  2.0, gridY: -0.5, layer: 3 },
-    { gridX:  1.0, gridY:  0.5, layer: 3 },
-    { gridX:  2.0, gridY:  0.5, layer: 3 },
-    // Layer 4 (6 tiles: 3 left, 3 right)
-    { gridX: -1.5, gridY: -1.0, layer: 4 },
-    { gridX: -1.5, gridY:  0.0, layer: 4 },
-    { gridX: -1.5, gridY:  1.0, layer: 4 },
-    { gridX:  1.5, gridY: -1.0, layer: 4 },
-    { gridX:  1.5, gridY:  0.0, layer: 4 },
-    { gridX:  1.5, gridY:  1.0, layer: 4 },
-    // Layer 5 (Top - 4 tiles: 2 left, 2 right)
-    { gridX: -1.5, gridY: -0.5, layer: 5 },
-    { gridX: -1.5, gridY:  0.5, layer: 5 },
-    { gridX:  1.5, gridY: -0.5, layer: 5 },
-    { gridX:  1.5, gridY:  0.5, layer: 5 },
+    // Layer 0 (12 tiles: 6 left, 6 right - integer)
+    { gridX: -3.0, gridY: -3.0, layer: 0 }, { gridX: -2.0, gridY: -3.0, layer: 0 }, { gridX: -1.0, gridY: -3.0, layer: 0 },
+    { gridX: -2.0, gridY:  2.0, layer: 0 }, { gridX: -3.0, gridY:  3.0, layer: 0 }, { gridX: -1.0, gridY:  3.0, layer: 0 },
+    { gridX:  1.0, gridY: -3.0, layer: 0 }, { gridX:  2.0, gridY: -3.0, layer: 0 }, { gridX:  3.0, gridY: -3.0, layer: 0 },
+    { gridX:  2.0, gridY:  2.0, layer: 0 }, { gridX:  1.0, gridY:  3.0, layer: 0 }, { gridX:  3.0, gridY:  3.0, layer: 0 },
+    // Layer 1 (10 tiles: 5 left, 5 right - half-integer)
+    { gridX: -2.5, gridY: -2.5, layer: 1 }, { gridX: -1.5, gridY: -2.5, layer: 1 }, { gridX: -0.5, gridY: -1.5, layer: 1 },
+    { gridX: -2.5, gridY:  2.5, layer: 1 }, { gridX: -1.5, gridY:  2.5, layer: 1 },
+    { gridX:  0.5, gridY: -1.5, layer: 1 }, { gridX:  1.5, gridY: -2.5, layer: 1 }, { gridX:  2.5, gridY: -2.5, layer: 1 },
+    { gridX:  1.5, gridY:  2.5, layer: 1 }, { gridX:  2.5, gridY:  2.5, layer: 1 },
+    // Layer 2 (10 tiles: 5 left, 5 right - integer)
+    { gridX: -3.0, gridY: -2.0, layer: 2 }, { gridX: -2.0, gridY: -2.0, layer: 2 }, { gridX: -1.0, gridY: -2.0, layer: 2 },
+    { gridX: -3.0, gridY:  2.0, layer: 2 }, { gridX: -1.0, gridY:  2.0, layer: 2 },
+    { gridX:  1.0, gridY: -2.0, layer: 2 }, { gridX:  2.0, gridY: -2.0, layer: 2 }, { gridX:  3.0, gridY: -2.0, layer: 2 },
+    { gridX:  1.0, gridY:  2.0, layer: 2 }, { gridX:  3.0, gridY:  2.0, layer: 2 },
+    // Layer 3 (8 tiles: 4 left, 4 right - half-integer)
+    { gridX: -2.5, gridY: -1.5, layer: 3 }, { gridX: -1.5, gridY: -1.5, layer: 3 },
+    { gridX: -2.5, gridY:  1.5, layer: 3 }, { gridX: -1.5, gridY:  1.5, layer: 3 },
+    { gridX:  1.5, gridY: -1.5, layer: 3 }, { gridX:  2.5, gridY: -1.5, layer: 3 },
+    { gridX:  1.5, gridY:  1.5, layer: 3 }, { gridX:  2.5, gridY:  1.5, layer: 3 },
+    // Layer 4 (6 tiles: 3 left, 3 right - integer)
+    { gridX: -2.0, gridY: -1.0, layer: 4 }, { gridX: -2.0, gridY:  0.0, layer: 4 }, { gridX: -2.0, gridY:  1.0, layer: 4 },
+    { gridX:  2.0, gridY: -1.0, layer: 4 }, { gridX:  2.0, gridY:  0.0, layer: 4 }, { gridX:  2.0, gridY:  1.0, layer: 4 },
+    // Layer 5 (4 tiles: 2 left, 2 right - half-integer)
+    { gridX: -1.5, gridY: -0.5, layer: 5 }, { gridX: -1.5, gridY:  0.5, layer: 5 },
+    { gridX:  1.5, gridY: -0.5, layer: 5 }, { gridX:  1.5, gridY:  0.5, layer: 5 },
   ],
 
-  // 3. Cross Fortress (12 + 12 + 8 + 8 + 6 + 4 = 50)
+  // 3. Cross Fortress Hard (12 + 10 + 8 + 8 + 8 + 4 = 50)
   cross_fortress: [
-    // Layer 0 (12 tiles)
-    { gridX: -2.5, gridY: -2.5, layer: 0 },
-    { gridX: -1.5, gridY: -2.5, layer: 0 },
-    { gridX:  1.5, gridY: -2.5, layer: 0 },
-    { gridX:  2.5, gridY: -2.5, layer: 0 },
-    { gridX: -2.5, gridY: -1.5, layer: 0 },
-    { gridX:  2.5, gridY: -1.5, layer: 0 },
-    { gridX: -2.5, gridY:  1.5, layer: 0 },
-    { gridX:  2.5, gridY:  1.5, layer: 0 },
-    { gridX: -2.5, gridY:  2.5, layer: 0 },
-    { gridX: -1.5, gridY:  2.5, layer: 0 },
-    { gridX:  1.5, gridY:  2.5, layer: 0 },
-    { gridX:  2.5, gridY:  2.5, layer: 0 },
-    // Layer 1 (12 tiles)
-    { gridX: -2.0, gridY: -2.0, layer: 1 },
-    { gridX: -1.0, gridY: -2.0, layer: 1 },
-    { gridX:  1.0, gridY: -2.0, layer: 1 },
-    { gridX:  2.0, gridY: -2.0, layer: 1 },
-    { gridX: -2.0, gridY: -1.0, layer: 1 },
-    { gridX:  2.0, gridY: -1.0, layer: 1 },
-    { gridX: -2.0, gridY:  1.0, layer: 1 },
-    { gridX:  2.0, gridY:  1.0, layer: 1 },
-    { gridX: -2.0, gridY:  2.0, layer: 1 },
-    { gridX: -1.0, gridY:  2.0, layer: 1 },
-    { gridX:  1.0, gridY:  2.0, layer: 1 },
-    { gridX:  2.0, gridY:  2.0, layer: 1 },
-    // Layer 2 (8 tiles)
-    { gridX: -1.5, gridY: -1.5, layer: 2 },
-    { gridX:  0.0, gridY: -1.5, layer: 2 },
-    { gridX:  1.5, gridY: -1.5, layer: 2 },
-    { gridX: -1.5, gridY:  0.0, layer: 2 },
-    { gridX:  1.5, gridY:  0.0, layer: 2 },
-    { gridX: -1.5, gridY:  1.5, layer: 2 },
-    { gridX:  0.0, gridY:  1.5, layer: 2 },
-    { gridX:  1.5, gridY:  1.5, layer: 2 },
-    // Layer 3 (8 tiles)
-    { gridX: -1.0, gridY: -1.0, layer: 3 },
-    { gridX:  0.0, gridY: -1.0, layer: 3 },
-    { gridX:  1.0, gridY: -1.0, layer: 3 },
-    { gridX: -1.0, gridY:  0.0, layer: 3 },
-    { gridX:  1.0, gridY:  0.0, layer: 3 },
-    { gridX: -1.0, gridY:  1.0, layer: 3 },
-    { gridX:  0.0, gridY:  1.0, layer: 3 },
-    { gridX:  1.0, gridY:  1.0, layer: 3 },
-    // Layer 4 (6 tiles)
-    { gridX: -0.5, gridY: -1.0, layer: 4 },
-    { gridX:  0.5, gridY: -1.0, layer: 4 },
-    { gridX: -0.5, gridY:  0.0, layer: 4 },
-    { gridX:  0.5, gridY:  0.0, layer: 4 },
-    { gridX: -0.5, gridY:  1.0, layer: 4 },
-    { gridX:  0.5, gridY:  1.0, layer: 4 },
-    // Layer 5 (Top - 4 tiles)
-    { gridX: -0.5, gridY: -0.5, layer: 5 },
-    { gridX:  0.5, gridY: -0.5, layer: 5 },
-    { gridX: -0.5, gridY:  0.5, layer: 5 },
-    { gridX:  0.5, gridY:  0.5, layer: 5 },
+    // Layer 0 (12 tiles - integer outer fortress perimeter)
+    { gridX: -2.0, gridY: -2.0, layer: 0 }, { gridX:  2.0, gridY: -2.0, layer: 0 },
+    { gridX: -2.0, gridY:  2.0, layer: 0 }, { gridX:  2.0, gridY:  2.0, layer: 0 },
+    { gridX: -2.0, gridY: -1.0, layer: 0 }, { gridX:  2.0, gridY: -1.0, layer: 0 },
+    { gridX: -2.0, gridY:  1.0, layer: 0 }, { gridX:  2.0, gridY:  1.0, layer: 0 },
+    { gridX:  0.0, gridY: -3.0, layer: 0 }, { gridX:  0.0, gridY:  3.0, layer: 0 },
+    { gridX: -3.0, gridY:  0.0, layer: 0 }, { gridX:  3.0, gridY:  0.0, layer: 0 },
+    // Layer 1 (10 tiles - half-integer corner & wing bastions)
+    { gridX: -1.5, gridY: -1.5, layer: 1 }, { gridX:  1.5, gridY: -1.5, layer: 1 },
+    { gridX: -1.5, gridY:  1.5, layer: 1 }, { gridX:  1.5, gridY:  1.5, layer: 1 },
+    { gridX: -0.5, gridY: -2.5, layer: 1 }, { gridX:  0.5, gridY: -2.5, layer: 1 },
+    { gridX: -0.5, gridY:  2.5, layer: 1 }, { gridX:  0.5, gridY:  2.5, layer: 1 },
+    { gridX: -2.5, gridY: -0.5, layer: 1 }, { gridX:  2.5, gridY:  0.5, layer: 1 },
+    // Layer 2 (8 tiles - integer outer cross)
+    { gridX:  0.0, gridY: -2.0, layer: 2 }, { gridX: -2.0, gridY:  0.0, layer: 2 },
+    { gridX:  2.0, gridY:  0.0, layer: 2 }, { gridX:  0.0, gridY:  2.0, layer: 2 },
+    { gridX: -1.0, gridY: -2.0, layer: 2 }, { gridX:  1.0, gridY: -2.0, layer: 2 },
+    { gridX: -1.0, gridY:  2.0, layer: 2 }, { gridX:  1.0, gridY:  2.0, layer: 2 },
+    // Layer 3 (8 tiles - half-integer cross arms)
+    { gridX: -0.5, gridY: -1.5, layer: 3 }, { gridX:  0.5, gridY: -1.5, layer: 3 },
+    { gridX: -1.5, gridY: -0.5, layer: 3 }, { gridX:  1.5, gridY: -0.5, layer: 3 },
+    { gridX: -1.5, gridY:  0.5, layer: 3 }, { gridX:  1.5, gridY:  0.5, layer: 3 },
+    { gridX: -0.5, gridY:  1.5, layer: 3 }, { gridX:  0.5, gridY:  1.5, layer: 3 },
+    // Layer 4 (8 tiles - integer inner ring)
+    { gridX: -1.0, gridY: -1.0, layer: 4 }, { gridX:  0.0, gridY: -1.0, layer: 4 },
+    { gridX:  1.0, gridY: -1.0, layer: 4 }, { gridX: -1.0, gridY:  0.0, layer: 4 },
+    { gridX:  1.0, gridY:  0.0, layer: 4 }, { gridX: -1.0, gridY:  1.0, layer: 4 },
+    { gridX:  0.0, gridY:  1.0, layer: 4 }, { gridX:  1.0, gridY:  1.0, layer: 4 },
+    // Layer 5 (4 tiles - half-integer central keep)
+    { gridX: -0.5, gridY: -0.5, layer: 5 }, { gridX:  0.5, gridY: -0.5, layer: 5 },
+    { gridX: -0.5, gridY:  0.5, layer: 5 }, { gridX:  0.5, gridY:  0.5, layer: 5 },
   ],
 
-  // 4. Grand Hourglass (10 + 10 + 10 + 10 + 6 + 4 = 50, stacked 0.5-step waist)
+  // 4. Hourglass Hard (12 + 10 + 10 + 8 + 6 + 4 = 50)
   hourglass: [
-    // Layer 0 (10 tiles)
-    { gridX: -2.0, gridY: -2.5, layer: 0 },
-    { gridX: -1.0, gridY: -2.5, layer: 0 },
-    { gridX:  0.0, gridY: -2.5, layer: 0 },
-    { gridX:  1.0, gridY: -2.5, layer: 0 },
-    { gridX:  2.0, gridY: -2.5, layer: 0 },
-    { gridX: -2.0, gridY:  2.5, layer: 0 },
-    { gridX: -1.0, gridY:  2.5, layer: 0 },
-    { gridX:  0.0, gridY:  2.5, layer: 0 },
-    { gridX:  1.0, gridY:  2.5, layer: 0 },
-    { gridX:  2.0, gridY:  2.5, layer: 0 },
-    // Layer 1 (10 tiles)
-    { gridX: -1.5, gridY: -2.0, layer: 1 },
-    { gridX: -0.5, gridY: -2.0, layer: 1 },
-    { gridX:  0.5, gridY: -2.0, layer: 1 },
-    { gridX:  1.5, gridY: -2.0, layer: 1 },
-    { gridX: -2.0, gridY:  0.0, layer: 1 },
-    { gridX:  2.0, gridY:  0.0, layer: 1 },
-    { gridX: -1.5, gridY:  2.0, layer: 1 },
-    { gridX: -0.5, gridY:  2.0, layer: 1 },
-    { gridX:  0.5, gridY:  2.0, layer: 1 },
-    { gridX:  1.5, gridY:  2.0, layer: 1 },
-    // Layer 2 (10 tiles)
-    { gridX: -1.5, gridY: -1.5, layer: 2 },
-    { gridX: -0.5, gridY: -1.5, layer: 2 },
-    { gridX:  0.5, gridY: -1.5, layer: 2 },
-    { gridX:  1.5, gridY: -1.5, layer: 2 },
-    { gridX: -1.5, gridY:  0.0, layer: 2 },
-    { gridX:  1.5, gridY:  0.0, layer: 2 },
-    { gridX: -1.5, gridY:  1.5, layer: 2 },
-    { gridX: -0.5, gridY:  1.5, layer: 2 },
-    { gridX:  0.5, gridY:  1.5, layer: 2 },
-    { gridX:  1.5, gridY:  1.5, layer: 2 },
-    // Layer 3 (10 tiles)
-    { gridX: -1.5, gridY: -1.0, layer: 3 },
-    { gridX: -0.5, gridY: -1.0, layer: 3 },
-    { gridX:  0.5, gridY: -1.0, layer: 3 },
-    { gridX:  1.5, gridY: -1.0, layer: 3 },
-    { gridX: -1.0, gridY:  0.0, layer: 3 },
-    { gridX:  1.0, gridY:  0.0, layer: 3 },
-    { gridX: -1.5, gridY:  1.0, layer: 3 },
-    { gridX: -0.5, gridY:  1.0, layer: 3 },
-    { gridX:  0.5, gridY:  1.0, layer: 3 },
-    { gridX:  1.5, gridY:  1.0, layer: 3 },
-    // Layer 4 (6 tiles)
-    { gridX: -1.0, gridY: -0.5, layer: 4 },
-    { gridX:  0.0, gridY: -0.5, layer: 4 },
-    { gridX:  1.0, gridY: -0.5, layer: 4 },
-    { gridX: -1.0, gridY:  0.5, layer: 4 },
-    { gridX:  0.0, gridY:  0.5, layer: 4 },
-    { gridX:  1.0, gridY:  0.5, layer: 4 },
-    // Layer 5 (Top - 4 tiles)
-    { gridX: -0.5, gridY: -0.5, layer: 5 },
-    { gridX:  0.5, gridY: -0.5, layer: 5 },
-    { gridX: -0.5, gridY:  0.5, layer: 5 },
-    { gridX:  0.5, gridY:  0.5, layer: 5 },
+    // Layer 0 (12 tiles - integer outer hourglass caps)
+    { gridX: -3.0, gridY: -3.0, layer: 0 }, { gridX: -2.0, gridY: -3.0, layer: 0 },
+    { gridX: -1.0, gridY: -3.0, layer: 0 }, { gridX:  0.0, gridY: -3.0, layer: 0 },
+    { gridX:  1.0, gridY: -3.0, layer: 0 }, { gridX:  2.0, gridY: -3.0, layer: 0 },
+    { gridX: -2.0, gridY:  3.0, layer: 0 }, { gridX: -1.0, gridY:  3.0, layer: 0 },
+    { gridX:  0.0, gridY:  3.0, layer: 0 }, { gridX:  1.0, gridY:  3.0, layer: 0 },
+    { gridX:  2.0, gridY:  3.0, layer: 0 }, { gridX:  3.0, gridY:  3.0, layer: 0 },
+    // Layer 1 (10 tiles - half-integer wide rims)
+    { gridX: -2.5, gridY: -2.5, layer: 1 }, { gridX: -1.5, gridY: -2.5, layer: 1 },
+    { gridX: -0.5, gridY: -2.5, layer: 1 }, { gridX:  0.5, gridY: -2.5, layer: 1 },
+    { gridX:  1.5, gridY: -2.5, layer: 1 }, { gridX: -1.5, gridY:  2.5, layer: 1 },
+    { gridX: -0.5, gridY:  2.5, layer: 1 }, { gridX:  0.5, gridY:  2.5, layer: 1 },
+    { gridX:  1.5, gridY:  2.5, layer: 1 }, { gridX:  2.5, gridY:  2.5, layer: 1 },
+    // Layer 2 (10 tiles - integer upper & lower flare)
+    { gridX: -2.0, gridY: -2.0, layer: 2 }, { gridX: -1.0, gridY: -2.0, layer: 2 },
+    { gridX:  0.0, gridY: -2.0, layer: 2 }, { gridX:  1.0, gridY: -2.0, layer: 2 },
+    { gridX:  2.0, gridY: -2.0, layer: 2 }, { gridX: -2.0, gridY:  2.0, layer: 2 },
+    { gridX: -1.0, gridY:  2.0, layer: 2 }, { gridX:  0.0, gridY:  2.0, layer: 2 },
+    { gridX:  1.0, gridY:  2.0, layer: 2 }, { gridX:  2.0, gridY:  2.0, layer: 2 },
+    // Layer 3 (8 tiles - half-integer middle flare)
+    { gridX: -1.5, gridY: -1.5, layer: 3 }, { gridX: -0.5, gridY: -1.5, layer: 3 },
+    { gridX:  0.5, gridY: -1.5, layer: 3 }, { gridX:  1.5, gridY: -1.5, layer: 3 },
+    { gridX: -1.5, gridY:  1.5, layer: 3 }, { gridX: -0.5, gridY:  1.5, layer: 3 },
+    { gridX:  0.5, gridY:  1.5, layer: 3 }, { gridX:  1.5, gridY:  1.5, layer: 3 },
+    // Layer 4 (6 tiles - integer inner waist collars)
+    { gridX: -1.0, gridY: -1.0, layer: 4 }, { gridX:  0.0, gridY: -1.0, layer: 4 },
+    { gridX:  1.0, gridY: -1.0, layer: 4 }, { gridX: -1.0, gridY:  1.0, layer: 4 },
+    { gridX:  0.0, gridY:  1.0, layer: 4 }, { gridX:  1.0, gridY:  1.0, layer: 4 },
+    // Layer 5 (4 tiles - half-integer waist)
+    { gridX: -0.5, gridY: -0.5, layer: 5 }, { gridX:  0.5, gridY: -0.5, layer: 5 },
+    { gridX: -0.5, gridY:  0.5, layer: 5 }, { gridX:  0.5, gridY:  0.5, layer: 5 },
   ],
 
-  // 5. Grand Cascade (12 + 10 + 10 + 8 + 6 + 4 = 50)
+  // 5. Diagonal Cascade Hard (12 + 10 + 10 + 8 + 6 + 4 = 50)
   staircase: [
-    // Layer 0 (12 tiles)
-    { gridX: -2.5, gridY: -2.5, layer: 0 },
-    { gridX: -1.5, gridY: -2.5, layer: 0 },
-    { gridX: -0.5, gridY: -2.5, layer: 0 },
-    { gridX: -2.5, gridY: -1.5, layer: 0 },
-    { gridX: -2.5, gridY: -0.5, layer: 0 },
-    { gridX:  2.5, gridY:  2.5, layer: 0 },
-    { gridX:  1.5, gridY:  2.5, layer: 0 },
-    { gridX:  0.5, gridY:  2.5, layer: 0 },
-    { gridX:  2.5, gridY:  1.5, layer: 0 },
-    { gridX:  2.5, gridY:  0.5, layer: 0 },
-    { gridX: -1.5, gridY:  1.5, layer: 0 },
-    { gridX:  1.5, gridY: -1.5, layer: 0 },
-    // Layer 1 (10 tiles)
-    { gridX: -2.0, gridY: -2.0, layer: 1 },
-    { gridX: -1.0, gridY: -2.0, layer: 1 },
-    { gridX: -2.0, gridY: -1.0, layer: 1 },
-    { gridX:  1.0, gridY: -1.0, layer: 1 },
-    { gridX:  2.0, gridY:  2.0, layer: 1 },
-    { gridX:  1.0, gridY:  2.0, layer: 1 },
-    { gridX:  2.0, gridY:  1.0, layer: 1 },
-    { gridX: -1.0, gridY:  1.0, layer: 1 },
-    { gridX: -1.0, gridY:  0.0, layer: 1 },
-    { gridX:  1.0, gridY:  0.0, layer: 1 },
-    // Layer 2 (10 tiles)
-    { gridX: -1.5, gridY: -1.5, layer: 2 },
-    { gridX: -0.5, gridY: -1.5, layer: 2 },
-    { gridX: -1.5, gridY: -0.5, layer: 2 },
-    { gridX:  0.5, gridY: -0.5, layer: 2 },
-    { gridX: -0.5, gridY:  0.5, layer: 2 },
-    { gridX:  1.5, gridY:  0.5, layer: 2 },
-    { gridX:  0.5, gridY:  1.5, layer: 2 },
-    { gridX:  1.5, gridY:  1.5, layer: 2 },
-    { gridX: -1.5, gridY:  0.5, layer: 2 },
-    { gridX:  1.5, gridY: -0.5, layer: 2 },
-    // Layer 3 (8 tiles)
-    { gridX: -1.0, gridY: -1.0, layer: 3 },
-    { gridX:  0.0, gridY: -1.0, layer: 3 },
-    { gridX:  1.0, gridY: -1.0, layer: 3 },
-    { gridX: -1.0, gridY:  0.0, layer: 3 },
-    { gridX:  1.0, gridY:  0.0, layer: 3 },
-    { gridX: -1.0, gridY:  1.0, layer: 3 },
-    { gridX:  0.0, gridY:  1.0, layer: 3 },
-    { gridX:  1.0, gridY:  1.0, layer: 3 },
-    // Layer 4 (6 tiles)
-    { gridX: -0.5, gridY: -1.0, layer: 4 },
-    { gridX:  0.5, gridY: -1.0, layer: 4 },
-    { gridX: -0.5, gridY:  0.0, layer: 4 },
-    { gridX:  0.5, gridY:  0.0, layer: 4 },
-    { gridX: -0.5, gridY:  1.0, layer: 4 },
-    { gridX:  0.5, gridY:  1.0, layer: 4 },
-    // Layer 5 (Top - 4 tiles)
-    { gridX: -0.5, gridY: -0.5, layer: 5 },
-    { gridX:  0.5, gridY: -0.5, layer: 5 },
-    { gridX: -0.5, gridY:  0.5, layer: 5 },
-    { gridX:  0.5, gridY:  0.5, layer: 5 },
+    // Layer 0 (12 tiles - integer outer diagonal crest)
+    { gridX: -3.0, gridY: -3.0, layer: 0 }, { gridX: -2.0, gridY: -3.0, layer: 0 },
+    { gridX: -1.0, gridY: -3.0, layer: 0 }, { gridX:  0.0, gridY: -3.0, layer: 0 },
+    { gridX: -3.0, gridY: -2.0, layer: 0 }, { gridX: -3.0, gridY: -1.0, layer: 0 },
+    { gridX:  3.0, gridY:  1.0, layer: 0 }, { gridX:  3.0, gridY:  2.0, layer: 0 },
+    { gridX:  0.0, gridY:  3.0, layer: 0 }, { gridX:  1.0, gridY:  3.0, layer: 0 },
+    { gridX:  2.0, gridY:  3.0, layer: 0 }, { gridX:  3.0, gridY:  3.0, layer: 0 },
+    // Layer 1 (10 tiles - half-integer outer diagonal cascade)
+    { gridX: -2.5, gridY: -2.5, layer: 1 }, { gridX: -1.5, gridY: -2.5, layer: 1 },
+    { gridX: -0.5, gridY: -2.5, layer: 1 }, { gridX: -2.5, gridY: -1.5, layer: 1 },
+    { gridX:  1.5, gridY: -1.5, layer: 1 }, { gridX: -1.5, gridY:  1.5, layer: 1 },
+    { gridX:  2.5, gridY:  1.5, layer: 1 }, { gridX:  0.5, gridY:  2.5, layer: 1 },
+    { gridX:  1.5, gridY:  2.5, layer: 1 }, { gridX:  2.5, gridY:  2.5, layer: 1 },
+    // Layer 2 (10 tiles - integer diagonal wave)
+    { gridX: -2.0, gridY: -2.0, layer: 2 }, { gridX: -1.0, gridY: -2.0, layer: 2 },
+    { gridX:  0.0, gridY: -2.0, layer: 2 }, { gridX: -2.0, gridY: -1.0, layer: 2 },
+    { gridX:  1.0, gridY: -1.0, layer: 2 }, { gridX: -1.0, gridY:  1.0, layer: 2 },
+    { gridX:  2.0, gridY:  1.0, layer: 2 }, { gridX:  0.0, gridY:  2.0, layer: 2 },
+    { gridX:  1.0, gridY:  2.0, layer: 2 }, { gridX:  2.0, gridY:  2.0, layer: 2 },
+    // Layer 3 (8 tiles - half-integer diagonal middle ridge)
+    { gridX: -1.5, gridY: -1.5, layer: 3 }, { gridX: -0.5, gridY: -1.5, layer: 3 },
+    { gridX: -1.5, gridY: -0.5, layer: 3 }, { gridX:  0.5, gridY: -1.5, layer: 3 },
+    { gridX: -0.5, gridY:  1.5, layer: 3 }, { gridX:  1.5, gridY:  0.5, layer: 3 },
+    { gridX:  0.5, gridY:  1.5, layer: 3 }, { gridX:  1.5, gridY:  1.5, layer: 3 },
+    // Layer 4 (6 tiles - integer diagonal inner steps)
+    { gridX: -1.0, gridY: -1.0, layer: 4 }, { gridX:  0.0, gridY: -1.0, layer: 4 },
+    { gridX: -1.0, gridY:  0.0, layer: 4 }, { gridX:  1.0, gridY:  0.0, layer: 4 },
+    { gridX:  0.0, gridY:  1.0, layer: 4 }, { gridX:  1.0, gridY:  1.0, layer: 4 },
+    // Layer 5 (4 tiles - half-integer core)
+    { gridX: -0.5, gridY: -0.5, layer: 5 }, { gridX:  0.5, gridY: -0.5, layer: 5 },
+    { gridX: -0.5, gridY:  0.5, layer: 5 }, { gridX:  0.5, gridY:  0.5, layer: 5 },
   ],
 };
 
@@ -688,12 +481,41 @@ const RAW_WORD_BANK: Array<{ word: string; hint: string }> = [
   { word: "SPOKE", hint: "Rod connecting the hub of a wheel to its rim" },
   { word: "BRAKE", hint: "Device for slowing or stopping a vehicle" },
   { word: "PEDAL", hint: "Foot-operated lever on a bicycle or piano" },
+  { word: "FLOCK", hint: "Group of birds flying or sheep grazing together" },
+  { word: "GLYPH", hint: "Carved ancient hieroglyphic symbol" },
+  { word: "JOUST", hint: "Medieval mounted combat with lances" },
+  { word: "KNIFE", hint: "Sharp kitchen blade with a handle" },
+  { word: "QUART", hint: "Liquid unit equal to two pints" },
+  { word: "QUASH", hint: "Put a decisive end to a rebellion or rumor" },
+  { word: "WRIST", hint: "Joint connecting the hand to the forearm" },
+  { word: "WRECK", hint: "Sunken ship or badly damaged vehicle" },
+  { word: "PLUCK", hint: "Pull feathers or pick strings boldly" },
+  { word: "JUMPY", hint: "Nervous, twitchy, and easily startled" },
+  { word: "FUDGE", hint: "Rich soft confection made from sugar and butter" },
+  { word: "BULKY", hint: "Large, heavy, and awkward to carry" },
+  { word: "GAUZE", hint: "Thin woven medical bandage fabric" },
+  { word: "CHIMP", hint: "Clever great ape native to African forests" },
+  { word: "BLIMP", hint: "Soft non-rigid airship floating overhead" },
+  { word: "CRUMB", hint: "Tiny fragment broken off from bread or cake" },
+  { word: "SWAMP", hint: "Wet spongy bog dotted with cypress trees" },
+  { word: "DWARF", hint: "Mythical bearded miner of mountains and caves" },
+  { word: "NYMPH", hint: "Graceful nature spirit of streams and woods" },
+  { word: "BOXER", hint: "Athlete who fights with padded gloves in a ring" },
+  { word: "JOKER", hint: "Wild card in a deck wearing a jester's cap" },
+  { word: "VIXEN", hint: "Clever female fox with a russet coat" },
+  { word: "WALTZ", hint: "Graceful ballroom dance in three-quarter time" },
+  { word: "TOXIC", hint: "Poisonous or harmful if swallowed" },
+  { word: "OPIUM", hint: "Poppy latex extract studied in pharmacology" },
+  { word: "PROXY", hint: "Authorized stand-in voting on someone's behalf" },
+  { word: "QUIPU", hint: "Inca record-keeping knotted cord" },
+  { word: "ZEBRA", hint: "African equid with black-and-white stripes" },
 ];
 
 // Deduplicate by word and ensure 5 distinct letters
 const SEEN_WORDS = new Set<string>();
 const WORD_BANK = RAW_WORD_BANK.filter(item => {
   if (item.word.length !== 5) return false;
+  if (!/^[A-Z]{5}$/.test(item.word)) return false;
   if (new Set(item.word.split('')).size !== 5) return false;
   if (SEEN_WORDS.has(item.word)) return false;
   SEEN_WORDS.add(item.word);
@@ -715,6 +537,38 @@ for (let i = 0; i < WORD_BANK.length; i++) {
   }
   WORD_MASKS[i] = mask;
 }
+
+// Comprehensive 5-letter English word dictionary (~7,100+ words including inflections,
+// repeated-letter words, plurals, and anagrams) used to enforce STRICT uniqueness so ONLY
+// the target word can be spelled from the board at every single step.
+const DICT5_SET = new Set<string>();
+for (const raw of dictionary[5] || []) {
+  const up = raw.trim().toUpperCase();
+  if (/^[A-Z]{5}$/.test(up)) DICT5_SET.add(up);
+}
+for (const item of WORD_BANK) {
+  DICT5_SET.add(item.word);
+}
+
+const DICT5_WORDS = Array.from(DICT5_SET);
+const DICT5_LEN = DICT5_WORDS.length;
+const DICT5_MASKS = new Uint32Array(DICT5_LEN);
+const DICT5_CHARS = new Uint8Array(DICT5_LEN * 5);
+const DICT5_BUCKETS: number[][] = Array.from({ length: 26 }, () => []);
+
+for (let i = 0; i < DICT5_LEN; i++) {
+  const w = DICT5_WORDS[i];
+  let mask = 0;
+  for (let k = 0; k < 5; k++) {
+    const code = w.charCodeAt(k);
+    DICT5_CHARS[i * 5 + k] = code;
+    mask |= 1 << (code - 65);
+  }
+  DICT5_MASKS[i] = mask;
+  DICT5_BUCKETS[w.charCodeAt(0) - 65].push(i);
+}
+
+const PUZZLE_CACHE = new Map<string, WordPuzzle>();
 
 // Deterministic PRNG (Mulberry32)
 function createPRNG(seed: number) {
@@ -761,12 +615,18 @@ export function generateDailyPuzzle(
 ): WordPuzzle {
   const layoutId: LayoutId =
     layoutSelection === 'daily' ? getDailyLayoutForDate(dateStr) : layoutSelection;
+  const cacheKey = `${dateStr}|${difficulty}|${layoutId}`;
+  const cached = PUZZLE_CACHE.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const layoutMeta = TILE_LAYOUTS.find(l => l.id === layoutId) || TILE_LAYOUTS[0];
 
   const seedKey =
     difficulty === 'hard'
-      ? `${dateStr}-HARD-6LAYER-${layoutId}-V4`
-      : `${dateStr}-NORMAL-4LAYER-${layoutId}-V4`;
+      ? `${dateStr}-HARD-6LAYER-${layoutId}-V5`
+      : `${dateStr}-NORMAL-4LAYER-${layoutId}-V5`;
   let baseHash = 2166136261;
   for (let i = 0; i < seedKey.length; i++) {
     baseHash ^= seedKey.charCodeAt(i);
@@ -801,18 +661,17 @@ export function generateDailyPuzzle(
   );
 
   const clearedFlags = new Uint8Array(totalSlots);
-  const assignedStepLetters: string[] = new Array(totalSlots).fill('');
   const assignedStepBits = new Uint32Array(totalSlots);
-  const assignedSlotLetters: string[] = new Array(totalSlots).fill('');
+  const assignedSlotCodes = new Uint8Array(totalSlots);
   const chosenWordBankIndices: number[] = new Array(wordCount).fill(0);
   const usedBankSet = new Uint8Array(WORD_BANK.length);
 
-  let finalAssignedSlotLetters: string[] | null = null;
+  let finalAssignedSlotCodes: Uint8Array | null = null;
   let finalChosenWordBankIndices: number[] | null = null;
 
-  const MAX_ATTEMPTS = 240;
-  const MAX_SEARCH_CALLS = 140;
-  const MAX_BRANCH_TRIES = 3;
+  const MAX_ATTEMPTS = 500;
+  const MAX_SEARCH_CALLS = 350;
+  const MAX_BRANCH_TRIES = 4;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const rng = createPRNG((baseHash + Math.imul(attempt, 2654435761)) >>> 0);
@@ -901,7 +760,7 @@ export function generateDailyPuzzle(
       [shuffledBankIndices[i], shuffledBankIndices[j]] = [shuffledBankIndices[j], shuffledBankIndices[i]];
     }
 
-    function canFormWordFromStep(startStep: number, wStr: string): boolean {
+    function canFormDictWordFromStep(startStep: number, dictWordOffset: number): boolean {
       clearedFlags.fill(0);
       for (let u = 0; u < startStep; u++) {
         clearedFlags[slotOrder[u]] = 1;
@@ -909,11 +768,11 @@ export function generateDailyPuzzle(
 
       function dfs(letterIdx: number): boolean {
         if (letterIdx === 5) return true;
-        const targetChar = wStr[letterIdx];
+        const targetCode = DICT5_CHARS[dictWordOffset + letterIdx];
 
         for (let s = 0; s < totalSlots; s++) {
           if (clearedFlags[s]) continue;
-          if (assignedSlotLetters[s] !== targetChar) continue;
+          if (assignedSlotCodes[s] !== targetCode) continue;
           const covs = coveredByIndices[s];
           let isExp = true;
           for (let c = 0; c < covs.length; c++) {
@@ -935,9 +794,8 @@ export function generateDailyPuzzle(
     }
 
     usedBankSet.fill(0);
-    assignedStepLetters.fill('');
     assignedStepBits.fill(0);
-    assignedSlotLetters.fill('');
+    assignedSlotCodes.fill(0);
     let searchCalls = 0;
 
     function solveWordReverse(wordIdx: number): boolean {
@@ -981,10 +839,8 @@ export function generateDailyPuzzle(
         const candidateWord = WORD_BANK[bankIdx].word;
         for (let k = 0; k < 5; k++) {
           const step = baseStep + k;
-          const ch = candidateWord[k];
-          assignedStepLetters[step] = ch;
           assignedStepBits[step] = WORD_CHAR_BITS[baseOffset + k];
-          assignedSlotLetters[slotOrder[step]] = ch;
+          assignedSlotCodes[slotOrder[step]] = candidateWord.charCodeAt(k);
         }
 
         let exposedStartMask = 0;
@@ -994,14 +850,20 @@ export function generateDailyPuzzle(
         }
         const totalRemMask = remainingMask | WORD_MASKS[bankIdx];
 
+        // Strictly forbid ANY other 5-letter English word (plurals, anagrams, inflections, etc.)
+        // from being formable from the board at this step. Only iterate buckets of exposed first letters.
         let valid = true;
-        for (let b = 0; b < WORD_BANK.length; b++) {
-          if (b === bankIdx) continue;
-          if ((WORD_FIRST_BITS[b] & exposedStartMask) === 0) continue;
-          if ((WORD_MASKS[b] & totalRemMask) !== WORD_MASKS[b]) continue;
-          if (canFormWordFromStep(baseStep, WORD_BANK[b].word)) {
-            valid = false;
-            break;
+        for (let c = 0; c < 26 && valid; c++) {
+          if ((exposedStartMask & (1 << c)) === 0) continue;
+          const bucket = DICT5_BUCKETS[c];
+          for (let bi = 0; bi < bucket.length; bi++) {
+            const dIdx = bucket[bi];
+            if ((DICT5_MASKS[dIdx] & totalRemMask) !== DICT5_MASKS[dIdx]) continue;
+            if (DICT5_WORDS[dIdx] === candidateWord) continue;
+            if (canFormDictWordFromStep(baseStep, dIdx * 5)) {
+              valid = false;
+              break;
+            }
           }
         }
 
@@ -1018,9 +880,8 @@ export function generateDailyPuzzle(
           if (branchTries >= MAX_BRANCH_TRIES) {
             for (let k = 0; k < 5; k++) {
               const step = baseStep + k;
-              assignedStepLetters[step] = '';
               assignedStepBits[step] = 0;
-              assignedSlotLetters[slotOrder[step]] = '';
+              assignedSlotCodes[slotOrder[step]] = 0;
             }
             return false;
           }
@@ -1028,9 +889,8 @@ export function generateDailyPuzzle(
 
         for (let k = 0; k < 5; k++) {
           const step = baseStep + k;
-          assignedStepLetters[step] = '';
           assignedStepBits[step] = 0;
-          assignedSlotLetters[slotOrder[step]] = '';
+          assignedSlotCodes[slotOrder[step]] = 0;
         }
 
         if (searchCalls > MAX_SEARCH_CALLS) {
@@ -1042,33 +902,43 @@ export function generateDailyPuzzle(
     }
 
     if (solveWordReverse(wordCount - 1)) {
-      finalAssignedSlotLetters = [...assignedSlotLetters];
+      finalAssignedSlotCodes = new Uint8Array(assignedSlotCodes);
       finalChosenWordBankIndices = [...chosenWordBankIndices];
       break;
     }
   }
 
-  // Defensive fallback only if all 240 attempts failed (should never be reached)
-  if (!finalAssignedSlotLetters || !finalChosenWordBankIndices) {
+  // Defensive fallback only if all attempts failed (never expected with 500 attempts)
+  const finalAssignedSlotLetters: string[] = new Array(totalSlots).fill('A');
+  if (!finalAssignedSlotCodes || !finalChosenWordBankIndices) {
     finalChosenWordBankIndices = WORD_BANK.slice(0, wordCount).map((_, i) => i);
-    finalAssignedSlotLetters = new Array(totalSlots).fill('A');
     for (let w = 0; w < wordCount; w++) {
       for (let k = 0; k < 5; k++) {
         finalAssignedSlotLetters[w * 5 + k] = WORD_BANK[w].word[k];
       }
+    }
+  } else {
+    for (let s = 0; s < totalSlots; s++) {
+      finalAssignedSlotLetters[s] = String.fromCharCode(finalAssignedSlotCodes[s]);
     }
   }
 
   const words = finalChosenWordBankIndices.map(idx => WORD_BANK[idx].word);
   const hints = finalChosenWordBankIndices.map(idx => WORD_BANK[idx].hint);
 
-  // Adaptive coordinate scaling so all tiles fit inside the board with crisp margins
-  const maxAbsCoord = pattern.reduce(
-    (acc, s) => Math.max(acc, Math.abs(s.gridX), Math.abs(s.gridY)),
+  // Adaptive coordinate scaling matching destackint board geometry
+  const maxAbsX = pattern.reduce(
+    (acc, s) => Math.max(acc, Math.abs(s.gridX)),
     2.0
   );
-  const targetHalfSpanPct = difficulty === 'hard' ? 39.5 : 37.5;
-  const stepPct = targetHalfSpanPct / maxAbsCoord;
+  const maxAbsY = pattern.reduce(
+    (acc, s) => Math.max(acc, Math.abs(s.gridY)),
+    2.0
+  );
+  const targetHalfSpanX = difficulty === 'hard' ? 42.0 : 39.5;
+  const targetHalfSpanY = difficulty === 'hard' ? 39.0 : 36.5;
+  const stepPctX = targetHalfSpanX / maxAbsX;
+  const stepPctY = targetHalfSpanY / maxAbsY;
 
   const tiles: TileData[] = pattern.map((slot, idx) => {
     const id = `tile-${dateStr}-${difficulty}-${layoutId}-${idx}`;
@@ -1078,8 +948,8 @@ export function generateDailyPuzzle(
     return {
       id,
       letter: finalAssignedSlotLetters![idx],
-      x: 50 + slot.gridX * stepPct,
-      y: 54 + slot.gridY * (stepPct * 0.82),
+      x: 50 + slot.gridX * stepPctX,
+      y: 54 + slot.gridY * stepPctY,
       layer: slot.layer,
       coveredBy,
       isExposed: coveredBy.length === 0,
@@ -1093,7 +963,7 @@ export function generateDailyPuzzle(
   const diffTime = Math.abs(currDate.getTime() - baseDate.getTime());
   const dayIndex = Math.max(1, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);
 
-  return {
+  const puzzle: WordPuzzle = {
     id: dateStr,
     difficulty,
     layoutId,
@@ -1105,6 +975,8 @@ export function generateDailyPuzzle(
     hints,
     tiles,
   };
+  PUZZLE_CACHE.set(cacheKey, puzzle);
+  return puzzle;
 }
 
 export function getArchiveDateBounds(): { minDateStr: string; maxDateStr: string } {

@@ -304,7 +304,7 @@ async function startServer() {
   const io = new Server(httpServer, {
     path: "/socket.io",
     cors: { origin: "*", methods: ["GET", "POST", "OPTIONS"] },
-    transports: ["polling", "websocket"],
+    transports: ["websocket", "polling"],
     allowEIO3: true,
     perMessageDeflate: false,
     httpCompression: false,
@@ -1705,11 +1705,13 @@ async function startServer() {
     app.use(
       express.static(distPath, {
         setHeaders: (res, filePath) => {
-          if (filePath.endsWith(".html")) {
+          if (filePath.endsWith(".html") || filePath.includes("index-latest.")) {
             res.setHeader(
               "Cache-Control",
               "no-store, no-cache, must-revalidate, max-age=0"
             );
+          } else if (filePath.includes(`${path.sep}assets${path.sep}`) || /\.(webp|png|jpg|jpeg|svg|woff2?|mp4|webm|ico)$/i.test(filePath)) {
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
           }
         }
       })

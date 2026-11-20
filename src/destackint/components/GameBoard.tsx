@@ -600,7 +600,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         }
         soundManager.playError();
         setIsErrorShake(true);
-        setStatusMessage(`"${formedWord}" is not the next word — returning tiles`);
+        setStatusMessage(`"${formedWord}" is not the word — returning tiles`);
 
         setTimeout(() => {
           setIsErrorShake(false);

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Lightbulb, RotateCcw, ArrowLeft, Flame, Layers, LayoutGrid } from 'lucide-react';
+import { Lightbulb, RotateCcw, ArrowLeft, Flame, Layers, Sparkles } from 'lucide-react';
 import { WordPuzzle, TileData, GameState, DifficultyMode, LayoutSelection } from '../types';
 import { soundManager } from '../utils/audio';
-import { TILE_LAYOUTS } from '../utils/puzzles';
 
 interface GameBoardProps {
   puzzle: WordPuzzle;
@@ -16,34 +15,34 @@ interface GameBoardProps {
 }
 
 const LAYER_KEY_ITEMS = [
-  { label: 'L1', color: 'bg-amber-600 border-amber-500' },
-  { label: 'L2', color: 'bg-emerald-500 border-emerald-400' },
-  { label: 'L3', color: 'bg-cyan-400 border-cyan-300' },
-  { label: 'L4', color: 'bg-purple-400 border-purple-300' },
-  { label: 'L5', color: 'bg-rose-400 border-rose-300' },
-  { label: 'L6', color: 'bg-amber-300 border-amber-200' },
+  { label: 'L1', color: 'bg-[#ffb703] border-[#ffd166]' },
+  { label: 'L2', color: 'bg-[#2bff88] border-[#7dffb3]' },
+  { label: 'L3', color: 'bg-[#19e4ff] border-[#75f0ff]' },
+  { label: 'L4', color: 'bg-[#e08aff] border-[#f0c2ff]' },
+  { label: 'L5', color: 'bg-[#ff5c97] border-[#ff99be]' },
+  { label: 'L6', color: 'bg-[#fff34d] border-[#fff999]' },
 ];
 
 const getLayerOutlineClass = (layer: number, isExposed: boolean) => {
   const bgClass = isExposed
     ? 'bg-[#fbf6e8] hover:bg-white text-[#231929] shadow-[0_5px_0_#7c581e,0_8px_15px_rgba(0,0,0,0.38)]'
-    : 'bg-[#bfa97a]/90 dark:bg-[#8f7b53]/95 text-[#2c2233] opacity-95 shadow-[0_4px_0_rgba(0,0,0,0.45)]';
+    : 'bg-[#241136] dark:bg-[#190926] text-[#fff8e7] shadow-[0_4px_0_rgba(0,0,0,0.55)]';
 
   switch (layer) {
     case 0:
-      return `border-[3px] border-amber-600 ${bgClass}`;
+      return `border-[3px] border-[#ffb703] ${bgClass}`;
     case 1:
-      return `border-[3px] border-emerald-500 ${bgClass}`;
+      return `border-[3px] border-[#2bff88] ${bgClass}`;
     case 2:
-      return `border-[3px] border-cyan-400 ${bgClass}`;
+      return `border-[3px] border-[#19e4ff] ${bgClass}`;
     case 3:
-      return `border-[3px] border-purple-400 ${bgClass}`;
+      return `border-[3px] border-[#e08aff] ${bgClass}`;
     case 4:
-      return `border-[3px] border-rose-400 ${bgClass}`;
+      return `border-[3px] border-[#ff5c97] ${bgClass}`;
     case 5:
-      return `border-[3px] border-amber-300 ${bgClass}`;
+      return `border-[3px] border-[#fff34d] ${bgClass}`;
     default:
-      return `border-[3px] border-amber-400 ${bgClass}`;
+      return `border-[3px] border-[#ffd166] ${bgClass}`;
   }
 };
 
@@ -72,10 +71,22 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [resetCount, setResetCount] = useState(0);
 
+  const isRoundFinishedRef = useRef<boolean>(false);
+  const timeSecondsRef = useRef<number>(0);
+  const hintsUsedRef = useRef<number>(0);
+
   // Swipe-to-reveal hint state
   const [swipeProgress, setSwipeProgress] = useState(0);
   const [isDraggingHint, setIsDraggingHint] = useState(false);
   const swipeTrackRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    timeSecondsRef.current = timeSeconds;
+  }, [timeSeconds]);
+
+  useEffect(() => {
+    hintsUsedRef.current = hintsUsed;
+  }, [hintsUsed]);
 
   // Reset board if puzzle date, difficulty, or layout changes
   useEffect(() => {
@@ -85,37 +96,47 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     setCurrentWordIndex(0);
     setWordsFound([]);
     setHintsUsed(0);
+    hintsUsedRef.current = 0;
     setShowHintText(false);
     setTimeSeconds(0);
+    timeSecondsRef.current = 0;
     setSwipeProgress(0);
+    setStatusMessage(null);
+    setIsErrorShake(false);
+    isRoundFinishedRef.current = false;
   }, [puzzle]);
 
   const targetWord = puzzle.words[currentWordIndex] || '';
   const currentHint = puzzle.hints[currentWordIndex] || 'Find the next 5-letter word in the stack.';
 
-  // Timer effect
+  // Timer effect (pauses once the final word is completed)
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeSeconds(t => t + 1);
+      if (isRoundFinishedRef.current) return;
+      setTimeSeconds((t) => {
+        const next = t + 1;
+        timeSecondsRef.current = next;
+        return next;
+      });
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
   // Recompute which tiles are exposed based on cleared tiles and tiles currently in the rack
   const recomputeExposed = useCallback((currentTiles: TileData[], currentRack: Array<TileData | null>) => {
-    const rackIds = new Set(currentRack.filter(Boolean).map(t => t!.id));
-    const clearedIds = new Set(currentTiles.filter(t => t.isCleared).map(t => t.id));
+    const rackIds = new Set(currentRack.filter(Boolean).map((t) => t!.id));
+    const clearedIds = new Set(currentTiles.filter((t) => t.isCleared).map((t) => t.id));
 
-    return currentTiles.map(tile => {
+    return currentTiles.map((tile) => {
       if (tile.isCleared) {
         return { ...tile, isExposed: false, inRackIndex: null };
       }
-      const rIdx = currentRack.findIndex(r => r?.id === tile.id);
+      const rIdx = currentRack.findIndex((r) => r?.id === tile.id);
       if (rIdx !== -1) {
         return { ...tile, isExposed: false, inRackIndex: rIdx };
       }
       const isStillCovered = tile.coveredBy.some(
-        covId => !clearedIds.has(covId) && !rackIds.has(covId)
+        (covId) => !clearedIds.has(covId) && !rackIds.has(covId)
       );
       return {
         ...tile,
@@ -128,7 +149,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   // Validate 5-letter word when rack fills up
   const validateRackWord = useCallback(
     (currentRack: Array<TileData | null>, currentTiles: TileData[]) => {
-      const formedWord = currentRack.map(t => t?.letter || '').join('');
+      const formedWord = currentRack.map((t) => t?.letter || '').join('');
 
       if (formedWord === targetWord) {
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -136,8 +157,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         }
         soundManager.playWordCorrect();
 
-        const clearedIds = new Set(currentRack.map(t => t!.id));
-        const updatedTiles = currentTiles.map(t =>
+        const clearedIds = new Set(currentRack.map((t) => t!.id));
+        const updatedTiles = currentTiles.map((t) =>
           clearedIds.has(t.id) ? { ...t, isCleared: true, isExposed: false, inRackIndex: null } : t
         );
 
@@ -145,25 +166,29 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         const emptyRack: Array<TileData | null> = [null, null, null, null, null];
 
         // Keep the found word visible in the 5 boxes with a flashing gold border
-        // until the player selects the first letter of the next word!
+        // until the player selects the first letter of the next word
         setCompletedWordLetters(formedWord.split(''));
-        setGoldFlashKey(prev => prev + 1);
+        setGoldFlashKey((prev) => prev + 1);
         setWordsFound(nextWordsFound);
         setRack(emptyRack);
         setShowHintText(false);
         setSwipeProgress(0);
+        setStatusMessage(null);
         setTiles(recomputeExposed(updatedTiles, emptyRack));
 
         if (currentWordIndex + 1 >= puzzle.words.length) {
+          isRoundFinishedRef.current = true;
+          const finalTime = timeSecondsRef.current;
+          const finalHints = hintsUsedRef.current;
           setTimeout(() => {
             soundManager.playVictory();
             const maxBase = difficulty === 'hard' ? 2800 : 1800;
             const minBase = difficulty === 'hard' ? 900 : 500;
-            const baseScore = Math.max(minBase, maxBase - timeSeconds * 3 - hintsUsed * 150);
-            onVictory(timeSeconds, hintsUsed, baseScore, nextWordsFound);
+            const baseScore = Math.max(minBase, maxBase - finalTime * 3 - finalHints * 150);
+            onVictory(finalTime, finalHints, baseScore, nextWordsFound);
           }, 850);
         } else {
-          setCurrentWordIndex(prev => prev + 1);
+          setCurrentWordIndex((prev) => prev + 1);
         }
       } else {
         // Invalid word — shake rack and return tiles back to the Stack automatically
@@ -172,7 +197,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         }
         soundManager.playError();
         setIsErrorShake(true);
-        setStatusMessage(`"${formedWord}" is not the next word — returning tiles`);
+        setStatusMessage(`"${formedWord}" is not the word — returning tiles`);
 
         setTimeout(() => {
           setIsErrorShake(false);
@@ -183,15 +208,15 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         }, 620);
       }
     },
-    [targetWord, wordsFound, currentWordIndex, puzzle.words.length, difficulty, timeSeconds, hintsUsed, onVictory, recomputeExposed]
+    [targetWord, wordsFound, currentWordIndex, puzzle.words.length, difficulty, onVictory, recomputeExposed]
   );
 
   // Pick an exposed tile from the stack into the next open rack slot
   const handleTileClick = useCallback(
     (tile: TileData) => {
-      if (!tile.isExposed || tile.isCleared || isErrorShake) return;
+      if (isRoundFinishedRef.current || !tile.isExposed || tile.isCleared || isErrorShake) return;
 
-      const emptyIndex = rack.findIndex(slot => slot === null);
+      const emptyIndex = rack.findIndex((slot) => slot === null);
       if (emptyIndex === -1) return;
 
       // If the previous found word was still displayed in the boxes, clear it now as the new word begins
@@ -211,7 +236,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       const newTiles = recomputeExposed(tiles, newRack);
       setTiles(newTiles);
 
-      if (newRack.every(slot => slot !== null)) {
+      if (newRack.every((slot) => slot !== null)) {
         validateRackWord(newRack, newTiles);
       }
     },
@@ -221,7 +246,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   // Tap a tile in the rack to move it AND any subsequent rack tiles back to the Stack
   const handleRackClick = useCallback(
     (rackIndex: number) => {
-      if (!rack[rackIndex] || isErrorShake) return;
+      if (isRoundFinishedRef.current || !rack[rackIndex] || isErrorShake) return;
 
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(12);
@@ -238,14 +263,23 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     [rack, tiles, isErrorShake, recomputeExposed]
   );
 
-  // Keyboard support: A-Z picks an exposed tile, Backspace returns last rack tile
+  // Keyboard support: A-Z picks an exposed tile when not typing in an input, Backspace returns last rack tile
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey || isRoundFinishedRef.current) return;
       const key = e.key.toUpperCase();
       if (/^[A-Z]$/.test(key)) {
         const matchingTile = tiles
-          .filter(t => t.isExposed && !t.isCleared && t.inRackIndex === null && t.letter === key)
+          .filter((t) => t.isExposed && !t.isCleared && t.inRackIndex === null && t.letter === key)
           .sort((a, b) => b.layer - a.layer)[0];
         if (matchingTile) {
           handleTileClick(matchingTile);
@@ -263,8 +297,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   // Reveal hint handler
   const revealHint = () => {
+    if (isRoundFinishedRef.current) return;
     if (!showHintText) {
-      setHintsUsed(prev => prev + 1);
+      setHintsUsed((prev) => {
+        const next = prev + 1;
+        hintsUsedRef.current = next;
+        return next;
+      });
       setShowHintText(true);
       setSwipeProgress(1);
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -275,7 +314,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   // Pointer drag handling for "SWIPE TO REVEAL HINT"
   const handlePointerDownHint = (e: React.PointerEvent) => {
-    if (showHintText) return;
+    if (showHintText || isRoundFinishedRef.current) return;
     setIsDraggingHint(true);
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -315,17 +354,20 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     setWordsFound([]);
     setShowHintText(false);
     setSwipeProgress(0);
-    setResetCount(prev => prev + 1);
+    setStatusMessage(null);
+    setIsErrorShake(false);
+    isRoundFinishedRef.current = false;
+    setResetCount((prev) => prev + 1);
   };
 
   const boardEntranceKey = `${difficulty}-${layoutSelection}-${puzzle.words.join(',')}-${resetCount}`;
-  const wordsRemaining = puzzle.words.length - wordsFound.length;
-  const isShowingCompletedWord = rack.every(t => t === null) && completedWordLetters !== null;
+  const wordsRemaining = Math.max(0, puzzle.words.length - wordsFound.length);
+  const isShowingCompletedWord = rack.every((t) => t === null) && completedWordLetters !== null;
   const isHardMode = difficulty === 'hard';
-  const tileSizePct = isHardMode ? '11.4%' : '16.2%';
+  const tileSizePct = isHardMode ? '10.2%' : '13.6%';
 
   return (
-    <div className="relative flex-1 w-full bg-[#4a1259] dark:bg-[#22072b] flex flex-col items-center justify-center px-3 py-4 sm:py-6 select-none transition-colors overflow-hidden">
+    <div className="relative flex-1 w-full bg-[#4a1259] dark:bg-[#22072b] flex flex-col items-center justify-start px-3 py-4 sm:py-6 select-none transition-colors overflow-x-hidden">
       {/* Tiled Icon Background at 20% Opacity */}
       <div
         aria-hidden="true"
@@ -337,19 +379,19 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         className="absolute inset-0 opacity-20 pointer-events-none"
       />
 
-      {/* Main Stackdown Card Shell */}
-      <div className="relative z-10 w-full max-w-[500px] flex flex-col items-center">
-        {/* Top Utility Strip (Exit / Difficulty Switch / Timer / Reset) */}
+      {/* Main DeStack Card Shell — Aligned with DeStack Interactive Board */}
+      <div className="relative z-10 w-full max-w-[550px] mx-auto flex flex-col items-center">
+        {/* Top Utility Strip (Exit / Difficulty Switch / Elapsed Time / Reset) */}
         <div className="w-full flex items-center justify-between px-1 mb-2 text-purple-100/85 text-xs font-semibold">
           <button
             onClick={() => setCurrentView('TITLE')}
-            className="inline-flex items-center gap-1 hover:text-amber-300 transition-colors py-1"
+            className="inline-flex items-center gap-1 hover:text-amber-300 transition-colors py-1 cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Menu
           </button>
 
           {/* Normal (4 Layers) vs Hard Mode (6 Layers) Toggle */}
-          <div className="flex items-center p-0.5 rounded-xl bg-[#360b42] dark:bg-[#16041c] border border-purple-400/25">
+          <div className="flex items-center p-0.5 rounded-xl bg-[#360b42] dark:bg-[#16041c] border border-purple-300/50">
             <button
               type="button"
               onClick={() => onChangeDifficulty('normal')}
@@ -374,87 +416,82 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-2.5 font-mono tabular-nums">
-            <span className="text-amber-300/90">
+          <div className="flex items-center gap-2 font-mono tabular-nums">
+            <span className="text-amber-300/90 text-[11px]">
               {Math.floor(timeSeconds / 60)}:{timeSeconds % 60 < 10 ? '0' : ''}
               {timeSeconds % 60}
             </span>
             <button
               onClick={handleReset}
               title="Restart Puzzle"
-              className="p-1.5 rounded-lg hover:bg-black/25 text-purple-100 hover:text-amber-300 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-black/25 text-purple-100 hover:text-amber-300 transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Layout Selector Strip (Daily + 5 Distinct Tile Layouts) */}
-        <div className="w-full flex items-center gap-1 p-1 rounded-xl bg-[#360b42]/90 dark:bg-[#16041c]/90 border border-purple-400/20 mb-2.5 overflow-x-auto no-scrollbar">
-          <span className="px-1.5 text-purple-200/60 shrink-0" title="Tile Layout">
-            <LayoutGrid className="w-3.5 h-3.5" />
+        {/* Layout Mode Selector Bar */}
+        <div className="w-full flex items-center justify-between gap-1 mb-2.5 px-1 overflow-x-auto py-0.5">
+          <span className="text-[10px] font-extrabold text-amber-300 uppercase tracking-wider shrink-0 flex items-center gap-1">
+            <Layers className="w-3 h-3 text-amber-400" /> Layout:
           </span>
-          <button
-            type="button"
-            onClick={() => onChangeLayout('daily')}
-            className={`px-2 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-              layoutSelection === 'daily'
-                ? 'bg-amber-400 text-[#2d0938] shadow-sm'
-                : 'text-purple-200/75 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Daily
-          </button>
-          {TILE_LAYOUTS.map(layout => (
-            <button
-              key={layout.id}
-              type="button"
-              onClick={() => onChangeLayout(layout.id)}
-              title={layout.description}
-              className={`px-2 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                layoutSelection === layout.id
-                  ? 'bg-amber-400 text-[#2d0938] shadow-sm'
-                  : 'text-purple-200/75 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {layout.shortName}
-            </button>
-          ))}
+          <div className="flex items-center gap-1">
+            {(
+              [
+                { id: 'daily', label: 'Daily' },
+                { id: 'pyramid', label: 'Diamond' },
+                { id: 'twin_towers', label: 'Towers' },
+                { id: 'cross_fortress', label: 'Fortress' },
+                { id: 'hourglass', label: 'Hourglass' },
+                { id: 'staircase', label: 'Cascade' },
+              ] as const
+            ).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onChangeLayout(item.id)}
+                className={`px-2 py-1 rounded-md text-[10px] font-extrabold transition-all cursor-pointer border whitespace-nowrap ${
+                  layoutSelection === item.id
+                    ? 'bg-amber-400 text-[#2d0938] border-amber-300 shadow-sm'
+                    : 'bg-black/30 text-purple-200 border-white/10 hover:border-amber-400'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Stackdown Header Pill ("HOW TO PLAY" + Logo Emblem + "X WORDS REMAINING") */}
-        <div className="flex flex-col items-center gap-1 mb-2.5">
+        <div className="flex flex-col items-center gap-1 mb-2">
           <div className="flex items-center gap-2.5">
             <img
               src="/assets/aistudio/3d_logo_944e5372.png"
               alt="Game Logo"
-              className="w-8 h-8 rounded-full object-contain drop-shadow-md"
+              className="w-7 h-7 rounded-full object-contain drop-shadow-md"
             />
             <button
               onClick={onOpenHowToPlay}
-              className="px-5 py-1.5 rounded-full bg-white text-[#3b0d47] font-extrabold text-xs tracking-wider uppercase shadow-[0_3px_0_rgba(0,0,0,0.3)] hover:bg-amber-50 hover:scale-105 active:scale-95 transition-all"
+              className="px-4 py-1 rounded-full bg-white text-[#3b0d47] font-extrabold text-[11px] tracking-wider uppercase shadow-[0_3px_0_rgba(0,0,0,0.3)] hover:bg-amber-50 hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
               HOW TO PLAY
             </button>
           </div>
-          <div className="text-purple-100/90 text-xs tracking-widest uppercase font-medium mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
+          <div className="text-purple-100/90 text-xs tracking-widest uppercase font-medium mt-0.5 flex flex-wrap items-center justify-center gap-2">
             <span>
               <strong className="font-black text-amber-300 tabular-nums">{wordsRemaining}</strong>{' '}
               {wordsRemaining === 1 ? 'WORD REMAINING' : 'WORDS REMAINING'}
             </span>
             <span aria-hidden="true" className="text-purple-300/40">·</span>
-            <span className="text-amber-300/90 font-bold">
-              {puzzle.layoutName}
-            </span>
-            <span aria-hidden="true" className="text-purple-300/40">·</span>
-            <span className="text-purple-200/80 font-bold">
-              {puzzle.totalLayers} Layers
+            <span className="text-xs text-amber-300/90 font-bold">
+              WORD #{Math.min(currentWordIndex + 1, puzzle.words.length)} OF {puzzle.words.length}
             </span>
           </div>
         </div>
 
-        {/* Recessed Square Stack Board */}
-        <div className="relative w-full aspect-square bg-[#360b42] dark:bg-[#16041c] border border-purple-400/15 rounded-2xl shadow-[inset_0_5px_14px_rgba(0,0,0,0.45)] p-[30px] sm:p-[36px] overflow-hidden pt-14 sm:pt-16">
+        {/* Recessed Square Stack Board — 4-Layer (30 Tiles) or 6-Layer Hard Mode (50 Tiles) */}
+        <div className="relative w-full aspect-square bg-[#360b42] dark:bg-[#16041c] border-2 border-purple-300/45 rounded-2xl shadow-[inset_0_5px_14px_rgba(0,0,0,0.45)] p-[36px] sm:p-[44px] overflow-hidden pt-18 sm:pt-22">
           {/* Centered Logo Watermark (94% of board at 20% opacity) */}
           <div
             aria-hidden="true"
@@ -468,11 +505,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           </div>
 
           {/* Layer Key Bar Above Tiles But On The Board */}
-          <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-center gap-1 sm:gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-xl border border-white/15 text-[10px] text-purple-100 font-bold overflow-x-auto no-scrollbar">
+          <div className="absolute top-2 left-2 right-2 z-30 flex items-center justify-center gap-1 sm:gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-xl border border-purple-200/35 text-[10px] text-purple-100 font-bold overflow-x-auto no-scrollbar">
             <span className="text-amber-300 uppercase tracking-wider text-[9px] font-black shrink-0">Layer Key:</span>
             {Array.from({ length: puzzle.totalLayers }).map((_, idx) => (
-              <div key={idx} className="flex items-center gap-1 shrink-0 px-1 py-0.5 rounded bg-white/5 border border-white/10">
-                <span className={`w-2.5 h-2.5 rounded-full border ${LAYER_KEY_ITEMS[idx]?.color || 'bg-amber-400 border-amber-300'}`} />
+              <div key={idx} className="flex items-center gap-1 shrink-0 px-1 py-0.5 rounded bg-white/5 border border-white/25">
+                <span className={`w-2.5 h-2.5 rounded-full border ${LAYER_KEY_ITEMS[idx]?.color || 'bg-[#ffd166] border-[#fff099]'}`} />
                 <span>L{idx + 1}</span>
               </div>
             ))}
@@ -502,13 +539,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                     '--tile-delay': `${Math.min(idx, 30) * 14}ms`,
                   } as React.CSSProperties}
                   className={`puzzle-tile-enter -translate-x-1/2 -translate-y-1/2 absolute rounded-xl flex items-center justify-center font-extrabold ${
-                    isHardMode ? 'text-2xl sm:text-3xl' : 'text-4xl sm:text-5xl'
+                    isHardMode ? 'text-xs sm:text-[15px]' : 'text-lg sm:text-2xl'
                   } tracking-tight transition-transform duration-150 ${getLayerOutlineClass(
                     tile.layer,
                     isExposed
                   )} ${isExposed ? 'hover:scale-[1.06] active:scale-[0.97] cursor-pointer' : 'cursor-default'}`}
                 >
-                  <span className="-mt-0.5 select-none">{tile.letter}</span>
+                  <span className="select-none">{tile.letter}</span>
                 </button>
               );
             })}
@@ -516,26 +553,26 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         </div>
 
         {/* Status Toast if invalid word or word found */}
-        <div className="h-5 mt-1.5 flex items-center justify-center">
+        <div className="min-h-[22px] mt-1.5 flex items-center justify-center text-center px-2">
           {statusMessage ? (
             <span className="text-xs font-bold text-amber-200 tracking-wide animate-fadeIn">
               {statusMessage}
             </span>
           ) : isShowingCompletedWord ? (
-            <span className="text-xs font-bold text-amber-300 tracking-wider uppercase">
-              ✨ Word Found! Tap next exposed tile to continue
+            <span className="text-xs font-bold text-amber-300 tracking-wider uppercase flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5" /> Word Found: {completedWordLetters?.join('')}
             </span>
           ) : null}
         </div>
 
-        {/* 5-Letter Slot Rack */}
+        {/* 5-Letter Slot Rack (Guess Bar) */}
         <div
           key={isShowingCompletedWord ? `gold-${goldFlashKey}` : 'active-rack'}
-          className={`w-full grid grid-cols-5 gap-2.5 sm:gap-3 mt-1 mb-4 px-1 ${
+          className={`w-full grid grid-cols-5 gap-2.5 sm:gap-3 mt-1 mb-2.5 px-1 ${
             isErrorShake ? 'animate-shake' : ''
           }`}
         >
-          {[0, 1, 2, 3, 4].map(idx => {
+          {[0, 1, 2, 3, 4].map((idx) => {
             const activeTile = rack[idx];
             const completedLetter = isShowingCompletedWord ? completedWordLetters?.[idx] : null;
             const displayLetter = activeTile ? activeTile.letter : completedLetter;
@@ -552,8 +589,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                   isShowingCompletedWord && completedLetter
                     ? 'bg-gradient-to-b from-[#fffbeb] to-[#fef08a] text-[#2d0938] border-[3px] border-amber-400 animate-gold-flash cursor-default'
                     : activeTile
-                    ? 'bg-[#fbf6e8] hover:bg-white text-[#231929] border-2 border-amber-300 shadow-[0_5px_0_#7c581e] animate-tile-pop cursor-pointer'
-                    : 'bg-[#360b42] dark:bg-[#16041c] border border-purple-400/15 shadow-[inset_0_2px_6px_rgba(0,0,0,0.38)] cursor-default'
+                    ? 'bg-[#fbf6e8] hover:bg-white text-[#231929] border-2 border-[#fff04d] shadow-[0_5px_0_#7c581e] animate-tile-pop cursor-pointer'
+                    : 'bg-[#360b42] dark:bg-[#16041c] border border-purple-300/45 shadow-[inset_0_2px_6px_rgba(0,0,0,0.38)] cursor-default'
                 }`}
               >
                 {displayLetter ? <span className="-mt-0.5">{displayLetter}</span> : null}
@@ -563,10 +600,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         </div>
 
         {/* Bottom Swipe-to-Reveal Hint Pill */}
-        <div className="w-full px-3">
+        <div className="w-full px-1">
           {showHintText ? (
-            <div className="w-full min-h-[48px] px-5 py-3 rounded-full bg-white text-[#2d0938] border-2 border-amber-400 text-xs sm:text-sm font-bold text-center shadow-[0_4px_0_rgba(0,0,0,0.3)] flex items-center justify-center animate-tile-pop">
-              {currentHint}
+            <div className="w-full min-h-[44px] px-4 py-2.5 rounded-full bg-white text-[#2d0938] border-2 border-amber-400 text-xs sm:text-sm font-bold text-center shadow-[0_4px_0_rgba(0,0,0,0.3)] flex items-center justify-center gap-2 flex-wrap animate-tile-pop">
+              <span>💡 Hint: {currentHint}</span>
             </div>
           ) : (
             <div
@@ -575,9 +612,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               onPointerMove={handlePointerMoveHint}
               onPointerUp={handlePointerUpHint}
               onPointerCancel={handlePointerUpHint}
-              className="relative w-full h-12 rounded-full bg-[#360b42] dark:bg-[#16041c] border border-purple-400/20 shadow-[inset_0_2px_6px_rgba(0,0,0,0.45)] flex items-center justify-center cursor-pointer overflow-hidden touch-none"
+              className="relative w-full h-11 rounded-full bg-[#360b42] dark:bg-[#16041c] border border-purple-300/45 shadow-[inset_0_2px_6px_rgba(0,0,0,0.45)] flex items-center justify-center cursor-pointer overflow-hidden touch-none"
             >
-              <span className="text-[11px] sm:text-xs font-bold tracking-widest uppercase text-purple-200/50 pointer-events-none pl-8">
+              <span className="text-[11px] font-bold tracking-widest uppercase text-purple-200/50 pointer-events-none pl-8">
                 SWIPE TO REVEAL HINT
               </span>
 
@@ -586,9 +623,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 style={{
                   transform: `translateX(${swipeProgress * 220}px)`,
                 }}
-                className="absolute left-1.5 w-9 h-9 rounded-full bg-gradient-to-b from-white to-slate-100 border border-amber-300 shadow-md flex items-center justify-center transition-transform duration-75"
+                className="absolute left-1.5 w-8 h-8 rounded-full bg-gradient-to-b from-white to-slate-100 border border-amber-300 shadow-md flex items-center justify-center transition-transform duration-75"
               >
-                <Lightbulb className="w-5 h-5 text-amber-500 fill-amber-400" />
+                <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400" />
               </div>
             </div>
           )}
