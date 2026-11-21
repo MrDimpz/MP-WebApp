@@ -195,8 +195,8 @@ export const TikTokStreamModal: React.FC<TikTokStreamModalProps> = ({
               </h2>
               <p className="text-[11px] text-[#d8b4fe]">
                 {authenticatedStreamer
-                  ? `Authenticated as ${authenticatedStreamer}`
-                  : 'Authorised Streamer Login Required'}
+                  ? `Stream Key Active: ${authenticatedStreamer} (Unlimited)`
+                  : 'Open Access · Connect your TikTok Live chat (3 free rounds/day)'}
               </p>
             </div>
           </div>
@@ -223,61 +223,8 @@ export const TikTokStreamModal: React.FC<TikTokStreamModalProps> = ({
 
         {/* Body */}
         <div className="p-5 overflow-y-auto space-y-5">
-          {/* Gate 1: Require Registered @username + Key before Live Panel opens */}
-          {!authenticatedStreamer ? (
-            <form onSubmit={handleAuthSubmit} className="space-y-4">
-              <div className="p-3.5 rounded-xl bg-[#2c0938] border border-[#6b21a8] flex items-start gap-3">
-                <Lock className="w-5 h-5 text-[#facc15] shrink-0 mt-0.5" />
-                <div className="text-xs text-[#f3e8ff] leading-relaxed">
-                  Log in with your registered TikTok <strong>@username</strong> and individual Admin-provided key to open the TikTok Live panel and enable the Live Chat box.
-                </div>
-              </div>
-
-              {authError && (
-                <div className="p-3 rounded-xl bg-red-950/70 border border-red-500/60 text-red-200 text-xs">
-                  {authError}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-[#d8b4fe] mb-1">
-                  Registered TikTok @Username
-                </label>
-                <input
-                  type="text"
-                  value={authUsernameInput}
-                  onChange={(e) => setAuthUsernameInput(ensureLeadingAt(e.target.value))}
-                  onFocus={() => {
-                    if (!authUsernameInput) setAuthUsernameInput('@');
-                  }}
-                  placeholder="@username"
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#16041c] border border-[#6b21a8] text-sm text-white focus:outline-none focus:border-[#facc15]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#d8b4fe] mb-1">
-                  Individual Admin-Provided Key
-                </label>
-                <input
-                  type="password"
-                  value={authKeyInput}
-                  onChange={(e) => setAuthKeyInput(e.target.value)}
-                  placeholder="Enter your individual key"
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#16041c] border border-[#6b21a8] text-sm text-white focus:outline-none focus:border-[#facc15]"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loggingIn}
-                className="w-full py-2.5 rounded-xl bg-[#facc15] hover:bg-[#fde047] text-[#2d0938] text-xs font-extrabold cursor-pointer"
-              >
-                {loggingIn ? 'Verifying...' : 'Unlock TikTok Live Panel'}
-              </button>
-            </form>
-          ) : (
-            <>
+          {/* Live Panel Open to All (3 free rounds/day without key, unlimited with Stream Key) */}
+          <>
               {/* Live Connection Control & Status Indicator */}
               <div className="p-4 rounded-xl bg-[#2c0938] border border-[#6b21a8] space-y-3">
                 <div className="flex items-center justify-between">
@@ -443,8 +390,7 @@ export const TikTokStreamModal: React.FC<TikTokStreamModalProps> = ({
                   </button>
                 </div>
               </div>
-            </>
-          )}
+          </>
         </div>
       </div>
     </div>,

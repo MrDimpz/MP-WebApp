@@ -3,7 +3,7 @@ import { InteractiveStreamGate } from "../components/interactive-games/interacti
 
 export function SquaredIntGamePage() {
   return (
-    <InteractiveStreamGate gameTitle="Squared Interactive">
+    <InteractiveStreamGate gameTitle="Squared Interactive" gameSlug="squaredint">
       <SquaredIntApp />
     </InteractiveStreamGate>
   );

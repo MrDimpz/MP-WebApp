@@ -8,6 +8,10 @@ import { eventManager } from '../server/eventManager.ts';
 import { tiktokService } from '../integrations/tiktok.ts';
 import { giftHandler } from '../integrations/giftHandler.ts';
 import { runAutomatedTestSuite } from '../tests/gameSuite.ts';
+import {
+  recordInteractiveRoundCompleted,
+  tryConsumeOrCheckNextRound,
+} from '@/lib/interactive-daily-limits';
 
 export interface ActiveCelebration {
   id: string;
@@ -412,6 +416,7 @@ export function useGameClient(isOverlay = false) {
               missedWords: payload.missedWords,
               totalPossibleWords: payload.totalPossibleWords,
             });
+            recordInteractiveRoundCompleted('lexi', `round-${payload.roundNumber}`);
             if (payload.targetReached) {
               soundEngine.play('victory');
             } else {
@@ -460,9 +465,18 @@ export function useGameClient(isOverlay = false) {
   const sendControlAction = async (action: string) => {
     switch (action) {
       case 'start_game':
-      case 'start_round':
+      case 'start_round': {
+        const curState = gameEngine.getFullState();
+        const prevToken =
+          curState.status === 'ROUND_END' ||
+          curState.status === 'INTERMISSION' ||
+          curState.roundNumber > 1
+            ? `round-${curState.roundNumber}`
+            : undefined;
+        if (!tryConsumeOrCheckNextRound('lexi', prevToken)) return;
         gameEngine.startRound(false);
         break;
+      }
       case 'pause':
         gameEngine.pauseRound();
         break;
@@ -473,12 +487,18 @@ export function useGameClient(isOverlay = false) {
         gameEngine.endCurrentRound('HOST_ENDED');
         break;
       case 'next_round':
-      case 'skip_round':
+      case 'skip_round': {
+        const curRound = gameEngine.getFullState().roundNumber;
+        if (!tryConsumeOrCheckNextRound('lexi', `round-${curRound}`)) return;
         gameEngine.nextRound();
         break;
-      case 'restart_round':
+      }
+      case 'restart_round': {
+        const curRound = gameEngine.getFullState().roundNumber;
+        if (!tryConsumeOrCheckNextRound('lexi', `round-${curRound}`)) return;
         gameEngine.restartRound();
         break;
+      }
       case 'shuffle_board':
         gameEngine.shuffleCurrentBoard();
         break;

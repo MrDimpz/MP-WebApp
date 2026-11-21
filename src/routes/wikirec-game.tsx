@@ -3,7 +3,7 @@ import { InteractiveStreamGate } from "../components/interactive-games/interacti
 
 export function WikiRecGamePage() {
   return (
-    <InteractiveStreamGate gameTitle="WiKirecTangled">
+    <InteractiveStreamGate gameTitle="WiKirecTangled" gameSlug="wikirec">
       <WikiRecApp />
     </InteractiveStreamGate>
   );

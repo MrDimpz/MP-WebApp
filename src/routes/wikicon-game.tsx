@@ -3,7 +3,7 @@ import { InteractiveStreamGate } from "../components/interactive-games/interacti
 
 export function WikiConGamePage() {
   return (
-    <InteractiveStreamGate gameTitle="WikiContexto">
+    <InteractiveStreamGate gameTitle="WikiContexto" gameSlug="wikicon">
       <WikiConApp />
     </InteractiveStreamGate>
   );

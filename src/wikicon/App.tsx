@@ -20,6 +20,10 @@ import {
   touchActiveInteractiveStreamerSession,
 } from '@/lib/interactive-key-auth';
 import {
+  recordInteractiveRoundCompleted,
+  tryConsumeOrCheckNextRound,
+} from '@/lib/interactive-daily-limits';
+import {
   triggerResilientConnect,
   forceReconnectBridge,
   emitResilientEvent,
@@ -841,6 +845,10 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
         customTitle?: string;
       }
     ) => {
+      if (!isOverlay && !isSoloRoute && internalRoundRef.current) {
+        const allowed = tryConsumeOrCheckNextRound('wikicon', internalRoundRef.current.roundId);
+        if (!allowed) return;
+      }
       recordActivity();
       setFeedbackToast(null);
       setAutoNextCountdown(null);
@@ -861,8 +869,16 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
         'cyan'
       );
     },
-    [recordActivity, showToast]
+    [isOverlay, isSoloRoute, recordActivity, showToast]
   );
+
+  // Count solved interactive rounds toward the 3/day free limit (unlimited for key holders)
+  useEffect(() => {
+    if (isOverlay || isSoloRoute) return;
+    if (round?.solved && round.roundId) {
+      recordInteractiveRoundCompleted('wikicon', round.roundId);
+    }
+  }, [isOverlay, isSoloRoute, round?.solved, round?.roundId]);
 
   // Automatic 15-second progression to the next round when a round ends and Auto is enabled
   useEffect(() => {
@@ -1237,11 +1253,11 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
       {/* ── Horizontal Flex Wrapper: Live Chat Box on Left (Only when Authorised User Logged In) + 50px Gap + 490px Game Shell ── */}
       <div className="w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-[50px] px-2 sm:px-4">
         {/* Live Chat Stream Box to the left of the game with 50px gap — hidden in LIVE Studio overlay & Solo Games mode */}
-        {!isOverlay && !isSoloRoute && authenticatedStreamer && (
+        {!isOverlay && !isSoloRoute && (authenticatedStreamer || connectedUsername) && (
           <div className="pt-4">
             <LiveChatBox
               messages={chatMessages}
-              connectedUsername={connectedUsername || authenticatedStreamer}
+              connectedUsername={connectedUsername || authenticatedStreamer || ''}
               isLightMode={isLightMode}
             />
           </div>

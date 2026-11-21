@@ -3,7 +3,7 @@ import { InteractiveStreamGate } from '../components/interactive-games/interacti
 
 export function CrowdleGamePage() {
   return (
-    <InteractiveStreamGate gameTitle="Crowdle">
+    <InteractiveStreamGate gameTitle="Crowdle" gameSlug="crowdle">
       <CrowdleApp />
     </InteractiveStreamGate>
   );

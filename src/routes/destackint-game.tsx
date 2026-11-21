@@ -12,7 +12,7 @@ export function DeStackIntGamePage() {
   }, []);
 
   return (
-    <InteractiveStreamGate gameTitle="DeStack Interactive">
+    <InteractiveStreamGate gameTitle="DeStack Interactive" gameSlug="destackint">
       <DeStackIntApp />
     </InteractiveStreamGate>
   );

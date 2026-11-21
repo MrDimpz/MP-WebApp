@@ -8,6 +8,14 @@ import {
   validateInteractiveStreamerKey,
 } from "../../lib/interactive-key-auth";
 import {
+  INTERACTIVE_CONTACT_EMAIL,
+  INTERACTIVE_CONTACT_TIKTOK_HANDLE,
+  INTERACTIVE_CONTACT_TIKTOK_URL,
+  InteractiveGameSlug,
+  MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY,
+  useInteractiveDailyLimit,
+} from "../../lib/interactive-daily-limits";
+import {
   normalizeTikTokHandle,
   setLinkedTikTokHandle,
   useInteractiveProfileScores,
@@ -19,41 +27,76 @@ import { getOverlayConfigFromLocation } from "../../lib/live-overlay";
 
 interface InteractiveStreamGateProps {
   gameTitle: string;
+  gameSlug: InteractiveGameSlug;
   children: React.ReactNode;
 }
 
 /**
- * Unifies login across all interactive games, enforces a valid Stream Key
- * (`LIVE-xxxx-xxxx` registered for a `@username`), provides direct Admin Portal
- * access to register stream keys, links Back to `/interactive-games`, and ensures
- * the Brand Logo links back to the Home screen (`/`).
+ * Provides unified open access across all interactive games:
+ * - Anyone without a Stream Key can play up to 3 rounds per game per day.
+ * - Anyone with a valid Stream Key (`LIVE-xxxx-xxxx` registered for a `@username`)
+ *   gets unlimited usage across all interactive games.
+ * - Also provides direct Admin Portal access, optional Stream Key unlock modal,
+ *   Back link to `/interactive-games`, and Brand Logo link to `/`.
  */
 export function InteractiveStreamGate({
   gameTitle,
+  gameSlug,
   children,
 }: InteractiveStreamGateProps) {
   const { isOverlay } = getOverlayConfigFromLocation();
   if (isOverlay) {
     return <>{children}</>;
   }
-  return <InteractiveStreamGateInner gameTitle={gameTitle}>{children}</InteractiveStreamGateInner>;
+  return (
+    <InteractiveStreamGateInner gameTitle={gameTitle} gameSlug={gameSlug}>
+      {children}
+    </InteractiveStreamGateInner>
+  );
 }
 
 function InteractiveStreamGateInner({
   gameTitle,
+  gameSlug,
   children,
 }: InteractiveStreamGateProps) {
-  const { activeStreamer, isAdminAuthenticated } = useInteractiveAuthStore();
+  const { activeStreamer } = useInteractiveAuthStore();
   const { user: siteUser } = useUnifiedAuth();
   const profileScores = useInteractiveProfileScores(siteUser?.uid);
+  const dailyLimit = useInteractiveDailyLimit(gameSlug);
 
-  const [usernameInput, setUsernameInput] = useState('');
-  const [streamKeyInput, setStreamKeyInput] = useState('');
+  const [usernameInput, setUsernameInput] = useState("");
+  const [streamKeyInput, setStreamKeyInput] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [showLimitWall, setShowLimitWall] = useState<boolean>(
+    () => !dailyLimit.isUnlimited && dailyLimit.isLimitReached
+  );
 
-  // 15-Minute Inactivity Tracker: Touch session on user interaction and monitor interval
+  // Smoothly reveal the Daily Limit screen when a free user finishes their 3rd round,
+  // or immediately if they already hit the limit before opening or try to start round 4.
+  useEffect(() => {
+    if (dailyLimit.isUnlimited || !dailyLimit.isLimitReached) {
+      setShowLimitWall(false);
+      return;
+    }
+    if (dailyLimit.lockImmediately) {
+      setShowLimitWall(true);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setShowLimitWall(true);
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [
+    dailyLimit.isUnlimited,
+    dailyLimit.isLimitReached,
+    dailyLimit.lockImmediately,
+  ]);
+
+  // 15-Minute Inactivity Tracker for active Stream Key sessions
   useEffect(() => {
     if (!activeStreamer) return;
 
@@ -70,10 +113,9 @@ function InteractiveStreamGateInner({
     const interval = setInterval(() => {
       const current = getActiveInteractiveStreamerSession();
       if (!current) {
-        // Automatically expired after 15 minutes of inactivity (from both user and chat)
         clearActiveInteractiveStreamerSession();
       }
-    }, 10000); // Check every 10s
+    }, 10000);
 
     return () => {
       window.removeEventListener("pointerdown", onUserActivity);
@@ -92,12 +134,12 @@ function InteractiveStreamGateInner({
     setErrorMsg(null);
     const result = validateInteractiveStreamerKey(
       usernameInput,
-      streamKeyInput,
+      streamKeyInput
     );
     if (!result.valid || !result.streamer) {
       setErrorMsg(
         result.error ||
-          "Valid @username and LIVE-xxxx-xxxx stream key required.",
+          "Valid @username and LIVE-xxxx-xxxx stream key required."
       );
       return;
     }
@@ -105,14 +147,195 @@ function InteractiveStreamGateInner({
       setLinkedTikTokHandle(
         siteUser.uid,
         siteUser.displayName || "Player",
-        result.streamer.username,
+        result.streamer.username
       );
     }
+    setShowKeyModal(false);
+    setShowLimitWall(false);
+    setUsernameInput("");
+    setStreamKeyInput("");
   };
+
+  const renderKeyCard = (isLimitReachedMode: boolean) => (
+    <div
+      className="relative z-20 w-full max-w-lg rounded-2xl bg-[#121526] border-2 border-[#D4A437]/70 shadow-[0_24px_60px_rgba(0,0,0,0.9)] p-6 sm:p-8"
+      style={{ backgroundColor: "#121526", opacity: 1 }}
+    >
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2.5 group"
+          title="Back to Home Screen"
+        >
+          <img
+            src="/brand-logo.png"
+            alt="The Missing Piece"
+            className="w-10 h-10 rounded-xl border border-amber-400/60 object-cover bg-[#090b14]"
+          />
+          <div>
+            <span className="block text-[11px] font-bold uppercase tracking-widest text-amber-400">
+              {isLimitReachedMode
+                ? `Daily Free Limit Reached (${MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY}/${MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY})`
+                : "Unlimited Interactive Access"}
+            </span>
+            <h1 className="text-xl font-extrabold text-white group-hover:text-amber-300 transition-colors">
+              {gameTitle}
+            </h1>
+          </div>
+        </Link>
+
+        {!isLimitReachedMode ? (
+          <button
+            type="button"
+            onClick={() => setShowKeyModal(false)}
+            className="px-3 py-1.5 rounded-lg bg-[#1d2238] hover:bg-[#2a3150] border border-white/15 text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+          >
+            Close
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowAdminModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-[#2b1f0d] hover:bg-[#3a2a12] border border-amber-400/50 text-amber-300 text-xs font-bold transition-colors cursor-pointer"
+            style={{ backgroundColor: "#2b1f0d", opacity: 1 }}
+          >
+            🔑 Admin Key Portal
+          </button>
+        )}
+      </div>
+
+      {isLimitReachedMode ? (
+        <div className="mb-5 space-y-2.5">
+          <p className="text-sm text-slate-200 leading-relaxed">
+            You’ve played all{" "}
+            <strong className="text-amber-300">
+              {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} free rounds
+            </strong>{" "}
+            of <strong className="text-white">{gameTitle}</strong> for today.
+            Free rounds reset every day, and you can still play up to{" "}
+            {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} free rounds on any other
+            interactive game.
+          </p>
+          <p className="text-sm text-slate-300 leading-relaxed">
+            Have a Stream Key? Enter it below for{" "}
+            <strong className="text-emerald-300">unlimited rounds</strong>{" "}
+            across all interactive games.
+          </p>
+        </div>
+      ) : (
+        <p className="text-sm text-slate-200 leading-relaxed mb-5">
+          Free players get{" "}
+          <strong className="text-amber-300">
+            {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} rounds per game per day
+          </strong>{" "}
+          ({dailyLimit.remaining} left today in {gameTitle}). Enter your
+          registered TikTok{" "}
+          <code className="text-amber-300 font-mono">@username</code> and{" "}
+          <code className="text-amber-300 font-mono">LIVE-xxxx-xxxx</code>{" "}
+          stream key to unlock{" "}
+          <strong className="text-emerald-300">unlimited usage</strong> across
+          all interactive games.
+        </p>
+      )}
+
+      <form onSubmit={handleUnlockStreamKey} className="space-y-4">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-200 mb-1.5">
+            TikTok @Username
+          </label>
+          <input
+            type="text"
+            value={usernameInput}
+            onChange={(e) => setUsernameInput(e.target.value)}
+            placeholder="@yourtiktokhandle"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-[#090b14] border border-white/20 text-white font-mono text-sm focus:outline-none focus:border-amber-400"
+            style={{ backgroundColor: "#090b14", opacity: 1 }}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-200 mb-1.5">
+            Stream Key
+          </label>
+          <input
+            type="password"
+            value={streamKeyInput}
+            onChange={(e) => setStreamKeyInput(e.target.value.toUpperCase())}
+            placeholder="LIVE-XXXX-XXXX"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-[#090b14] border border-white/20 text-amber-300 font-mono text-sm tracking-wider uppercase focus:outline-none focus:border-amber-400"
+            style={{ backgroundColor: "#090b14", opacity: 1 }}
+            required
+          />
+        </div>
+
+        {errorMsg && (
+          <div
+            className="p-3 rounded-xl bg-[#331019] border border-rose-400/50 text-rose-200 text-xs font-semibold"
+            style={{ backgroundColor: "#331019", opacity: 1 }}
+          >
+            {errorMsg}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-sm tracking-wide shadow-lg cursor-pointer transition-all"
+        >
+          Unlock Unlimited Interactive Access
+        </button>
+      </form>
+
+      {/* Contact Info to Arrange a Stream Key */}
+      <div className="mt-5 p-3.5 rounded-xl bg-[#1b102d] border border-amber-400/35 text-xs text-slate-200 leading-relaxed">
+        <div className="font-bold text-amber-300 mb-1">
+          Want a Stream Key for unlimited rounds?
+        </div>
+        <p>
+          Email{" "}
+          <a
+            href={`mailto:${INTERACTIVE_CONTACT_EMAIL}?subject=${encodeURIComponent("Interactive Stream Key Request")}`}
+            className="text-amber-300 hover:text-amber-200 font-bold underline"
+          >
+            {INTERACTIVE_CONTACT_EMAIL}
+          </a>{" "}
+          or message{" "}
+          <a
+            href={INTERACTIVE_CONTACT_TIKTOK_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-amber-300 hover:text-amber-200 font-bold underline"
+          >
+            {INTERACTIVE_CONTACT_TIKTOK_HANDLE}
+          </a>{" "}
+          on TikTok to arrange your personal stream key.
+        </p>
+      </div>
+
+      <div className="mt-5 pt-4 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
+        <Link
+          to="/interactive-games"
+          className="text-slate-200 hover:text-amber-300 font-semibold underline"
+        >
+          ← Back to Interactive Games
+        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            setShowKeyModal(false);
+            setShowAdminModal(true);
+          }}
+          className="text-amber-300 hover:text-amber-200 font-semibold underline cursor-pointer"
+        >
+          Admin Key Portal
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-[#08090f] text-slate-100">
-      {/* Unified Interactive Games Top Bar: Logo -> Home (/), Back -> /interactive-games, Stream Key Status, Profile & Admin Portal */}
+      {/* Unified Interactive Games Top Bar */}
       <div
         className="sticky top-0 z-50 w-full bg-[#0d101b] border-b border-white/15 px-3 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-2 text-xs shadow-md"
         style={{ backgroundColor: "#0d101b", opacity: 1 }}
@@ -154,6 +377,9 @@ function InteractiveStreamGateInner({
               <span className="font-mono font-bold">
                 {activeStreamer.username}
               </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                Unlimited
+              </span>
               <button
                 type="button"
                 onClick={() => clearActiveInteractiveStreamerSession()}
@@ -163,9 +389,32 @@ function InteractiveStreamGateInner({
               </button>
             </div>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#2b1f0d] border border-amber-400/50 text-amber-300 font-semibold">
-              🔒 Stream Key Required
-            </span>
+            <>
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-semibold ${
+                  dailyLimit.remaining > 0
+                    ? "bg-[#2b1f0d] border-amber-400/50 text-amber-200"
+                    : "bg-[#331019] border-rose-400/50 text-rose-200"
+                }`}
+                title={`Free users can play up to ${MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} rounds per game per day. Stream Key holders get unlimited usage.`}
+              >
+                <span>
+                  {dailyLimit.remaining > 0
+                    ? `Free Play: ${dailyLimit.remaining}/${dailyLimit.limit} rounds left today`
+                    : `Daily Limit Reached (0/${dailyLimit.limit} left)`}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setErrorMsg(null);
+                  setShowKeyModal(true);
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/60 text-amber-200 font-bold transition-colors cursor-pointer"
+              >
+                🔑 Enter Stream Key
+              </button>
+            </>
           )}
 
           <button
@@ -188,118 +437,20 @@ function InteractiveStreamGateInner({
         </div>
       </div>
 
-      {/* Unified Stream Key Requirement Gate if not unlocked yet */}
-      {!activeStreamer ? (
+      {/* Game Area or Daily Limit Wall */}
+      {showLimitWall && !activeStreamer ? (
         <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-radial from-purple-950/40 via-[#08090f] to-[#08090f]">
-          <div
-            className="relative z-20 w-full max-w-lg rounded-2xl bg-[#121526] border-2 border-[#D4A437]/60 shadow-[0_24px_60px_rgba(0,0,0,0.9)] p-6 sm:p-8"
-            style={{ backgroundColor: "#121526", opacity: 1 }}
-          >
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <Link
-                to="/"
-                className="inline-flex items-center gap-2.5 group"
-                title="Back to Home Screen"
-              >
-                <img
-                  src="/brand-logo.png"
-                  alt="The Missing Piece"
-                  className="w-10 h-10 rounded-xl border border-amber-400/60 object-cover bg-[#090b14]"
-                />
-                <div>
-                  <span className="block text-[11px] font-bold uppercase tracking-widest text-amber-400">
-                    Unified Interactive Access
-                  </span>
-                  <h1 className="text-xl font-extrabold text-white group-hover:text-amber-300 transition-colors">
-                    {gameTitle}
-                  </h1>
-                </div>
-              </Link>
-              <button
-                type="button"
-                onClick={() => setShowAdminModal(true)}
-                className="px-3 py-1.5 rounded-lg bg-[#2b1f0d] hover:bg-[#3a2a12] border border-amber-400/50 text-amber-300 text-xs font-bold transition-colors cursor-pointer"
-                style={{ backgroundColor: "#2b1f0d", opacity: 1 }}
-              >
-                🔑 Admin Key Portal
-              </button>
-            </div>
-
-            <p className="text-sm text-slate-200 leading-relaxed mb-5">
-              Enter your registered TikTok <code className="text-amber-300 font-mono">@username</code> and{" "}
-              <code className="text-amber-300 font-mono">LIVE-xxxx-xxxx</code> stream key once to unlock all interactive games. Your game instance runs in your own isolated session.
-            </p>
-
-            <form onSubmit={handleUnlockStreamKey} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-200 mb-1.5">
-                  TikTok @Username
-                </label>
-                <input
-                  type="text"
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  placeholder="@yourtiktokhandle"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090b14] border border-white/20 text-white font-mono text-sm focus:outline-none focus:border-amber-400"
-                  style={{ backgroundColor: "#090b14", opacity: 1 }}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-200 mb-1.5">
-                  Stream Key
-                </label>
-                <input
-                  type="password"
-                  value={streamKeyInput}
-                  onChange={(e) => setStreamKeyInput(e.target.value.toUpperCase())}
-                  placeholder="LIVE-XXXX-XXXX"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090b14] border border-white/20 text-amber-300 font-mono text-sm tracking-wider uppercase focus:outline-none focus:border-amber-400"
-                  style={{ backgroundColor: "#090b14", opacity: 1 }}
-                  required
-                />
-              </div>
-
-              {errorMsg && (
-                <div
-                  className="p-3 rounded-xl bg-[#331019] border border-rose-400/50 text-rose-200 text-xs font-semibold"
-                  style={{ backgroundColor: "#331019", opacity: 1 }}
-                >
-                  {errorMsg}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-sm tracking-wide shadow-lg cursor-pointer transition-all"
-              >
-                Unlock All Interactive Games
-              </button>
-            </form>
-
-            <div className="mt-6 pt-5 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
-              <button
-                type="button"
-                onClick={() => setShowProfileModal(true)}
-                className="text-purple-300 hover:text-purple-200 font-semibold underline cursor-pointer"
-              >
-                {siteUser
-                  ? `Signed in as ${siteUser.displayName} (Manage TikTok @ Link)`
-                  : "Sign in to Website Account & Link TikTok @"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAdminModal(true)}
-                className="text-amber-300 hover:text-amber-200 font-semibold underline cursor-pointer"
-              >
-                Need to register a stream key? Open Admin Portal
-              </button>
-            </div>
-          </div>
+          {renderKeyCard(true)}
         </div>
       ) : (
         <div className="relative z-10 flex-1 flex flex-col">{children}</div>
+      )}
+
+      {/* Optional Stream Key Modal for non-key users who want to unlock unlimited play early */}
+      {showKeyModal && !activeStreamer && !showLimitWall && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          {renderKeyCard(false)}
+        </div>
       )}
 
       <AdminPortalModal

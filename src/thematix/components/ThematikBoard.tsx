@@ -1,13 +1,15 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
-import { Keyboard } from 'lucide-react';
+import { Crown, Keyboard } from 'lucide-react';
 import { GameMode, GameStats, WordValidationStatus } from '../types/game';
 import { getWordBreakAfterIndices } from '../utils/wordSplits';
 
 const GUESS_COUNT_BUCKETS: Array<{
   key: string;
   label: string;
+  isAchievement?: boolean;
   getCount: (dist: Record<number, number>) => number;
 }> = [
+  { key: '0', label: '0 guesses', isAchievement: true, getCount: (d) => d[0] || 0 },
   { key: '1', label: '1 guess', getCount: (d) => d[1] || 0 },
   { key: '2', label: '2 guesses', getCount: (d) => d[2] || 0 },
   { key: '3', label: '3 guesses', getCount: (d) => d[3] || 0 },
@@ -438,15 +440,54 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
         </div>
       </div>
 
-      {/* Centralised 1-Line Counter: Guess Distribution (1 guess .. 8+ guesses) */}
+      {/* Centralised 1-Line Counter: 0-Guess Achievement + Guess Distribution (1 guess .. 8+ guesses) */}
       <div
-        className="w-full mt-3 sm:mt-3.5 mx-auto rounded-xl sm:rounded-2xl bg-[#1c042b]/90 border border-[#f5b82e]/30 px-1.5 py-2 sm:px-2.5 sm:py-2.5 shadow-lg text-center"
+        className="w-full mt-3 sm:mt-3.5 mx-auto rounded-xl sm:rounded-2xl bg-[#1c042b]/90 border border-[#f5b82e]/30 px-1 py-2 sm:px-2 sm:py-2.5 shadow-lg text-center"
         aria-label="Guess count summary"
       >
-        <div className="grid grid-cols-8 gap-1 sm:gap-1.5">
+        <div className="grid grid-cols-[1.28fr_repeat(8,minmax(0,1fr))] gap-[3px] sm:gap-1.5 items-stretch">
           {GUESS_COUNT_BUCKETS.map((bucket) => {
             const count = bucket.getCount(stats.guessDistribution || {});
             const hasCount = count > 0;
+
+            if (bucket.isAchievement) {
+              return (
+                <div
+                  key={bucket.key}
+                  title="Flawless Achievement: Solved with 0 letter guesses"
+                  className={`relative min-w-0 flex flex-col items-center justify-center rounded-lg sm:rounded-xl px-1 py-1.5 border transition-all ${
+                    hasCount
+                      ? 'bg-gradient-to-b from-[#ffe57f] via-[#f5b82e] to-[#d9940a] border-[#fff3b8] text-[#220536] shadow-[0_0_14px_rgba(245,184,46,0.55)] ring-1 ring-[#ffe680]'
+                      : 'bg-gradient-to-b from-[#4a2608]/80 via-[#2f0d42]/90 to-[#1e052c]/95 border-[#f5b82e]/75 text-[#fde68a] shadow-[0_0_10px_rgba(245,184,46,0.2)] ring-1 ring-[#f5b82e]/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-0.5 sm:gap-1 leading-none">
+                    <Crown
+                      className={`w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 shrink-0 ${
+                        hasCount
+                          ? 'text-[#220536] fill-[#220536]/20'
+                          : 'text-[#f5b82e] fill-[#f5b82e]/25'
+                      }`}
+                    />
+                    <span
+                      className={`text-xs sm:text-sm font-mono font-black tabular-nums leading-none ${
+                        hasCount ? 'text-[#220536]' : 'text-[#ffd86b]'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </div>
+                  <span
+                    className={`mt-1 text-[6.5px] sm:text-[8.5px] font-black uppercase tracking-tighter sm:tracking-tight leading-none whitespace-nowrap ${
+                      hasCount ? 'text-[#220536]' : 'text-[#f5b82e]'
+                    }`}
+                  >
+                    {bucket.label}
+                  </span>
+                </div>
+              );
+            }
+
             return (
               <div
                 key={bucket.key}
@@ -463,7 +504,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                 >
                   {count}
                 </span>
-                <span className="mt-1 text-[7.5px] sm:text-[9px] font-semibold tracking-tight leading-none whitespace-nowrap">
+                <span className="mt-1 text-[6.5px] sm:text-[8.5px] font-semibold tracking-tighter sm:tracking-tight leading-none whitespace-nowrap">
                   {bucket.label}
                 </span>
               </div>

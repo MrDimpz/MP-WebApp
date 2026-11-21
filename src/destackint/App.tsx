@@ -34,6 +34,10 @@ import {
   touchActiveInteractiveStreamerSession,
 } from '@/lib/interactive-key-auth';
 import {
+  recordInteractiveRoundCompleted,
+  tryConsumeOrCheckNextRound,
+} from '@/lib/interactive-daily-limits';
+import {
   attachResilientChatListeners,
   createEventDeduplicator,
   emitResilientEvent,
@@ -588,6 +592,13 @@ export default function App() {
   }, []);
 
   const advanceToNextRound = useCallback(() => {
+    if (!isOverlay) {
+      const allowed = tryConsumeOrCheckNextRound(
+        'destackint',
+        `round-${roundIdRef.current}`
+      );
+      if (!allowed) return;
+    }
     setVictoryData(null);
     setScoreboard([]);
     setChatFeed([]);
@@ -596,7 +607,7 @@ export default function App() {
     setPuzzleRoundNonce((prev) => prev + 1);
     setResetSignal((prev) => prev + 1);
     setCurrentView('PLAYING');
-  }, []);
+  }, [isOverlay]);
 
   const currentPuzzle = useMemo(() => {
     return generateDailyPuzzle(selectedDateStr, difficulty, layoutMode, puzzleRoundNonce);
@@ -710,6 +721,9 @@ export default function App() {
 
     // Credit +1 Round Win strictly to this round's highest scorer (per-round scoreboard, NOT permanent standings)
     const completedRoundId = roundIdRef.current;
+    if (!isOverlay) {
+      recordInteractiveRoundCompleted('destackint', `round-${completedRoundId}`);
+    }
     const roundWinner = deduplicateScoreboardPlayers(scoreboardRef.current)[0];
     if (roundWinner && !roundWinnerCreditedRef.current.has(completedRoundId)) {
       roundWinnerCreditedRef.current.add(completedRoundId);

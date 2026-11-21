@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, ArrowUpRight, CheckCircle2, KeyRound, LogOut, User, Users } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, CheckCircle2, KeyRound, LogOut, Mail, User, Users } from 'lucide-react';
 import {
   clearActiveInteractiveStreamerSession,
   useInteractiveAuthStore,
   validateInteractiveStreamerKey,
 } from '@/lib/interactive-key-auth';
+import {
+  INTERACTIVE_CONTACT_EMAIL,
+  INTERACTIVE_CONTACT_TIKTOK_HANDLE,
+  INTERACTIVE_CONTACT_TIKTOK_URL,
+  InteractiveGameSlug,
+  MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY,
+  useAllInteractiveDailyLimits,
+} from '@/lib/interactive-daily-limits';
 import {
   normalizeTikTokHandle,
   setLinkedTikTokHandle,
@@ -22,6 +30,31 @@ export function InteractiveGamesPage() {
   const { activeStreamer } = useInteractiveAuthStore();
   const { user: siteUser } = useUnifiedAuth();
   const profileScores = useInteractiveProfileScores(siteUser?.uid);
+  const dailyLimits = useAllInteractiveDailyLimits();
+
+  const renderLimitBadge = (slug: InteractiveGameSlug) => {
+    const info = dailyLimits[slug];
+    if (info.isUnlimited) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
+          ∞ Unlimited
+        </span>
+      );
+    }
+    return (
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider ${
+          info.remaining > 0
+            ? 'bg-amber-400/15 border-amber-400/40 text-amber-300'
+            : 'bg-rose-500/15 border-rose-400/40 text-rose-300'
+        }`}
+      >
+        {info.remaining > 0
+          ? `${info.remaining}/${info.limit} free today`
+          : `0/${info.limit} left today`}
+      </span>
+    );
+  };
 
   const [usernameInput, setUsernameInput] = useState('');
   const [streamKeyInput, setStreamKeyInput] = useState('');
@@ -71,7 +104,7 @@ export function InteractiveGamesPage() {
           </p>
         </div>
 
-        {/* Unified Interactive Streamer Key & Admin Portal Banner */}
+        {/* Open Access Explanation & Unified Interactive Streamer Key Banner */}
         <div className="mb-10 rounded-2xl bg-gradient-to-r from-[#23063A] via-[#340A54] to-[#23063A] border-2 border-[#D4A437] p-4 sm:p-6 text-[#F5F3F7] shadow-[0_14px_34px_rgba(35,6,58,0.22)] space-y-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center gap-3.5">
@@ -85,27 +118,33 @@ export function InteractiveGamesPage() {
                   <>
                     <div className="flex items-center gap-2 text-xs font-mono text-emerald-300 font-bold">
                       <CheckCircle2 size={14} />
-                      <span>UNIFIED STREAM KEY ACTIVE · ISOLATED SESSION</span>
+                      <span>UNIFIED STREAM KEY ACTIVE · UNLIMITED USAGE</span>
                     </div>
                     <div className="text-lg sm:text-xl font-extrabold text-[#F6C915] tracking-tight mt-0.5">
                       Streamer {activeStreamer.displayHandle}
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                      All 7 interactive games are unlocked. Scores for linked TikTok @ accounts sync
-                      automatically to their website profile.
+                      Unlimited rounds unlocked across all 7 interactive games. Scores for linked
+                      TikTok @ accounts sync automatically to their website profile.
                     </p>
                   </>
                 ) : (
                   <>
                     <div className="text-xs font-mono uppercase tracking-widest text-[#F6C915] font-bold">
-                      UNIFIED INTERACTIVE LOGIN · STREAM KEY REQUIRED
+                      OPEN TO EVERYONE · {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} FREE ROUNDS PER GAME DAILY
                     </div>
                     <div className="text-lg sm:text-xl font-extrabold text-white tracking-tight mt-0.5">
-                      Enter your TikTok @username &amp; LIVE-xxxx-xxxx Stream Key
+                      Play up to {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} rounds per game each day — or unlock unlimited with a Stream Key
                     </div>
-                    <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                      Sign in once below to unlock WiKirecTangled, WikiContexto, Squared Interactive,
-                      Lexi Tiles, DeStack Interactive, Crowdle &amp; MP Search Interactive, or open the Admin Portal to register stream keys.
+                    <p className="text-xs sm:text-sm text-[#D6CBE2] mt-1 leading-relaxed">
+                      Anyone can jump straight into all 7 interactive games with{' '}
+                      <strong className="text-white">
+                        {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} free rounds per game per day
+                      </strong>{' '}
+                      — no key required. Streamers with a registered{' '}
+                      <code className="text-[#F6C915] font-mono">LIVE-xxxx-xxxx</code> Stream Key
+                      get <strong className="text-emerald-300">unlimited usage</strong> across
+                      every interactive game.
                     </p>
                   </>
                 )}
@@ -160,6 +199,48 @@ export function InteractiveGamesPage() {
             </div>
           </div>
 
+          {/* How to Arrange a Stream Key Info Box */}
+          <div className="rounded-xl bg-black/30 border border-[#F6C915]/35 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="text-xs sm:text-sm text-[#EAE2F3] leading-relaxed">
+              <span className="font-extrabold text-[#F6C915]">Need a Stream Key for unlimited rounds?</span>{' '}
+              Email{' '}
+              <a
+                href={`mailto:${INTERACTIVE_CONTACT_EMAIL}?subject=${encodeURIComponent('Interactive Stream Key Request')}`}
+                className="font-bold text-[#F6C915] hover:text-[#FFE047] underline underline-offset-2"
+              >
+                {INTERACTIVE_CONTACT_EMAIL}
+              </a>{' '}
+              or contact{' '}
+              <a
+                href={INTERACTIVE_CONTACT_TIKTOK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-[#F6C915] hover:text-[#FFE047] underline underline-offset-2"
+              >
+                {INTERACTIVE_CONTACT_TIKTOK_HANDLE}
+              </a>{' '}
+              on TikTok to arrange your stream key.
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <a
+                href={`mailto:${INTERACTIVE_CONTACT_EMAIL}?subject=${encodeURIComponent('Interactive Stream Key Request')}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F6C915]/15 hover:bg-[#F6C915]/25 border border-[#F6C915]/50 text-[#F6C915] font-bold text-xs transition-colors whitespace-nowrap"
+              >
+                <Mail size={14} />
+                <span>Email Admin</span>
+              </a>
+              <a
+                href={INTERACTIVE_CONTACT_TIKTOK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs transition-colors whitespace-nowrap"
+              >
+                <span>TikTok {INTERACTIVE_CONTACT_TIKTOK_HANDLE}</span>
+                <ArrowUpRight size={14} />
+              </a>
+            </div>
+          </div>
+
           {!activeStreamer && (
             <form
               onSubmit={handleUnifiedKeySubmit}
@@ -185,7 +266,7 @@ export function InteractiveGamesPage() {
                 type="submit"
                 className="px-5 py-2.5 rounded-xl bg-[#F6C915] hover:bg-[#FFE047] text-[#1D0830] font-extrabold text-xs sm:text-sm shadow-md transition-all cursor-pointer"
               >
-                Unlock Interactive Games
+                Unlock Unlimited Access
               </button>
             </form>
           )}
@@ -203,7 +284,10 @@ export function InteractiveGamesPage() {
               <span className="category-label">
                 <span className="status-dot" /> NOW PLAYING
               </span>
-              <span className="card-number">01 /</span>
+              <div className="flex items-center gap-2">
+                {renderLimitBadge('wikirec')}
+                <span className="card-number">01 /</span>
+              </div>
             </div>
             <Link
               to="/interactive-games/wikirec"
@@ -244,7 +328,10 @@ export function InteractiveGamesPage() {
               <span className="category-label">
                 <span className="status-dot" /> NOW PLAYING
               </span>
-              <span className="card-number">02 /</span>
+              <div className="flex items-center gap-2">
+                {renderLimitBadge('wikicon')}
+                <span className="card-number">02 /</span>
+              </div>
             </div>
             <Link
               to="/interactive-games/wikicon"
@@ -285,7 +372,10 @@ export function InteractiveGamesPage() {
               <span className="category-label">
                 <span className="status-dot" /> NOW PLAYING
               </span>
-              <span className="card-number">03 /</span>
+              <div className="flex items-center gap-2">
+                {renderLimitBadge('squaredint')}
+                <span className="card-number">03 /</span>
+              </div>
             </div>
             <Link
               to="/interactive-games/squaredint"
@@ -326,7 +416,10 @@ export function InteractiveGamesPage() {
               <span className="category-label">
                 <span className="status-dot" /> NOW PLAYING
               </span>
-              <span className="card-number">04 /</span>
+              <div className="flex items-center gap-2">
+                {renderLimitBadge('lexi')}
+                <span className="card-number">04 /</span>
+              </div>
             </div>
             <Link
               to="/interactive-games/lexi"
@@ -367,7 +460,10 @@ export function InteractiveGamesPage() {
               <span className="category-label">
                 <span className="status-dot" /> NOW PLAYING
               </span>
-              <span className="card-number">05 /</span>
+              <div className="flex items-center gap-2">
+                {renderLimitBadge('destackint')}
+                <span className="card-number">05 /</span>
+              </div>
             </div>
             <Link
               to="/interactive-games/destackint"
@@ -408,7 +504,10 @@ export function InteractiveGamesPage() {
               <span className="category-label">
                 <span className="status-dot" /> NOW PLAYING
               </span>
-              <span className="card-number">06 /</span>
+              <div className="flex items-center gap-2">
+                {renderLimitBadge('crowdle')}
+                <span className="card-number">06 /</span>
+              </div>
             </div>
             <Link
               to="/interactive-games/crowdle"
@@ -449,7 +548,10 @@ export function InteractiveGamesPage() {
               <span className="category-label">
                 <span className="status-dot" /> NOW PLAYING
               </span>
-              <span className="card-number">07 /</span>
+              <div className="flex items-center gap-2">
+                {renderLimitBadge('mpsearchint')}
+                <span className="card-number">07 /</span>
+              </div>
             </div>
             <Link
               to="/interactive-games/mpsearch"

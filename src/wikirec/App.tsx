@@ -24,6 +24,10 @@ import {
   clearActiveInteractiveStreamerSession,
   touchActiveInteractiveStreamerSession,
 } from '@/lib/interactive-key-auth';
+import {
+  recordInteractiveRoundCompleted,
+  tryConsumeOrCheckNextRound,
+} from '@/lib/interactive-daily-limits';
 import { io, Socket } from 'socket.io-client';
 import type { FinderInfo } from './shared/types';
 import { LoggedInIndicator } from '@/components/logged-in-indicator';
@@ -1082,6 +1086,10 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
   };
 
   const handleNewRound = (_forceNewArticle = true) => {
+    if (!isOverlay && !isSoloRoute) {
+      const allowed = tryConsumeOrCheckNextRound('wikirec', gameState?.roundId);
+      if (!allowed) return;
+    }
     setDismissedRoundId(null);
     prevCompleteRef.current = false;
     setFlashedCells([]);
@@ -1294,6 +1302,14 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
     };
   }, [chatOnlyItems, chatOnlyItems.length, authorizedStreamer, tiktokStatus.connected]);
 
+  // Count completed interactive rounds toward the 3/day free limit (unlimited for key holders)
+  useEffect(() => {
+    if (isOverlay || isSoloRoute) return;
+    if (gameState?.isComplete && gameState.roundId) {
+      recordInteractiveRoundCompleted('wikirec', gameState.roundId);
+    }
+  }, [isOverlay, isSoloRoute, gameState?.isComplete, gameState?.roundId]);
+
   const isSolo = mode === 'daily-solo' || mode === 'practice-solo';
   const showVictoryModal =
     gameState?.isComplete && dismissedRoundId !== gameState.roundId;
@@ -1489,124 +1505,61 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
               flexShrink: 0,
             }}
           >
-            {!authorizedStreamer ? (
-              <form onSubmit={handleInlineStreamerAuth} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-dim)', lineHeight: 1.35 }}>
-                  Enter your registered TikTok <b style={{ color: 'var(--text)' }}>@username</b> and <b style={{ color: 'var(--accent-orange)' }}>LIVE-xxxx-xxxx</b> key to connect your stream:
-                </div>
-                {inlineAuthError && (
-                  <div
-                    style={{
-                      fontSize: '11px',
-                      color: '#fca5a5',
-                      background: 'rgba(212, 63, 63, 0.15)',
-                      border: '1px solid rgba(212, 63, 63, 0.4)',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                    }}
-                  >
-                    {inlineAuthError}
-                  </div>
-                )}
-                <input
-                  type="text"
-                  value={inlineAuthUser}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setInlineAuthUser(v.startsWith('@') ? v : `@${v.replace(/^@+/, '')}`);
-                  }}
-                  placeholder="@username"
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px' }}>
+                <span style={{ color: authorizedStreamer ? '#fbbf24' : 'var(--text-dim)', fontWeight: 700, fontFamily: 'monospace' }}>
+                  {authorizedStreamer ? `✓ @${authorizedStreamer.username}` : 'Free Access (3/day)'}
+                </span>
+                <span
                   style={{
-                    width: '100%',
-                    padding: '6px 9px',
-                    borderRadius: '8px',
-                    background: 'var(--bg)',
-                    border: '1px solid var(--border-soft)',
-                    color: 'var(--text)',
-                    fontSize: '12px',
-                    fontFamily: 'monospace',
+                    color: tiktokStatus.connected ? 'var(--accent-green)' : 'var(--text-dim)',
+                    fontWeight: 800,
+                    fontSize: '11px',
                   }}
-                />
-                <input
-                  type="password"
-                  value={inlineAuthKey}
-                  onChange={(e) => setInlineAuthKey(e.target.value)}
-                  placeholder="LIVE-XXXX-XXXX"
-                  style={{
-                    width: '100%',
-                    padding: '6px 9px',
-                    borderRadius: '8px',
-                    background: 'var(--bg)',
-                    border: '1px solid var(--border-soft)',
-                    color: 'var(--text)',
-                    fontSize: '12px',
-                    fontFamily: 'monospace',
-                  }}
-                />
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleInlineProviderChange('tikfinity')}
-                    style={{
-                      flex: 1,
-                      padding: '4px 6px',
-                      borderRadius: '6px',
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      border: '1px solid var(--border-soft)',
-                      background: inlineChatProvider === 'tikfinity' ? 'var(--accent-orange)' : 'var(--bg)',
-                      color: inlineChatProvider === 'tikfinity' ? '#2d0938' : 'var(--text-dim)',
-                    }}
-                  >
-                    Tikfinity
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleInlineProviderChange('bettertok')}
-                    style={{
-                      flex: 1,
-                      padding: '4px 6px',
-                      borderRadius: '6px',
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      border: '1px solid var(--border-soft)',
-                      background: inlineChatProvider === 'bettertok' ? 'var(--accent-orange)' : 'var(--bg)',
-                      color: inlineChatProvider === 'bettertok' ? '#2d0938' : 'var(--text-dim)',
-                    }}
-                  >
-                    BetterTok
-                  </button>
-                </div>
-                <button
-                  type="submit"
-                  className="side-footer-btn primary"
-                  style={{ width: '100%', padding: '7px 10px' }}
                 >
-                  Unlock Live Connect
+                  {tiktokStatus.connected
+                    ? `● Connected (@${tiktokStatus.username || authorizedStreamer?.username || 'live'})`
+                    : inlineConnecting
+                    ? 'Connecting...'
+                    : '○ Disconnected'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleInlineProviderChange('tikfinity')}
+                  style={{
+                    flex: 1,
+                    padding: '4px 6px',
+                    borderRadius: '6px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    border: '1px solid var(--border-soft)',
+                    background: inlineChatProvider === 'tikfinity' ? 'var(--accent-orange)' : 'var(--bg)',
+                    color: inlineChatProvider === 'tikfinity' ? '#2d0938' : 'var(--text-dim)',
+                  }}
+                >
+                  Tikfinity
                 </button>
-              </form>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px' }}>
-                  <span style={{ color: '#fbbf24', fontWeight: 700, fontFamily: 'monospace' }}>
-                    ✓ @{authorizedStreamer.username}
-                  </span>
-                  <span
-                    style={{
-                      color: tiktokStatus.connected ? 'var(--accent-green)' : 'var(--text-dim)',
-                      fontWeight: 800,
-                      fontSize: '11px',
-                    }}
-                  >
-                    {tiktokStatus.connected
-                      ? `● Connected (@${tiktokStatus.username || authorizedStreamer.username})`
-                      : inlineConnecting
-                      ? 'Connecting...'
-                      : '○ Disconnected'}
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleInlineProviderChange('bettertok')}
+                  style={{
+                    flex: 1,
+                    padding: '4px 6px',
+                    borderRadius: '6px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    border: '1px solid var(--border-soft)',
+                    background: inlineChatProvider === 'bettertok' ? 'var(--accent-orange)' : 'var(--bg)',
+                    color: inlineChatProvider === 'bettertok' ? '#2d0938' : 'var(--text-dim)',
+                  }}
+                >
+                  BetterTok
+                </button>
+              </div>
 
                 <form
                   onSubmit={(e) => handleInlineConnect(e, false)}
@@ -1752,7 +1705,6 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
                   </div>
                 </div>
               </div>
-            )}
           </div>
 
           <div className="side-box-body chat-stream-list" ref={chatListRef}>
@@ -1761,9 +1713,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
                 <p>
                   {tiktokStatus.connected
                     ? 'Waiting for live chat & player guesses...'
-                    : authorizedStreamer
-                    ? 'Ready · Click Connect Live or Test Mode above'
-                    : 'Unlock Live Connect above to stream'}
+                    : 'Ready · Click Connect Live or Test Mode above'}
                 </p>
                 <span>
                   {tiktokStatus.connected

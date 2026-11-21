@@ -56,6 +56,10 @@ import {
   getActiveInteractiveStreamerSession,
   touchActiveInteractiveStreamerSession,
 } from '@/lib/interactive-key-auth';
+import {
+  recordInteractiveRoundCompleted,
+  tryConsumeOrCheckNextRound,
+} from '@/lib/interactive-daily-limits';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import {
   getLocalTodayDateStr,
@@ -313,6 +317,10 @@ export default function CrowdleApp() {
   const startNewRound = useCallback(
     (overrideLength?: number, overrideEndless?: boolean) => {
       const st = stateRef.current;
+      if (!isOverlay) {
+        const allowed = tryConsumeOrCheckNextRound('crowdle', `round-${st.roundId}`);
+        if (!allowed) return;
+      }
       const endless = overrideEndless !== undefined ? overrideEndless : st.isEndlessMode;
       const nextLen = endless ? 5 : overrideLength !== undefined ? overrideLength : st.wordLength;
       const nextTarget = pickTargetWord(nextLen, st.lastWinningWord || st.targetWord);
@@ -342,8 +350,16 @@ export default function CrowdleApp() {
       setTargetWordGuesser(null);
       setHostDraftWord('');
     },
-    []
+    [isOverlay]
   );
+
+  // Record finished Crowdle rounds toward the 3/day free limit (unlimited for key holders)
+  useEffect(() => {
+    if (isOverlay) return;
+    if (status === 'WON' || status === 'LOST') {
+      recordInteractiveRoundCompleted('crowdle', `round-${roundId}`);
+    }
+  }, [isOverlay, status, roundId]);
 
   // Submit a guess word (either from top crowd vote or host lock)
   const submitGuessWord = useCallback(

@@ -69,6 +69,10 @@ import {
   touchActiveInteractiveStreamerSession,
 } from '../lib/interactive-key-auth';
 import {
+  recordInteractiveRoundCompleted,
+  tryConsumeOrCheckNextRound,
+} from '../lib/interactive-daily-limits';
+import {
   attachResilientChatListeners,
   createEventDeduplicator,
   emitResilientEvent,
@@ -1059,8 +1063,20 @@ export default function App() {
     [grid, requiredWords, foundWords, bonusWords, score, showToast, handleInspectWord]
   );
 
+  // Record completed Squared Interactive puzzles toward the 3/day free limit (unlimited for key holders)
+  useEffect(() => {
+    if (isOverlay) return;
+    if (gameState === 'VICTORY') {
+      recordInteractiveRoundCompleted('squaredint', `${mode}:${selectedDateStr}`);
+    }
+  }, [isOverlay, gameState, mode, selectedDateStr]);
+
   // Step to previous usable date when clicking "Prev Day" in modal
   const handleStepPreviousDate = useCallback(() => {
+    if (!isOverlay && (foundWords.size > 0 || gameState === 'VICTORY')) {
+      const allowed = tryConsumeOrCheckNextRound('squaredint', `${mode}:${selectedDateStr}`);
+      if (!allowed) return;
+    }
     const [y, m, d] = selectedDateStr.split('-').map(Number);
     const prevDate = new Date(y, m - 1, d - 1);
     const ny = prevDate.getFullYear();
@@ -1070,7 +1086,7 @@ export default function App() {
     if (candidate >= '2024-01-01') {
       setSelectedDateStr(candidate);
     }
-  }, [selectedDateStr]);
+  }, [isOverlay, foundWords.size, gameState, mode, selectedDateStr]);
 
   // Keyboard controls for Title Screen & Active Play
   useEffect(() => {
@@ -1570,6 +1586,9 @@ export default function App() {
               todayDateStr={todayDateStr}
               currentMode={mode}
               onSelectDate={(dateStr) => {
+                if (dateStr !== selectedDateStr && !isOverlay && (foundWords.size > 0 || gameState === 'VICTORY')) {
+                  if (!tryConsumeOrCheckNextRound('squaredint', `${mode}:${selectedDateStr}`)) return;
+                }
                 setSelectedDateStr(dateStr);
                 setGameState((prev) => (prev === 'VICTORY' ? 'PLAYING' : prev));
               }}
@@ -1623,6 +1642,9 @@ export default function App() {
                   key={m.id}
                   type="button"
                   onClick={() => {
+                    if (m.id !== mode && !isOverlay && (foundWords.size > 0 || gameState === 'VICTORY')) {
+                      if (!tryConsumeOrCheckNextRound('squaredint', `${mode}:${selectedDateStr}`)) return;
+                    }
                     setMode(m.id);
                     setGameState((prev) => (prev === 'VICTORY' ? 'PLAYING' : prev));
                   }}

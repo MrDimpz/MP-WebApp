@@ -3,7 +3,7 @@ import { InteractiveStreamGate } from "../components/interactive-games/interacti
 
 export function LexiGamePage() {
   return (
-    <InteractiveStreamGate gameTitle="Lexi Tiles">
+    <InteractiveStreamGate gameTitle="Lexi Tiles" gameSlug="lexi">
       <LexiApp />
     </InteractiveStreamGate>
   );

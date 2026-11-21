@@ -42,6 +42,10 @@ import {
   useUnifiedAuth,
 } from '@/lib/unified-game-auth';
 import {
+  recordInteractiveRoundCompleted,
+  tryConsumeOrCheckNextRound,
+} from '@/lib/interactive-daily-limits';
+import {
   getLondonTodayDateStr,
   recordDailyPuzzleSolved,
   useDailyStreak,
@@ -307,6 +311,13 @@ export default function MPSearchInteractiveApp() {
   // Start a new random round from the 12-month (368-puzzle) archive
   const startNewRandomRound = useCallback(
     (specificDateKey?: string) => {
+      if (!isOverlay) {
+        const allowed = tryConsumeOrCheckNextRound(
+          'mpsearchint',
+          `round-${roundNumber}-${currentDateKey}`
+        );
+        if (!allowed) return;
+      }
       const nextPuzzle = specificDateKey
         ? archive.find((p) => p.dateKey === specificDateKey) ||
           pickRandomArchivePuzzle(archive, currentDateKey)
@@ -326,7 +337,7 @@ export default function MPSearchInteractiveApp() {
       setRecentDiscoveryBanner(null);
       setGameState('PLAYING');
     },
-    [archive, currentDateKey]
+    [isOverlay, archive, currentDateKey, roundNumber]
   );
 
   // Trigger Auto-Next Round Countdown when all required words (8-12) are found
@@ -337,8 +348,12 @@ export default function MPSearchInteractiveApp() {
       return;
     }
 
+    recordInteractiveRoundCompleted(
+      'mpsearchint',
+      `round-${roundNumber}-${currentDateKey}`
+    );
     setAutoNextCountdown(AUTO_ADVANCE_SECONDS);
-  }, [isOverlay, isPuzzleCompleted]);
+  }, [isOverlay, isPuzzleCompleted, roundNumber, currentDateKey]);
 
   useEffect(() => {
     if (isOverlay) return;

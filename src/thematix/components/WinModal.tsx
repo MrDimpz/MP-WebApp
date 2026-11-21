@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Star, Eye, Calendar, Shuffle, Sparkles, X } from 'lucide-react';
+import { Trophy, Star, Eye, Calendar, Shuffle, Sparkles, X, Crown } from 'lucide-react';
 import { Puzzle } from '../types/game';
 
 interface WinModalProps {
@@ -26,9 +26,12 @@ export const WinModal: React.FC<WinModalProps> = ({
 
   // Star rating logic
   const getRating = (count: number) => {
-    if (count <= 3) return { stars: 3, label: 'Mastermind!', color: 'text-amber-500' };
-    if (count <= 7) return { stars: 2, label: 'Word Detective!', color: 'text-purple-500' };
-    return { stars: 1, label: 'Puzzle Solved!', color: 'text-emerald-500' };
+    if (count === 0) {
+      return { stars: 3, label: 'Flawless! 0-Guess Achievement', color: 'text-amber-500', isZero: true };
+    }
+    if (count <= 3) return { stars: 3, label: 'Mastermind!', color: 'text-amber-500', isZero: false };
+    if (count <= 7) return { stars: 2, label: 'Word Detective!', color: 'text-purple-500', isZero: false };
+    return { stars: 1, label: 'Puzzle Solved!', color: 'text-emerald-500', isZero: false };
   };
 
   const rating = getRating(letterGuessesCount);
@@ -85,17 +88,31 @@ export const WinModal: React.FC<WinModalProps> = ({
             className="w-32 h-32 sm:w-40 sm:h-40 shrink-0 object-contain drop-shadow-md select-none animate-[spin_4s_linear_infinite]"
           />
         </div>
-        <div className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4">
-          {rating.label}
+        <div
+          className={`text-sm font-bold mb-4 flex items-center justify-center gap-1.5 ${
+            rating.isZero
+              ? 'text-amber-500 dark:text-amber-400'
+              : 'text-slate-800 dark:text-slate-200'
+          }`}
+        >
+          {rating.isZero && <Crown className="w-4 h-4 fill-amber-400 text-amber-500" />}
+          <span>{rating.label}</span>
         </div>
 
         {/* Score metrics */}
         <div className="grid grid-cols-2 gap-3 mb-5">
-          <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+          <div
+            className={`p-3 rounded-2xl border ${
+              rating.isZero
+                ? 'bg-gradient-to-b from-amber-100 to-amber-50 dark:from-amber-950/60 dark:to-amber-900/30 border-amber-400/70 shadow-sm'
+                : 'bg-slate-50 dark:bg-slate-800/60 border-slate-100 dark:border-slate-800'
+            }`}
+          >
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
               Letter Guesses
             </span>
-            <span className="text-2xl font-bold font-mono text-amber-500 dark:text-amber-400">
+            <span className="text-2xl font-bold font-mono text-amber-500 dark:text-amber-400 inline-flex items-center justify-center gap-1">
+              {rating.isZero && <Crown className="w-5 h-5 fill-amber-400/40" />}
               {letterGuessesCount}
             </span>
           </div>

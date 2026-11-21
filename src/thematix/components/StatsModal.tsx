@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Flame, Trophy } from 'lucide-react';
+import { X, Flame, Trophy, Crown } from 'lucide-react';
 import { loadStats } from '../utils/storage';
 
 interface StatsModalProps {
@@ -92,17 +92,37 @@ export const StatsModal: React.FC<StatsModalProps> = ({
             {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
               const count = stats.guessDistribution[num] || 0;
               const pct = (count / maxGuessesCount) * 100;
+              const isZeroAchievement = num === 0;
 
               return (
-                <div key={num} className="flex items-center gap-2 text-xs">
-                  <span className="w-4 font-mono font-bold text-slate-400 text-right">
-                    {num === 10 ? '10+' : num}
+                <div
+                  key={num}
+                  className={`flex items-center gap-2 text-xs ${
+                    isZeroAchievement ? 'pb-1 mb-1 border-b border-amber-400/25' : ''
+                  }`}
+                >
+                  <span
+                    className={`w-6 font-mono font-bold flex items-center justify-end gap-0.5 ${
+                      isZeroAchievement ? 'text-amber-500' : 'text-slate-400'
+                    }`}
+                    title={isZeroAchievement ? 'Flawless 0-Guess Achievement' : undefined}
+                  >
+                    {isZeroAchievement && <Crown className="w-3 h-3 fill-amber-400/30 shrink-0" />}
+                    <span>{num === 10 ? '10+' : num}</span>
                   </span>
-                  <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-md h-5 overflow-hidden flex items-center">
+                  <div
+                    className={`flex-1 rounded-md h-5 overflow-hidden flex items-center ${
+                      isZeroAchievement
+                        ? 'bg-amber-500/15 ring-1 ring-amber-400/40'
+                        : 'bg-slate-100 dark:bg-slate-800'
+                    }`}
+                  >
                     <div
                       className={`h-full flex items-center justify-end px-2 font-mono font-bold text-[11px] transition-all duration-500 ${
                         count > 0
-                          ? 'bg-purple-600 text-white min-w-[24px]'
+                          ? isZeroAchievement
+                            ? 'bg-gradient-to-r from-[#f5b82e] to-[#ffdf70] text-[#220536] min-w-[24px]'
+                            : 'bg-purple-600 text-white min-w-[24px]'
                           : 'bg-transparent text-slate-400'
                       }`}
                       style={{ width: count > 0 ? `${Math.max(8, pct)}%` : '0%' }}
