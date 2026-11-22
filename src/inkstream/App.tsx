@@ -345,6 +345,7 @@ function InkStreamApp() {
       drawerName: drawer?.username ?? 'Artist',
       revealedWord: room.phase === 'TURN_SUMMARY' ? room.turnSummary?.word ?? null : null,
       commands: room.commands,
+      hasFirstStroke: room.hasFirstStroke,
       tiktokConnected: room.tiktokStatus.connected,
       tiktokUsername: room.tiktokStatus.username,
       tiktokLeaderboard: room.tiktokLeaderboard.slice(0, 5),
@@ -441,12 +442,18 @@ function InkStreamApp() {
 
     socket.on('canvas:command', (cmd: CanvasCommand) => {
       setLiveSegmentEvent(null);
+      const isVisibleMark =
+        (cmd.kind === 'fill' && cmd.color.toUpperCase() !== '#FFFFFF') ||
+        (cmd.kind === 'stroke' &&
+          cmd.tool !== 'eraser' &&
+          cmd.color.toUpperCase() !== '#FFFFFF');
       setRoom((prev) => {
         if (!prev) return prev;
         if (prev.commands.some((c) => c.id === cmd.id)) return prev;
         return {
           ...prev,
           commands: [...prev.commands, cmd],
+          hasFirstStroke: prev.hasFirstStroke || isVisibleMark,
           canUndo: true,
         };
       });
@@ -779,11 +786,17 @@ function InkStreamApp() {
 
   // --- Canvas & Chat Actions ---
   const handleEmitCommand = (cmd: CanvasCommand) => {
+    const isVisibleMark =
+      (cmd.kind === 'fill' && cmd.color.toUpperCase() !== '#FFFFFF') ||
+      (cmd.kind === 'stroke' &&
+        cmd.tool !== 'eraser' &&
+        cmd.color.toUpperCase() !== '#FFFFFF');
     setRoom((prev) =>
       prev
         ? {
             ...prev,
             commands: [...prev.commands, cmd],
+            hasFirstStroke: prev.hasFirstStroke || isVisibleMark,
             canUndo: true,
             canRedo: false,
           }
@@ -1182,6 +1195,7 @@ function InkStreamApp() {
             phase={room.phase}
             isDrawer={isDrawer}
             hasGuessed={Boolean(me?.hasGuessed)}
+            hasFirstStroke={room.hasFirstStroke}
             closeGuessNotice={closeGuessNotice}
             onDismissCloseGuess={clearCloseGuessNotice}
             onSendMessage={handleSendMessage}

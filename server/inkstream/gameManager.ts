@@ -70,6 +70,7 @@ interface InternalRoom {
   players: Map<string, PlayerState>;
   messages: ChatMessage[];
   commands: CanvasCommand[];
+  hasFirstStroke: boolean;
   redoStack: CanvasCommand[];
   turnSummary: TurnSummaryData | null;
   artworks: RoundArtwork[];
@@ -388,6 +389,7 @@ export class GameManager {
       players: new Map(),
       messages: [],
       commands: [],
+      hasFirstStroke: false,
       redoStack: [],
       turnSummary: null,
       artworks: [],
@@ -738,102 +740,112 @@ export class GameManager {
     if (!comment) return;
 
     if (room.phase === 'DRAWING' && room.secretWord) {
-      const existing = room.tiktokLeaderboard.get(chat.uniqueId);
-
-      // Check for correct guess from TikTok viewer
-      if (doesTikTokCommentMatchWord(comment, room.secretWord)) {
-        if (existing?.hasGuessed) {
-          return; // Viewer already guessed this turn; do not echo secret word
+      // Do not count guesses made before the drawer's first stroke
+      if (!room.hasFirstStroke) {
+        if (
+          doesTikTokCommentMatchWord(comment, room.secretWord) ||
+          isCloseGuess(comment, room.secretWord)
+        ) {
+          return;
         }
+      } else {
+        const existing = room.tiktokLeaderboard.get(chat.uniqueId);
 
-        room.turnTikTokGuessOrder += 1;
-        const elapsedSec = Math.max(
-          0.5,
-          Number(((Date.now() - room.turnStartedAt) / 1000).toFixed(1))
-        );
-        const timeRatio = clamp(room.timeRemaining / Math.max(1, room.settings.drawTime), 0, 1);
-        const speedBonus = Math.round(timeRatio * 250);
-        const orderBonus = Math.max(0, 150 - (room.turnTikTokGuessOrder - 1) * 25);
-        const points = 150 + speedBonus + orderBonus;
-
-        const nextEntry: TikTokPlayerScore = existing
-          ? {
-              ...existing,
-              nickname: chat.nickname || existing.nickname,
-              profilePictureUrl: chat.profilePictureUrl || existing.profilePictureUrl,
-              score: existing.score + points,
-              roundScore: existing.roundScore + points,
-              wordsGuessed: existing.wordsGuessed + 1,
-              hasGuessed: true,
-              lastGuessSec: elapsedSec,
-            }
-          : {
-              uniqueId: chat.uniqueId,
-              nickname: chat.nickname,
-              profilePictureUrl: chat.profilePictureUrl,
-              score: points,
-              roundScore: points,
-              wordsGuessed: 1,
-              hasGuessed: true,
-              lastGuessSec: elapsedSec,
-            };
-
-        room.tiktokLeaderboard.set(chat.uniqueId, nextEntry);
-        room.tiktokBridge.incrementMatchedGuess();
-
-        // Award drawer a modest TikTok chat bonus (capped at 280 pts/turn from TikTok)
-        if (room.drawerId && room.turnDrawerTikTokBonusAwarded < 280) {
-          const drawer = room.players.get(room.drawerId);
-          if (drawer) {
-            const bonus = Math.min(40, 280 - room.turnDrawerTikTokBonusAwarded);
-            room.turnDrawerTikTokBonusAwarded += bonus;
-            drawer.score += bonus;
-            drawer.roundScore += bonus;
-            room.turnScoreDeltas.set(
-              drawer.id,
-              (room.turnScoreDeltas.get(drawer.id) ?? 0) + bonus
-            );
-            const drawerAnalytics = this.ensurePlayerAnalytics(
-              room,
-              drawer.id,
-              drawer.username,
-              drawer.avatar
-            );
-            drawerAnalytics.drawerPointsTotal += bonus;
-            drawerAnalytics.totalScore = drawer.score;
+        // Check for correct guess from TikTok viewer
+        if (doesTikTokCommentMatchWord(comment, room.secretWord)) {
+          if (existing?.hasGuessed) {
+            return; // Viewer already guessed this turn; do not echo secret word
           }
+
+          room.turnTikTokGuessOrder += 1;
+          const elapsedSec = Math.max(
+            0.5,
+            Number(((Date.now() - room.turnStartedAt) / 1000).toFixed(1))
+          );
+          const timeRatio = clamp(room.timeRemaining / Math.max(1, room.settings.drawTime), 0, 1);
+          const speedBonus = Math.round(timeRatio * 250);
+          const orderBonus = Math.max(0, 150 - (room.turnTikTokGuessOrder - 1) * 25);
+          const points = 150 + speedBonus + orderBonus;
+
+          const nextEntry: TikTokPlayerScore = existing
+            ? {
+                ...existing,
+                nickname: chat.nickname || existing.nickname,
+                profilePictureUrl: chat.profilePictureUrl || existing.profilePictureUrl,
+                score: existing.score + points,
+                roundScore: existing.roundScore + points,
+                wordsGuessed: existing.wordsGuessed + 1,
+                hasGuessed: true,
+                lastGuessSec: elapsedSec,
+              }
+            : {
+                uniqueId: chat.uniqueId,
+                nickname: chat.nickname,
+                profilePictureUrl: chat.profilePictureUrl,
+                score: points,
+                roundScore: points,
+                wordsGuessed: 1,
+                hasGuessed: true,
+                lastGuessSec: elapsedSec,
+              };
+
+          room.tiktokLeaderboard.set(chat.uniqueId, nextEntry);
+          room.tiktokBridge.incrementMatchedGuess();
+
+          // Award drawer a modest TikTok chat bonus (capped at 280 pts/turn from TikTok)
+          if (room.drawerId && room.turnDrawerTikTokBonusAwarded < 280) {
+            const drawer = room.players.get(room.drawerId);
+            if (drawer) {
+              const bonus = Math.min(40, 280 - room.turnDrawerTikTokBonusAwarded);
+              room.turnDrawerTikTokBonusAwarded += bonus;
+              drawer.score += bonus;
+              drawer.roundScore += bonus;
+              room.turnScoreDeltas.set(
+                drawer.id,
+                (room.turnScoreDeltas.get(drawer.id) ?? 0) + bonus
+              );
+              const drawerAnalytics = this.ensurePlayerAnalytics(
+                room,
+                drawer.id,
+                drawer.username,
+                drawer.avatar
+              );
+              drawerAnalytics.drawerPointsTotal += bonus;
+              drawerAnalytics.totalScore = drawer.score;
+            }
+          }
+
+          // Record spoiler-free TikTok chat item
+          room.tiktokChat.push({
+            id: crypto.randomBytes(6).toString('hex'),
+            uniqueId: chat.uniqueId,
+            nickname: chat.nickname,
+            profilePictureUrl: chat.profilePictureUrl,
+            text: `Guessed the word! (+${points} pts)`,
+            isCorrect: true,
+            pointsAwarded: points,
+            timestamp: Date.now(),
+          });
+          if (room.tiktokChat.length > 40) room.tiktokChat.shift();
+
+          // Announce correct TikTok guess in room chat (without spoiling word)
+          this.pushChatMessage(room, {
+            id: crypto.randomBytes(6).toString('hex'),
+            type: 'correct',
+            text: `@${chat.nickname} (TikTok) guessed the word! (+${points} pts)`,
+            timestamp: Date.now(),
+          });
+
+          this.io.to(room.id).emit('game:sound', { sound: 'correct' });
+          this.broadcastRoomState(room);
+          this.emitAnalyticsToOwner(room);
+          return;
         }
 
-        // Record spoiler-free TikTok chat item
-        room.tiktokChat.push({
-          id: crypto.randomBytes(6).toString('hex'),
-          uniqueId: chat.uniqueId,
-          nickname: chat.nickname,
-          profilePictureUrl: chat.profilePictureUrl,
-          text: `Guessed the word! (+${points} pts)`,
-          isCorrect: true,
-          pointsAwarded: points,
-          timestamp: Date.now(),
-        });
-        if (room.tiktokChat.length > 40) room.tiktokChat.shift();
-
-        // Announce correct TikTok guess in room chat (without spoiling word)
-        this.pushChatMessage(room, {
-          id: crypto.randomBytes(6).toString('hex'),
-          type: 'correct',
-          text: `@${chat.nickname} (TikTok) guessed the word! (+${points} pts)`,
-          timestamp: Date.now(),
-        });
-
-        this.io.to(room.id).emit('game:sound', { sound: 'correct' });
-        this.broadcastRoomState(room);
-        this.emitAnalyticsToOwner(room);
-        return;
-      }
-
-      // Hide close guesses from TikTok chat too so they don't spoil for stream viewers
-      if (isCloseGuess(comment, room.secretWord)) {
-        return;
+        // Hide close guesses from TikTok chat too so they don't spoil for stream viewers
+        if (isCloseGuess(comment, room.secretWord)) {
+          return;
+        }
       }
     }
 
@@ -900,6 +912,7 @@ export class GameManager {
     room.usedWords.clear();
     room.turnSummary = null;
     room.commands = [];
+    room.hasFirstStroke = false;
     room.redoStack = [];
     room.artworks = [];
     room.tiktokLeaderboard.clear();
@@ -951,6 +964,7 @@ export class GameManager {
     room.wordOptions = [];
     room.turnSummary = null;
     room.commands = [];
+    room.hasFirstStroke = false;
     room.redoStack = [];
     room.timeRemaining = 0;
     for (const p of room.players.values()) {
@@ -993,6 +1007,15 @@ export class GameManager {
     room.redoStack = [];
     room.totalStrokesDrawn += 1;
 
+    const isVisibleMark =
+      (cmd.kind === 'fill' && cmd.color.toUpperCase() !== '#FFFFFF') ||
+      (cmd.kind === 'stroke' &&
+        cmd.tool !== 'eraser' &&
+        cmd.color.toUpperCase() !== '#FFFFFF');
+    if (isVisibleMark) {
+      this.markFirstStrokeIfNeeded(room);
+    }
+
     const senderSocket = this.io.sockets.get(socketId);
     if (senderSocket) {
       senderSocket.to(room.id).emit('canvas:command', cmd);
@@ -1026,6 +1049,10 @@ export class GameManager {
       .filter((p) => typeof p?.x === 'number' && typeof p?.y === 'number')
       .map((p) => ({ x: clamp(p.x, 0, 1), y: clamp(p.y, 0, 1) }));
     if (points.length === 0) return;
+
+    if (payload.tool !== 'eraser' && color.toUpperCase() !== '#FFFFFF') {
+      this.markFirstStrokeIfNeeded(room);
+    }
 
     const senderSocket = this.io.sockets.get(socketId);
     if (senderSocket) {
@@ -1143,6 +1170,16 @@ export class GameManager {
             this.io.to(p.socketId).emit('chat:message', msg);
           }
         }
+        this.emitAnalyticsToOwner(room);
+        return;
+      }
+
+      // Guesses made before the first stroke do not count (prevents anticipating the answer)
+      if (!room.hasFirstStroke) {
+        this.io.to(socketId).emit('game:close-guess', {
+          guess: '',
+          message: 'Wait for the first stroke — guesses do not count until drawing starts.',
+        });
         this.emitAnalyticsToOwner(room);
         return;
       }
@@ -1433,6 +1470,7 @@ export class GameManager {
     room.secretWord = null;
     room.revealedIndices.clear();
     room.commands = [];
+    room.hasFirstStroke = false;
     room.redoStack = [];
     room.turnSummary = null;
     room.reactions.clear();
@@ -1487,6 +1525,7 @@ export class GameManager {
     room.wordOptions = [];
     room.revealedIndices.clear();
     room.phase = 'DRAWING';
+    room.hasFirstStroke = false;
     room.timeRemaining = room.settings.drawTime;
     room.phaseTotalTime = room.settings.drawTime;
     room.turnStartedAt = Date.now();
@@ -1649,6 +1688,7 @@ export class GameManager {
   private finishGame(room: InternalRoom): void {
     this.clearTimer(room);
     room.phase = 'GAME_OVER';
+    room.hasFirstStroke = false;
     room.drawerId = null;
     room.secretWord = null;
     room.wordOptions = [];
@@ -1832,6 +1872,7 @@ export class GameManager {
       players: sortedPlayers,
       messages: room.messages.slice(-60),
       commands: room.commands,
+      hasFirstStroke: room.hasFirstStroke,
       canUndo: room.commands.length > 0,
       canRedo: room.redoStack.length > 0,
       turnSummary: room.turnSummary,
@@ -1856,6 +1897,12 @@ export class GameManager {
     const room = this.rooms.get(mapping.roomId);
     if (!room) return null;
     return { room, userId: mapping.userId };
+  }
+
+  private markFirstStrokeIfNeeded(room: InternalRoom): void {
+    if (room.hasFirstStroke) return;
+    room.hasFirstStroke = true;
+    this.broadcastRoomState(room);
   }
 
   private clearTimer(room: InternalRoom): void {

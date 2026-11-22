@@ -20,6 +20,7 @@ export interface InkStreamOverlayState {
   drawerName: string;
   revealedWord: string | null;
   commands: CanvasCommand[];
+  hasFirstStroke: boolean;
   tiktokConnected: boolean;
   tiktokUsername: string | null;
   tiktokLeaderboard: TikTokPlayerScore[];
@@ -80,7 +81,9 @@ export const InkStreamOverlayView: React.FC<InkStreamOverlayViewProps> = ({
               <p className="text-[11px] text-[#C9B6DF] truncate">
                 {state
                   ? state.phase === 'DRAWING'
-                    ? `${state.drawerName} is drawing — guess in chat!`
+                    ? state.hasFirstStroke
+                      ? `${state.drawerName} is drawing — guess in chat!`
+                      : `${state.drawerName} is about to draw — guesses open on 1st stroke!`
                     : state.phase === 'WORD_SELECT'
                       ? `${state.drawerName} is picking a secret word...`
                       : state.phase === 'TURN_SUMMARY' && state.revealedWord

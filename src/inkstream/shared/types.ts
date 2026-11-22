@@ -272,6 +272,7 @@ export interface RoomClientState {
   players: PlayerState[];
   messages: ChatMessage[];
   commands: CanvasCommand[];
+  hasFirstStroke: boolean;
   canUndo: boolean;
   canRedo: boolean;
   turnSummary: TurnSummaryData | null;

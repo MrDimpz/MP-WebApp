@@ -7,6 +7,7 @@ interface ChatPanelProps {
   phase: GamePhase;
   isDrawer: boolean;
   hasGuessed: boolean;
+  hasFirstStroke: boolean;
   closeGuessNotice: { guess: string; message: string } | null;
   onDismissCloseGuess: () => void;
   onSendMessage: (text: string) => void;
@@ -17,6 +18,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   phase,
   isDrawer,
   hasGuessed,
+  hasFirstStroke,
   closeGuessNotice,
   onDismissCloseGuess,
   onSendMessage,
@@ -36,13 +38,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     setInput('');
   };
 
+  const waitingForFirstStroke = phase === 'DRAWING' && !hasFirstStroke;
+
   const placeholder =
     phase === 'DRAWING'
       ? isDrawer
         ? 'Chat with players (do not spoil the word)...'
         : hasGuessed
           ? 'You guessed it! Chat with other guessers...'
-          : 'Type your guess here...'
+          : waitingForFirstStroke
+            ? 'Wait for the first stroke to guess...'
+            : 'Type your guess here...'
       : 'Type a chat message...';
 
   return (
@@ -54,11 +60,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         <span
           className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${
             phase === 'DRAWING' && !isDrawer && !hasGuessed
-              ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-200'
+              ? hasFirstStroke
+                ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-200'
+                : 'bg-amber-500/20 border-amber-400/50 text-amber-200'
               : 'bg-white/10 border-white/15 text-[#E8DCF8]'
           }`}
         >
-          {phase === 'DRAWING' && !isDrawer && !hasGuessed ? 'Guessing open' : 'Live room chat'}
+          {phase === 'DRAWING' && !isDrawer && !hasGuessed
+            ? hasFirstStroke
+              ? 'Guessing open'
+              : 'Waiting for 1st stroke'
+            : 'Live room chat'}
         </span>
       </div>
 

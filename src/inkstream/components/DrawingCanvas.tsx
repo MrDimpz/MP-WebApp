@@ -404,6 +404,14 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                 <span className="tabular-nums text-slate-500">
                   {room.commands.length} {room.commands.length === 1 ? 'stroke' : 'strokes'}
                 </span>
+                {!room.hasFirstStroke && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="font-semibold text-[#F6C915] truncate">
+                      {canDraw ? 'Draw 1st stroke to open guesses' : 'Guesses open on 1st stroke'}
+                    </span>
+                  </>
+                )}
               </>
             )}
             {room.phase === 'WORD_SELECT' && (
