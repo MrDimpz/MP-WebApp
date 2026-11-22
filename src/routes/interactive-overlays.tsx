@@ -106,6 +106,15 @@ const INTERACTIVE_OVERLAY_SPECS: OverlayGameSpec[] = [
     virtualHeight: 720,
     sizeLabel: '640 × 720 · Studio',
   },
+  {
+    id: 'mpwh',
+    title: 'Word Hunt Extreme',
+    hostPath: '/interactive-games/mpwh',
+    overlaySlug: 'mpwh',
+    virtualWidth: 620,
+    virtualHeight: 760,
+    sizeLabel: '620 × 760 · Ladder',
+  },
 ];
 
 interface ScaledOverlayStageProps {
@@ -328,7 +337,7 @@ export function InteractiveOverlaysWallPage() {
                 All Interactive Overlays
               </h1>
               <span className="hidden md:inline text-xs text-slate-400 font-mono tabular-nums whitespace-nowrap">
-                · 7 Live Feeds · Channel {activeChannel || 'default'}
+                · 9 Live Feeds · Channel {activeChannel || 'default'}
               </span>
             </div>
           </div>

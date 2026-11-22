@@ -19,7 +19,8 @@ export type DailyStreakGameId =
   | 'lexi'
   | 'crowdle'
   | 'tekscodle'
-  | 'inkstream';
+  | 'inkstream'
+  | 'mpwh';
 
 export interface StoredGameStreak {
   solvedDates: string[];

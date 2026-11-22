@@ -9,7 +9,8 @@ export type InteractiveGameSlug =
   | 'destackint'
   | 'crowdle'
   | 'mpsearchint'
-  | 'inkstream';
+  | 'inkstream'
+  | 'mpwh';
 
 export const MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY = 3;
 export const INTERACTIVE_CONTACT_EMAIL = 'admin@missingpiecepuzzles.fun';
@@ -281,6 +282,7 @@ export function useAllInteractiveDailyLimits(): Record<
     crowdle: getInteractiveGameDailyUsage('crowdle'),
     mpsearchint: getInteractiveGameDailyUsage('mpsearchint'),
     inkstream: getInteractiveGameDailyUsage('inkstream'),
+    mpwh: getInteractiveGameDailyUsage('mpwh'),
   });
 
   const [allUsage, setAllUsage] = useState<

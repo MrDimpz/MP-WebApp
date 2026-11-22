@@ -10,6 +10,7 @@ import {
   ControlEvent,
 } from "tiktok-live-connector";
 import { mountInkStream } from "./server/inkstream/mountInkStream.ts";
+import { mountMpwh } from "./server/mpwh/mountMpwh.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -429,6 +430,8 @@ async function startServer() {
 
   // Mount InkStream multiplayer drawing & TikTok LIVE studio backend (/api/inkstream/* & /inkstream namespace)
   const inkstream = mountInkStream(app, io);
+  // Mount Word Hunt (MPWH) alphabetical ladder & TikTok LIVE backend (/api/mpwh/* & /mpwh namespace)
+  const mpwh = mountMpwh(app, io);
 
   const sessions = new Map();
   let overlayVersionCounter = 0;
@@ -1355,6 +1358,12 @@ async function startServer() {
         .trim()
         .replace(/^@+/, "");
       inkstream.gameManager.injectExternalWebhookChat(streamerHint, {
+        uniqueId: normData.uniqueId,
+        nickname: normData.nickname,
+        comment: normData.comment,
+        profilePictureUrl: normData.profilePictureUrl,
+      });
+      mpwh.manager.injectExternalWebhookChat(streamerHint, {
         uniqueId: normData.uniqueId,
         nickname: normData.nickname,
         comment: normData.comment,

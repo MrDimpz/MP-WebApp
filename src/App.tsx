@@ -33,6 +33,7 @@ const CrowdleGamePage = lazy(() =>
 );
 const MPSearchIntGamePage = lazy(() => import('@/routes/mpsearchint-game'));
 const InkStreamGamePage = lazy(() => import('@/routes/inkstream-game'));
+const MpwhGamePage = lazy(() => import('@/routes/mpwh-game'));
 const InteractiveOverlaysWallPage = lazy(() => import('@/routes/interactive-overlays'));
 
 const SITE_ORIGIN = 'https://missingpiecepuzzles.fun';
@@ -67,6 +68,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/interactive-games/mpsearchint/overlay': 'MP Search Interactive — TikTok LIVE Studio Overlay',
   '/interactive-games/inkstream': 'InkStream — TikTok LIVE Drawing & Chat Guessing — The Missing Piece',
   '/interactive-games/inkstream/overlay': 'InkStream — TikTok LIVE Studio Overlay',
+  '/interactive-games/mpwh': 'Word Hunt Extreme — TikTok LIVE Alphabetical Word Ladder — The Missing Piece',
+  '/interactive-games/mpwh/overlay': 'Word Hunt Extreme — TikTok LIVE Studio Overlay',
   '/solo-games': 'Solo Games Hub (12 Puzzles) — The Missing Piece',
   '/solo-games/rebus': 'Missing Rebus — Visual Rebus Archive — The Missing Piece',
   '/solo-games/squared': 'Squared — Daily Word Grid — The Missing Piece',
@@ -130,6 +133,8 @@ const STANDALONE_GAME_PATHS = new Set([
   '/interactive-games/mpsearchint/overlay',
   '/interactive-games/inkstream',
   '/interactive-games/inkstream/overlay',
+  '/interactive-games/mpwh',
+  '/interactive-games/mpwh/overlay',
 ]);
 
 function RouteFallback({ transparent = false }: { transparent?: boolean }) {
@@ -239,6 +244,8 @@ function AppShell() {
           <Route path="/interactive-games/mpsearchint/overlay" element={<MPSearchIntGamePage />} />
           <Route path="/interactive-games/inkstream" element={<InkStreamGamePage />} />
           <Route path="/interactive-games/inkstream/overlay" element={<InkStreamGamePage />} />
+          <Route path="/interactive-games/mpwh" element={<MpwhGamePage />} />
+          <Route path="/interactive-games/mpwh/overlay" element={<MpwhGamePage />} />
         </Routes>
       </Suspense>
     );
@@ -262,6 +269,7 @@ function AppShell() {
           <Route path="/interactive-games/mpsearch" element={<MPSearchIntGamePage />} />
           <Route path="/interactive-games/mpsearchint" element={<MPSearchIntGamePage />} />
           <Route path="/interactive-games/inkstream" element={<InkStreamGamePage />} />
+          <Route path="/interactive-games/mpwh" element={<MpwhGamePage />} />
           <Route path="/solo-games" element={<SoloGamesPage />} />
         </Routes>
       </Suspense>

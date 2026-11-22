@@ -123,7 +123,7 @@ service cloud.firestore {
       ];
       return data.keys().hasAll(keys)
         && data.keys().hasOnly(keys)
-        && data.gameId is string && data.gameId in ['crowdle', 'destackint', 'mpsearchint', 'squaredint', 'wikicon', 'wikirec', 'lexi', 'inkstream']
+        && data.gameId is string && data.gameId in ['crowdle', 'destackint', 'mpsearchint', 'squaredint', 'wikicon', 'wikirec', 'lexi', 'inkstream', 'mpwh']
         && data.channel is string && data.channel.size() <= 64 && data.channel.matches('^[a-z0-9_-]*$')
         && data.streamer is string && data.streamer.size() <= 80 && data.streamer.matches('^[a-z0-9_.-]*$')
         && data.hostSessionId is string && data.hostSessionId.size() >= 1 && data.hostSessionId.size() <= 64 && data.hostSessionId.matches('^[a-zA-Z0-9_-]+$')

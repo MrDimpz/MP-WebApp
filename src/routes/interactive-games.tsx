@@ -124,7 +124,7 @@ export function InteractiveGamesPage() {
                       Streamer {activeStreamer.displayHandle}
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                      Unlimited rounds unlocked across all 8 interactive games. Scores for linked
+                      Unlimited rounds unlocked across all 9 interactive games. Scores for linked
                       TikTok @ accounts sync automatically to their website profile.
                     </p>
                   </>
@@ -137,7 +137,7 @@ export function InteractiveGamesPage() {
                       Play up to {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} rounds per game each day — or unlock unlimited with a Stream Key
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-1 leading-relaxed">
-                      Anyone can jump straight into all 8 interactive games with{' '}
+                      Anyone can jump straight into all 9 interactive games with{' '}
                       <strong className="text-white">
                         {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} free rounds per game per day
                       </strong>{' '}
@@ -626,6 +626,50 @@ export function InteractiveGamesPage() {
                 gameSlug="inkstream"
                 streamerHandle={activeStreamer?.username}
                 recommendedSize="640 × 720 or 1080 × 1920"
+                label="LIVE Overlay"
+              />
+            </div>
+          </article>
+
+          <article className="game-card">
+            <div className="card-top">
+              <span className="category-label">
+                <span className="status-dot" /> NOW PLAYING
+              </span>
+              <div className="flex items-center gap-2">
+                {renderLimitBadge('mpwh')}
+                <span className="card-number">09 /</span>
+              </div>
+            </div>
+            <Link
+              to="/interactive-games/mpwh"
+              className="game-art game-art-thumb"
+              aria-label="Play Word Hunt Extreme interactive alphabetical ladder game"
+            >
+              <img
+                className="game-thumbnail"
+                src="/mpwh-website-thumbnail.svg"
+                alt="Preview of Word Hunt Extreme alphabetical A to Z word ladder with auto-filled 3D gold tiles and 4-second TikTok LIVE lag window"
+              />
+            </Link>
+            <h3>Word Hunt Extreme</h3>
+            <p>
+              Pinch hidden 4–8 letter words alphabetically between A and Z in Classic, Dual Ladder,
+              or Quad Hunt modes. Features auto-filled shared prefix tiles, bisect &amp; letter clue
+              hints, 7 language dictionaries, and a 4-second TikTok LIVE stream-lag winner buffer.
+            </p>
+            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
+              <Link className="game-link" to="/interactive-games/mpwh">
+                Play Word Hunt Extreme{' '}
+                <span>
+                  <ArrowUpRight size={22} />
+                </span>
+              </Link>
+              <LiveOverlayButton
+                gameTitle="Word Hunt Extreme"
+                gameSlug="mpwh"
+                streamerHandle={activeStreamer?.username}
+                recommendedSize="620 × 760 or 1080 × 1920"
                 label="LIVE Overlay"
               />
             </div>

@@ -56,7 +56,8 @@ export type InteractiveGameId =
   | "destackint"
   | "crowdle"
   | "mpsearchint"
-  | "inkstream";
+  | "inkstream"
+  | "mpwh";
 
 export enum OperationType {
   CREATE = "create",
@@ -191,6 +192,7 @@ export const INTERACTIVE_GAME_LABELS: Record<InteractiveGameId, string> = {
   crowdle: "Crowdle",
   mpsearchint: "MP Search Interactive",
   inkstream: "InkStream",
+  mpwh: "Word Hunt Extreme",
 };
 
 const LOCAL_LEADERBOARD_STORAGE_KEY = "mp_unified_solo_leaderboards_v1";
@@ -1511,6 +1513,7 @@ export function creditInteractiveScoreByTikTokHandle(params: {
       crowdle: 0,
       mpsearchint: 0,
       inkstream: 0,
+      mpwh: 0,
     },
     recentEvents: [],
     updatedAt: Date.now(),
