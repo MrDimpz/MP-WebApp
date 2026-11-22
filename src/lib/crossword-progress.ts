@@ -5,8 +5,13 @@
 
 import type { ClueDifficulty, GridSizeOption, LeaderboardEntry } from '@/data/crossword-types';
 import {
+	encodeCrosswordGrid,
+	scheduleCloudProgressSync,
+} from '@/lib/cloud-progress';
+import {
 	auth,
 	getCleanDisplayName,
+	getCurrentUserSessionPrefix,
 	saveUnifiedLeaderboardScore,
 	type UnifiedPlayerUser,
 	type User,
@@ -14,9 +19,19 @@ import {
 
 export type GameDifficulty = 'standard' | 'easy' | 'medium' | 'hard' | 'cryptic';
 
-const PROGRESS_KEY = 'tmp_crossword_progress_v1';
-const LEADERBOARD_KEY = 'tmp_crossword_leaderboard_v1';
-const SAVED_GRIDS_KEY = 'tmp_crossword_grids_v1';
+const LEGACY_PROGRESS_KEY = 'tmp_crossword_progress_v1';
+const LEGACY_LEADERBOARD_KEY = 'tmp_crossword_leaderboard_v1';
+const LEGACY_SAVED_GRIDS_KEY = 'tmp_crossword_grids_v1';
+
+function getProgressKey(): string {
+	return `${LEGACY_PROGRESS_KEY}_${getCurrentUserSessionPrefix()}`;
+}
+function getLeaderboardKey(): string {
+	return `${LEGACY_LEADERBOARD_KEY}_${getCurrentUserSessionPrefix()}`;
+}
+function getSavedGridsKey(): string {
+	return `${LEGACY_SAVED_GRIDS_KEY}_${getCurrentUserSessionPrefix()}`;
+}
 
 export interface PuzzleProgress {
 	solved: boolean;
@@ -82,8 +97,42 @@ function safeWrite(key: string, value: unknown): void {
 	}
 }
 
+function safeReadWithFallback<T>(
+	key: string,
+	legacyKey: string,
+	fallback: T,
+): T {
+	const scoped = safeRead<T | null>(key, null);
+	if (scoped !== null) return scoped;
+	return safeRead<T>(legacyKey, fallback);
+}
+
+function pushCrosswordCloudBucket(): void {
+	const rawGrids = safeReadWithFallback<Record<string, string[][]>>(
+		getSavedGridsKey(),
+		LEGACY_SAVED_GRIDS_KEY,
+		{},
+	);
+	const encodedGrids: Record<string, Record<string, string[]>> = {};
+	const entries = Object.entries(rawGrids).slice(-30);
+	for (const [pid, grid] of entries) {
+		if (Array.isArray(grid) && grid.some((row) => Array.isArray(row) && row.some(Boolean))) {
+			encodedGrids[pid] = encodeCrosswordGrid(grid);
+		}
+	}
+	scheduleCloudProgressSync('crossword', {
+		progress: loadProgress(),
+		grids: encodedGrids,
+		leaderboard: loadLeaderboard().slice(0, 50),
+	});
+}
+
 export function loadProgress(): ProgressMap {
-	return safeRead<ProgressMap>(PROGRESS_KEY, {});
+	return safeReadWithFallback<ProgressMap>(
+		getProgressKey(),
+		LEGACY_PROGRESS_KEY,
+		{},
+	);
 }
 
 export function loadProgressFor(puzzleId: string): PuzzleProgress | undefined {
@@ -93,28 +142,47 @@ export function loadProgressFor(puzzleId: string): PuzzleProgress | undefined {
 export function saveProgress(puzzleId: string, progress: PuzzleProgress): void {
 	const all = loadProgress();
 	all[puzzleId] = progress;
-	safeWrite(PROGRESS_KEY, all);
+	safeWrite(getProgressKey(), all);
+	pushCrosswordCloudBucket();
 }
 
 export function loadSavedGrid(puzzleId: string): string[][] | undefined {
-	const all = safeRead<Record<string, string[][]>>(SAVED_GRIDS_KEY, {});
+	const all = safeReadWithFallback<Record<string, string[][]>>(
+		getSavedGridsKey(),
+		LEGACY_SAVED_GRIDS_KEY,
+		{},
+	);
 	return all[puzzleId];
 }
 
 export function saveGrid(puzzleId: string, letters: string[][]): void {
-	const all = safeRead<Record<string, string[][]>>(SAVED_GRIDS_KEY, {});
+	const all = safeReadWithFallback<Record<string, string[][]>>(
+		getSavedGridsKey(),
+		LEGACY_SAVED_GRIDS_KEY,
+		{},
+	);
 	all[puzzleId] = letters;
-	safeWrite(SAVED_GRIDS_KEY, all);
+	safeWrite(getSavedGridsKey(), all);
+	pushCrosswordCloudBucket();
 }
 
 export function clearSavedGrid(puzzleId: string): void {
-	const all = safeRead<Record<string, string[][]>>(SAVED_GRIDS_KEY, {});
+	const all = safeReadWithFallback<Record<string, string[][]>>(
+		getSavedGridsKey(),
+		LEGACY_SAVED_GRIDS_KEY,
+		{},
+	);
 	delete all[puzzleId];
-	safeWrite(SAVED_GRIDS_KEY, all);
+	safeWrite(getSavedGridsKey(), all);
+	pushCrosswordCloudBucket();
 }
 
 export function loadLeaderboard(): LeaderboardEntry[] {
-	return safeRead<LeaderboardEntry[]>(LEADERBOARD_KEY, []);
+	return safeReadWithFallback<LeaderboardEntry[]>(
+		getLeaderboardKey(),
+		LEGACY_LEADERBOARD_KEY,
+		[],
+	);
 }
 
 export function formatClock(totalSeconds: number): string {
@@ -159,7 +227,8 @@ export function addLeaderboardEntry(args: AddLeaderboardArgs): LeaderboardEntry 
 	board.push(entry);
 	board.sort((a, b) => b.score - a.score);
 	const trimmed = board.slice(0, 50);
-	safeWrite(LEADERBOARD_KEY, trimmed);
+	safeWrite(getLeaderboardKey(), trimmed);
+	pushCrosswordCloudBucket();
 
 	if (currentUser && args.score > 0) {
 		saveUnifiedLeaderboardScore({

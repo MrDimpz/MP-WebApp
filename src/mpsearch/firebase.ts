@@ -1,3 +1,4 @@
+import { scheduleCloudProgressSync } from '@/lib/cloud-progress';
 import { getCurrentUserSessionPrefix } from '@/lib/unified-game-auth';
 
 export interface LocalPuzzleProgress {
@@ -41,6 +42,9 @@ export function writeStoredProgressMap(map: Record<string, LocalPuzzleProgress>)
     const serialized = JSON.stringify(map);
     window.localStorage.setItem(getProgressStorageKey(), serialized);
     window.localStorage.setItem(LEGACY_PROGRESS_KEY, serialized);
+    if (Object.keys(map).length > 0) {
+      scheduleCloudProgressSync('mpsearch', { progress: map });
+    }
   } catch {
     // Ignore storage quota errors
   }

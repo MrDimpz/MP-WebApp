@@ -12,6 +12,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
     function incoming() {
       return request.resource.data;
     }
@@ -133,6 +137,57 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidUserProfileShape(data) {
+      let keys = [
+        'userId',
+        'displayName',
+        'linkedTikTokHandle',
+        'preferredLanguage',
+        'darkMode',
+        'createdAt',
+        'updatedAt'
+      ];
+      return data.keys().hasAll(keys)
+        && data.keys().hasOnly(keys)
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_-]+$')
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60
+        && data.linkedTikTokHandle is string && data.linkedTikTokHandle.size() <= 40 && data.linkedTikTokHandle.matches('^(@[a-zA-Z0-9_.-]+)?$')
+        && data.preferredLanguage is string && data.preferredLanguage in ['en', 'es', 'fr', 'de', 'it', 'pt', 'tl']
+        && data.darkMode is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserProgressBucketShape(data) {
+      let keys = [
+        'userId',
+        'bucketId',
+        'payload',
+        'createdAt',
+        'updatedAt'
+      ];
+      return data.keys().hasAll(keys)
+        && data.keys().hasOnly(keys)
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_-]+$')
+        && data.bucketId is string && data.bucketId in [
+          'daily_streaks',
+          'interactive_scores',
+          'crossword',
+          'rebus',
+          'squared',
+          'thematix',
+          'destack',
+          'unolingo',
+          'mpsearch',
+          'mpdifference',
+          'mpcolossal',
+          'tekscodle'
+        ]
+        && data.payload is map && data.payload.keys().size() <= 200
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
     // Unified Solo Games Leaderboard (publicly readable by visitors; contains no PII)
     match /leaderboard/{entryId} {
       allow get: if true;
@@ -154,7 +209,15 @@ service cloud.firestore {
         && incoming().puzzleId == existing().puzzleId
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
-        && incoming().score >= existing().score;
+        && incoming().score >= existing().score
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName',
+          'puzzleTitle',
+          'score',
+          'metricLabel',
+          'subMetricLabel',
+          'updatedAt'
+        ]);
 
       allow delete: if isSignedIn()
         && (existing().userId == request.auth.uid || isAdmin());
@@ -182,7 +245,15 @@ service cloud.firestore {
         && incoming().totalWords == existing().totalWords
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
-        && incoming().score >= existing().score;
+        && incoming().score >= existing().score
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName',
+          'score',
+          'wordsFound',
+          'bonusWordsCount',
+          'foundFeatured',
+          'updatedAt'
+        ]);
 
       allow delete: if isSignedIn()
         && (existing().userId == request.auth.uid || isAdmin());
@@ -193,20 +264,112 @@ service cloud.firestore {
       allow get: if true;
       allow list: if true;
 
-      allow create: if isValidDocId(userId)
+      allow create: if isSignedIn()
+        && isValidDocId(userId)
+        && isOwner(userId)
         && isValidRegisteredUserShape(incoming())
-        && incoming().userId == userId
+        && incoming().userId == request.auth.uid
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
 
-      allow update: if isValidDocId(userId)
+      allow update: if isSignedIn()
+        && isValidDocId(userId)
+        && isOwner(userId)
         && isValidRegisteredUserShape(incoming())
         && incoming().userId == existing().userId
-        && incoming().userId == userId
-        && incoming().updatedAt == request.time;
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName',
+          'tiktokConnected',
+          'linkedTikTokHandle',
+          'authProvider',
+          'updatedAt'
+        ]);
 
       allow delete: if isSignedIn()
         && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // Owner-Only Authenticated User Profile & Cross-Session Preferences
+    match /users/{userId} {
+      allow get: if isValidDocId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+        && isValidDocId(userId)
+        && isOwner(userId)
+        && isValidUserProfileShape(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isSignedIn()
+        && isValidDocId(userId)
+        && isOwner(userId)
+        && isValidUserProfileShape(incoming())
+        && incoming().userId == existing().userId
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName',
+          'linkedTikTokHandle',
+          'preferredLanguage',
+          'darkMode',
+          'updatedAt'
+        ]);
+
+      allow delete: if isValidDocId(userId) && (isOwner(userId) || isAdmin());
+
+      // Master-Gated Cross-Session Game Progress Subcollection
+      match /progress/{bucketId} {
+        allow get: if isValidDocId(userId)
+          && isValidDocId(bucketId)
+          && (isOwner(userId) || isAdmin())
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && get(/databases/$(database)/documents/users/$(userId)).data.userId == userId;
+
+        allow list: if isSignedIn()
+          && isOwner(userId)
+          && existing().userId == request.auth.uid;
+
+        allow create: if isSignedIn()
+          && isValidDocId(userId)
+          && isValidDocId(bucketId)
+          && isOwner(userId)
+          && isValidUserProgressBucketShape(incoming())
+          && incoming().userId == request.auth.uid
+          && incoming().bucketId == bucketId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && get(/databases/$(database)/documents/users/$(userId)).data.userId == request.auth.uid;
+
+        allow update: if isSignedIn()
+          && isValidDocId(userId)
+          && isValidDocId(bucketId)
+          && isOwner(userId)
+          && isValidUserProgressBucketShape(incoming())
+          && existing().userId == request.auth.uid
+          && incoming().userId == existing().userId
+          && incoming().bucketId == existing().bucketId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'payload',
+            'updatedAt'
+          ])
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && get(/databases/$(database)/documents/users/$(userId)).data.userId == request.auth.uid;
+
+        allow delete: if isValidDocId(userId)
+          && isValidDocId(bucketId)
+          && (isOwner(userId) || isAdmin())
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && get(/databases/$(database)/documents/users/$(userId)).data.userId == userId;
+      }
     }
 
     // Real-time TikTok LIVE Studio Browser Source Overlay Sync (no PII; exact-key get only, list disabled)

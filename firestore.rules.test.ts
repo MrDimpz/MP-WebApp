@@ -155,3 +155,72 @@ export const OVERLAY_SESSION_RULE_TESTS: OverlaySessionTestVector[] = [
   },
 ];
 
+export interface UserProgressTestVector {
+  description: string;
+  operation: 'get' | 'list' | 'create' | 'update' | 'delete';
+  authUid: string | null;
+  targetUserId: string;
+  bucketId?: string;
+  payload?: Record<string, unknown>;
+  expectedAllowed: boolean;
+}
+
+export const USER_PROGRESS_RULE_TESTS: UserProgressTestVector[] = [
+  {
+    description: 'Unauthenticated visitor cannot read another user profile',
+    operation: 'get',
+    authUid: null,
+    targetUserId: 'user123',
+    expectedAllowed: false,
+  },
+  {
+    description: 'Signed-in user cannot read another user progress bucket',
+    operation: 'get',
+    authUid: 'user999',
+    targetUserId: 'user123',
+    bucketId: 'daily_streaks',
+    expectedAllowed: false,
+  },
+  {
+    description: 'Signed-in owner can save valid daily_streaks progress bucket',
+    operation: 'create',
+    authUid: 'user123',
+    targetUserId: 'user123',
+    bucketId: 'daily_streaks',
+    payload: {
+      userId: 'user123',
+      bucketId: 'daily_streaks',
+      payload: { rebus: { solvedDates: ['2026-11-22'] } },
+    },
+    expectedAllowed: true,
+  },
+  {
+    description: 'Rejects shadow ghost field (isAdmin) in progress bucket',
+    operation: 'create',
+    authUid: 'user123',
+    targetUserId: 'user123',
+    bucketId: 'daily_streaks',
+    payload: {
+      userId: 'user123',
+      bucketId: 'daily_streaks',
+      payload: { rebus: { solvedDates: ['2026-11-22'] } },
+      isAdmin: true,
+    },
+    expectedAllowed: false,
+  },
+  {
+    description: 'Rejects unknown bucketId in progress subcollection',
+    operation: 'create',
+    authUid: 'user123',
+    targetUserId: 'user123',
+    bucketId: 'arbitrary_bucket',
+    payload: {
+      userId: 'user123',
+      bucketId: 'arbitrary_bucket',
+      payload: { foo: 'bar' },
+    },
+    expectedAllowed: false,
+  },
+];
+
+

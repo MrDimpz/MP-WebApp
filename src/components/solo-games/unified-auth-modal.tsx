@@ -2,18 +2,25 @@ import React, { useEffect, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
+  Cloud,
   Crown,
   KeyRound,
   Lock,
   LogIn,
   LogOut,
   Mail,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   Trophy,
   User as UserIcon,
   X,
 } from 'lucide-react';
+import { auth } from '@/firebase';
+import {
+  hydrateAllUserProgressFromCloud,
+  useCloudSyncStatus,
+} from '@/lib/cloud-progress';
 import {
   INTERACTIVE_GAME_LABELS,
   MAX_DISPLAY_NAME_LENGTH,
@@ -28,9 +35,9 @@ import {
   registerWithEmailPassword,
   resetAccountPassword,
   setLinkedTikTokHandle,
-  signInWithGoogleEmailFallback,
   signInWithGooglePopup,
   subscribeToAllLeaderboards,
+  updateMemberDisplayName,
   useInteractiveProfileScores,
   useUnifiedAuth,
   type InteractiveGameId,
@@ -340,6 +347,7 @@ export function UnifiedAuthModal({
 }: UnifiedAuthModalProps) {
   const { user } = useUnifiedAuth();
   const interactiveScores = useInteractiveProfileScores(user?.uid);
+  const cloudSync = useCloudSyncStatus();
 
   const resolvedGameId: SoloGameId = initialGameTab || initialGameId || 'crossword';
   const [modalTab, setModalTab] = useState<'account' | 'leaderboards'>(initialTab);
@@ -350,11 +358,10 @@ export function UnifiedAuthModal({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [editDisplayName, setEditDisplayName] = useState('');
+  const [savingName, setSavingName] = useState(false);
   const [registerTikTok, setRegisterTikTok] = useState('');
   const [profileTikTokInput, setProfileTikTokInput] = useState('');
-  const [showGoogleEmailSheet, setShowGoogleEmailSheet] = useState(false);
-  const [googleEmailInput, setGoogleEmailInput] = useState('');
-  const [googleNameInput, setGoogleNameInput] = useState('');
   const [resetOobCode, setResetOobCode] = useState<string | null>(null);
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -367,11 +374,11 @@ export function UnifiedAuthModal({
 
   useEffect(() => {
     setProfileTikTokInput(user?.linkedTikTokHandle || '');
-  }, [user?.linkedTikTokHandle, user?.uid]);
+    setEditDisplayName(user ? getCleanDisplayName(user) : '');
+  }, [user?.linkedTikTokHandle, user?.displayName, user?.uid]);
 
   useEffect(() => {
     if (!isOpen) return;
-    setShowGoogleEmailSheet(false);
     setErrorMsg(null);
     setSuccessMsg(null);
     checkResetLinkParams().then((info) => {
@@ -400,44 +407,44 @@ export function UnifiedAuthModal({
     setSubmitting(true);
     try {
       await signInWithGooglePopup(email);
-      setShowGoogleEmailSheet(false);
+      setSuccessMsg('Signed in with Google! Your saved progress is synced across sessions.');
     } catch (err: unknown) {
-      const code = (err as { code?: string })?.code || '';
-      if (
-        code === 'auth/inline-google-prompt' ||
-        code === 'auth/unauthorized-domain' ||
-        code === 'auth/operation-not-supported-in-this-environment'
-      ) {
-        setGoogleEmailInput(email);
-        setGoogleNameInput(displayName);
-        setShowGoogleEmailSheet(true);
-      } else if (code === 'auth/popup-closed-by-user') {
-        setErrorMsg('Sign-in popup was closed before completing.');
-      } else {
-        setGoogleEmailInput(email);
-        setGoogleNameInput(displayName);
-        setShowGoogleEmailSheet(true);
-      }
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : 'Google sign-in failed. Please try again or use Email & Password.'
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleGoogleEmailSheetSubmit = async (e: React.FormEvent) => {
+  const handleSaveDisplayName = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+    const trimmed = editDisplayName.trim();
+    if (!trimmed) {
+      setErrorMsg('Please enter a display name.');
+      return;
+    }
     setErrorMsg(null);
     setSuccessMsg(null);
-    setSubmitting(true);
+    setSavingName(true);
     try {
-      await signInWithGoogleEmailFallback(googleEmailInput, googleNameInput);
-      setShowGoogleEmailSheet(false);
+      const updated = await updateMemberDisplayName(trimmed);
+      setEditDisplayName(updated);
+      setSuccessMsg(`Display name updated to "${updated}".`);
     } catch (err: unknown) {
-      setErrorMsg(
-        err instanceof Error ? err.message : 'Please enter a valid Google email address.'
-      );
+      setErrorMsg(err instanceof Error ? err.message : 'Could not update display name.');
     } finally {
-      setSubmitting(false);
+      setSavingName(false);
     }
+  };
+
+  const handleManualSync = async () => {
+    if (!auth?.currentUser) return;
+    setErrorMsg(null);
+    await hydrateAllUserProgressFromCloud(auth.currentUser);
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -665,7 +672,65 @@ export function UnifiedAuthModal({
                   <span>Sign Out</span>
                 </button>
               </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/10">
+                <div className="flex items-center gap-2 text-xs">
+                  <Cloud
+                    className={`w-4 h-4 shrink-0 ${
+                      cloudSync.status === 'error'
+                        ? 'text-rose-400'
+                        : cloudSync.status === 'syncing'
+                          ? 'text-amber-300 animate-pulse'
+                          : 'text-emerald-400'
+                    }`}
+                  />
+                  <span className="text-[#D6CBE2]">
+                    {cloudSync.status === 'syncing'
+                      ? 'Syncing saved progress with cloud...'
+                      : cloudSync.status === 'error'
+                        ? cloudSync.lastError || 'Cloud sync warning — retrying on next save'
+                        : cloudSync.lastSyncedAt
+                          ? `Progress synced across sessions (${new Date(cloudSync.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
+                          : 'Multi-session cloud save active'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleManualSync}
+                  disabled={cloudSync.status === 'syncing'}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-semibold text-[#F6C915] cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw
+                    className={`w-3 h-3 ${cloudSync.status === 'syncing' ? 'animate-spin' : ''}`}
+                  />
+                  <span>Sync Progress Now</span>
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveDisplayName} className="flex flex-wrap gap-2 pt-2 border-t border-white/10">
+                <input
+                  type="text"
+                  maxLength={MAX_DISPLAY_NAME_LENGTH}
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  placeholder="Player display name"
+                  className="flex-1 min-w-[180px] px-3 py-1.5 rounded-xl bg-black/45 border border-white/15 text-xs text-white placeholder-[#8A759E] focus:outline-none focus:border-[#F6C915]"
+                />
+                <button
+                  type="submit"
+                  disabled={savingName}
+                  className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white cursor-pointer disabled:opacity-50"
+                >
+                  {savingName ? 'Saving...' : 'Save Name'}
+                </button>
+              </form>
             </div>
+
+            {errorMsg && (
+              <div className="p-2.5 rounded-xl bg-rose-950/70 border border-rose-400/40 text-xs text-rose-200 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
 
             {/* Link TikTok @ Handle Section */}
             <div className="p-4 rounded-xl bg-black/35 border border-[#F6C915]/35 space-y-3">
@@ -734,70 +799,15 @@ export function UnifiedAuthModal({
           </div>
         ) : (
           <div className="space-y-4">
-            {!showGoogleEmailSheet ? (
-              <button
-                type="button"
-                onClick={handleGoogleSignIn}
-                disabled={submitting}
-                className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-white text-[#1D0830] font-extrabold text-sm shadow-md hover:bg-gray-100 transition-all cursor-pointer disabled:opacity-60"
-              >
-                <LogIn className="w-4 h-4 text-[#4B1276]" />
-                <span>Continue with Google</span>
-              </button>
-            ) : (
-              <form
-                onSubmit={handleGoogleEmailSheetSubmit}
-                className="p-4 rounded-xl bg-white/10 border-2 border-[#F6C915] space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-[#F6C915] uppercase tracking-wider">
-                    Continue with Google Account
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowGoogleEmailSheet(false)}
-                    className="text-xs text-[#D6CBE2] hover:text-white cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div>
-                    <label className="block text-[11px] text-[#D6CBE2] mb-1">
-                      Google Email Address
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={googleEmailInput}
-                      onChange={(e) => setGoogleEmailInput(e.target.value)}
-                      placeholder="you@gmail.com"
-                      className="w-full px-3 py-2 rounded-lg bg-black/50 border border-white/20 text-xs text-white placeholder-[#8A759E] focus:outline-none focus:border-[#F6C915]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-[#D6CBE2] mb-1">
-                      Leaderboard Name (optional)
-                    </label>
-                    <input
-                      type="text"
-                      maxLength={MAX_DISPLAY_NAME_LENGTH}
-                      value={googleNameInput}
-                      onChange={(e) => setGoogleNameInput(e.target.value)}
-                      placeholder="Puzzle Seeker"
-                      className="w-full px-3 py-2 rounded-lg bg-black/50 border border-white/20 text-xs text-white placeholder-[#8A759E] focus:outline-none focus:border-[#F6C915]"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-2.5 rounded-lg bg-white text-[#1D0830] font-extrabold text-xs shadow-sm hover:bg-gray-100 cursor-pointer"
-                >
-                  {submitting ? 'Signing in...' : 'Sign In with Google'}
-                </button>
-              </form>
-            )}
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={submitting}
+              className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-white text-[#1D0830] font-extrabold text-sm shadow-md hover:bg-gray-100 transition-all cursor-pointer disabled:opacity-60"
+            >
+              <LogIn className="w-4 h-4 text-[#4B1276]" />
+              <span>Continue with Google</span>
+            </button>
 
             <div className="flex items-center gap-3 text-xs text-[#9E8BB5]">
               <div className="flex-1 h-px bg-white/10" />

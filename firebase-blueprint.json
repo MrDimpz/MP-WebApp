@@ -213,7 +213,7 @@
         "gameId": {
           "type": "string",
           "description": "Interactive game identifier.",
-          "enum": ["crowdle", "destackint", "mpsearchint", "squaredint", "wikicon", "wikirec", "lexi"]
+          "enum": ["crowdle", "destackint", "mpsearchint", "squaredint", "wikicon", "wikirec", "lexi", "inkstream", "mpwh"]
         },
         "channel": {
           "type": "string",
@@ -269,6 +269,114 @@
         "state",
         "updatedAt"
       ]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Owner-only authenticated player profile and site preferences persisted across sessions.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the account owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Player display name.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "linkedTikTokHandle": {
+          "type": "string",
+          "description": "Optional linked TikTok @ handle.",
+          "minLength": 0,
+          "maxLength": 40,
+          "pattern": "^(@[a-zA-Z0-9_.-]+)?$"
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "description": "Selected dictionary/game language code.",
+          "enum": ["en", "es", "fr", "de", "it", "pt", "tl"]
+        },
+        "darkMode": {
+          "type": "boolean",
+          "description": "User dark mode preference."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was last updated."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "linkedTikTokHandle",
+        "preferredLanguage",
+        "darkMode",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserGameProgressBucket": {
+      "title": "UserGameProgressBucket",
+      "description": "Owner-only per-game progress, streaks, stats, and puzzle saves persisted across sessions.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the progress owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "bucketId": {
+          "type": "string",
+          "description": "Progress domain identifier.",
+          "enum": [
+            "daily_streaks",
+            "interactive_scores",
+            "crossword",
+            "rebus",
+            "squared",
+            "thematix",
+            "destack",
+            "unolingo",
+            "mpsearch",
+            "mpdifference",
+            "mpcolossal",
+            "tekscodle"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "description": "Native Firestore Map containing sanitized saved progress for this game bucket."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when this progress bucket was initialized."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when this progress bucket was last saved."
+        }
+      },
+      "required": [
+        "userId",
+        "bucketId",
+        "payload",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "firestore": {
@@ -295,6 +403,18 @@
         "$ref": "#/entities/OverlaySyncSession"
       },
       "description": "Live gameplay sync snapshots for TikTok LIVE Studio Browser Source overlays across origins."
+    },
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Private owner-only Firebase Authenticated player profile and cross-session preferences."
+    },
+    "/users/{userId}/progress/{bucketId}": {
+      "schema": {
+        "$ref": "#/entities/UserGameProgressBucket"
+      },
+      "description": "Private owner-only game progress buckets saved across sessions and devices."
     }
   }
 }

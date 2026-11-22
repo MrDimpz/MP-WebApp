@@ -9,6 +9,7 @@ import {
   getCurrentUserSessionPrefix,
   recordRegisteredUser,
 } from '../lib/unified-game-auth';
+import { CLOUD_HYDRATED_EVENT, scheduleCloudProgressSync } from '@/lib/cloud-progress';
 import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
@@ -184,7 +185,7 @@ export default function App() {
     }
   }, [isTodaySolved, todayDateStr]);
 
-  // Load saved progress whenever basePuzzle changes
+  // Load saved progress whenever basePuzzle changes or cloud progress hydrates
   useEffect(() => {
     setRotationSteps(0);
     setActivePath([]);
@@ -193,31 +194,46 @@ export default function App() {
     setInspectedWord(null);
     setSelectedWordDef(null);
 
-    const storageKey = `missing_piece_solo_save_${getCurrentUserSessionPrefix()}_${basePuzzle.id}`;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        const parsed: SavedPuzzleProgress = JSON.parse(raw);
-        setFoundWords(new Set(parsed.foundWords || []));
-        setBonusWords(parsed.bonusWords || []);
-        setScore(parsed.score || 0);
-        setRevealedPrefixes(new Map(parsed.revealedPrefixes || []));
-        return;
+    const loadBoard = (resetIfMissing: boolean) => {
+      const storageKey = `missing_piece_solo_save_${getCurrentUserSessionPrefix()}_${basePuzzle.id}`;
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (raw) {
+          const parsed: SavedPuzzleProgress = JSON.parse(raw);
+          setFoundWords(new Set(parsed.foundWords || []));
+          setBonusWords(parsed.bonusWords || []);
+          setScore(parsed.score || 0);
+          setRevealedPrefixes(new Map(parsed.revealedPrefixes || []));
+          return;
+        }
+      } catch {
+        // Ignore storage error
       }
-    } catch {
-      // Ignore storage error
-    }
+      if (resetIfMissing) {
+        setFoundWords(new Set());
+        setBonusWords([]);
+        setScore(0);
+        setRevealedPrefixes(new Map());
+      }
+    };
 
-    setFoundWords(new Set());
-    setBonusWords([]);
-    setScore(0);
-    setRevealedPrefixes(new Map());
+    loadBoard(true);
+
+    const onHydrated = () => loadBoard(false);
+    window.addEventListener(CLOUD_HYDRATED_EVENT, onHydrated);
+    window.addEventListener('unified-auth-updated', onHydrated);
+    return () => {
+      window.removeEventListener(CLOUD_HYDRATED_EVENT, onHydrated);
+      window.removeEventListener('unified-auth-updated', onHydrated);
+    };
   }, [basePuzzle]);
 
-  // Persist progress to localStorage AND sync high score to Firestore when signed in
+  // Persist progress to localStorage AND sync high score + cloud progress bucket to Firestore
   useEffect(() => {
     if (foundWords.size === 0 && bonusWords.length === 0 && revealedPrefixes.size === 0) return;
-    const storageKey = `missing_piece_solo_save_${getCurrentUserSessionPrefix()}_${basePuzzle.id}`;
+    const prefix = getCurrentUserSessionPrefix();
+    const scanPrefix = `missing_piece_solo_save_${prefix}_`;
+    const storageKey = `${scanPrefix}${basePuzzle.id}`;
     const payload: SavedPuzzleProgress = {
       foundWords: Array.from(foundWords),
       bonusWords,
@@ -226,6 +242,37 @@ export default function App() {
     };
     try {
       localStorage.setItem(storageKey, JSON.stringify(payload));
+      const cloudPuzzles: Record<string, Record<string, unknown>> = {};
+      const matchedKeys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(scanPrefix)) matchedKeys.push(k);
+      }
+      for (const k of matchedKeys.slice(-80)) {
+        const pid = k.slice(scanPrefix.length);
+        const raw = localStorage.getItem(k);
+        if (!pid || !raw) continue;
+        try {
+          const parsed = JSON.parse(raw) as SavedPuzzleProgress;
+          const prefMap: Record<string, number> = {};
+          if (Array.isArray(parsed.revealedPrefixes)) {
+            for (const pair of parsed.revealedPrefixes) {
+              if (Array.isArray(pair) && pair.length >= 2) {
+                prefMap[String(pair[0])] = Number(pair[1] || 0);
+              }
+            }
+          }
+          cloudPuzzles[pid] = {
+            foundWords: Array.isArray(parsed.foundWords) ? parsed.foundWords : [],
+            bonusWords: Array.isArray(parsed.bonusWords) ? parsed.bonusWords : [],
+            score: Number(parsed.score || 0),
+            revealedPrefixesMap: prefMap,
+          };
+        } catch {}
+      }
+      if (Object.keys(cloudPuzzles).length > 0) {
+        scheduleCloudProgressSync('squared', { puzzles: cloudPuzzles });
+      }
     } catch {
       // Ignore quota errors
     }

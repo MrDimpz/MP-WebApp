@@ -1,3 +1,4 @@
+import { scheduleCloudProgressSync } from '@/lib/cloud-progress';
 import { getLondonTodayDateStr } from '@/lib/daily-streak';
 import { getCurrentUserSessionPrefix } from '@/lib/unified-game-auth';
 import type { DifferenceCompletion } from '../types/game';
@@ -28,6 +29,9 @@ export function writeStoredCompletions(map: Record<string, DifferenceCompletion>
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(getCompletionsStorageKey(), JSON.stringify(map));
+    if (Object.keys(map).length > 0) {
+      scheduleCloudProgressSync('mpdifference', { completions: map });
+    }
   } catch {
     // Ignore storage quota errors
   }

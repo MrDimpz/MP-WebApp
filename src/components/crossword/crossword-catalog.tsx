@@ -3,6 +3,7 @@ import { CheckCircle2, Clock, Grid3x3, Play } from 'lucide-react';
 import { CURATED_PUZZLES } from '@/data/puzzles';
 import type { PuzzleDefinition } from '@/data/crossword-types';
 import { formatClock, loadProgress, type ProgressMap } from '@/lib/crossword-progress';
+import { CLOUD_HYDRATED_EVENT } from '@/lib/cloud-progress';
 
 interface CatalogProps {
 	onPlay: (puzzle: PuzzleDefinition) => void;
@@ -12,7 +13,16 @@ export function CrosswordCatalog({ onPlay }: CatalogProps) {
 	const [progress, setProgress] = useState<ProgressMap>({});
 
 	useEffect(() => {
-		setProgress(loadProgress());
+		const refresh = () => setProgress(loadProgress());
+		refresh();
+		window.addEventListener(CLOUD_HYDRATED_EVENT, refresh);
+		window.addEventListener('unified-auth-updated', refresh);
+		window.addEventListener('mp-site-auth-updated', refresh);
+		return () => {
+			window.removeEventListener(CLOUD_HYDRATED_EVENT, refresh);
+			window.removeEventListener('unified-auth-updated', refresh);
+			window.removeEventListener('mp-site-auth-updated', refresh);
+		};
 	}, []);
 
 	// Group puzzles by archive date, newest first.

@@ -10,6 +10,7 @@ import {
 	syncLocalCrosswordScoresToCloud,
 } from '@/lib/crossword-progress';
 import { useDailyStreak } from '@/lib/daily-streak';
+import { CLOUD_HYDRATED_EVENT } from '@/lib/cloud-progress';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import {
 	useUnifiedAuth,
@@ -33,10 +34,25 @@ export function CrosswordGame() {
 	const { user, authReady } = useUnifiedAuth();
 	const [authModalOpen, setAuthModalOpen] = useState(false);
 
-	// Refresh local leaderboard whenever we return to it.
+	const [syncTick, setSyncTick] = useState(0);
+
+	// Refresh local leaderboard whenever we return to it or cloud progress hydrates.
 	useEffect(() => {
 		if (view === 'leaderboard') setLeaderboard(loadLeaderboard());
-	}, [view]);
+	}, [view, syncTick]);
+
+	useEffect(() => {
+		const handleSync = () => {
+			setLeaderboard(loadLeaderboard());
+			setSyncTick((t) => t + 1);
+		};
+		window.addEventListener(CLOUD_HYDRATED_EVENT, handleSync);
+		window.addEventListener('unified-auth-updated', handleSync);
+		return () => {
+			window.removeEventListener(CLOUD_HYDRATED_EVENT, handleSync);
+			window.removeEventListener('unified-auth-updated', handleSync);
+		};
+	}, []);
 
 	// Automatically sync local crossword scores to cloud when user logs in
 	useEffect(() => {
@@ -59,7 +75,7 @@ export function CrosswordGame() {
 		return CURATED_PUZZLES.some(
 			(p) => (p.archiveDate === todayIso || p.editionDate === todayIso) && progressMap[p.id]?.solved,
 		);
-	}, [todayIso, view]);
+	}, [todayIso, view, syncTick]);
 
 	const dailyStreak = useDailyStreak('crossword', todayIso, solvedToday);
 

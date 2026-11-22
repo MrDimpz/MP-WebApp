@@ -14,6 +14,7 @@ import {
   recordLoss,
 } from './utils/storage';
 import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
+import { CLOUD_HYDRATED_EVENT } from '@/lib/cloud-progress';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { sound } from './utils/sound';
 import {
@@ -132,14 +133,21 @@ export default function App() {
   const { user: currentUser, authReady } = useUnifiedAuth();
   const [stats, setStats] = useState<GameStats>(() => loadStats());
 
+  const [cloudReloadTick, setCloudReloadTick] = useState(0);
+
   useEffect(() => {
-    const refreshStats = () => setStats(loadStats());
+    const refreshStats = () => {
+      setStats(loadStats());
+      setCloudReloadTick((t) => t + 1);
+    };
     refreshStats();
     window.addEventListener('storage', refreshStats);
     window.addEventListener('unified-auth-updated', refreshStats);
+    window.addEventListener(CLOUD_HYDRATED_EVENT, refreshStats);
     return () => {
       window.removeEventListener('storage', refreshStats);
       window.removeEventListener('unified-auth-updated', refreshStats);
+      window.removeEventListener(CLOUD_HYDRATED_EVENT, refreshStats);
     };
   }, [currentUser?.uid]);
 
@@ -252,7 +260,7 @@ export default function App() {
     }
     setActiveRowIndex(0);
     setActiveLetterIndex(0);
-  }, [puzzle.id]);
+  }, [puzzle.id, cloudReloadTick]);
 
   const persistProgress = useCallback(
     (

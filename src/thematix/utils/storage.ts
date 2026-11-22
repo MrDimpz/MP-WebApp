@@ -1,5 +1,6 @@
 import { GameStats } from '../types/game';
 import { getCurrentUserSessionPrefix } from '../../lib/unified-game-auth';
+import { scheduleCloudProgressSync } from '../../lib/cloud-progress';
 
 function getStatsKey(): string {
   return `thematik_game_stats_${getCurrentUserSessionPrefix()}`;
@@ -27,9 +28,34 @@ export function loadStats(): GameStats {
   }
 }
 
+function pushThematixCloudBucket(statsOverride?: GameStats) {
+  try {
+    const stats = statsOverride || loadStats();
+    const prefix = getProgressPrefix();
+    const puzzles: Record<string, unknown> = {};
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) keys.push(k);
+    }
+    for (const k of keys.slice(-100)) {
+      const pid = k.slice(prefix.length);
+      const raw = localStorage.getItem(k);
+      if (!pid || !raw) continue;
+      try {
+        puzzles[pid] = JSON.parse(raw);
+      } catch {}
+    }
+    scheduleCloudProgressSync('thematix', { stats, puzzles });
+  } catch {
+    // Ignore
+  }
+}
+
 export function saveStats(stats: GameStats) {
   try {
     localStorage.setItem(getStatsKey(), JSON.stringify(stats));
+    pushThematixCloudBucket(stats);
   } catch {
     // Ignore storage quota
   }
@@ -87,6 +113,7 @@ export function loadPuzzleProgress(puzzleId: string): SavedPuzzleProgress | null
 export function savePuzzleProgress(puzzleId: string, progress: SavedPuzzleProgress) {
   try {
     localStorage.setItem(getProgressPrefix() + puzzleId, JSON.stringify(progress));
+    pushThematixCloudBucket();
   } catch {
     // Ignore
   }

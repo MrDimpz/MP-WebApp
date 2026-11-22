@@ -1,4 +1,5 @@
 import { Difficulty } from '../data/items';
+import { scheduleCloudProgressSync } from '@/lib/cloud-progress';
 import { getCurrentUserSessionPrefix } from '@/lib/unified-game-auth';
 
 const DARK_MODE_STORAGE_KEY = 'tekscodle_dark_mode_v2';
@@ -96,6 +97,9 @@ export function writeTekscodleStats(stats: TekscodleLocalStats): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(getStatsKey(), JSON.stringify(stats));
+    if (stats.gamesPlayed > 0 || stats.dailyCompletedDates.length > 0) {
+      scheduleCloudProgressSync('tekscodle', { stats });
+    }
   } catch {
     // ignore
   }

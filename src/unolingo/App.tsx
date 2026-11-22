@@ -61,6 +61,7 @@ import {
   UnolingoStats,
   UnolingoVictoryData,
 } from './types';
+import { CLOUD_HYDRATED_EVENT } from '@/lib/cloud-progress';
 import './index.css';
 
 export default function App() {
@@ -125,7 +126,13 @@ export default function App() {
     };
     syncStores();
     window.addEventListener('unified-auth-updated', syncStores);
-    return () => window.removeEventListener('unified-auth-updated', syncStores);
+    window.addEventListener('mp-site-auth-updated', syncStores);
+    window.addEventListener(CLOUD_HYDRATED_EVENT, syncStores);
+    return () => {
+      window.removeEventListener('unified-auth-updated', syncStores);
+      window.removeEventListener('mp-site-auth-updated', syncStores);
+      window.removeEventListener(CLOUD_HYDRATED_EVENT, syncStores);
+    };
   }, [currentUser?.uid]);
 
   useEffect(() => {

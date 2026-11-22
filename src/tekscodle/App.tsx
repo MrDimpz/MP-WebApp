@@ -61,6 +61,7 @@ import {
   writeTekscodleStats,
   type TekscodleLocalStats,
 } from './utils/storage';
+import { CLOUD_HYDRATED_EVENT } from '@/lib/cloud-progress';
 
 type NavTab = 'play' | 'leaderboard' | 'rules';
 type PlayState = 'TITLE_MENU' | 'PLAYING' | 'ROUND_REVEAL' | 'GAME_OVER';
@@ -114,9 +115,11 @@ function TekscodleGameContent() {
     syncStats();
     window.addEventListener('unified-auth-updated', syncStats);
     window.addEventListener('mp-site-auth-updated', syncStats);
+    window.addEventListener(CLOUD_HYDRATED_EVENT, syncStats);
     return () => {
       window.removeEventListener('unified-auth-updated', syncStats);
       window.removeEventListener('mp-site-auth-updated', syncStats);
+      window.removeEventListener(CLOUD_HYDRATED_EVENT, syncStats);
     };
   }, [currentUser?.uid]);
 

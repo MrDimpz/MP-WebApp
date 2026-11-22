@@ -40,6 +40,7 @@ import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { UserProfileIcon } from '@/components/user-profile-icon';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import { triggerVictoryConfetti } from '@/lib/confetti';
+import { CLOUD_HYDRATED_EVENT } from '@/lib/cloud-progress';
 import { ArchiveModal } from './components/ArchiveModal';
 import { SceneCanvas } from './components/SceneCanvas';
 import {
@@ -121,9 +122,11 @@ export default function MPDifferenceApp() {
     syncStores();
     window.addEventListener('unified-auth-updated', syncStores);
     window.addEventListener('mp-site-auth-updated', syncStores);
+    window.addEventListener(CLOUD_HYDRATED_EVENT, syncStores);
     return () => {
       window.removeEventListener('unified-auth-updated', syncStores);
       window.removeEventListener('mp-site-auth-updated', syncStores);
+      window.removeEventListener(CLOUD_HYDRATED_EVENT, syncStores);
     };
   }, [currentUser?.uid]);
 

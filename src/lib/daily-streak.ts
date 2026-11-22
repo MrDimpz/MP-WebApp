@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { CLOUD_HYDRATED_EVENT, scheduleCloudProgressSync } from './cloud-progress';
 import { getCurrentUserSessionPrefix } from './unified-game-auth';
 
 export type DailyStreakGameId =
@@ -141,6 +142,7 @@ export function recordDailyPuzzleSolved(
   if (changed) {
     all[gameId] = nextEntry;
     writeAllStreaks(all);
+    scheduleCloudProgressSync('daily_streaks', all as Record<string, unknown>);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent(DAILY_STREAK_EVENT, { detail: { gameId } }));
     }
@@ -228,10 +230,14 @@ export function useDailyStreak(
     window.addEventListener(DAILY_STREAK_EVENT, refresh);
     window.addEventListener('storage', refresh);
     window.addEventListener('unified-auth-updated', refresh);
+    window.addEventListener('mp-site-auth-updated', refresh);
+    window.addEventListener(CLOUD_HYDRATED_EVENT, refresh);
     return () => {
       window.removeEventListener(DAILY_STREAK_EVENT, refresh);
       window.removeEventListener('storage', refresh);
       window.removeEventListener('unified-auth-updated', refresh);
+      window.removeEventListener('mp-site-auth-updated', refresh);
+      window.removeEventListener(CLOUD_HYDRATED_EVENT, refresh);
     };
   }, [gameId, todayDateStr, legacySolvedToday, legacyStreakCount]);
 

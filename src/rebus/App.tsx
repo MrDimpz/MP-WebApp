@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
 import { getCurrentUserSessionPrefix } from '../lib/unified-game-auth';
+import { CLOUD_HYDRATED_EVENT, scheduleCloudProgressSync } from '@/lib/cloud-progress';
 import {
   getLocalTodayDateStr,
   recordDailyPuzzleSolved,
@@ -283,10 +284,42 @@ export default function App() {
     }
   }, [introMuted]);
 
-  // Save progress to localStorage
+  // Reload progress when auth/cloud progress hydrates
+  useEffect(() => {
+    const reloadProgress = () => {
+      try {
+        const saved = localStorage.getItem(getRebusStorageKey());
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setProgress({ ...INITIAL_PROGRESS, ...parsed });
+        }
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener(CLOUD_HYDRATED_EVENT, reloadProgress);
+    window.addEventListener('unified-auth-updated', reloadProgress);
+    return () => {
+      window.removeEventListener(CLOUD_HYDRATED_EVENT, reloadProgress);
+      window.removeEventListener('unified-auth-updated', reloadProgress);
+    };
+  }, []);
+
+  // Save progress to localStorage and schedule cloud progress sync
   useEffect(() => {
     try {
       localStorage.setItem(getRebusStorageKey(), JSON.stringify(progress));
+      const hasProgress =
+        progress.score > 0 ||
+        Object.keys(progress.solvedIds).length > 0 ||
+        Object.keys(progress.revealedIds).length > 0 ||
+        Object.keys(progress.worksheetSolved).length > 0 ||
+        Object.keys(progress.hintsUsedByPuzzle).length > 0;
+      if (hasProgress) {
+        const bestSprintKey = `mp_rebus_best_sprint_${getCurrentUserSessionPrefix()}`;
+        const bestSprint = Number(localStorage.getItem(bestSprintKey) || '0') || 0;
+        scheduleCloudProgressSync('rebus', { progress, bestSprint });
+      }
     } catch {
       // ignore
     }
@@ -307,19 +340,22 @@ export default function App() {
     if (sprintFinished && !prevSprintFinishedRef.current && sprintScore > 0) {
       const bestSprintKey = `mp_rebus_best_sprint_${getCurrentUserSessionPrefix()}`;
       let prevBestSprint = 0;
+      let nextBestSprint = sprintScore;
       try {
         prevBestSprint = Number(localStorage.getItem(bestSprintKey) || '0') || 0;
+        nextBestSprint = Math.max(prevBestSprint, sprintScore);
         if (sprintScore > prevBestSprint) {
           localStorage.setItem(bestSprintKey, String(sprintScore));
         }
       } catch {}
+      scheduleCloudProgressSync('rebus', { progress, bestSprint: nextBestSprint });
       triggerVictoryConfetti({
         isDaily: false,
         isNewHighScore: prevBestSprint > 0 && sprintScore > prevBestSprint,
       });
     }
     prevSprintFinishedRef.current = sprintFinished;
-  }, [sprintFinished, sprintScore]);
+  }, [sprintFinished, sprintScore, progress]);
 
   // Filtered deck for play navigation
   const activeDeck = useMemo(() => {

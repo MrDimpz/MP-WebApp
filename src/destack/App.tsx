@@ -10,16 +10,32 @@ import { LeaderboardModal } from './components/LeaderboardModal';
 import { StatsModal } from './components/StatsModal';
 import { HowToPlayModal } from './components/HowToPlayModal';
 import {
+  getCurrentUserSessionPrefix,
   useUnifiedAuth,
   saveUnifiedLeaderboardScore,
 } from '@/lib/unified-game-auth';
+import { CLOUD_HYDRATED_EVENT, scheduleCloudProgressSync } from '@/lib/cloud-progress';
 import { recordDailyPuzzleSolved } from '@/lib/daily-streak';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { useDictionaryLanguage } from '@/lib/dictionary-languages';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import './index.css';
 
-const STATS_STORAGE_KEY = 'destack_game_stats_v1';
+const LEGACY_STATS_STORAGE_KEY = 'destack_game_stats_v1';
+function getStatsStorageKey(): string {
+  return `${LEGACY_STATS_STORAGE_KEY}_${getCurrentUserSessionPrefix()}`;
+}
+function loadScopedDestackStats(): GameStats {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved =
+        localStorage.getItem(getStatsStorageKey()) ||
+        localStorage.getItem(LEGACY_STATS_STORAGE_KEY);
+      if (saved) return { ...DEFAULT_STATS, ...JSON.parse(saved) };
+    } catch {}
+  }
+  return DEFAULT_STATS;
+}
 
 const DEFAULT_STATS: GameStats = {
   gamesPlayed: 0,
@@ -59,15 +75,7 @@ export default function App() {
     setShowAuthModal(true);
   };
 
-  const [stats, setStats] = useState<GameStats>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(STATS_STORAGE_KEY);
-        if (saved) return { ...DEFAULT_STATS, ...JSON.parse(saved) };
-      } catch {}
-    }
-    return DEFAULT_STATS;
-  });
+  const [stats, setStats] = useState<GameStats>(() => loadScopedDestackStats());
 
   const [victoryData, setVictoryData] = useState<{
     timeSeconds: number;
@@ -78,11 +86,29 @@ export default function App() {
     layoutName: string;
   } | null>(null);
 
-  // Save stats
+  // Reload stats on auth change or cloud progress hydration
+  useEffect(() => {
+    const refresh = () => setStats(loadScopedDestackStats());
+    window.addEventListener(CLOUD_HYDRATED_EVENT, refresh);
+    window.addEventListener('unified-auth-updated', refresh);
+    return () => {
+      window.removeEventListener(CLOUD_HYDRATED_EVENT, refresh);
+      window.removeEventListener('unified-auth-updated', refresh);
+    };
+  }, []);
+
+  // Save stats and push to cloud
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
+        localStorage.setItem(getStatsStorageKey(), JSON.stringify(stats));
+        if (
+          stats.gamesPlayed > 0 ||
+          Object.keys(stats.completedDays || {}).length > 0 ||
+          Object.keys(stats.completedHardDays || {}).length > 0
+        ) {
+          scheduleCloudProgressSync('destack', { stats });
+        }
       } catch {}
     }
   }, [stats]);

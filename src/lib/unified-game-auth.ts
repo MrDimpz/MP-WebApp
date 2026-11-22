@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import {
   GoogleAuthProvider,
+  confirmPasswordReset,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
   updateProfile,
+  verifyPasswordResetCode,
   type User,
 } from "firebase/auth";
 import {
@@ -24,6 +27,17 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { triggerNewHighScoreConfetti } from "./confetti";
+import {
+  CLOUD_HYDRATED_EVENT,
+  hydrateAllUserProgressFromCloud,
+  saveUserProfilePreferences,
+  scheduleCloudProgressSync,
+} from "./cloud-progress";
+import {
+  OperationType,
+  handleFirestoreError,
+  type FirestoreErrorInfo,
+} from "./firestore-errors";
 import {
   isFirestoreQuotaError,
   isFirestoreWritePaused,
@@ -59,61 +73,13 @@ export type InteractiveGameId =
   | "inkstream"
   | "mpwh";
 
-export enum OperationType {
-  CREATE = "create",
-  UPDATE = "update",
-  DELETE = "delete",
-  LIST = "list",
-  GET = "get",
-  WRITE = "write",
-}
+export { OperationType, handleFirestoreError };
+export type { FirestoreErrorInfo };
 
 export const ID_REGEX = /^[a-zA-Z0-9_-]+$/;
 export const MAX_ID_LENGTH = 128;
 export const MAX_PUZZLE_ID_LENGTH = 60;
 export const MAX_DISPLAY_NAME_LENGTH = 40;
-
-export interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
-  };
-}
-
-export function handleFirestoreError(
-  error: unknown,
-  operationType: OperationType,
-  path: string | null,
-): void {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo:
-        auth.currentUser?.providerData?.map((provider) => ({
-          providerId: provider.providerId,
-          email: provider.email,
-        })) || [],
-    },
-    operationType,
-    path,
-  };
-  console.warn("Firestore Error:", JSON.stringify(errInfo));
-}
 
 export interface UnifiedLeaderboardEntry {
   id: string;
@@ -657,6 +623,7 @@ export async function syncFirebaseRegisteredUser(
     .then(async () => {
       if (isFirestoreWritePaused()) return;
       const fbUser = auth.currentUser;
+      if (!fbUser || fbUser.uid !== uid) return;
       const safeName = sanitizePublicIdentity(record.displayName, "Player").slice(
         0,
         60,
@@ -670,13 +637,9 @@ export async function syncFirebaseRegisteredUser(
         record.authProvider === "email" ||
         record.authProvider === "site"
           ? record.authProvider
-          : fbUser &&
-              fbUser.uid === uid &&
-              fbUser.providerData?.some((p) => p?.providerId === "google.com")
+          : fbUser.providerData?.some((p) => p?.providerId === "google.com")
             ? "google"
-            : uid.startsWith("google_")
-              ? "google"
-              : "email";
+            : "email";
 
       const docPath = `registeredUsers/${uid}`;
       const docRef = doc(db, "registeredUsers", uid);
@@ -1233,25 +1196,21 @@ export async function fetchRegisteredUsersDirectory(): Promise<
         body: JSON.stringify({ users: sorted }),
       }).catch(() => {});
 
-      if (!isFirestoreWritePaused()) {
-        const firestoreByUid = new Map<string, Partial<RegisteredUserRecord>>();
-        for (const fbItem of firestoreUsers) {
-          if (fbItem?.uid) {
-            firestoreByUid.set(fbItem.uid, fbItem);
-          }
-        }
-        for (const item of localList) {
-          const existingRemote = firestoreByUid.get(item.uid);
+      if (!isFirestoreWritePaused() && auth.currentUser?.uid) {
+        const myUid = auth.currentUser.uid;
+        const myLocal = localList.find((u) => u.uid === myUid);
+        const existingRemote = firestoreUsers.find((fb) => fb?.uid === myUid);
+        if (myLocal) {
           const needsRemoteSync =
             !existingRemote ||
-            (item.linkedTikTokHandle &&
+            (myLocal.linkedTikTokHandle &&
               normalizeTikTokHandle(existingRemote.linkedTikTokHandle) !==
-                normalizeTikTokHandle(item.linkedTikTokHandle)) ||
-            (item.displayName &&
-              item.displayName !== "Player" &&
-              existingRemote.displayName !== item.displayName);
+                normalizeTikTokHandle(myLocal.linkedTikTokHandle)) ||
+            (myLocal.displayName &&
+              myLocal.displayName !== "Player" &&
+              existingRemote.displayName !== myLocal.displayName);
           if (needsRemoteSync) {
-            void syncFirebaseRegisteredUser(item, false);
+            void syncFirebaseRegisteredUser(myLocal, false);
           }
         }
       }
@@ -1380,6 +1339,13 @@ export function setLinkedTikTokHandle(
     linkedTikTokHandle: normalized,
     explicitTikTokUpdate: true,
   });
+
+  if (auth.currentUser?.uid === uid) {
+    void saveUserProfilePreferences({
+      displayName: sanitizePublicIdentity(displayName, "Player"),
+      linkedTikTokHandle: normalized,
+    });
+  }
 
   const session = getActiveSiteSession();
   if (session && session.uid === uid) {
@@ -1550,6 +1516,13 @@ export function creditInteractiveScoreByTikTokHandle(params: {
   all[linkedAccount.uid] = updated;
   saveAllInteractiveScoreSummaries(all);
 
+  if (auth.currentUser?.uid === linkedAccount.uid) {
+    scheduleCloudProgressSync(
+      "interactive_scores",
+      updated as unknown as Record<string, unknown>,
+    );
+  }
+
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("mp-interactive-score-updated"));
   }
@@ -1569,10 +1542,12 @@ export function useInteractiveProfileScores(uid: string | null | undefined) {
     sync();
     window.addEventListener("mp-interactive-score-updated", sync);
     window.addEventListener("mp-tiktok-link-updated", sync);
+    window.addEventListener(CLOUD_HYDRATED_EVENT, sync);
     window.addEventListener("storage", sync);
     return () => {
       window.removeEventListener("mp-interactive-score-updated", sync);
       window.removeEventListener("mp-tiktok-link-updated", sync);
+      window.removeEventListener(CLOUD_HYDRATED_EVENT, sync);
       window.removeEventListener("storage", sync);
     };
   }, [uid]);
@@ -1634,6 +1609,7 @@ function setActiveSiteSession(session: UnifiedPlayerUser | null) {
       );
     }
     window.dispatchEvent(new Event("mp-site-auth-updated"));
+    window.dispatchEvent(new Event("unified-auth-updated"));
   } catch {
     // Ignore storage errors
   }
@@ -1733,28 +1709,72 @@ function writeLocalLeaderboardEntry(
   }
 }
 
-export async function signInToUnifiedGames(): Promise<UnifiedPlayerUser | null> {
-  const provider = new GoogleAuthProvider();
-  const result = await signInWithPopup(auth, provider);
-  const unified = toUnifiedUserFromFirebase(result.user);
-  setActiveSiteSession(unified);
-  recordRegisteredUser({
-    uid: unified.uid,
-    displayName: unified.displayName,
-    linkedTikTokHandle: unified.linkedTikTokHandle,
-    authProvider: "google",
-  });
-  return unified;
+function mapFirebaseAuthError(err: unknown, context: "google" | "email" | "reset"): Error {
+  const code = (err as { code?: string })?.code || "";
+  if (code === "auth/popup-closed-by-user") {
+    const wrapped = new Error("Google sign-in popup was closed before completing.");
+    (wrapped as { code?: string }).code = code;
+    return wrapped;
+  }
+  if (code === "auth/cancelled-popup-request") {
+    const wrapped = new Error("Sign-in request was cancelled. Please try again.");
+    (wrapped as { code?: string }).code = code;
+    return wrapped;
+  }
+  if (code === "auth/popup-blocked") {
+    const wrapped = new Error(
+      "Your browser blocked the Google sign-in popup. Please allow popups for this site and try again.",
+    );
+    (wrapped as { code?: string }).code = code;
+    return wrapped;
+  }
+  if (code === "auth/unauthorized-domain") {
+    const wrapped = new Error(
+      "This domain is not authorized for Google Sign-In in Firebase Console yet. Add this domain under Authentication > Settings > Authorized domains.",
+    );
+    (wrapped as { code?: string }).code = code;
+    return wrapped;
+  }
+  if (code === "auth/operation-not-allowed") {
+    const wrapped = new Error(
+      context === "email"
+        ? "Email/Password sign-in is not enabled in Firebase Authentication yet. Please use Continue with Google to save progress across sessions."
+        : "This sign-in provider is not enabled in Firebase Authentication.",
+    );
+    (wrapped as { code?: string }).code = code;
+    return wrapped;
+  }
+  if (
+    code === "auth/invalid-credential" ||
+    code === "auth/wrong-password" ||
+    code === "auth/user-not-found"
+  ) {
+    const wrapped = new Error(
+      "Invalid email or password. Please check your credentials or use Forgot Password.",
+    );
+    (wrapped as { code?: string }).code = code;
+    return wrapped;
+  }
+  if (code === "auth/email-already-in-use") {
+    const wrapped = new Error(
+      "An account with this email already exists. Please sign in instead.",
+    );
+    (wrapped as { code?: string }).code = code;
+    return wrapped;
+  }
+  if (code === "auth/weak-password") {
+    const wrapped = new Error("Password must be at least 6 characters long.");
+    (wrapped as { code?: string }).code = code;
+    return wrapped;
+  }
+  if (err instanceof Error) return err;
+  return new Error("Authentication failed. Please try again.");
 }
 
-export async function signInWithGooglePopup(
-  hintEmail?: string,
-): Promise<UnifiedPlayerUser | null> {
+export async function signInToUnifiedGames(): Promise<UnifiedPlayerUser | null> {
   try {
     const provider = new GoogleAuthProvider();
-    if (hintEmail) {
-      provider.setCustomParameters({ login_hint: hintEmail });
-    }
+    provider.setCustomParameters({ prompt: "select_account" });
     const result = await signInWithPopup(auth, provider);
     const unified = toUnifiedUserFromFirebase(result.user);
     setActiveSiteSession(unified);
@@ -1764,42 +1784,46 @@ export async function signInWithGooglePopup(
       linkedTikTokHandle: unified.linkedTikTokHandle,
       authProvider: "google",
     });
+    void hydrateAllUserProgressFromCloud(result.user);
     return unified;
   } catch (err) {
-    const errorObj = new Error("Inline Google fallback");
-    (errorObj as { code?: string }).code = "auth/inline-google-prompt";
-    throw err || errorObj;
+    throw mapFirebaseAuthError(err, "google");
+  }
+}
+
+export async function signInWithGooglePopup(
+  hintEmail?: string,
+): Promise<UnifiedPlayerUser | null> {
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters(
+      hintEmail
+        ? { login_hint: hintEmail, prompt: "select_account" }
+        : { prompt: "select_account" },
+    );
+    const result = await signInWithPopup(auth, provider);
+    const unified = toUnifiedUserFromFirebase(result.user);
+    setActiveSiteSession(unified);
+    recordRegisteredUser({
+      uid: unified.uid,
+      displayName: unified.displayName,
+      linkedTikTokHandle: unified.linkedTikTokHandle,
+      authProvider: "google",
+    });
+    void hydrateAllUserProgressFromCloud(result.user);
+    return unified;
+  } catch (err) {
+    throw mapFirebaseAuthError(err, "google");
   }
 }
 
 export async function signInWithGoogleEmailFallback(
-  email: string,
-  displayName?: string,
+  _email: string,
+  _displayName?: string,
 ): Promise<UnifiedPlayerUser> {
-  const cleanEmail = email.trim().toLowerCase();
-  if (!cleanEmail || !cleanEmail.includes("@")) {
-    throw new Error("Please enter a valid Google email address.");
-  }
-  const cleanName = sanitizePublicIdentity(
-    displayName || cleanEmail.split("@")[0],
-    "Puzzle Seeker",
+  throw new Error(
+    "Please sign in using the Continue with Google button so your Firebase session and cross-device progress can sync.",
   );
-  const uid = `google_${cleanEmail.replace(/[^a-z0-9]/g, "_")}`;
-  const unified: UnifiedPlayerUser = {
-    uid,
-    displayName: cleanName,
-    email: cleanEmail === HIDDEN_GMAIL_ADDRESS ? null : cleanEmail,
-    photoURL: null,
-    linkedTikTokHandle: getLinkedTikTokHandle(uid) || null,
-  };
-  setActiveSiteSession(unified);
-  recordRegisteredUser({
-    uid: unified.uid,
-    displayName: unified.displayName,
-    linkedTikTokHandle: unified.linkedTikTokHandle,
-    authProvider: "google",
-  });
-  return unified;
 }
 
 export async function registerWithEmailPassword(
@@ -1848,11 +1872,11 @@ export async function registerWithEmailPassword(
       cleanEmail,
       params.password,
     );
-    if (cleanTikTok) {
-      setLinkedTikTokHandle(cred.user.uid, cleanName, cleanTikTok);
-    }
     if (cleanName) {
       await updateProfile(cred.user, { displayName: cleanName });
+    }
+    if (cleanTikTok) {
+      setLinkedTikTokHandle(cred.user.uid, cleanName, cleanTikTok);
     }
     const unified: UnifiedPlayerUser = {
       uid: cred.user.uid,
@@ -1868,53 +1892,12 @@ export async function registerWithEmailPassword(
       linkedTikTokHandle: unified.linkedTikTokHandle,
       authProvider: "email",
     });
+    await hydrateAllUserProgressFromCloud(cred.user);
     pendingRegistrationMeta = null;
     return unified;
   } catch (err: unknown) {
     pendingRegistrationMeta = null;
-    const code = (err as { code?: string })?.code || "";
-    if (code === "auth/email-already-in-use") {
-      throw new Error(
-        "An account with this email already exists. Please sign in instead.",
-      );
-    }
-    const accounts = getStoredAccounts();
-    if (accounts.some((a) => a.email === cleanEmail)) {
-      throw new Error(
-        "An account with this email already exists. Please sign in instead.",
-      );
-    }
-    const newAccount: StoredSiteAccount = {
-      uid: `site_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      email: cleanEmail,
-      displayName: cleanName,
-      passwordHash: btoa(unescape(encodeURIComponent(params.password))),
-      photoURL: "",
-      linkedTikTokHandle: cleanTikTok || undefined,
-      createdAt: Date.now(),
-    };
-    accounts.push(newAccount);
-    saveStoredAccounts(accounts);
-    if (cleanTikTok) {
-      setLinkedTikTokHandle(newAccount.uid, newAccount.displayName, cleanTikTok);
-    }
-
-    const unified: UnifiedPlayerUser = {
-      uid: newAccount.uid,
-      displayName: newAccount.displayName,
-      email: cleanEmail === HIDDEN_GMAIL_ADDRESS ? null : newAccount.email,
-      photoURL: null,
-      linkedTikTokHandle: cleanTikTok || null,
-    };
-    setActiveSiteSession(unified);
-    recordRegisteredUser({
-      uid: unified.uid,
-      displayName: unified.displayName,
-      linkedTikTokHandle: unified.linkedTikTokHandle,
-      authProvider: "email",
-      createdAt: newAccount.createdAt,
-    });
-    return unified;
+    throw mapFirebaseAuthError(err, "email");
   }
 }
 
@@ -1946,39 +1929,35 @@ export async function signInWithEmailPassword(
       linkedTikTokHandle: unified.linkedTikTokHandle,
       authProvider: "email",
     });
+    await hydrateAllUserProgressFromCloud(cred.user);
     return unified;
-  } catch {
-    const accounts = getStoredAccounts();
-    const encodedPassword = btoa(unescape(encodeURIComponent(params.password)));
-    const found = accounts.find(
-      (a) => a.email === cleanEmail && a.passwordHash === encodedPassword,
-    );
-    if (!found) {
-      throw new Error("Invalid email or password. Please check your credentials.");
-    }
-    const linkedTikTok =
-      getLinkedTikTokHandle(found.uid) ||
-      normalizeTikTokHandle(found.linkedTikTokHandle);
-    const unified: UnifiedPlayerUser = {
-      uid: found.uid,
-      displayName: sanitizePublicIdentity(found.displayName, "Player"),
-      email: found.email === HIDDEN_GMAIL_ADDRESS ? null : found.email,
-      photoURL: found.photoURL || null,
-      linkedTikTokHandle: linkedTikTok || null,
-    };
-    setActiveSiteSession(unified);
-    recordRegisteredUser({
-      uid: unified.uid,
-      displayName: unified.displayName,
-      linkedTikTokHandle: unified.linkedTikTokHandle,
-      authProvider: "email",
-      createdAt: found.createdAt,
-    });
-    return unified;
+  } catch (err: unknown) {
+    throw mapFirebaseAuthError(err, "email");
   }
 }
 
 export const loginWithEmailPassword = signInWithEmailPassword;
+
+export async function updateMemberDisplayName(newName: string): Promise<string> {
+  const fbUser = auth.currentUser;
+  if (!fbUser) {
+    throw new Error("Please sign in first to update your display name.");
+  }
+  const cleanName = sanitizePublicIdentity(newName, "Player");
+  await updateProfile(fbUser, { displayName: cleanName });
+  const unified = toUnifiedUserFromFirebase(fbUser);
+  unified.displayName = cleanName;
+  setActiveSiteSession(unified);
+  const isGoogle = fbUser.providerData?.some((p) => p?.providerId === "google.com");
+  recordRegisteredUser({
+    uid: fbUser.uid,
+    displayName: cleanName,
+    linkedTikTokHandle: unified.linkedTikTokHandle,
+    authProvider: isGoogle ? "google" : "email",
+  });
+  await saveUserProfilePreferences({ displayName: cleanName });
+  return cleanName;
+}
 
 export async function resetAccountPassword(
   email: string,
@@ -1987,9 +1966,14 @@ export async function resetAccountPassword(
   if (!cleanEmail || !cleanEmail.includes("@")) {
     throw new Error("Please enter a valid email address.");
   }
-  return {
-    message: `If an account exists for ${cleanEmail}, a password reset link has been prepared.`,
-  };
+  try {
+    await sendPasswordResetEmail(auth, cleanEmail);
+    return {
+      message: `Password reset email sent to ${cleanEmail}. Check your inbox (and spam folder) for the Firebase reset link.`,
+    };
+  } catch (err) {
+    throw mapFirebaseAuthError(err, "reset");
+  }
 }
 
 export async function checkResetLinkParams(): Promise<{
@@ -1999,21 +1983,40 @@ export async function checkResetLinkParams(): Promise<{
   resetToken: string | null;
   email: string | null;
 }> {
-  return {
-    hasResetLink: false,
-    oobCode: null,
-    resetToken: null,
-    email: null,
-  };
+  if (typeof window === "undefined") {
+    return { hasResetLink: false, oobCode: null, resetToken: null, email: null };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const oobCode = params.get("oobCode");
+  const mode = params.get("mode");
+  if (!oobCode || (mode && mode !== "resetPassword")) {
+    return { hasResetLink: false, oobCode: null, resetToken: null, email: null };
+  }
+  try {
+    const email = await verifyPasswordResetCode(auth, oobCode);
+    return { hasResetLink: true, oobCode, resetToken: null, email };
+  } catch {
+    return {
+      hasResetLink: true,
+      error: "This password reset link has expired or already been used.",
+      oobCode: null,
+      resetToken: null,
+      email: null,
+    };
+  }
 }
 
-export async function completePasswordResetWithLink(_params: {
+export async function completePasswordResetWithLink(params: {
   oobCode: string | null;
   resetToken: string | null;
   newPassword: string;
 }): Promise<{ message: string }> {
+  if (!params.oobCode) {
+    throw new Error("Missing or expired password reset code.");
+  }
+  await confirmPasswordReset(auth, params.oobCode, params.newPassword);
   return {
-    message: "Your password has been updated. You can now sign in.",
+    message: "Your password has been updated. You can now sign in with your new password.",
   };
 }
 
@@ -2022,61 +2025,70 @@ export async function signOutFromUnifiedGames(): Promise<void> {
   try {
     await signOut(auth);
   } catch {
-    // Ignore Firebase sign-out errors for local accounts
+    // Ignore Firebase sign-out errors
   }
 }
 
 export const logoutUser = signOutFromUnifiedGames;
 
+let authSingletonInitialized = false;
+let authInitialResolved = false;
+
+function ensureFirebaseAuthBridge() {
+  if (typeof window === "undefined" || authSingletonInitialized) return;
+  authSingletonInitialized = true;
+
+  onAuthStateChanged(auth, (fbUser) => {
+    authInitialResolved = true;
+    if (fbUser) {
+      const unified = toUnifiedUserFromFirebase(fbUser);
+      setActiveSiteSession(unified);
+      const isGoogle = fbUser.providerData?.some(
+        (p) => p?.providerId === "google.com",
+      );
+      recordRegisteredUser({
+        uid: unified.uid,
+        displayName: unified.displayName,
+        linkedTikTokHandle: unified.linkedTikTokHandle,
+        authProvider: isGoogle ? "google" : "email",
+      });
+      void hydrateAllUserProgressFromCloud(fbUser);
+    } else {
+      setActiveSiteSession(null);
+    }
+  });
+}
+
+if (typeof window !== "undefined") {
+  ensureFirebaseAuthBridge();
+}
+
 export function useUnifiedAuth() {
-  const [user, setUser] = useState<UnifiedPlayerUser | null>(() =>
-    getActiveSiteSession(),
-  );
-  const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<UnifiedPlayerUser | null>(() => {
+    if (auth.currentUser) {
+      return toUnifiedUserFromFirebase(auth.currentUser);
+    }
+    const cached = getActiveSiteSession();
+    if (
+      cached &&
+      !cached.uid.startsWith("google_") &&
+      !cached.uid.startsWith("site_")
+    ) {
+      return cached;
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState<boolean>(!authInitialResolved);
 
   useEffect(() => {
-    // Proactively sync locally stored registered users once per session
+    ensureFirebaseAuthBridge();
+
+    // Sync only the current authenticated user if already signed in
     if (!didInitialLocalDirectorySync) {
       didInitialLocalDirectorySync = true;
-      const existingLocalUsers = getRegisteredUsersDirectory();
-      if (existingLocalUsers.length > 0) {
-        fetch("/api/registered-users/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ users: existingLocalUsers }),
-        }).catch(() => {});
-        if (!isFirestoreWritePaused()) {
-          for (const item of existingLocalUsers) {
-            void syncFirebaseRegisteredUser(item, false);
-          }
-        }
-      }
-    }
-
-    const syncLocalSession = () => {
-      const localSession = getActiveSiteSession();
-      if (localSession) {
-        recordRegisteredUser({
-          uid: localSession.uid,
-          displayName: localSession.displayName,
-          linkedTikTokHandle: localSession.linkedTikTokHandle,
-          authProvider: localSession.uid.startsWith("google_")
-            ? "google"
-            : "email",
-        });
-        setUser(localSession);
-      } else if (auth.currentUser) {
-        setUser(toUnifiedUserFromFirebase(auth.currentUser));
-      } else {
-        setUser(null);
-      }
-    };
-
-    const unsub = onAuthStateChanged(auth, (fbUser) => {
-      if (fbUser) {
-        const unified = toUnifiedUserFromFirebase(fbUser);
-        setActiveSiteSession(unified);
-        const isGoogle = fbUser.providerData?.some(
+      if (auth.currentUser) {
+        const unified = toUnifiedUserFromFirebase(auth.currentUser);
+        const isGoogle = auth.currentUser.providerData?.some(
           (p) => p?.providerId === "google.com",
         );
         recordRegisteredUser({
@@ -2085,20 +2097,28 @@ export function useUnifiedAuth() {
           linkedTikTokHandle: unified.linkedTikTokHandle,
           authProvider: isGoogle ? "google" : "email",
         });
+      }
+    }
+
+    const syncLocalSession = () => {
+      if (auth.currentUser) {
+        const session = getActiveSiteSession();
+        if (session && session.uid === auth.currentUser.uid) {
+          setUser(session);
+        } else {
+          setUser(toUnifiedUserFromFirebase(auth.currentUser));
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    const unsub = onAuthStateChanged(auth, (fbUser) => {
+      if (fbUser) {
+        const unified = toUnifiedUserFromFirebase(fbUser);
         setUser(unified);
       } else {
-        const localSession = getActiveSiteSession();
-        if (localSession) {
-          recordRegisteredUser({
-            uid: localSession.uid,
-            displayName: localSession.displayName,
-            linkedTikTokHandle: localSession.linkedTikTokHandle,
-            authProvider: localSession.uid.startsWith("google_")
-              ? "google"
-              : "email",
-          });
-        }
-        setUser(localSession);
+        setUser(null);
       }
       setLoading(false);
     });
@@ -2106,12 +2126,14 @@ export function useUnifiedAuth() {
     window.addEventListener("mp-site-auth-updated", syncLocalSession);
     window.addEventListener("mp-tiktok-link-updated", syncLocalSession);
     window.addEventListener("mp-tiktok-avatar-updated", syncLocalSession);
+    window.addEventListener(CLOUD_HYDRATED_EVENT, syncLocalSession);
     window.addEventListener("storage", syncLocalSession);
     return () => {
       unsub();
       window.removeEventListener("mp-site-auth-updated", syncLocalSession);
       window.removeEventListener("mp-tiktok-link-updated", syncLocalSession);
       window.removeEventListener("mp-tiktok-avatar-updated", syncLocalSession);
+      window.removeEventListener(CLOUD_HYDRATED_EVENT, syncLocalSession);
       window.removeEventListener("storage", syncLocalSession);
     };
   }, []);

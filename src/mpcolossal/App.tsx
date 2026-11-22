@@ -53,6 +53,7 @@ import {
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { UserProfileIcon } from '@/components/user-profile-icon';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
+import { CLOUD_HYDRATED_EVENT, scheduleCloudProgressSync } from '@/lib/cloud-progress';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 
 type GameState = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'GAME_OVER';
@@ -271,13 +272,15 @@ export default function MPColossalApp() {
   useEffect(() => {
     window.addEventListener('unified-auth-updated', syncSavedProgress);
     window.addEventListener('mp-site-auth-updated', syncSavedProgress);
+    window.addEventListener(CLOUD_HYDRATED_EVENT, syncSavedProgress);
     return () => {
       window.removeEventListener('unified-auth-updated', syncSavedProgress);
       window.removeEventListener('mp-site-auth-updated', syncSavedProgress);
+      window.removeEventListener(CLOUD_HYDRATED_EVENT, syncSavedProgress);
     };
   }, [syncSavedProgress, currentUser?.uid]);
 
-  // Save state to user-scoped localStorage
+  // Save state to user-scoped localStorage and sync scales to Firestore cloud progress
   useEffect(() => {
     if (gameState === 'TITLE_MENU') return;
     try {
@@ -289,6 +292,18 @@ export default function MPColossalApp() {
         solvedTodayDate: solvedTodayFlag ? todayKey : undefined,
       };
       window.localStorage.setItem(getScaleStorageKey(scale), JSON.stringify(payload));
+      if (Object.keys(userGrid).length > 0 || solvedTodayFlag) {
+        const scalesMap: Record<string, SavedScaleState> = {};
+        for (const s of ['colossal', 'grand', 'district'] as const) {
+          const st = s === scale ? payload : loadSavedScaleState(s);
+          if (st && (Object.keys(st.userGrid || {}).length > 0 || st.solvedTodayDate)) {
+            scalesMap[s] = st;
+          }
+        }
+        if (Object.keys(scalesMap).length > 0) {
+          scheduleCloudProgressSync('mpcolossal', { scales: scalesMap });
+        }
+      }
     } catch {
       // Ignore quota errors
     }

@@ -1,3 +1,4 @@
+import { scheduleCloudProgressSync } from '@/lib/cloud-progress';
 import { getCurrentUserSessionPrefix } from '@/lib/unified-game-auth';
 import { PuzzleProgressRecord, UnolingoPrefs, UnolingoStats } from '../types';
 import { shiftDateStr } from './londonTime';
@@ -70,6 +71,13 @@ export function writeProgressMap(map: Record<string, PuzzleProgressRecord>): voi
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(getProgressKey(), JSON.stringify(map));
+    if (Object.keys(map).length > 0) {
+      scheduleCloudProgressSync('unolingo', {
+        progress: map,
+        stats: readStats(),
+        prefs: readPrefs(),
+      });
+    }
   } catch {
     // Ignore storage quota errors
   }
@@ -93,6 +101,11 @@ export function writeStats(stats: UnolingoStats): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(getStatsKey(), JSON.stringify(stats));
+    scheduleCloudProgressSync('unolingo', {
+      progress: readProgressMap(),
+      stats,
+      prefs: readPrefs(),
+    });
   } catch {
     // Ignore storage quota errors
   }
@@ -116,6 +129,11 @@ export function writePrefs(prefs: UnolingoPrefs): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(getPrefsKey(), JSON.stringify(prefs));
+    const progress = readProgressMap();
+    const stats = readStats();
+    if (Object.keys(progress).length > 0 || stats.totalSolved > 0) {
+      scheduleCloudProgressSync('unolingo', { progress, stats, prefs });
+    }
   } catch {
     // Ignore storage quota errors
   }

@@ -16,6 +16,7 @@ import {
 	addLeaderboardEntry,
 } from '@/lib/crossword-progress';
 import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
+import { CLOUD_HYDRATED_EVENT } from '@/lib/cloud-progress';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 
@@ -223,6 +224,21 @@ export function CrosswordPlay({ puzzle, onExit }: PlayProps) {
 		gridRef.current?.focus();
 	}, [puzzle, size]);
 
+	useEffect(() => {
+		const reloadFromStorage = () => {
+			const saved = loadSavedGrid(puzzle.id);
+			if (saved && saved.length === size) {
+				setLetters(saved);
+			}
+		};
+		window.addEventListener(CLOUD_HYDRATED_EVENT, reloadFromStorage);
+		window.addEventListener('unified-auth-updated', reloadFromStorage);
+		return () => {
+			window.removeEventListener(CLOUD_HYDRATED_EVENT, reloadFromStorage);
+			window.removeEventListener('unified-auth-updated', reloadFromStorage);
+		};
+	}, [puzzle.id, size]);
+
 	const activeEntry = useMemo(
 		() => entryFor(selected.row, selected.col, dir, puzzle),
 		[selected, dir, puzzle],
@@ -267,9 +283,12 @@ export function CrosswordPlay({ puzzle, onExit }: PlayProps) {
 		return () => window.clearInterval(id);
 	}, [solved, finalScore]);
 
-	// Persist grid as the player types.
+	// Persist grid as the player types (skip empty grids so blank boards do not trigger extra cloud syncs).
 	useEffect(() => {
-		saveGrid(puzzle.id, letters);
+		const hasAnyLetter = letters.some((row) => row.some(Boolean));
+		if (hasAnyLetter) {
+			saveGrid(puzzle.id, letters);
+		}
 	}, [letters, puzzle.id]);
 
 	// On solve: compute score, record progress + leaderboard once.

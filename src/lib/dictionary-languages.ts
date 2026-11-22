@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { auth } from '../firebase';
 
 export type DictionaryLanguageCode = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'tl';
 
@@ -98,7 +99,10 @@ export function getDictionaryLanguage(): DictionaryLanguageCode {
   return memoryLanguage;
 }
 
-export function setDictionaryLanguage(nextLang: DictionaryLanguageCode): void {
+export function setDictionaryLanguage(
+  nextLang: DictionaryLanguageCode,
+  options?: { skipCloudSync?: boolean }
+): void {
   const normalized = normalizeDictionaryLanguage(nextLang);
   const changed = memoryLanguage !== normalized;
   memoryLanguage = normalized;
@@ -123,6 +127,14 @@ export function setDictionaryLanguage(nextLang: DictionaryLanguageCode): void {
         })
       );
     }
+  }
+
+  if (!options?.skipCloudSync && auth?.currentUser) {
+    void import('./cloud-progress')
+      .then(({ saveUserProfilePreferences }) =>
+        saveUserProfilePreferences({ preferredLanguage: normalized })
+      )
+      .catch(() => {});
   }
 }
 
