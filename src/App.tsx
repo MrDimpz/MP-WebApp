@@ -32,6 +32,7 @@ const CrowdleGamePage = lazy(() =>
   import('@/routes/crowdle-game').then((m) => ({ default: m.CrowdleGamePage }))
 );
 const MPSearchIntGamePage = lazy(() => import('@/routes/mpsearchint-game'));
+const InkStreamGamePage = lazy(() => import('@/routes/inkstream-game'));
 const InteractiveOverlaysWallPage = lazy(() => import('@/routes/interactive-overlays'));
 
 const SITE_ORIGIN = 'https://missingpiecepuzzles.fun';
@@ -64,6 +65,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/interactive-games/mpsearch/overlay': 'MP Search Interactive — TikTok LIVE Studio Overlay',
   '/interactive-games/mpsearchint': 'MP Search Interactive — TikTok Live Word Search — The Missing Piece',
   '/interactive-games/mpsearchint/overlay': 'MP Search Interactive — TikTok LIVE Studio Overlay',
+  '/interactive-games/inkstream': 'InkStream — TikTok LIVE Drawing & Chat Guessing — The Missing Piece',
+  '/interactive-games/inkstream/overlay': 'InkStream — TikTok LIVE Studio Overlay',
   '/solo-games': 'Solo Games Hub (12 Puzzles) — The Missing Piece',
   '/solo-games/rebus': 'Missing Rebus — Visual Rebus Archive — The Missing Piece',
   '/solo-games/squared': 'Squared — Daily Word Grid — The Missing Piece',
@@ -125,6 +128,8 @@ const STANDALONE_GAME_PATHS = new Set([
   '/interactive-games/mpsearch/overlay',
   '/interactive-games/mpsearchint',
   '/interactive-games/mpsearchint/overlay',
+  '/interactive-games/inkstream',
+  '/interactive-games/inkstream/overlay',
 ]);
 
 function RouteFallback({ transparent = false }: { transparent?: boolean }) {
@@ -232,6 +237,8 @@ function AppShell() {
           <Route path="/interactive-games/mpsearch/overlay" element={<MPSearchIntGamePage />} />
           <Route path="/interactive-games/mpsearchint" element={<MPSearchIntGamePage />} />
           <Route path="/interactive-games/mpsearchint/overlay" element={<MPSearchIntGamePage />} />
+          <Route path="/interactive-games/inkstream" element={<InkStreamGamePage />} />
+          <Route path="/interactive-games/inkstream/overlay" element={<InkStreamGamePage />} />
         </Routes>
       </Suspense>
     );
@@ -254,6 +261,7 @@ function AppShell() {
           <Route path="/interactive-games/crowdle" element={<CrowdleGamePage />} />
           <Route path="/interactive-games/mpsearch" element={<MPSearchIntGamePage />} />
           <Route path="/interactive-games/mpsearchint" element={<MPSearchIntGamePage />} />
+          <Route path="/interactive-games/inkstream" element={<InkStreamGamePage />} />
           <Route path="/solo-games" element={<SoloGamesPage />} />
         </Routes>
       </Suspense>

@@ -96,7 +96,15 @@ const INTERACTIVE_OVERLAY_SPECS: OverlayGameSpec[] = [
     virtualWidth: 580,
     virtualHeight: 660,
     sizeLabel: '580 × 660 · Board',
-    colSpanTwo: true,
+  },
+  {
+    id: 'inkstream',
+    title: 'InkStream',
+    hostPath: '/interactive-games/inkstream',
+    overlaySlug: 'inkstream',
+    virtualWidth: 640,
+    virtualHeight: 720,
+    sizeLabel: '640 × 720 · Studio',
   },
 ];
 

@@ -124,7 +124,7 @@ export function InteractiveGamesPage() {
                       Streamer {activeStreamer.displayHandle}
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                      Unlimited rounds unlocked across all 7 interactive games. Scores for linked
+                      Unlimited rounds unlocked across all 8 interactive games. Scores for linked
                       TikTok @ accounts sync automatically to their website profile.
                     </p>
                   </>
@@ -137,7 +137,7 @@ export function InteractiveGamesPage() {
                       Play up to {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} rounds per game each day — or unlock unlimited with a Stream Key
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-1 leading-relaxed">
-                      Anyone can jump straight into all 7 interactive games with{' '}
+                      Anyone can jump straight into all 8 interactive games with{' '}
                       <strong className="text-white">
                         {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} free rounds per game per day
                       </strong>{' '}
@@ -582,6 +582,50 @@ export function InteractiveGamesPage() {
                 gameSlug="mpsearch"
                 streamerHandle={activeStreamer?.username}
                 recommendedSize="920 × 640 or 1080 × 1920"
+                label="LIVE Overlay"
+              />
+            </div>
+          </article>
+
+          <article className="game-card">
+            <div className="card-top">
+              <span className="category-label">
+                <span className="status-dot" /> NOW PLAYING
+              </span>
+              <div className="flex items-center gap-2">
+                {renderLimitBadge('inkstream')}
+                <span className="card-number">08 /</span>
+              </div>
+            </div>
+            <Link
+              to="/interactive-games/inkstream"
+              className="game-art game-art-thumb"
+              aria-label="Play InkStream interactive drawing game"
+            >
+              <img
+                className="game-thumbnail"
+                src="/inkstream-website-thumbnail.svg"
+                alt="Preview of InkStream live drawing canvas, private streamer word picker, and TikTok LIVE chat guessing scoreboard"
+              />
+            </Link>
+            <h3>InkStream</h3>
+            <p>
+              Draw live while your TikTok chat races to guess the secret word. Host solo or up to
+              20-player rooms with a private off-stream word picker popup, dedicated TikTok viewer
+              scoreboard, TikFinity &amp; BetterTok webhook support, and downloadable artwork gallery.
+            </p>
+            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
+              <Link className="game-link" to="/interactive-games/inkstream">
+                Play InkStream{' '}
+                <span>
+                  <ArrowUpRight size={22} />
+                </span>
+              </Link>
+              <LiveOverlayButton
+                gameTitle="InkStream"
+                gameSlug="inkstream"
+                streamerHandle={activeStreamer?.username}
+                recommendedSize="640 × 720 or 1080 × 1920"
                 label="LIVE Overlay"
               />
             </div>

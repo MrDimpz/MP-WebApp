@@ -55,7 +55,8 @@ export type InteractiveGameId =
   | "lexi"
   | "destackint"
   | "crowdle"
-  | "mpsearchint";
+  | "mpsearchint"
+  | "inkstream";
 
 export enum OperationType {
   CREATE = "create",
@@ -189,6 +190,7 @@ export const INTERACTIVE_GAME_LABELS: Record<InteractiveGameId, string> = {
   destackint: "DeStack Interactive",
   crowdle: "Crowdle",
   mpsearchint: "MP Search Interactive",
+  inkstream: "InkStream",
 };
 
 const LOCAL_LEADERBOARD_STORAGE_KEY = "mp_unified_solo_leaderboards_v1";
@@ -1508,6 +1510,7 @@ export function creditInteractiveScoreByTikTokHandle(params: {
       destackint: 0,
       crowdle: 0,
       mpsearchint: 0,
+      inkstream: 0,
     },
     recentEvents: [],
     updatedAt: Date.now(),

@@ -9,6 +9,7 @@ import {
   WebcastEvent,
   ControlEvent,
 } from "tiktok-live-connector";
+import { mountInkStream } from "./server/inkstream/mountInkStream.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -425,6 +426,9 @@ async function startServer() {
 
   app.use(express.json({ limit: "8mb" }));
   app.use(express.urlencoded({ extended: true }));
+
+  // Mount InkStream multiplayer drawing & TikTok LIVE studio backend (/api/inkstream/* & /inkstream namespace)
+  const inkstream = mountInkStream(app, io);
 
   const sessions = new Map();
   let overlayVersionCounter = 0;
@@ -1337,6 +1341,25 @@ async function startServer() {
           pushAndEmitToSession(sess, normType, normData);
         }
       }
+    }
+
+    // Forward webhook chat messages into any active InkStream room as well
+    if (normType === "chat-message" && normData && "comment" in normData) {
+      const streamerHint = String(
+        payload.streamer ||
+          payload.channel ||
+          payload.host ||
+          payload.roomUsername ||
+          "",
+      )
+        .trim()
+        .replace(/^@+/, "");
+      inkstream.gameManager.injectExternalWebhookChat(streamerHint, {
+        uniqueId: normData.uniqueId,
+        nickname: normData.nickname,
+        comment: normData.comment,
+        profilePictureUrl: normData.profilePictureUrl,
+      });
     }
 
     return { type: normType, payload: normData, provider: providerName };

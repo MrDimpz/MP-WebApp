@@ -89,6 +89,7 @@ const ALLOWED_FIRESTORE_GAMES = new Set([
   'wikicon',
   'wikirec',
   'lexi',
+  'inkstream',
 ]);
 const MAX_FIRESTORE_STATE_BYTES = 750_000;
 

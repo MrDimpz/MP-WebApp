@@ -18,7 +18,8 @@ export type DailyStreakGameId =
   | 'mpcolossal'
   | 'lexi'
   | 'crowdle'
-  | 'tekscodle';
+  | 'tekscodle'
+  | 'inkstream';
 
 export interface StoredGameStreak {
   solvedDates: string[];
