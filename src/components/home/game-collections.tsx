@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { ArrowUpRight, Gamepad2, MessageCircle, Play, Sparkles, Users } from 'lucide-react';
 import { GorillaShackTile } from '../gorilla-shack-tile';
+import { SeoGuideSection } from '../seo-guide-section';
 
 export function GameCollections() {
   return (
@@ -78,6 +79,8 @@ export function GameCollections() {
       </div>
 
       <GorillaShackTile />
+
+      <SeoGuideSection variant="home" />
     </section>
   );
 }

@@ -32,8 +32,8 @@ export function Hero() {
             </span>
           </h1>
           <p className="hero-description">
-            Find your space to play. Discover TikTok interactive
-            <br className="desktop-break" /> and solo games made for creators like you.
+            Find your space to play. Launch TikTok LIVE interactive word games
+            <br className="desktop-break" /> and 12 free daily browser crosswords &amp; puzzles.
           </p>
           <a className="button button-dark" href="#games">
             Let’s find your game <ArrowDown size={18} />

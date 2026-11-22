@@ -11,6 +11,11 @@ import {
 } from "tiktok-live-connector";
 import { mountInkStream } from "./server/inkstream/mountInkStream.ts";
 import { mountMpwh } from "./server/mpwh/mountMpwh.ts";
+import {
+  renderSeoHeadHtml,
+  renderSeoNoscriptHtml,
+  SITE_ORIGIN,
+} from "./src/lib/seo-catalog.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -2325,8 +2330,27 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
+    let cachedIndexHtml: string | null = null;
+    const readBuiltIndexHtml = () => {
+      if (cachedIndexHtml) return cachedIndexHtml;
+      cachedIndexHtml = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
+      return cachedIndexHtml;
+    };
+
+    const injectSeoIntoHtml = (template: string, rawPath: string, origin: string): string => {
+      const headBlock = `<!-- SEO_HEAD_START -->\n    ${renderSeoHeadHtml(rawPath, origin)}\n    <!-- SEO_HEAD_END -->`;
+      const noscriptBlock = `<!-- SEO_NOSCRIPT_START -->\n        ${renderSeoNoscriptHtml(rawPath, origin)}\n        <!-- SEO_NOSCRIPT_END -->`;
+      return template
+        .replace(/<!--\s*SEO_HEAD_START\s*-->[\s\S]*?<!--\s*SEO_HEAD_END\s*-->/, () => headBlock)
+        .replace(
+          /<!--\s*SEO_NOSCRIPT_START\s*-->[\s\S]*?<!--\s*SEO_NOSCRIPT_END\s*-->/,
+          () => noscriptBlock,
+        );
+    };
+
     app.use(
       express.static(distPath, {
+        index: false,
         setHeaders: (res, filePath) => {
           if (filePath.endsWith(".html") || filePath.includes("index-latest.")) {
             res.setHeader(
@@ -2357,7 +2381,18 @@ async function startServer() {
         "Cache-Control",
         "no-store, no-cache, must-revalidate, max-age=0",
       );
-      res.sendFile(path.join(distPath, "index.html"));
+      try {
+        const reqHost = String(req.get("host") || "");
+        const origin = reqHost.includes("missingpiecepuzzles.fun")
+          ? SITE_ORIGIN
+          : reqHost
+            ? `${req.protocol}://${reqHost}`
+            : SITE_ORIGIN;
+        const html = injectSeoIntoHtml(readBuiltIndexHtml(), req.path, origin);
+        res.status(200).type("html").send(html);
+      } catch {
+        res.sendFile(path.join(distPath, "index.html"));
+      }
     });
   }
 

@@ -10,6 +10,7 @@ import {
 import { UserProfileIcon } from '../user-profile-icon';
 import { UnifiedAuthModal } from './unified-auth-modal';
 import { GorillaShackTile } from '../gorilla-shack-tile';
+import { SeoGuideSection } from '../seo-guide-section';
 
 const CRUCI_URL = 'https://cruci.missingpiecepuzzles.fun/';
 
@@ -696,6 +697,8 @@ export function SoloGameList() {
       </div>
 
       <GorillaShackTile />
+
+      <SeoGuideSection variant="solo" />
 
       <UnifiedAuthModal
         isOpen={authModalOpen}

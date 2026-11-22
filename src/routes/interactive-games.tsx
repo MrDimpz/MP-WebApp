@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowLeft, ArrowUpRight, CheckCircle2, KeyRound, LogOut, Mail, User, Users } from 'lucide-react';
 import {
@@ -25,6 +25,7 @@ import { AdminPanelModal } from '@/components/admin-panel-modal';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import { GorillaShackTile } from '@/components/gorilla-shack-tile';
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
+import { SeoGuideSection } from '@/components/seo-guide-section';
 
 export function InteractiveGamesPage() {
   const { activeStreamer } = useInteractiveAuthStore();
@@ -62,10 +63,6 @@ export function InteractiveGamesPage() {
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-
-  useEffect(() => {
-    document.title = 'Interactive Live Games | The Missing Piece';
-  }, []);
 
   const handleUnifiedKeySubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -378,7 +375,7 @@ export function InteractiveGamesPage() {
               </div>
             </div>
             <Link
-              to="/interactive-games/squaredint"
+              to="/interactive-games/squared"
               className="game-art game-art-thumb"
               aria-label="Play Squared Interactive game"
             >
@@ -395,7 +392,7 @@ export function InteractiveGamesPage() {
               climb the live stream leaderboard.
             </p>
             <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
-              <Link className="game-link" to="/interactive-games/squaredint">
+              <Link className="game-link" to="/interactive-games/squared">
                 Play Squared Interactive{' '}
                 <span>
                   <ArrowUpRight size={22} />
@@ -466,7 +463,7 @@ export function InteractiveGamesPage() {
               </div>
             </div>
             <Link
-              to="/interactive-games/destackint"
+              to="/interactive-games/destack"
               className="game-art game-art-thumb"
               aria-label="Play DeStack Interactive game"
             >
@@ -483,7 +480,7 @@ export function InteractiveGamesPage() {
               earning speed-bonus points on the running stream scoreboard.
             </p>
             <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
-              <Link className="game-link" to="/interactive-games/destackint">
+              <Link className="game-link" to="/interactive-games/destack">
                 Play DeStack Interactive{' '}
                 <span>
                   <ArrowUpRight size={22} />
@@ -677,6 +674,8 @@ export function InteractiveGamesPage() {
         </div>
 
         <GorillaShackTile />
+
+        <SeoGuideSection variant="interactive" />
 
         <div className="collection-notice">
           <div>

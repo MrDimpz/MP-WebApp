@@ -36,67 +36,11 @@ const InkStreamGamePage = lazy(() => import('@/routes/inkstream-game'));
 const MpwhGamePage = lazy(() => import('@/routes/mpwh-game'));
 const InteractiveOverlaysWallPage = lazy(() => import('@/routes/interactive-overlays'));
 
-const SITE_ORIGIN = 'https://missingpiecepuzzles.fun';
-
-const DEFAULT_TITLE = 'The Missing Piece — TikTok Interactive & Solo Games';
-const DEFAULT_DESCRIPTION =
-  'Play free TikTok LIVE interactive games and 12 solo word, trivia, crossword, and supermarket price puzzles—including MP Colossal, Rebus, Squared, Thematix, Unolingo, and TEKSCOdle.';
-
-const PAGE_TITLES: Record<string, string> = {
-  '/': DEFAULT_TITLE,
-  '/interactive-games': 'TikTok Interactive Games — The Missing Piece',
-  '/interactive-games/overlays': 'All Interactive Overlays — The Missing Piece',
-  '/interactive-games/wikirec': 'WiKirecTangled — TikTok Interactive Game — The Missing Piece',
-  '/interactive-games/wikirec/overlay': 'WiKirecTangled — TikTok LIVE Studio Overlay',
-  '/interactive-games/wikicon': 'WikiContexto — TikTok Interactive Game — The Missing Piece',
-  '/interactive-games/wikicon/overlay': 'WikiContexto — TikTok LIVE Studio Overlay',
-  '/interactive-games/squared': 'Squared Interactive — TikTok Live Game — The Missing Piece',
-  '/interactive-games/squared/overlay': 'Squared Interactive — TikTok LIVE Studio Overlay',
-  '/interactive-games/squaredint': 'Squared Interactive — TikTok Live Game — The Missing Piece',
-  '/interactive-games/squaredint/overlay': 'Squared Interactive — TikTok LIVE Studio Overlay',
-  '/interactive-games/lexi': 'Lexi Tiles — TikTok Interactive Game — The Missing Piece',
-  '/interactive-games/lexi/overlay': 'Lexi Tiles — TikTok LIVE Studio Overlay',
-  '/interactive-games/destack': 'DeStack Interactive — TikTok Live Game — The Missing Piece',
-  '/interactive-games/destack/overlay': 'DeStack Interactive — TikTok LIVE Studio Overlay',
-  '/interactive-games/destackint': 'DeStack Interactive — TikTok Live Game — The Missing Piece',
-  '/interactive-games/destackint/overlay': 'DeStack Interactive — TikTok LIVE Studio Overlay',
-  '/interactive-games/crowdle': 'Crowdle — TikTok Live Crowd Wordle — The Missing Piece',
-  '/interactive-games/crowdle/overlay': 'Crowdle — TikTok LIVE Studio Overlay',
-  '/interactive-games/mpsearch': 'MP Search Interactive — TikTok Live Word Search — The Missing Piece',
-  '/interactive-games/mpsearch/overlay': 'MP Search Interactive — TikTok LIVE Studio Overlay',
-  '/interactive-games/mpsearchint': 'MP Search Interactive — TikTok Live Word Search — The Missing Piece',
-  '/interactive-games/mpsearchint/overlay': 'MP Search Interactive — TikTok LIVE Studio Overlay',
-  '/interactive-games/inkstream': 'InkStream — TikTok LIVE Drawing & Chat Guessing — The Missing Piece',
-  '/interactive-games/inkstream/overlay': 'InkStream — TikTok LIVE Studio Overlay',
-  '/interactive-games/mpwh': 'Word Hunt Extreme — TikTok LIVE Alphabetical Word Ladder — The Missing Piece',
-  '/interactive-games/mpwh/overlay': 'Word Hunt Extreme — TikTok LIVE Studio Overlay',
-  '/solo-games': 'Solo Games Hub (12 Puzzles) — The Missing Piece',
-  '/solo-games/rebus': 'Missing Rebus — Visual Rebus Archive — The Missing Piece',
-  '/solo-games/squared': 'Squared — Daily Word Grid — The Missing Piece',
-  '/solo-games/thematix': 'Thematix — Daily Word Association — The Missing Piece',
-  '/solo-games/destack': 'DeStack — 3D Word Unstacking — The Missing Piece',
-  '/solo-games/unolingo': 'Unolingo — 26-Letter Crossword — The Missing Piece',
-  '/solo-games/wikirec': 'WiKirecTangled — Solo Wikipedia Word Grid — The Missing Piece',
-  '/solo-games/wikicon': 'WikiContexto — Solo Article Discovery — The Missing Piece',
-  '/solo-games/mpsearch': 'MP Search — Daily 10×10 Word Search — The Missing Piece',
-  '/solo-games/mpdifference': 'MP Difference — Daily Spot the Difference — The Missing Piece',
-  '/solo-games/mpcolossal': 'MP Colossal — 200×200 Giant Crossword Atlas — The Missing Piece',
-  '/solo-games/tekscodle': 'TEKSCOdle — UK Supermarket Price Guesser — The Missing Piece',
-};
-
-const PAGE_DESCRIPTIONS: Record<string, string> = {
-  '/': DEFAULT_DESCRIPTION,
-  '/solo-games':
-    'Play all 12 free solo browser games from The Missing Piece including MP Colossal, Cruciverbalist, Missing Rebus, Squared, Thematix, DeStack, Unolingo, MP Difference, and TEKSCOdle.',
-  '/solo-games/mpcolossal':
-    'Explore a 40,000-square 200x200 giant crossword atlas across 25 themed sectors with Expedition Quests, Atlas Radar minimap, 3-tier hints, and 12x12 Stream Layout.',
-  '/solo-games/mpdifference':
-    'Compare paired illustrated plates under a 2.2x optical loupe in MP Difference, featuring 8 worlds and a 6-month daily archive.',
-  '/solo-games/tekscodle':
-    'Guess real UK supermarket prices across 1-item, 3-item, and 5-item baskets in TEKSCOdle—featuring Daily Basket, Endless Practice, and Quick Play modes.',
-  '/interactive-games':
-    'Launch real-time TikTok LIVE interactive games with transparent browser-source overlays for TikTok LIVE Studio and OBS Studio.',
-};
+import {
+  buildStructuredData,
+  resolveSeoForPath,
+  SITE_ORIGIN,
+} from '@/lib/seo-catalog';
 
 const STANDALONE_GAME_PATHS = new Set([
   '/solo-games/rebus',
@@ -162,30 +106,46 @@ function updateMetaTag(attrName: 'name' | 'property', key: string, content: stri
   tag.setAttribute('content', content);
 }
 
+function upsertRouteJsonLd(data: Record<string, unknown>) {
+  let script = document.getElementById('mp-route-jsonld') as HTMLScriptElement | null;
+  if (!script) {
+    script = document.createElement('script');
+    script.id = 'mp-route-jsonld';
+    script.type = 'application/ld+json';
+    document.head.appendChild(script);
+  }
+  script.textContent = JSON.stringify(data);
+}
+
 function AppShell() {
   const location = useLocation();
   const isStandaloneGame = STANDALONE_GAME_PATHS.has(location.pathname);
   const isOverlayRoute = location.pathname.endsWith('/overlay');
 
   useEffect(() => {
-    const title = PAGE_TITLES[location.pathname] ?? DEFAULT_TITLE;
-    const description = PAGE_DESCRIPTIONS[location.pathname] ?? DEFAULT_DESCRIPTION;
-    const canonicalPath = location.pathname === '/' ? '/' : location.pathname.replace(/\/+$/, '');
     const origin =
       typeof window !== 'undefined' && window.location.hostname === 'missingpiecepuzzles.fun'
         ? SITE_ORIGIN
         : typeof window !== 'undefined'
           ? window.location.origin
           : SITE_ORIGIN;
-    const canonicalUrl = `${origin}${canonicalPath}`;
 
-    document.title = title;
-    updateMetaTag('name', 'description', description);
-    updateMetaTag('property', 'og:title', title);
-    updateMetaTag('property', 'og:description', description);
+    const meta = resolveSeoForPath(location.pathname, origin);
+    const canonicalUrl = `${origin}${meta.canonicalPath}`;
+    const ogImageUrl = `${origin}${meta.ogImagePath}`;
+
+    document.title = meta.title;
+    updateMetaTag('name', 'robots', meta.robots);
+    updateMetaTag('name', 'description', meta.description);
+    updateMetaTag('name', 'keywords', meta.keywords);
+    updateMetaTag('property', 'og:title', meta.title);
+    updateMetaTag('property', 'og:description', meta.description);
     updateMetaTag('property', 'og:url', canonicalUrl);
-    updateMetaTag('name', 'twitter:title', title);
-    updateMetaTag('name', 'twitter:description', description);
+    updateMetaTag('property', 'og:image', ogImageUrl);
+    updateMetaTag('property', 'og:image:alt', meta.ogImageAlt);
+    updateMetaTag('name', 'twitter:title', meta.title);
+    updateMetaTag('name', 'twitter:description', meta.description);
+    updateMetaTag('name', 'twitter:image', ogImageUrl);
 
     let canonicalEl = document.querySelector('link[rel="canonical"]');
     if (!canonicalEl) {
@@ -194,6 +154,8 @@ function AppShell() {
       document.head.appendChild(canonicalEl);
     }
     canonicalEl.setAttribute('href', canonicalUrl);
+
+    upsertRouteJsonLd(buildStructuredData(meta, origin));
 
     if (location.hash) {
       const id = location.hash.slice(1);

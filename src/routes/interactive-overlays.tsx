@@ -231,10 +231,6 @@ export function InteractiveOverlaysWallPage() {
   const isProxyHost = isAiStudioProxyHost();
 
   useEffect(() => {
-    document.title = 'All Interactive Overlays — The Missing Piece';
-  }, []);
-
-  useEffect(() => {
     if (mountLimit >= INTERACTIVE_OVERLAY_SPECS.length) return;
     const t = setTimeout(() => {
       setMountLimit((prev) => Math.min(INTERACTIVE_OVERLAY_SPECS.length, prev + 1));

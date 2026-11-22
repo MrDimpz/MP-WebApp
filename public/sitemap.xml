@@ -1,115 +1,242 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://missingpiecepuzzles.fun/</loc>
+    <lastmod>2026-11-22</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/hero-image.png</image:loc>
+      <image:title>The Missing Piece — TikTok Interactive Games &amp; Free Daily Word Games</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://missingpiecepuzzles.fun/interactive-games</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/hero-image.png</image:loc>
+      <image:title>TikTok LIVE Interactive Word &amp; Chat Games Hub</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/hero-image.png</image:loc>
+      <image:title>Free Daily Solo Word &amp; Crossword Browser Games</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://missingpiecepuzzles.fun/interactive-games/overlays</loc>
+    <lastmod>2026-11-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.75</priority>
   </url>
-  <!-- Solo Games -->
+  <!-- TikTok LIVE Interactive Games (9 Games) -->
   <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games/mpcolossal</loc>
+    <loc>https://missingpiecepuzzles.fun/interactive-games/mpwh</loc>
+    <lastmod>2026-11-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/mpwh-website-thumbnail.svg</image:loc>
+      <image:title>Word Hunt Extreme — TikTok LIVE Alphabetical Word Ladder Game</image:title>
+    </image:image>
   </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games/rebus</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games/squared</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games/thematix</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games/destack</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games/unolingo</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games/wikirec</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games/wikicon</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games/mpsearch</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games/mpdifference</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/solo-games/tekscodle</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <!-- TikTok Interactive Live Games -->
   <url>
     <loc>https://missingpiecepuzzles.fun/interactive-games/crowdle</loc>
+    <lastmod>2026-11-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/crowdle-website-thumbnail.svg</image:loc>
+      <image:title>Crowdle — TikTok LIVE Crowd-Voted Wordle Game</image:title>
+    </image:image>
   </url>
   <url>
-    <loc>https://missingpiecepuzzles.fun/interactive-games/wikirec</loc>
+    <loc>https://missingpiecepuzzles.fun/interactive-games/inkstream</loc>
+    <lastmod>2026-11-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://missingpiecepuzzles.fun/interactive-games/wikicon</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/inkstream-website-thumbnail.svg</image:loc>
+      <image:title>InkStream — TikTok LIVE Drawing &amp; Word Guessing Game</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://missingpiecepuzzles.fun/interactive-games/squared</loc>
+    <lastmod>2026-11-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/squaredint-website-thumbnail.svg</image:loc>
+      <image:title>Squared Interactive — TikTok LIVE 4x4 Word Grid Game</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://missingpiecepuzzles.fun/interactive-games/lexi</loc>
+    <lastmod>2026-11-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/lexi-website-thumbnail.svg</image:loc>
+      <image:title>Lexi Tiles — TikTok LIVE Anagram Word Game</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://missingpiecepuzzles.fun/interactive-games/destack</loc>
+    <lastmod>2026-11-22</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/destackint-website-thumbnail.svg</image:loc>
+      <image:title>DeStack Interactive — TikTok LIVE 3D Word Pyramid Game</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://missingpiecepuzzles.fun/interactive-games/mpsearch</loc>
+    <lastmod>2026-11-22</lastmod>
     <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/mpsearch-website-thumbnail.svg</image:loc>
+      <image:title>MP Search Interactive — TikTok LIVE 10x10 Word Search Game</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/interactive-games/wikirec</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/wikirecint-website-thumbnail.svg</image:loc>
+      <image:title>WiKirecTangled — TikTok LIVE Wikipedia Word Grid Game</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/interactive-games/wikicon</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/wikiconint-website-thumbnail.svg</image:loc>
+      <image:title>WikiContexto — TikTok LIVE Chat Semantic Word Game</image:title>
+    </image:image>
+  </url>
+  <!-- Solo Word, Crossword & Puzzle Games (11 Hosted Routes) -->
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games/mpcolossal</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/mpcolossal-website-thumbnail.svg</image:loc>
+      <image:title>MP Colossal — 200x200 Giant Crossword Atlas</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games/squared</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/squared-website-thumbnail.svg</image:loc>
+      <image:title>Squared — Free Daily Word Grid Game</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games/unolingo</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/unolingo-website-thumbnail.svg</image:loc>
+      <image:title>Unolingo — Free 26-Letter Zero-Clue Crossword</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games/thematix</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/thematix-website-thumbnail.svg</image:loc>
+      <image:title>Thematix — Daily Word Association Game</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games/destack</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/destack-website-thumbnail.svg</image:loc>
+      <image:title>DeStack — 3D Word Unstacking Puzzle Game</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games/rebus</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/rebus-website-thumbnail.svg</image:loc>
+      <image:title>Missing Rebus — 733+ Visual Wordplay Puzzles</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games/wikirec</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/wikirec-website-thumbnail.svg</image:loc>
+      <image:title>WiKirecTangled Solo — Wikipedia Word Grid Game</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games/wikicon</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/wikicon-website-thumbnail.svg</image:loc>
+      <image:title>WikiContexto Solo — Semantic Word Discovery Game</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games/mpsearch</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/mpsearch-website-thumbnail.svg</image:loc>
+      <image:title>MP Search — Daily 10x10 Word Search Game</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games/mpdifference</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/mpdifference-website-thumbnail.svg</image:loc>
+      <image:title>MP Difference — Daily Spot the Difference Game</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://missingpiecepuzzles.fun/solo-games/tekscodle</loc>
+    <lastmod>2026-11-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://missingpiecepuzzles.fun/tekscodle-website-thumbnail.svg</image:loc>
+      <image:title>TEKSCOdle — UK Supermarket Price Guessing Game</image:title>
+    </image:image>
   </url>
 </urlset>

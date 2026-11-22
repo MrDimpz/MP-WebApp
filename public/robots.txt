@@ -2,42 +2,54 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /socket.io/
+Disallow: /*/overlay$
+Disallow: /*/overlay?
 
 # OpenAI crawlers
 User-agent: GPTBot
 Allow: /
 Disallow: /api/
+Disallow: /*/overlay$
 
 User-agent: OAI-SearchBot
 Allow: /
 Disallow: /api/
+Disallow: /*/overlay$
 
 User-agent: ChatGPT-User
 Allow: /
 Disallow: /api/
+Disallow: /*/overlay$
 
 # Anthropic / Claude crawlers
 User-agent: ClaudeBot
 Allow: /
 Disallow: /api/
+Disallow: /*/overlay$
 
 User-agent: anthropic-ai
 Allow: /
 Disallow: /api/
+Disallow: /*/overlay$
 
 # Perplexity & Google AI crawlers
 User-agent: PerplexityBot
 Allow: /
 Disallow: /api/
+Disallow: /*/overlay$
 
 User-agent: Google-Extended
 Allow: /
+Disallow: /*/overlay$
 
 User-agent: Googlebot
 Allow: /
 Disallow: /api/
+Disallow: /*/overlay$
 
 User-agent: Applebot-Extended
 Allow: /
+Disallow: /*/overlay$
 
+Host: missingpiecepuzzles.fun
 Sitemap: https://missingpiecepuzzles.fun/sitemap.xml
