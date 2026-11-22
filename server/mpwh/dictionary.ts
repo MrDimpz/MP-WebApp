@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
-import words from 'an-array-of-english-words';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import { RAW_TARGET_POOL } from './targetWordsEn.ts';
 import { MULTILANG_WORD_PACKS } from '../../src/data/dictionaries/multilang-word-packs.ts';
 import {
@@ -8,6 +9,10 @@ import {
   type DictionaryLanguageCode,
 } from '../../src/lib/dictionary-languages.ts';
 import type { LadderMode } from '../../src/mpwh/shared/types.ts';
+
+const require = createRequire(import.meta.url);
+const wordsJsonPath = require.resolve('an-array-of-english-words/index.json');
+const words = JSON.parse(fs.readFileSync(wordsJsonPath, 'utf8')) as string[];
 
 interface LanguageDictionary {
   validArray: string[];
@@ -18,7 +23,7 @@ interface LanguageDictionary {
 // Build English dictionary once (4-8 lowercase ASCII letters, ~80,000+ words)
 const EN_VALID_ARRAY: string[] = [];
 const EN_VALID_SET = new Set<string>();
-for (const w of words as string[]) {
+for (const w of words) {
   if (w.length >= 4 && w.length <= 8 && /^[a-z]+$/.test(w)) {
     EN_VALID_SET.add(w);
     EN_VALID_ARRAY.push(w);
