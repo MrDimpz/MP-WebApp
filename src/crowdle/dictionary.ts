@@ -1,6 +1,13 @@
 import lexiDictionary from '../lexi/data/dictionary.json';
 import { WORDS_3, WORDS_4, WORDS_5, WORDS_6 } from '../unolingo/engine/wordBank';
 import { CORE_DICTIONARY } from '../squared/utils/dictionary';
+import {
+  getDictionaryLanguage,
+  normalizeDictionaryLanguage,
+  stripDiacritics,
+  type DictionaryLanguageCode,
+} from '../lib/dictionary-languages';
+import { getMultiLangPack } from '../data/dictionaries/multilang-word-packs';
 
 // Curated primary target and starter words for Crowdle (5 to 8 letters)
 const BASE_CROWDLE_WORDS: Record<number, string[]> = {
@@ -242,18 +249,84 @@ export interface EvaluatedLetter {
   status: LetterStatus;
 }
 
-export function isValidCrowdleWord(word: string, length: number): boolean {
-  const clean = word.trim().toUpperCase();
-  if (clean.length !== length) return false;
-  return validWordSets[length]?.has(clean) ?? false;
+const multiLangCrowdleCache = new Map<
+  DictionaryLanguageCode,
+  { validWordSets: Record<number, Set<string>>; targetPool: Record<number, string[]> }
+>();
+
+function getCrowdleSetsForLanguage(lang?: DictionaryLanguageCode | string | null): {
+  validWordSets: Record<number, Set<string>>;
+  targetPool: Record<number, string[]>;
+} {
+  const code = normalizeDictionaryLanguage(lang ?? getDictionaryLanguage());
+  if (code === 'en') {
+    return { validWordSets, targetPool };
+  }
+  const cached = multiLangCrowdleCache.get(code);
+  if (cached) return cached;
+
+  const pack = getMultiLangPack(code);
+  if (!pack) {
+    return { validWordSets, targetPool };
+  }
+
+  const langValidSets: Record<number, Set<string>> = {
+    5: new Set<string>(),
+    6: new Set<string>(),
+    7: new Set<string>(),
+    8: new Set<string>(),
+  };
+
+  for (const w of pack.words) {
+    if (w.length >= 5 && w.length <= 8) {
+      langValidSets[w.length].add(w);
+    }
+  }
+  // Also include single-word drawing prompts of length 5-8 (diacritic-stripped)
+  for (const prompt of pack.drawingPrompts) {
+    if (!prompt.includes(' ') && !prompt.includes('-')) {
+      const clean = stripDiacritics(prompt).toUpperCase().replace(/[^A-Z]/g, '');
+      if (clean.length >= 5 && clean.length <= 8) {
+        langValidSets[clean.length].add(clean);
+      }
+    }
+  }
+
+  const langTargetPool: Record<number, string[]> = {
+    5: Array.from(langValidSets[5]),
+    6: Array.from(langValidSets[6]),
+    7: Array.from(langValidSets[7]),
+    8: Array.from(langValidSets[8]),
+  };
+
+  const entry = { validWordSets: langValidSets, targetPool: langTargetPool };
+  multiLangCrowdleCache.set(code, entry);
+  return entry;
 }
 
-export function pickTargetWord(length: number, excludeWord?: string | null): string {
-  const pool = targetPool[length] && targetPool[length].length > 0
-    ? targetPool[length]
-    : dictionary[length];
+export function isValidCrowdleWord(
+  word: string,
+  length: number,
+  language?: DictionaryLanguageCode
+): boolean {
+  const clean = stripDiacritics(word).trim().toUpperCase();
+  if (clean.length !== length) return false;
+  const sets = getCrowdleSetsForLanguage(language);
+  return sets.validWordSets[length]?.has(clean) ?? false;
+}
+
+export function pickTargetWord(
+  length: number,
+  excludeWord?: string | null,
+  language?: DictionaryLanguageCode
+): string {
+  const sets = getCrowdleSetsForLanguage(language);
+  const pool =
+    sets.targetPool[length] && sets.targetPool[length].length > 0
+      ? sets.targetPool[length]
+      : dictionary[length];
   if (!pool || pool.length === 0) return 'APPLE';
-  const filtered = excludeWord ? pool.filter(w => w !== excludeWord) : pool;
+  const filtered = excludeWord ? pool.filter((w) => w !== excludeWord) : pool;
   const source = filtered.length > 0 ? filtered : pool;
   return source[Math.floor(Math.random() * source.length)];
 }

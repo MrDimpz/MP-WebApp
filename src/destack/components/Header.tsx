@@ -25,6 +25,7 @@ import {
 import { useDailyStreak } from '@/lib/daily-streak';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { UserProfileIcon } from '@/components/user-profile-icon';
+import { LanguageMenu } from '@/components/language-menu';
 
 interface HeaderProps {
   currentView: GameState;
@@ -188,6 +189,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Zone 3: Actions (Daily Streak, Archive, Leaderboard, Sign In / Account, Sound, Theme, How To Play, Play CTA) */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <LanguageMenu variant="compact" />
         <DailyStreakBadge
           streak={dailyStreak.streak}
           solvedToday={dailyStreak.solvedToday}

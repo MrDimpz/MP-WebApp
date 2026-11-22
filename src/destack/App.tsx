@@ -15,6 +15,7 @@ import {
 } from '@/lib/unified-game-auth';
 import { recordDailyPuzzleSolved } from '@/lib/daily-streak';
 import { triggerVictoryConfetti } from '@/lib/confetti';
+import { useDictionaryLanguage } from '@/lib/dictionary-languages';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import './index.css';
 
@@ -37,6 +38,7 @@ export default function App() {
   const [selectedDateStr, setSelectedDateStr] = useState<string>(() => getLondonDateString());
   const [difficulty, setDifficulty] = useState<DifficultyMode>('normal');
   const [layoutSelection, setLayoutSelection] = useState<LayoutSelection>('daily');
+  const [dictionaryLanguage] = useDictionaryLanguage();
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -95,9 +97,13 @@ export default function App() {
   }, [isDarkMode]);
 
   const currentPuzzle = useMemo(
-    () => generateDailyPuzzle(selectedDateStr, difficulty, layoutSelection),
-    [selectedDateStr, difficulty, layoutSelection]
+    () => generateDailyPuzzle(selectedDateStr, difficulty, layoutSelection, dictionaryLanguage),
+    [selectedDateStr, difficulty, layoutSelection, dictionaryLanguage]
   );
+
+  useEffect(() => {
+    setVictoryData(null);
+  }, [dictionaryLanguage]);
 
   const handleVictory = (timeSeconds: number, hintsUsed: number, score: number, words: string[]) => {
     const prevBestScore = Math.max(

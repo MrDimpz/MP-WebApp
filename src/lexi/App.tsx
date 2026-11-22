@@ -37,6 +37,7 @@ import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-b
 import { getLocalTodayDateStr, useDailyStreak } from '@/lib/daily-streak';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
+import { LanguageMenu } from '@/components/language-menu';
 import { GameFullState } from './types/game.ts';
 import type { ActiveCelebration, RoundSummaryPayload } from './services/gameClient.ts';
 
@@ -518,8 +519,9 @@ export default function App() {
             </a>
           </nav>
 
-          {/* Zone 3: Daily Streak + LIVE Overlay + Connect TikTok + New Round actions */}
+          {/* Zone 3: Language + Daily Streak + LIVE Overlay + Connect TikTok + New Round actions */}
           <div className="flex items-center gap-2.5 shrink-0">
+            <LanguageMenu variant="compact" />
             <DailyStreakBadge
               streak={dailyStreak.streak}
               solvedToday={dailyStreak.solvedToday}

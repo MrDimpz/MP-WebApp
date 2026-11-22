@@ -1,4 +1,11 @@
 import rawDictionary from '../data/dictionary.json';
+import {
+  getDictionaryLanguage,
+  normalizeDictionaryLanguage,
+  stripDiacritics,
+  type DictionaryLanguageCode,
+} from '../../lib/dictionary-languages';
+import { getMultiLangPack } from '../../data/dictionaries/multilang-word-packs';
 
 export interface ValidationResult {
   valid: boolean;
@@ -27,26 +34,64 @@ export class WordValidator {
   private customWords: Set<string> = new Set();
   private excludedWords: Set<string> = new Set();
   private allWordsArray: string[] = [];
+  private language: DictionaryLanguageCode = 'en';
 
   constructor() {
-    this.loadDictionary();
+    this.language = getDictionaryLanguage();
+    this.loadDictionary(this.language);
   }
 
-  public loadDictionary(): void {
+  public getLanguage(): DictionaryLanguageCode {
+    return this.language;
+  }
+
+  public setLanguage(lang: DictionaryLanguageCode): boolean {
+    const normalized = normalizeDictionaryLanguage(lang);
+    if (normalized === this.language && this.baseDictionary.size > 0) {
+      return false;
+    }
+    this.language = normalized;
+    this.loadDictionary(normalized);
+    return true;
+  }
+
+  public loadDictionary(lang?: DictionaryLanguageCode): void {
+    const activeLang = normalizeDictionaryLanguage(lang ?? this.language);
+    this.language = activeLang;
     try {
-      const raw: unknown = rawDictionary;
       this.baseDictionary.clear();
-      if (Array.isArray(raw)) {
-        for (const word of raw) {
-          const clean = this.normalize(String(word));
-          if (clean.length >= 3 && /^[a-z]+$/.test(clean)) {
-            this.baseDictionary.add(clean);
+      if (activeLang === 'en') {
+        const raw: unknown = rawDictionary;
+        if (Array.isArray(raw)) {
+          for (const word of raw) {
+            const clean = this.normalize(String(word));
+            if (clean.length >= 3 && /^[a-z]+$/.test(clean)) {
+              this.baseDictionary.add(clean);
+            }
+          }
+        }
+      } else {
+        const pack = getMultiLangPack(activeLang);
+        if (pack) {
+          for (const word of pack.words) {
+            const clean = this.normalize(word);
+            if (clean.length >= 3 && /^[a-z]+$/.test(clean)) {
+              this.baseDictionary.add(clean);
+            }
+          }
+          for (const prompt of pack.drawingPrompts) {
+            if (!prompt.includes(' ') && !prompt.includes('-')) {
+              const clean = this.normalize(prompt);
+              if (clean.length >= 3 && /^[a-z]+$/.test(clean)) {
+                this.baseDictionary.add(clean);
+              }
+            }
           }
         }
       }
       this.rebuildWordArray();
     } catch (err) {
-      console.error('Failed to load dictionary.json:', err);
+      console.error('Failed to load dictionary:', err);
     }
   }
 
@@ -65,7 +110,7 @@ export class WordValidator {
   }
 
   public normalize(word: string): string {
-    return String(word || '').trim().toLowerCase();
+    return stripDiacritics(String(word || '')).trim().toLowerCase();
   }
 
   public isInDictionary(word: string): boolean {

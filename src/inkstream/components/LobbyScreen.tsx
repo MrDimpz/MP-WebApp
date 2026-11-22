@@ -16,6 +16,7 @@ import {
 import type { AvatarConfig, PublicRoomSummary, PublicUser } from '../shared/types.ts';
 import { Avatar, AvatarCustomizer } from './Avatar.tsx';
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
+import { LanguageMenu } from '@/components/language-menu';
 
 interface LobbyScreenProps {
   user: PublicUser | null;
@@ -250,6 +251,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
           </nav>
 
           <div className="flex items-center gap-2.5 shrink-0">
+            <LanguageMenu variant="compact" />
             <LiveOverlayButton
               gameTitle="InkStream"
               gameSlug="inkstream"

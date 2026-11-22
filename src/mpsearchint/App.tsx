@@ -62,6 +62,13 @@ import {
 } from '@/lib/live-chat-bridge';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import {
+  useDictionaryLanguage,
+  stripDiacritics,
+  normalizeDictionaryLanguage,
+  type DictionaryLanguageCode,
+} from '@/lib/dictionary-languages';
+import { LanguageMenu } from '@/components/language-menu';
+import {
   DailyPuzzle,
   generateTwelveMonthArchive,
   pickRandomArchivePuzzle,
@@ -115,6 +122,7 @@ interface MPSearchOverlayPayload {
   autoAdvanceEnabled: boolean;
   hintTargetWord: string | null;
   hintTier: number;
+  language?: DictionaryLanguageCode;
 }
 
 const LOCAL_STORAGE_THEME_KEY = 'mpsearchint_dark_mode_v2';
@@ -158,13 +166,20 @@ export default function MPSearchInteractiveApp() {
   const overlayConfig = useOverlayConfig();
   const { isOverlay } = overlayConfig;
   const todayDateStr = useMemo(() => getLondonTodayDateStr(), []);
+  const [dictionaryLanguage] = useDictionaryLanguage();
+  const [overlayLanguage, setOverlayLanguage] =
+    useState<DictionaryLanguageCode>(dictionaryLanguage);
+  const activeLanguage = isOverlay ? overlayLanguage : dictionaryLanguage;
 
   // 12-Month Archive (368 Daily Puzzles = original 6 months + another 6 months)
-  const archive = useMemo(() => generateTwelveMonthArchive(todayDateStr), [todayDateStr]);
+  const archive = useMemo(
+    () => generateTwelveMonthArchive(todayDateStr, activeLanguage),
+    [todayDateStr, activeLanguage]
+  );
 
   // Pick a random puzzle from the 368-puzzle archive for the initial round
   const [currentDateKey, setCurrentDateKey] = useState<string>(() => {
-    const initialRandom = pickRandomArchivePuzzle(archive);
+    const initialRandom = pickRandomArchivePuzzle(archive, undefined, activeLanguage);
     return initialRandom.dateKey;
   });
   const [roundNumber, setRoundNumber] = useState<number>(1);
@@ -340,6 +355,25 @@ export default function MPSearchInteractiveApp() {
     [isOverlay, archive, currentDateKey, roundNumber]
   );
 
+  // Reset active round cleanly when host switches dictionary language
+  const prevDictLangRef = useRef<DictionaryLanguageCode>(dictionaryLanguage);
+  useEffect(() => {
+    if (isOverlay) return;
+    if (prevDictLangRef.current !== dictionaryLanguage) {
+      prevDictLangRef.current = dictionaryLanguage;
+      setFoundWords([]);
+      setFoundEntries([]);
+      setPlayersMap({});
+      setElapsedSeconds(0);
+      setHintsUsed(0);
+      setHintTargetWord(null);
+      setHintTier(0);
+      setShowRequiredWordsPopup(false);
+      setAutoNextCountdown(null);
+      setRecentDiscoveryBanner(null);
+    }
+  }, [isOverlay, dictionaryLanguage]);
+
   // Trigger Auto-Next Round Countdown when all required words (8-12) are found
   useEffect(() => {
     if (isOverlay) return;
@@ -388,6 +422,7 @@ export default function MPSearchInteractiveApp() {
       autoAdvanceEnabled,
       hintTargetWord,
       hintTier,
+      language: activeLanguage,
     }),
     [
       roundNumber,
@@ -401,11 +436,15 @@ export default function MPSearchInteractiveApp() {
       autoAdvanceEnabled,
       hintTargetWord,
       hintTier,
+      activeLanguage,
     ]
   );
 
   const handleOverlayUpdate = useCallback((data: MPSearchOverlayPayload) => {
     if (!data) return;
+    if (data.language) {
+      setOverlayLanguage(normalizeDictionaryLanguage(data.language));
+    }
     setRoundNumber(data.roundNumber ?? 1);
     if (data.dateKey) setCurrentDateKey(data.dateKey);
     if (Array.isArray(data.foundWords)) setFoundWords(data.foundWords);
@@ -440,7 +479,10 @@ export default function MPSearchInteractiveApp() {
       rawWord: string,
       playerInfo?: { id?: string; username?: string; nickname?: string; avatar?: string }
     ): boolean => {
-      const normalizedWord = rawWord.trim().toUpperCase().replace(/[^A-Z]/g, '');
+      const normalizedWord = stripDiacritics(rawWord)
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z]/g, '');
       if (!normalizedWord) return false;
 
       // Verify word is in currentPuzzle.words and not yet found
@@ -694,8 +736,8 @@ export default function MPSearchInteractiveApp() {
         data.avatar ||
         `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(handle)}`;
 
-      // Tokenize incoming chat comment into candidate uppercase words
-      const tokens = rawComment
+      // Tokenize incoming chat comment into candidate uppercase words (diacritic-insensitive)
+      const tokens = stripDiacritics(rawComment)
         .toUpperCase()
         .split(/[^A-Z]+/)
         .filter((t) => t.length >= 3 && t.length <= 10);
@@ -771,7 +813,7 @@ export default function MPSearchInteractiveApp() {
     const raw = chatInputWord.trim();
     if (!raw) return;
     const handle = (chatInputHandle.trim() || 'crowd_spotter').replace(/^@/, '');
-    const upper = raw.toUpperCase().replace(/[^A-Z]/g, '');
+    const upper = stripDiacritics(raw).toUpperCase().replace(/[^A-Z]/g, '');
 
     const ok = awardWordToPlayer(upper, {
       id: handle.toLowerCase(),
@@ -1173,8 +1215,9 @@ export default function MPSearchInteractiveApp() {
               </button>
             </div>
 
-            {/* Right: Overlay URL Button, Random Round, Archive, Streak, Theme & Auth */}
+            {/* Right: Language Menu, Overlay URL Button, Random Round, Archive, Streak, Theme & Auth */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <LanguageMenu variant="compact" />
               <LiveOverlayButton
                 gameTitle="MP Search Interactive"
                 gameSlug="mpsearch"

@@ -40,6 +40,8 @@ import {
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { UserProfileIcon } from '@/components/user-profile-icon';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
+import { LanguageMenu } from '@/components/language-menu';
+import { useDictionaryLanguage } from '@/lib/dictionary-languages';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import {
   generateSixMonthArchive,
@@ -62,8 +64,12 @@ const LOCAL_STORAGE_LARGE_PRINT_KEY = 'mpsearch_large_print';
 
 export default function App() {
   const todayDateStr = useMemo(() => getLondonTodayDateStr(), []);
-  // Generate 6-month (184 days) deterministic daily archive anchored to today's London date
-  const archive = useMemo(() => generateSixMonthArchive(todayDateStr), [todayDateStr]);
+  const [dictionaryLanguage] = useDictionaryLanguage();
+  // Generate 12-month (368 days) deterministic daily archive anchored to today's London date
+  const archive = useMemo(
+    () => generateSixMonthArchive(todayDateStr, dictionaryLanguage),
+    [todayDateStr, dictionaryLanguage]
+  );
   const latestPuzzle = archive[archive.length - 1];
 
   const [gameState, setGameState] = useState<GameState>('TITLE_MENU');
@@ -173,23 +179,32 @@ export default function App() {
     (dateKey: string, forceFreshReplay = false) => {
       const targetPuzzle = archive.find((p) => p.dateKey === dateKey) || latestPuzzle;
       const saved = progressMap[targetPuzzle.dateKey];
+      const validWordSet = new Set(targetPuzzle.words.map((w) => w.word));
+      const matchingSavedWords = saved
+        ? saved.foundWords.filter((w) => validWordSet.has(w))
+        : [];
+      const savedMatchesCurrentPuzzle =
+        Boolean(saved) &&
+        (saved.foundWords.length === 0 || matchingSavedWords.length === saved.foundWords.length);
 
       if (
         saved &&
+        savedMatchesCurrentPuzzle &&
         !forceFreshReplay &&
         saved.completedCount === 0 &&
-        saved.foundWords.length < targetPuzzle.words.length
+        matchingSavedWords.length < targetPuzzle.words.length
       ) {
-        setFoundWords(saved.foundWords);
+        setFoundWords(matchingSavedWords);
         setElapsedSeconds(saved.elapsedSeconds);
         setHintsUsed(saved.hintsUsed);
       } else if (
         saved &&
+        savedMatchesCurrentPuzzle &&
         !forceFreshReplay &&
         saved.completedCount >= 1 &&
-        saved.foundWords.length === targetPuzzle.words.length
+        matchingSavedWords.length === targetPuzzle.words.length
       ) {
-        setFoundWords(saved.foundWords);
+        setFoundWords(matchingSavedWords);
         setElapsedSeconds(saved.bestTimeSeconds || saved.elapsedSeconds);
         setHintsUsed(saved.hintsUsed);
       } else {
@@ -211,6 +226,17 @@ export default function App() {
       loadPuzzleSession(latestPuzzle.dateKey);
     }
   }, [latestPuzzle.dateKey, loadPuzzleSession]);
+
+  // Reset active board state cleanly when switching dictionary language
+  const prevDictionaryLangRef = useRef(dictionaryLanguage);
+  useEffect(() => {
+    if (prevDictionaryLangRef.current !== dictionaryLanguage) {
+      prevDictionaryLangRef.current = dictionaryLanguage;
+      loadPuzzleSession(currentDateKey, true);
+      setRecentlyFoundWord(null);
+      setGameState((prev) => (prev === 'ROUND_SUMMARY' ? 'PLAYING' : prev));
+    }
+  }, [dictionaryLanguage, currentDateKey, loadPuzzleSession]);
 
   const isPuzzleComplete = foundWords.length === currentPuzzle.words.length;
 
@@ -651,6 +677,7 @@ export default function App() {
 
         {/* Zone 3: Right Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <LanguageMenu variant="compact" />
           <DailyStreakBadge
             streak={dailyStreak.streak}
             solvedToday={dailyStreak.solvedToday}

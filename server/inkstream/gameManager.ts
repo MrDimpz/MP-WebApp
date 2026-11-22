@@ -20,7 +20,15 @@ import type {
   TikTokStatus,
   TurnSummaryData,
 } from '../../src/inkstream/shared/types.ts';
-import { DEFAULT_WORDS, isCloseGuess } from '../../src/inkstream/shared/words.ts';
+import {
+  DEFAULT_WORDS,
+  getInkStreamWords,
+  isCloseGuess,
+} from '../../src/inkstream/shared/words.ts';
+import {
+  normalizeDictionaryLanguage,
+  stripDiacritics,
+} from '../../src/lib/dictionary-languages.ts';
 import { store } from './store.ts';
 import { TikTokRoomBridge, type IncomingTikTokChat } from './tiktokManager.ts';
 
@@ -97,6 +105,7 @@ const DEFAULT_SETTINGS: RoomSettings = {
   hintsCount: 2,
   customWords: [],
   customWordsOnly: false,
+  language: 'en',
 };
 
 const WORD_SELECT_SECONDS = 15;
@@ -118,7 +127,7 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 function normalizeGuessText(raw: string): string {
-  return raw
+  return stripDiacritics(raw)
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s'-]/gu, ' ')
     .replace(/\s+/g, ' ')
@@ -185,6 +194,10 @@ function sanitizeSettings(
     typeof patch.customWordsOnly === 'boolean'
       ? patch.customWordsOnly
       : current.customWordsOnly;
+  const language =
+    patch.language !== undefined
+      ? normalizeDictionaryLanguage(patch.language)
+      : normalizeDictionaryLanguage(current.language);
 
   return {
     name,
@@ -197,6 +210,7 @@ function sanitizeSettings(
     hintsCount,
     customWords,
     customWordsOnly,
+    language,
   };
 }
 
@@ -404,10 +418,19 @@ export class GameManager {
     return room;
   }
 
-  joinOrQuickPlay(user: PublicUser, socketId: string): InternalRoom {
+  joinOrQuickPlay(
+    user: PublicUser,
+    socketId: string,
+    language?: RoomSettings['language']
+  ): InternalRoom {
+    const requestedLang = language ?? 'en';
     for (const room of this.rooms.values()) {
       const connected = this.getConnectedPlayers(room);
-      if (!room.settings.isPrivate && connected.length < room.settings.maxPlayers) {
+      if (
+        !room.settings.isPrivate &&
+        connected.length < room.settings.maxPlayers &&
+        (room.settings.language ?? 'en') === requestedLang
+      ) {
         const res = this.joinRoom(room.id, user, socketId);
         if (res.room) return res.room;
       }
@@ -415,6 +438,7 @@ export class GameManager {
     return this.createRoom(user, socketId, {
       name: `${user.username}'s Public Room`,
       isPrivate: false,
+      language: requestedLang,
     });
   }
 
@@ -1444,7 +1468,7 @@ export class GameManager {
       if (room.timeRemaining <= 0) {
         const autoWord =
           room.wordOptions[Math.floor(Math.random() * room.wordOptions.length)] ??
-          DEFAULT_WORDS[0];
+          getInkStreamWords(room.settings.language)[0] ?? DEFAULT_WORDS[0];
         this.startDrawingPhase(room, autoWord);
       } else {
         this.io.to(room.id).emit('game:tick', {
@@ -1667,7 +1691,7 @@ export class GameManager {
     if (room.settings.customWordsOnly && room.settings.customWords.length >= 2) {
       pool = [...room.settings.customWords];
     } else {
-      pool = [...DEFAULT_WORDS, ...room.settings.customWords];
+      pool = [...getInkStreamWords(room.settings.language), ...room.settings.customWords];
     }
     const fresh = pool.filter((w) => !room.usedWords.has(w.toLowerCase()));
     const source = fresh.length >= room.settings.wordChoices ? fresh : pool;

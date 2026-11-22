@@ -24,6 +24,7 @@ import {
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
 import { useDailyStreak } from '@/lib/daily-streak';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
+import { LanguageMenu } from '@/components/language-menu';
 
 interface HeaderProps {
   currentView: GameState;
@@ -183,6 +184,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Zone 3: Actions (Daily Streak, TikTok LIVE Overlay, Connect, Unified Account, Leaderboards, Archive, Sound, Theme, Play CTA) */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <LanguageMenu variant="compact" />
         <DailyStreakBadge
           streak={dailyStreak.streak}
           solvedToday={dailyStreak.solvedToday}

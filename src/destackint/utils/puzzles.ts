@@ -1,5 +1,11 @@
 import { WordPuzzle, TileData, DifficultyMode, LayoutMode } from '../types';
 import { dictionary } from '../../crowdle/dictionary';
+import {
+  getDictionaryLanguage,
+  normalizeDictionaryLanguage,
+  type DictionaryLanguageCode,
+} from '../../lib/dictionary-languages';
+import { getDeStackLanguageBank } from '../../data/dictionaries/multilang-search-themes';
 
 export interface PatternSlot {
   gridX: number;
@@ -368,23 +374,38 @@ export function generateDailyPuzzle(
   dateStr: string,
   difficulty: DifficultyMode = 'normal',
   layoutMode: LayoutMode = 'daily',
-  roundSeed: number = 0
+  roundSeed: number = 0,
+  language?: DictionaryLanguageCode
 ): WordPuzzle {
-  const cacheKey = `${dateStr}|${difficulty}|${layoutMode}|${roundSeed}`;
+  const activeLang = normalizeDictionaryLanguage(language ?? getDictionaryLanguage());
+  const cacheKey =
+    activeLang === 'en'
+      ? `${dateStr}|${difficulty}|${layoutMode}|${roundSeed}`
+      : `${dateStr}|${difficulty}|${layoutMode}|${roundSeed}|${activeLang}`;
   const cached = PUZZLE_CACHE.get(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const seedKey =
+  const baseSeedKey =
     roundSeed > 0
       ? `${dateStr}-${difficulty}-${layoutMode}-round-${roundSeed}-V5`
       : `${dateStr}-${difficulty}-${layoutMode}-V5`;
+  const seedKey = activeLang === 'en' ? baseSeedKey : `${baseSeedKey}-${activeLang}`;
   let baseHash = 2166136261;
   for (let i = 0; i < seedKey.length; i++) {
     baseHash ^= seedKey.charCodeAt(i);
     baseHash = Math.imul(baseHash, 16777619);
   }
+
+  const langBank = activeLang === 'en' ? null : getDeStackLanguageBank(activeLang);
+  const activeWordBank = langBank ? langBank.wordBank : WORD_BANK;
+  const activeWordMasks = langBank ? langBank.wordMasks : WORD_MASKS;
+  const activeWordCharBits = langBank ? langBank.wordCharBits : WORD_CHAR_BITS;
+  const activeDict5Words = langBank ? langBank.dict5Words : DICT5_WORDS;
+  const activeDict5Masks = langBank ? langBank.dict5Masks : DICT5_MASKS;
+  const activeDict5Chars = langBank ? langBank.dict5Chars : DICT5_CHARS;
+  const activeDict5Buckets = langBank ? langBank.dict5Buckets : DICT5_BUCKETS;
 
   const patternSeedDate = roundSeed > 0 ? `${dateStr}-r${roundSeed}` : dateStr;
   const pattern = getPatternForMode(difficulty, layoutMode, patternSeedDate);
@@ -417,7 +438,7 @@ export function generateDailyPuzzle(
   const assignedStepBits = new Uint32Array(totalSlots);
   const assignedSlotCodes = new Uint8Array(totalSlots);
   const chosenWordBankIndices: number[] = new Array(wordCount).fill(0);
-  const usedBankSet = new Uint8Array(WORD_BANK.length);
+  const usedBankSet = new Uint8Array(activeWordBank.length);
 
   let finalAssignedSlotCodes: Uint8Array | null = null;
   let finalChosenWordBankIndices: number[] | null = null;
@@ -507,7 +528,7 @@ export function generateDailyPuzzle(
         .map(s => stepOfSlot[s]);
     });
 
-    const shuffledBankIndices = WORD_BANK.map((_, i) => i);
+    const shuffledBankIndices = activeWordBank.map((_, i) => i);
     for (let i = shuffledBankIndices.length - 1; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1));
       [shuffledBankIndices[i], shuffledBankIndices[j]] = [shuffledBankIndices[j], shuffledBankIndices[i]];
@@ -521,7 +542,7 @@ export function generateDailyPuzzle(
 
       function dfs(letterIdx: number): boolean {
         if (letterIdx === 5) return true;
-        const targetCode = DICT5_CHARS[dictWordOffset + letterIdx];
+        const targetCode = activeDict5Chars[dictWordOffset + letterIdx];
 
         for (let s = 0; s < totalSlots; s++) {
           if (clearedFlags[s]) continue;
@@ -580,19 +601,19 @@ export function generateDailyPuzzle(
 
         const baseOffset = bankIdx * 5;
         if (
-          (WORD_CHAR_BITS[baseOffset] & forbiddenMasks[0]) ||
-          (WORD_CHAR_BITS[baseOffset + 1] & forbiddenMasks[1]) ||
-          (WORD_CHAR_BITS[baseOffset + 2] & forbiddenMasks[2]) ||
-          (WORD_CHAR_BITS[baseOffset + 3] & forbiddenMasks[3]) ||
-          (WORD_CHAR_BITS[baseOffset + 4] & forbiddenMasks[4])
+          (activeWordCharBits[baseOffset] & forbiddenMasks[0]) ||
+          (activeWordCharBits[baseOffset + 1] & forbiddenMasks[1]) ||
+          (activeWordCharBits[baseOffset + 2] & forbiddenMasks[2]) ||
+          (activeWordCharBits[baseOffset + 3] & forbiddenMasks[3]) ||
+          (activeWordCharBits[baseOffset + 4] & forbiddenMasks[4])
         ) {
           continue;
         }
 
-        const candidateWord = WORD_BANK[bankIdx].word;
+        const candidateWord = activeWordBank[bankIdx].word;
         for (let k = 0; k < 5; k++) {
           const step = baseStep + k;
-          assignedStepBits[step] = WORD_CHAR_BITS[baseOffset + k];
+          assignedStepBits[step] = activeWordCharBits[baseOffset + k];
           assignedSlotCodes[slotOrder[step]] = candidateWord.charCodeAt(k);
         }
 
@@ -601,18 +622,18 @@ export function generateDailyPuzzle(
         for (let e = 0; e < expStartSlots.length; e++) {
           exposedStartMask |= assignedStepBits[stepOfSlot[expStartSlots[e]]];
         }
-        const totalRemMask = remainingMask | WORD_MASKS[bankIdx];
+        const totalRemMask = remainingMask | activeWordMasks[bankIdx];
 
-        // Strictly forbid ANY other 5-letter English word (plurals, anagrams, inflections, etc.)
+        // Strictly forbid ANY other 5-letter word in the active language dictionary
         // from being formable from the board at this step. Only iterate buckets of exposed first letters.
         let valid = true;
         for (let c = 0; c < 26 && valid; c++) {
           if ((exposedStartMask & (1 << c)) === 0) continue;
-          const bucket = DICT5_BUCKETS[c];
+          const bucket = activeDict5Buckets[c];
           for (let bi = 0; bi < bucket.length; bi++) {
             const dIdx = bucket[bi];
-            if ((DICT5_MASKS[dIdx] & totalRemMask) !== DICT5_MASKS[dIdx]) continue;
-            if (DICT5_WORDS[dIdx] === candidateWord) continue;
+            if ((activeDict5Masks[dIdx] & totalRemMask) !== activeDict5Masks[dIdx]) continue;
+            if (activeDict5Words[dIdx] === candidateWord) continue;
             if (canFormDictWordFromStep(baseStep, dIdx * 5)) {
               valid = false;
               break;
@@ -664,10 +685,10 @@ export function generateDailyPuzzle(
   // Defensive fallback only if all attempts failed (never expected with 500 attempts)
   const finalAssignedSlotLetters: string[] = new Array(totalSlots).fill('A');
   if (!finalAssignedSlotCodes || !finalChosenWordBankIndices) {
-    finalChosenWordBankIndices = WORD_BANK.slice(0, wordCount).map((_, i) => i);
+    finalChosenWordBankIndices = activeWordBank.slice(0, wordCount).map((_, i) => i);
     for (let w = 0; w < wordCount; w++) {
       for (let k = 0; k < 5; k++) {
-        finalAssignedSlotLetters[w * 5 + k] = WORD_BANK[w].word[k];
+        finalAssignedSlotLetters[w * 5 + k] = activeWordBank[w].word[k];
       }
     }
   } else {
@@ -676,8 +697,8 @@ export function generateDailyPuzzle(
     }
   }
 
-  const words = finalChosenWordBankIndices.map(idx => WORD_BANK[idx].word);
-  const hints = finalChosenWordBankIndices.map(idx => WORD_BANK[idx].hint);
+  const words = finalChosenWordBankIndices.map(idx => activeWordBank[idx].word);
+  const hints = finalChosenWordBankIndices.map(idx => activeWordBank[idx].hint);
 
   const maxAbsX = pattern.reduce(
     (acc, s) => Math.max(acc, Math.abs(s.gridX)),
@@ -692,9 +713,13 @@ export function generateDailyPuzzle(
   const stepPctX = targetHalfSpanX / maxAbsX;
   const stepPctY = targetHalfSpanY / maxAbsY;
 
+  const tilePrefix =
+    activeLang === 'en'
+      ? `tile-${dateStr}-${difficulty}`
+      : `tile-${dateStr}-${difficulty}-${activeLang}`;
   const tiles: TileData[] = pattern.map((slot, idx) => {
-    const id = `tile-${dateStr}-${difficulty}-${idx}`;
-    const coveredBy = coveredByIndices[idx].map(covIdx => `tile-${dateStr}-${difficulty}-${covIdx}`);
+    const id = `${tilePrefix}-${idx}`;
+    const coveredBy = coveredByIndices[idx].map(covIdx => `${tilePrefix}-${covIdx}`);
     return {
       id,
       letter: finalAssignedSlotLetters![idx],

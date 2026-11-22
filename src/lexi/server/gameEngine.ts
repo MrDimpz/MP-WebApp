@@ -6,6 +6,10 @@ import { LetterGenerator, GeneratedBoard, DifficultyLevel, BoardModifiers } from
 import { scoringEngine, ScoringEngine, WordScoreBreakdown } from './scoringEngine.ts';
 import { leaderboardManager, LeaderboardManager } from './leaderboard.ts';
 import { RoundManager } from './roundManager.ts';
+import {
+  subscribeDictionaryLanguage,
+  type DictionaryLanguageCode,
+} from '../../lib/dictionary-languages';
 
 const GAME_CONFIG_STORAGE_KEY = 'lexi_game_v2';
 const SETTINGS_CONFIG_STORAGE_KEY = 'lexi_settings_v2';
@@ -186,6 +190,19 @@ export class GameEngine {
       onRoundStart: () => this.handleRoundStarted(),
       onRoundEnd: (reason) => this.handleRoundEnded(reason),
     });
+
+    if (typeof window !== 'undefined') {
+      subscribeDictionaryLanguage((nextLang) => {
+        this.applyDictionaryLanguage(nextLang);
+      });
+    }
+  }
+
+  public applyDictionaryLanguage(lang: DictionaryLanguageCode): void {
+    const changed = this.validator.setLanguage(lang);
+    if (!changed) return;
+    this.prepareBoardForRound();
+    this.events.emitGameEvent('state:sync', this.getFullState());
   }
 
   public ensureStarted(): void {

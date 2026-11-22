@@ -12,6 +12,8 @@ import {
 import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
+import { LanguageMenu } from '@/components/language-menu';
+import { useDictionaryLanguage } from '@/lib/dictionary-languages';
 import {
   RotateCw,
   Lightbulb,
@@ -136,10 +138,12 @@ export default function App() {
     localStorage.setItem('missing_piece_board_dark_v2', String(boardDarkMode));
   }, [boardDarkMode]);
 
+  const [dictionaryLanguage] = useDictionaryLanguage();
+
   // Generate deterministic puzzle board for selected date (100% tile coverage guaranteed)
   const basePuzzle: PuzzleBoard = useMemo(() => {
-    return generatePuzzle(mode, selectedDateStr);
-  }, [mode, selectedDateStr]);
+    return generatePuzzle(mode, selectedDateStr, dictionaryLanguage);
+  }, [mode, selectedDateStr, dictionaryLanguage]);
 
   // Monotonically increasing 90-deg rotation steps (0, 1, 2, 3, 4...) — never resets, so zero flash/jiggle!
   const [rotationSteps, setRotationSteps] = useState<number>(0);
@@ -680,8 +684,9 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right: Daily Streak, Mode Switcher, LoggedInIndicator, High Scores/Auth, Board Dark Mode Toggle, Audio Mute & Menu */}
+          {/* Right: Language, Daily Streak, Mode Switcher, LoggedInIndicator, High Scores/Auth, Board Dark Mode Toggle, Audio Mute & Menu */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            <LanguageMenu variant="compact" />
             <DailyStreakBadge
               streak={dailyStreak.streak}
               solvedToday={dailyStreak.solvedToday}

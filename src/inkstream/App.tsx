@@ -61,6 +61,8 @@ import {
   createEventDeduplicator,
   liveChatBridge,
 } from '@/lib/live-chat-bridge';
+import { LanguageMenu } from '@/components/language-menu';
+import { useDictionaryLanguage } from '@/lib/dictionary-languages';
 
 interface LiveSegmentEvent {
   strokeId: string;
@@ -131,6 +133,7 @@ function InkStreamOverlayRoute() {
 function InkStreamApp() {
   const { user: siteUser } = useUnifiedAuth();
   const activeStreamer = getActiveInteractiveStreamerSession();
+  const [dictionaryLanguage] = useDictionaryLanguage();
 
   // Bearer token kept strictly in JS memory (never localStorage/sessionStorage)
   const [token, setToken] = useState<string | null>(null);
@@ -634,9 +637,13 @@ function InkStreamApp() {
   // --- Room Actions ---
   const handleQuickPlay = () => {
     setRoomError(null);
-    socketRef.current?.emit('room:quick-play', (res: { ok: boolean; error?: string }) => {
-      if (!res.ok && res.error) setRoomError(res.error);
-    });
+    socketRef.current?.emit(
+      'room:quick-play',
+      { language: dictionaryLanguage },
+      (res: { ok: boolean; error?: string }) => {
+        if (!res.ok && res.error) setRoomError(res.error);
+      }
+    );
   };
 
   const handleCreatePrivateRoom = (config: {
@@ -656,6 +663,7 @@ function InkStreamApp() {
         drawTime: config.drawTime,
         maxPlayers: config.maxPlayers,
         streamerMode: config.streamerMode,
+        language: dictionaryLanguage,
       },
       (res: { ok: boolean; error?: string }) => {
         if (!res.ok && res.error) setRoomError(res.error);
@@ -707,6 +715,12 @@ function InkStreamApp() {
       }
     );
   };
+
+  useEffect(() => {
+    if (!room || !user || room.ownerId !== user.id) return;
+    if (room.settings.language === dictionaryLanguage) return;
+    socketRef.current?.emit('room:update-settings', { language: dictionaryLanguage });
+  }, [dictionaryLanguage, room, user]);
 
   const handleStartGame = (solo: boolean) => {
     if (!tryConsumeOrCheckNextRound('inkstream')) {
@@ -1012,6 +1026,7 @@ function InkStreamApp() {
 
           {/* Right: Utility Controls (LIVE Overlay, Streamer Word Popup, TikTok LIVE, Sound, Gallery, Analytics, Leave) */}
           <div className="flex items-center gap-1.5 shrink-0">
+            <LanguageMenu variant="compact" />
             <LiveOverlayButton
               gameTitle="InkStream"
               gameSlug="inkstream"

@@ -7,6 +7,7 @@ import { UserProfileIcon } from '@/components/user-profile-icon';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import { AdminPortalModal } from '@/components/interactive-games/admin-portal-modal';
 import { ContactUsModal } from '@/components/contact-us-modal';
+import { LanguageMenu } from '@/components/language-menu';
 
 const SITE_DARK_MODE_KEY = 'mp_site_dark_mode_v2';
 
@@ -112,15 +113,7 @@ export function SiteHeader() {
               </>
             )}
           </button>
-          <button
-            type="button"
-            onClick={() => setDarkMode((d) => !d)}
-            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="header-action"
-          >
-            {darkMode ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
+          <LanguageMenu variant="header" />
           <button
             type="button"
             onClick={() => setContactModalOpen(true)}
@@ -130,9 +123,15 @@ export function SiteHeader() {
             <Mail size={15} />
             <span>Contact us</span>
           </button>
-          <Link className="header-action" to="/#games">
-            Find your game <ArrowUpRight size={17} />
-          </Link>
+          <button
+            type="button"
+            onClick={() => setDarkMode((d) => !d)}
+            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="header-action"
+          >
+            {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
         </div>
       </header>
 

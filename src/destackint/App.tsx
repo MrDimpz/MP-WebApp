@@ -47,6 +47,7 @@ import {
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
 import { triggerVictoryConfetti } from '@/lib/confetti';
+import { useDictionaryLanguage } from '@/lib/dictionary-languages';
 import './index.css';
 
 interface DeStackOverlayPayload {
@@ -94,6 +95,7 @@ export default function App() {
   const [difficulty, setDifficulty] = useState<DifficultyMode>('normal');
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('daily');
   const [timerDuration, setTimerDuration] = useState<TimerDuration>(30);
+  const [dictionaryLanguage] = useDictionaryLanguage();
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -610,8 +612,14 @@ export default function App() {
   }, [isOverlay]);
 
   const currentPuzzle = useMemo(() => {
-    return generateDailyPuzzle(selectedDateStr, difficulty, layoutMode, puzzleRoundNonce);
-  }, [selectedDateStr, difficulty, layoutMode, puzzleRoundNonce]);
+    return generateDailyPuzzle(
+      selectedDateStr,
+      difficulty,
+      layoutMode,
+      puzzleRoundNonce,
+      dictionaryLanguage
+    );
+  }, [selectedDateStr, difficulty, layoutMode, puzzleRoundNonce, dictionaryLanguage]);
 
   const isFirstRoundEffectRef = useRef(true);
   useEffect(() => {
@@ -625,7 +633,15 @@ export default function App() {
     setChatFeed([]);
     roundIdRef.current += 1;
     creditedSolversByWordRef.current.clear();
-  }, [isOverlay, selectedDateStr, difficulty, layoutMode, puzzleRoundNonce, resetSignal]);
+  }, [
+    isOverlay,
+    selectedDateStr,
+    difficulty,
+    layoutMode,
+    puzzleRoundNonce,
+    resetSignal,
+    dictionaryLanguage,
+  ]);
 
   const hostOverlayPayload = useMemo<DeStackOverlayPayload>(
     () => ({

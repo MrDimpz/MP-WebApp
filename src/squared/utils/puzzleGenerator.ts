@@ -1,4 +1,14 @@
-import { CORE_DICTIONARY, CORE_PREFIXES, calculateWordScore } from './dictionary';
+import { getSquaredLexicon, calculateWordScore } from './dictionary';
+import {
+  getDictionaryLanguage,
+  normalizeDictionaryLanguage,
+  stripDiacritics,
+  type DictionaryLanguageCode,
+} from '../../lib/dictionary-languages';
+import {
+  getMultiLangFeaturedSeeds,
+  getMultiLangPack,
+} from '../../data/dictionaries/multilang-word-packs';
 
 export type GameModeId = 'express-3x3' | 'daily-4x4' | 'royal-5x5';
 
@@ -139,21 +149,23 @@ function getCoveredCellsSet(wordMap: Map<string, number[]>): Set<number> {
 export function solveBoardGrid(
   grid: string[],
   size: number,
-  maxWordsCap: number = 65
+  maxWordsCap: number = 65,
+  language?: DictionaryLanguageCode
 ): Map<string, number[]> {
+  const { dictionary: activeDict, prefixes: activePrefixes } = getSquaredLexicon(language);
   const foundPaths = new Map<string, number[]>();
   const totalCells = size * size;
   const visited = new Array(totalCells).fill(false);
 
   function dfs(cellIdx: number, currentWord: string, currentPath: number[]) {
-    if (currentWord.length >= 4 && CORE_DICTIONARY.has(currentWord)) {
+    if (currentWord.length >= 4 && activeDict.has(currentWord)) {
       if (!foundPaths.has(currentWord)) {
         foundPaths.set(currentWord, [...currentPath]);
       }
     }
 
     if (currentWord.length >= 9) return;
-    if (!CORE_PREFIXES.has(currentWord)) return;
+    if (!activePrefixes.has(currentWord)) return;
 
     const neighbors = getNeighbors(cellIdx, size);
     for (const nextIdx of neighbors) {
@@ -215,7 +227,7 @@ export function solveBoardGrid(
  * Finds all valid contiguous paths on the current grid that match a typed string prefix or full word
  */
 export function findPathsForInput(grid: string[], size: number, input: string): number[][] {
-  const target = input.toUpperCase().replace(/[^A-Z]/g, '');
+  const target = stripDiacritics(input).toUpperCase().replace(/[^A-Z]/g, '');
   if (!target) return [];
 
   const results: number[][] = [];
@@ -288,10 +300,11 @@ function ensureFullTileCoverage(
   grid: string[],
   size: number,
   protectedIndices: Set<number>,
-  maxCap: number
+  maxCap: number,
+  language?: DictionaryLanguageCode
 ): { grid: string[]; solved: Map<string, number[]> } {
   const workingGrid = [...grid];
-  let solved = solveBoardGrid(workingGrid, size, maxCap);
+  let solved = solveBoardGrid(workingGrid, size, maxCap, language);
   let covered = getCoveredCellsSet(solved);
   const totalCells = size * size;
 
@@ -310,7 +323,7 @@ function ensureFullTileCoverage(
 
       for (const candidateChar of REPAIR_CANDIDATE_LETTERS) {
         workingGrid[cellIdx] = candidateChar;
-        const testSolved = solveBoardGrid(workingGrid, size, maxCap);
+        const testSolved = solveBoardGrid(workingGrid, size, maxCap, language);
         const testCovered = getCoveredCellsSet(testSolved);
 
         if (
@@ -339,28 +352,49 @@ function ensureFullTileCoverage(
  */
 export function generatePuzzle(
   mode: GameModeId = 'daily-4x4',
-  dateSeed?: string
+  dateSeed?: string,
+  language?: DictionaryLanguageCode
 ): PuzzleBoard {
+  const activeLang = normalizeDictionaryLanguage(language ?? getDictionaryLanguage());
+  const langPack = getMultiLangPack(activeLang);
   const todayStr = dateSeed || new Date().toISOString().slice(0, 10);
-  const size = mode === 'express-3x3' ? 3 : mode === 'royal-5x5' ? 5 : 4;
+  const size: 3 | 4 | 5 = mode === 'express-3x3' ? 3 : mode === 'royal-5x5' ? 5 : 4;
   const totalCells = size * size;
   const maxCap = mode === 'express-3x3' ? 24 : mode === 'royal-5x5' ? 62 : 45;
-  const minRequired = mode === 'express-3x3' ? 12 : mode === 'royal-5x5' ? 32 : 24;
+  const minRequired =
+    activeLang === 'en'
+      ? mode === 'express-3x3'
+        ? 12
+        : mode === 'royal-5x5'
+          ? 32
+          : 24
+      : mode === 'express-3x3'
+        ? 8
+        : mode === 'royal-5x5'
+          ? 20
+          : 15;
 
   // Compute daily puzzle number since epoch 2024-01-01
   const epoch = new Date('2024-01-01T00:00:00Z').getTime();
   const current = new Date(todayStr + 'T00:00:00Z').getTime() || Date.now();
   const puzzleNumber = Math.max(1, Math.floor((current - epoch) / (1000 * 60 * 60 * 24)));
 
-  const seedKey = `${mode}::${todayStr}::v3`;
+  const seedKey =
+    activeLang === 'en'
+      ? `${mode}::${todayStr}::v3`
+      : `${mode}::${todayStr}::${activeLang}::v3`;
   const rng = createSeededRandom(seedKey);
 
   const seedPool =
-    mode === 'express-3x3'
-      ? FEATURED_SEED_WORDS_3X3
-      : mode === 'royal-5x5'
-        ? FEATURED_SEED_WORDS_5X5
-        : FEATURED_SEED_WORDS_4X4;
+    activeLang === 'en'
+      ? mode === 'express-3x3'
+        ? FEATURED_SEED_WORDS_3X3
+        : mode === 'royal-5x5'
+          ? FEATURED_SEED_WORDS_5X5
+          : FEATURED_SEED_WORDS_4X4
+      : getMultiLangFeaturedSeeds(activeLang, size);
+
+  const fillLetters = langPack?.friendlyLetters || FRIENDLY_LETTERS;
 
   let bestGrid: string[] = [];
   let bestSolved = new Map<string, number[]>();
@@ -380,17 +414,23 @@ export function generatePuzzle(
           rawGrid[i] = embedded.grid[i]!;
           protectedIndices.add(i);
         } else {
-          rawGrid[i] = FRIENDLY_LETTERS[Math.floor(rng() * FRIENDLY_LETTERS.length)];
+          rawGrid[i] = fillLetters[Math.floor(rng() * fillLetters.length)];
         }
       }
     } else {
       for (let i = 0; i < totalCells; i++) {
-        rawGrid[i] = FRIENDLY_LETTERS[Math.floor(rng() * FRIENDLY_LETTERS.length)];
+        rawGrid[i] = fillLetters[Math.floor(rng() * fillLetters.length)];
       }
     }
 
     // Repair any unused tiles so all tiles are used at the start of the game
-    const { grid, solved } = ensureFullTileCoverage(rawGrid, size, protectedIndices, maxCap);
+    const { grid, solved } = ensureFullTileCoverage(
+      rawGrid,
+      size,
+      protectedIndices,
+      maxCap,
+      activeLang
+    );
     if (embedded) {
       solved.set(candidateWord, embedded.path);
     }
@@ -454,7 +494,7 @@ export function generatePuzzle(
   };
 
   return {
-    id: `${mode}-${todayStr}`,
+    id: activeLang === 'en' ? `${mode}-${todayStr}` : `${mode}-${todayStr}-${activeLang}`,
     mode,
     title: modeTitles[mode],
     dateLabel: todayStr,

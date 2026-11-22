@@ -1,3 +1,10 @@
+import {
+  normalizeDictionaryLanguage,
+  stripDiacritics,
+  type DictionaryLanguageCode,
+} from '../../lib/dictionary-languages.ts';
+import { getMultiLangPack } from '../../data/dictionaries/multilang-word-packs.ts';
+
 const RAW_DEFAULT_WORDS: string[] = [
   // Animals & Creatures
   'elephant', 'penguin', 'giraffe', 'octopus', 'flamingo', 'hedgehog', 'kangaroo',
@@ -716,6 +723,16 @@ export const DEFAULT_WORDS: string[] = Array.from(
   )
 );
 
+export function getInkStreamWords(language?: DictionaryLanguageCode | string | null): string[] {
+  const code = normalizeDictionaryLanguage(language);
+  if (code === 'en') return DEFAULT_WORDS;
+  const pack = getMultiLangPack(code);
+  if (pack && pack.drawingPrompts.length > 0) {
+    return pack.drawingPrompts;
+  }
+  return DEFAULT_WORDS;
+}
+
 export const SKRIBBL_COLORS: string[] = [
   '#0F172A', '#FFFFFF', '#94A3B8', '#EF4444', '#F97316', '#FACC15',
   '#22C55E', '#14B8A6', '#06B6D4', '#2563EB', '#8B5CF6', '#EC4899', '#78350F',
@@ -727,8 +744,8 @@ export const AVATAR_COLORS: string[] = [
 ];
 
 export function levenshteinDistance(a: string, b: string): number {
-  const s1 = a.toLowerCase().trim();
-  const s2 = b.toLowerCase().trim();
+  const s1 = stripDiacritics(a).toLowerCase().trim();
+  const s2 = stripDiacritics(b).toLowerCase().trim();
   if (s1 === s2) return 0;
   if (!s1.length) return s2.length;
   if (!s2.length) return s1.length;
@@ -754,8 +771,8 @@ export function levenshteinDistance(a: string, b: string): number {
 }
 
 export function isCloseGuess(guess: string, target: string): boolean {
-  const g = guess.toLowerCase().trim().replace(/\s+/g, ' ');
-  const t = target.toLowerCase().trim().replace(/\s+/g, ' ');
+  const g = stripDiacritics(guess).toLowerCase().trim().replace(/\s+/g, ' ');
+  const t = stripDiacritics(target).toLowerCase().trim().replace(/\s+/g, ' ');
   if (!g || g === t) return false;
 
   // Check multi-word partial matches (e.g. "cream" or "ice" for "ice cream")

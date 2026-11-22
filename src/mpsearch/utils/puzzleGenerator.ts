@@ -1,5 +1,13 @@
 // Deterministic 10x10 Daily Word Search Generator with 12-Month Archive (368 Days)
 import { getLondonTodayDateStr } from '@/lib/daily-streak';
+import {
+  getDictionaryLanguage,
+  normalizeDictionaryLanguage,
+  stripDiacritics,
+  type DictionaryLanguageCode,
+} from '../../lib/dictionary-languages';
+import { getMultiLangPack } from '../../data/dictionaries/multilang-word-packs';
+import { MULTILANG_MPSEARCH_THEMES } from '../../data/dictionaries/multilang-search-themes';
 
 export interface CellCoord {
   row: number;
@@ -419,24 +427,45 @@ const SUPPLEMENTAL_SHORT_WORDS = [
   'TRAIL', 'VAULT', 'VERVE', 'VISTA', 'WAVE', 'WREN', 'ZEPHYR',
 ];
 
-export function buildPuzzleForDate(dateKey: string, puzzleNumber: number): DailyPuzzle {
-  const seed = hashString(`lexicon10_v3_${dateKey}_${puzzleNumber}`);
+export function buildPuzzleForDate(
+  dateKey: string,
+  puzzleNumber: number,
+  language?: DictionaryLanguageCode
+): DailyPuzzle {
+  const activeLang = normalizeDictionaryLanguage(language ?? getDictionaryLanguage());
+  const seed = hashString(
+    activeLang === 'en'
+      ? `lexicon10_v3_${dateKey}_${puzzleNumber}`
+      : `lexicon10_v3_${dateKey}_${puzzleNumber}_${activeLang}`
+  );
   const rng = createSeededRng(seed);
 
   // Randomize target word count between 8 and 12 (inclusive: 8, 9, 10, 11, or 12)
   const targetWordCount = 8 + Math.floor(rng() * 5);
 
-  const themeIndex = (puzzleNumber - 1) % THEME_BANK.length;
-  const cycleIndex = Math.floor((puzzleNumber - 1) / THEME_BANK.length);
-  const baseTheme = THEME_BANK[themeIndex];
-  const companionTheme = THEME_BANK[(themeIndex + 7) % THEME_BANK.length];
+  const activeThemeBank =
+    activeLang === 'en' ? THEME_BANK : MULTILANG_MPSEARCH_THEMES[activeLang];
+  const themeIndex = (puzzleNumber - 1) % activeThemeBank.length;
+  const cycleIndex = Math.floor((puzzleNumber - 1) / activeThemeBank.length);
+  const baseTheme = activeThemeBank[themeIndex];
+  const companionOffset =
+    activeLang === 'en' ? 7 : 5 + (cycleIndex % Math.max(1, activeThemeBank.length - 1));
+  const companionIndex =
+    (themeIndex + (companionOffset % activeThemeBank.length === 0 ? 1 : companionOffset)) %
+    activeThemeBank.length;
+  const companionTheme = activeThemeBank[companionIndex];
 
   const cycleSuffixes = ['', ' II', ' III', ' IV', ' V', ' VI', ' VII'];
-  const themeTitle = `${baseTheme.title}${cycleSuffixes[cycleIndex] || ''}`;
+  const themeTitle =
+    activeLang === 'en'
+      ? `${baseTheme.title}${cycleSuffixes[cycleIndex] || ''}`
+      : cycleIndex > 0
+      ? `${baseTheme.title} #${cycleIndex + 1}`
+      : baseTheme.title;
 
   // Deterministically shuffle primary theme pool
   const primaryPool = [...baseTheme.pool]
-    .map((w) => w.toUpperCase().replace(/[^A-Z]/g, ''))
+    .map((w) => stripDiacritics(w).toUpperCase().replace(/[^A-Z]/g, ''))
     .filter((w) => w.length >= 3 && w.length <= 9);
 
   for (let i = primaryPool.length - 1; i > 0; i--) {
@@ -445,8 +474,14 @@ export function buildPuzzleForDate(dateKey: string, puzzleNumber: number): Daily
   }
 
   // Backup words (companion theme + supplemental crisp words) in case a 10x10 grid needs extra candidates to hit 11-12 words
-  const backupPool = [...companionTheme.pool, ...SUPPLEMENTAL_SHORT_WORDS]
-    .map((w) => w.toUpperCase().replace(/[^A-Z]/g, ''))
+  const langPack = activeLang === 'en' ? null : getMultiLangPack(activeLang);
+  const supplementalSource =
+    activeLang === 'en'
+      ? SUPPLEMENTAL_SHORT_WORDS
+      : (langPack?.words || []).filter((w) => w.length >= 4 && w.length <= 7).slice(0, 80);
+
+  const backupPool = [...companionTheme.pool, ...supplementalSource]
+    .map((w) => stripDiacritics(w).toUpperCase().replace(/[^A-Z]/g, ''))
     .filter((w) => w.length >= 4 && w.length <= 7 && !primaryPool.includes(w));
 
   for (let i = backupPool.length - 1; i > 0; i--) {
@@ -656,11 +691,15 @@ export function buildPuzzleForDate(dateKey: string, puzzleNumber: number): Daily
   }
 
   // Fill remaining empty cells deterministically
+  const activeFillerAlphabet =
+    activeLang === 'en'
+      ? FILLER_ALPHABET
+      : langPack?.friendlyLetters || FILLER_ALPHABET;
   for (let r = 0; r < 10; r++) {
     for (let c = 0; c < 10; c++) {
       if (grid[r][c] === '') {
-        const charIdx = Math.floor(rng() * FILLER_ALPHABET.length);
-        grid[r][c] = FILLER_ALPHABET[charIdx];
+        const charIdx = Math.floor(rng() * activeFillerAlphabet.length);
+        grid[r][c] = activeFillerAlphabet[charIdx];
       }
     }
   }
@@ -707,8 +746,10 @@ export function buildPuzzleForDate(dateKey: string, puzzleNumber: number): Daily
 
 // Generate 12 full months (368 days = original 6 months + another 6 months) of daily puzzles ending on reference date
 export function generateTwelveMonthArchive(
-  referenceDateStr: string = getLondonTodayDateStr()
+  referenceDateStr: string = getLondonTodayDateStr(),
+  language?: DictionaryLanguageCode
 ): DailyPuzzle[] {
+  const activeLang = normalizeDictionaryLanguage(language ?? getDictionaryLanguage());
   const [ry, rm, rd] = referenceDateStr.split('-').map(Number);
   const endUtc = Date.UTC(ry, rm - 1, rd, 12, 0, 0);
   const totalDays = 368; // 12 full months (368 daily puzzles)
@@ -722,7 +763,7 @@ export function generateTwelveMonthArchive(
     const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
     const dd = String(dt.getUTCDate()).padStart(2, '0');
     const dateKey = `${yyyy}-${mm}-${dd}`;
-    puzzles.push(buildPuzzleForDate(dateKey, i + 1));
+    puzzles.push(buildPuzzleForDate(dateKey, i + 1, activeLang));
   }
 
   return puzzles;
@@ -730,18 +771,20 @@ export function generateTwelveMonthArchive(
 
 // Keep generateSixMonthArchive alias returning the full expanded 12-month (368-day) archive
 export function generateSixMonthArchive(
-  referenceDateStr: string = getLondonTodayDateStr()
+  referenceDateStr: string = getLondonTodayDateStr(),
+  language?: DictionaryLanguageCode
 ): DailyPuzzle[] {
-  return generateTwelveMonthArchive(referenceDateStr);
+  return generateTwelveMonthArchive(referenceDateStr, language);
 }
 
 // Randomly pick a puzzle from the archive (avoiding the current puzzle if possible)
 export function pickRandomArchivePuzzle(
   archive: DailyPuzzle[],
-  excludeDateKey?: string
+  excludeDateKey?: string,
+  language?: DictionaryLanguageCode
 ): DailyPuzzle {
   if (archive.length === 0) {
-    return buildPuzzleForDate(getLondonTodayDateStr(), 1);
+    return buildPuzzleForDate(getLondonTodayDateStr(), 1, language);
   }
   const candidates =
     excludeDateKey && archive.length > 1

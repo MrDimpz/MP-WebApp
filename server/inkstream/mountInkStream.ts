@@ -192,8 +192,16 @@ export function mountInkStream(
 
     socket.on(
       'room:quick-play',
-      (ack?: (res: { ok: boolean; roomId?: string; error?: string }) => void) => {
-        const room = gameManager.joinOrQuickPlay(getUser(), socket.id);
+      (
+        payloadOrAck?:
+          | { language?: RoomSettings['language'] }
+          | ((res: { ok: boolean; roomId?: string; error?: string }) => void),
+        maybeAck?: (res: { ok: boolean; roomId?: string; error?: string }) => void
+      ) => {
+        const isAckFirst = typeof payloadOrAck === 'function';
+        const ack = isAckFirst ? payloadOrAck : maybeAck;
+        const language = !isAckFirst ? payloadOrAck?.language : undefined;
+        const room = gameManager.joinOrQuickPlay(getUser(), socket.id, language);
         ack?.({ ok: true, roomId: room.id });
       }
     );

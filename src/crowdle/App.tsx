@@ -68,6 +68,8 @@ import {
 } from '@/lib/daily-streak';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { triggerVictoryConfetti } from '@/lib/confetti';
+import { LanguageMenu } from '@/components/language-menu';
+import { useDictionaryLanguage } from '@/lib/dictionary-languages';
 
 const KEYBOARD_ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -141,6 +143,8 @@ export default function CrowdleApp() {
   const transparent = overlayBg === 'transparent';
   const todayDateStr = useMemo(() => getLocalTodayDateStr(), []);
   const dailyStreak = useDailyStreak('crowdle', todayDateStr);
+  const [dictionaryLanguage] = useDictionaryLanguage();
+  const prevDictLangRef = useRef(dictionaryLanguage);
 
   // Theme & Audio
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -352,6 +356,28 @@ export default function CrowdleApp() {
     },
     [isOverlay]
   );
+
+  // Switch active target word & clear current round guesses when dictionary language changes
+  useEffect(() => {
+    if (prevDictLangRef.current === dictionaryLanguage) return;
+    prevDictLangRef.current = dictionaryLanguage;
+    if (isOverlay) return;
+    const st = stateRef.current;
+    const nextTarget = pickTargetWord(st.wordLength, null, dictionaryLanguage);
+    setTargetWord(nextTarget);
+    setGuesses([]);
+    setStatus('PLAYING');
+    setCurrentVotes({});
+    setVoteOrder([]);
+    setUserVotedWordMap({});
+    setWordTopVoterMap({});
+    setTimeLeft(st.roundTimerDuration);
+    setDelayLeft(3);
+    setResetTimeLeft(0);
+    setTargetWordGuesser(null);
+    setLastWinningWord(null);
+    setHostDraftWord('');
+  }, [dictionaryLanguage, isOverlay]);
 
   // Record finished Crowdle rounds toward the 3/day free limit (unlimited for key holders)
   useEffect(() => {
@@ -1455,6 +1481,7 @@ export default function CrowdleApp() {
 
         {/* Right Header Controls */}
         <div className="flex items-center gap-2 flex-wrap">
+          <LanguageMenu variant="compact" />
           <DailyStreakBadge streak={dailyStreak.streak} solvedToday={dailyStreak.solvedToday} />
 
           <LiveOverlayButton

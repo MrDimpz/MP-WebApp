@@ -62,6 +62,7 @@ export interface RoomSettings {
   hintsCount: number;
   customWords: string[];
   customWordsOnly: boolean;
+  language?: 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'tl';
 }
 
 export type GamePhase =

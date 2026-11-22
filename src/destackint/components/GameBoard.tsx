@@ -28,6 +28,7 @@ import { soundManager } from '../utils/audio';
 import { deduplicateScoreboardPlayers, normalizePlayerKey } from '../utils/scoreboard';
 import { TikTokLivePanel, SAMPLE_PERSONAS } from './TikTokLivePanel';
 import type { OverlayBackgroundMode } from '@/lib/live-overlay';
+import { stripDiacritics } from '@/lib/dictionary-languages';
 
 export interface DeStackBoardSnapshot {
   tiles: TileData[];
@@ -451,8 +452,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       const rawComment = (msg.comment || '').trim();
       if (!rawComment) return;
 
-      // Whole-word and spaced-letter matching for the current 5-letter targetWord
-      const upperComment = rawComment.toUpperCase();
+      // Whole-word and spaced-letter matching for the current 5-letter targetWord (diacritic-insensitive)
+      const upperComment = stripDiacritics(rawComment).toUpperCase();
       const wordTokens = upperComment.split(/[^A-Z]+/).filter(Boolean);
       const compactLetters = upperComment.replace(/[^A-Z]/g, '');
       const isCorrect =

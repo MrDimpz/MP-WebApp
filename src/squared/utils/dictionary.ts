@@ -1,5 +1,14 @@
 // Curated English word bank for instant grid DFS solving + Fast Dictionary API client
 
+import {
+  getDictionaryLanguage,
+  getDictionaryLanguageMeta,
+  normalizeDictionaryLanguage,
+  stripDiacritics,
+  type DictionaryLanguageCode,
+} from '../../lib/dictionary-languages';
+import { getMultiLangPack } from '../../data/dictionaries/multilang-word-packs';
+
 export interface WordDefinition {
   word: string;
   phonetic?: string;
@@ -258,11 +267,66 @@ for (const word of CORE_DICTIONARY) {
   }
 }
 
+const multiLangLexiconCache = new Map<
+  DictionaryLanguageCode,
+  { dictionary: Set<string>; prefixes: Set<string> }
+>();
+
+export function getSquaredLexicon(
+  language?: DictionaryLanguageCode | string | null
+): { dictionary: Set<string>; prefixes: Set<string> } {
+  const code = normalizeDictionaryLanguage(language ?? getDictionaryLanguage());
+  if (code === 'en') {
+    return { dictionary: CORE_DICTIONARY, prefixes: CORE_PREFIXES };
+  }
+  const cached = multiLangLexiconCache.get(code);
+  if (cached) return cached;
+
+  const pack = getMultiLangPack(code);
+  if (!pack) {
+    return { dictionary: CORE_DICTIONARY, prefixes: CORE_PREFIXES };
+  }
+
+  const dict = new Set<string>();
+  for (const w of pack.words) {
+    if (w.length >= 4 && w.length <= 9) dict.add(w);
+  }
+  for (const prompt of pack.drawingPrompts) {
+    if (!prompt.includes(' ') && !prompt.includes('-')) {
+      const clean = stripDiacritics(prompt).toUpperCase().replace(/[^A-Z]/g, '');
+      if (clean.length >= 4 && clean.length <= 9) dict.add(clean);
+    }
+  }
+
+  const prefixes = new Set<string>();
+  for (const w of dict) {
+    for (let i = 1; i <= w.length; i++) {
+      prefixes.add(w.slice(0, i));
+    }
+  }
+
+  const entry = { dictionary: dict, prefixes };
+  multiLangLexiconCache.set(code, entry);
+  return entry;
+}
+
 // Local definition cache so repeated inspections are 0ms
 const definitionCache = new Map<string, WordDefinition>();
 
 // Curated fallback descriptions when offline or for common puzzle terms
-function getCuratedFallback(word: string): WordDefinition {
+function getCuratedFallback(
+  word: string,
+  language: DictionaryLanguageCode = 'en'
+): WordDefinition {
+  if (language !== 'en') {
+    const meta = getDictionaryLanguageMeta(language);
+    return {
+      word: word.toUpperCase(),
+      partOfSpeech: meta.nativeLabel,
+      definition: `A recognized ${word.length}-letter ${meta.label} word uncovered on the puzzle board.`,
+      source: 'curated',
+    };
+  }
   const lower = word.toLowerCase();
   let pos = 'noun / verb';
   if (lower.endsWith('ly')) pos = 'adverb';
@@ -284,9 +348,21 @@ function getCuratedFallback(word: string): WordDefinition {
  * to retrieve rich definitions and verify bonus words.
  */
 export async function fetchWordDefinition(rawWord: string): Promise<WordDefinition | null> {
-  const word = rawWord.trim().toUpperCase();
-  if (definitionCache.has(word)) {
-    return definitionCache.get(word)!;
+  const activeLang = getDictionaryLanguage();
+  const word = stripDiacritics(rawWord).trim().toUpperCase();
+  const cacheKey = `${activeLang}:${word}`;
+  if (definitionCache.has(cacheKey)) {
+    return definitionCache.get(cacheKey)!;
+  }
+
+  if (activeLang !== 'en') {
+    const { dictionary } = getSquaredLexicon(activeLang);
+    if (dictionary.has(word)) {
+      const fallback = getCuratedFallback(word, activeLang);
+      definitionCache.set(cacheKey, fallback);
+      return fallback;
+    }
+    return null;
   }
 
   // 1. Try Free Dictionary API (fast CDN-backed JSON endpoint)
