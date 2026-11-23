@@ -11,11 +11,11 @@ export function HowToPlayView() {
           Pinch the Secret Word Alphabetically
         </h2>
         <p className="mt-2.5 text-sm sm:text-base text-[#E2D4F4] leading-relaxed">
-          Every secret word is a 4–8 letter dictionary word hidden between{' '}
-          <strong className="text-white">A</strong> and{' '}
-          <strong className="text-white">Z</strong>. Type words directly—or let
-          your TikTok LIVE chat guess together—and watch the ladder tighten
-          around the answer.
+          Every secret word is chosen from the 500 most common 4–8 letter words
+          hidden between <strong className="text-white">A</strong> and{' '}
+          <strong className="text-white">Z</strong>. Type any full-dictionary
+          word of any length—or let your TikTok LIVE chat guess together—and
+          watch the ladder tighten around the answer.
         </p>
 
         {/* Example Ladder Illustration */}
@@ -84,8 +84,8 @@ export function HowToPlayView() {
           <p className="text-sm text-[#D9C7EE] leading-relaxed">
             Connect directly to your TikTok LIVE stream, plug in TikFinity or
             BetterTok webhooks, or test with the built-in Simulator. Any
-            4–8 letter single word in chat (or <code>!guess word</code>) counts
-            immediately.
+            valid single word in chat (or <code>!guess word</code>) of any
+            length counts immediately.
           </p>
         </div>
 

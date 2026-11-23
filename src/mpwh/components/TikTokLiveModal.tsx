@@ -277,7 +277,7 @@ export const TikTokLiveModal: React.FC<TikTokLiveModalProps> = ({
                 type="text"
                 value={testGuessText}
                 onChange={(e) => setTestGuessText(e.target.value)}
-                placeholder="Type a 4–8 letter word..."
+                placeholder="Type any dictionary word..."
                 className="flex-1 px-3 py-2 rounded-lg border border-white/15 bg-[#210736] text-xs text-white placeholder:text-[#967BB8] focus:outline-none focus:border-[#F6C915]"
               />
               <button

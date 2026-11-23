@@ -1,4 +1,7 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import { RAW_TARGET_POOL } from './targetWordsEn.ts';
 import { MULTILANG_WORD_PACKS } from '../../src/data/dictionaries/multilang-word-packs.ts';
 import {
@@ -14,8 +17,40 @@ interface LanguageDictionary {
   targetWords: string[];
 }
 
-// Build English Word Hunt dictionary from the 500 most common 4–8 letter words
-const EN_VALID_ARRAY = Array.from(
+const MIN_GUESS_LENGTH = 2;
+const MAX_GUESS_LENGTH = 32;
+
+function loadFullEnglishWords(): string[] {
+  const candidates: string[] = [];
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.url) {
+      const req = createRequire(import.meta.url);
+      candidates.push(req.resolve('an-array-of-english-words/index.json'));
+    }
+  } catch {
+    // fallback below
+  }
+  candidates.push(
+    path.resolve(process.cwd(), 'node_modules/an-array-of-english-words/index.json')
+  );
+
+  for (const filePath of candidates) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch {
+      // try next path
+    }
+  }
+  return [];
+}
+
+// Possible secret words: 500 most common 4–8 letter English words
+const EN_TARGET_ARRAY = Array.from(
   new Set(
     RAW_TARGET_POOL.map((w) => w.toLowerCase().trim()).filter(
       (w) => w.length >= 4 && w.length <= 8 && /^[a-z]+$/.test(w)
@@ -25,13 +60,27 @@ const EN_VALID_ARRAY = Array.from(
   .slice(0, 500)
   .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
-const EN_VALID_SET = new Set<string>(EN_VALID_ARRAY);
+// Guess dictionary: full English dictionary (all word lengths >= 2) + target pool
+const EN_VALID_SET = new Set<string>(EN_TARGET_ARRAY);
+for (const raw of loadFullEnglishWords()) {
+  const clean = String(raw).toLowerCase().trim();
+  if (
+    clean.length >= MIN_GUESS_LENGTH &&
+    clean.length <= MAX_GUESS_LENGTH &&
+    /^[a-z]+$/.test(clean)
+  ) {
+    EN_VALID_SET.add(clean);
+  }
+}
+const EN_VALID_ARRAY = Array.from(EN_VALID_SET).sort((a, b) =>
+  a < b ? -1 : a > b ? 1 : 0
+);
 
 const DICTIONARIES = new Map<DictionaryLanguageCode, LanguageDictionary>();
 DICTIONARIES.set('en', {
   validArray: EN_VALID_ARRAY,
   validSet: EN_VALID_SET,
-  targetWords: EN_VALID_ARRAY,
+  targetWords: EN_TARGET_ARRAY,
 });
 
 function getLanguageDictionary(langInput?: string): LanguageDictionary {
@@ -45,34 +94,54 @@ function getLanguageDictionary(langInput?: string): LanguageDictionary {
 
   const pack = MULTILANG_WORD_PACKS[lang];
   const validSet = new Set<string>();
-  const validArray: string[] = [];
+  const targetSet = new Set<string>();
+  const targetWords: string[] = [];
 
   if (pack) {
     for (const rawWord of pack.words) {
-      if (validArray.length >= 500) break;
       const clean = stripDiacritics(rawWord).toLowerCase().replace(/[^a-z]/g, '');
-      if (clean.length >= 4 && clean.length <= 8 && !validSet.has(clean)) {
+      if (clean.length >= MIN_GUESS_LENGTH && clean.length <= MAX_GUESS_LENGTH) {
         validSet.add(clean);
-        validArray.push(clean);
+        if (
+          targetWords.length < 500 &&
+          clean.length >= 4 &&
+          clean.length <= 8 &&
+          !targetSet.has(clean)
+        ) {
+          targetSet.add(clean);
+          targetWords.push(clean);
+        }
       }
     }
     for (const rawPrompt of pack.drawingPrompts) {
-      if (validArray.length >= 500) break;
-      if (rawPrompt.includes(' ') || rawPrompt.includes('-')) continue;
-      const clean = stripDiacritics(rawPrompt).toLowerCase().replace(/[^a-z]/g, '');
-      if (clean.length >= 4 && clean.length <= 8 && !validSet.has(clean)) {
-        validSet.add(clean);
-        validArray.push(clean);
+      // Add individual tokens from prompts as valid guesses, and single-word prompts as potential 500-pool targets
+      const isSingle = !rawPrompt.includes(' ') && !rawPrompt.includes('-');
+      for (const token of rawPrompt.split(/[\s-]+/)) {
+        const clean = stripDiacritics(token).toLowerCase().replace(/[^a-z]/g, '');
+        if (clean.length >= MIN_GUESS_LENGTH && clean.length <= MAX_GUESS_LENGTH) {
+          validSet.add(clean);
+          if (
+            isSingle &&
+            targetWords.length < 500 &&
+            clean.length >= 4 &&
+            clean.length <= 8 &&
+            !targetSet.has(clean)
+          ) {
+            targetSet.add(clean);
+            targetWords.push(clean);
+          }
+        }
       }
     }
   }
 
-  validArray.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const validArray = Array.from(validSet).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  targetWords.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
   const dict: LanguageDictionary = {
     validArray,
     validSet,
-    targetWords: validArray,
+    targetWords,
   };
   DICTIONARIES.set(lang, dict);
   return dict;
@@ -90,7 +159,9 @@ export function isValidDictionaryWord(
   lang: DictionaryLanguageCode = 'en'
 ): boolean {
   const clean = normalizeGuessWord(word);
-  if (clean.length < 4 || clean.length > 8) return false;
+  if (clean.length < MIN_GUESS_LENGTH || clean.length > MAX_GUESS_LENGTH) {
+    return false;
+  }
   return getLanguageDictionary(lang).validSet.has(clean);
 }
 
@@ -198,17 +269,19 @@ export function computeBisectHint(
     const end = side === 'before' ? secretIdx - 1 : afterIdx - (closestAfter ? 1 : 0);
     if (start > end) continue;
 
-    // Prefer a target word of the same length first
+    // Prefer a target word of the same length first, then any common target word in the bracket
     const requiredLen = secretWord.length;
-    const targetCandidates = targetWords.filter(
+    const bracketTargets = targetWords.filter(
       (w) =>
-        w.length === requiredLen &&
         !alreadyUsed.has(w) &&
         w !== secretWord &&
         (side === 'before'
           ? (!closestBefore || w > closestBefore) && w < secretWord
           : w > secretWord && (!closestAfter || w < closestAfter))
     );
+    const sameLengthTargets = bracketTargets.filter((w) => w.length === requiredLen);
+    const targetCandidates =
+      sameLengthTargets.length > 0 ? sameLengthTargets : bracketTargets;
 
     if (targetCandidates.length > 0) {
       const pickIndex =
@@ -220,25 +293,31 @@ export function computeBisectHint(
       ];
     }
 
-    // Fallback: bisect dictionary array (prefer matching length, then any valid length)
+    // Fallback: bisect full dictionary array in a single bounded outward scan
     const mid = Math.floor((start + end) / 2);
     const maxOffset = Math.max(mid - start, end - mid);
-    for (const enforceLength of [true, false]) {
-      for (let offset = 0; offset <= maxOffset; offset++) {
-        for (const candidateIdx of [mid + offset, mid - offset]) {
-          if (candidateIdx >= start && candidateIdx <= end) {
-            const w = validArray[candidateIdx];
-            if (
-              w &&
-              (!enforceLength || w.length === requiredLen) &&
-              w !== secretWord &&
-              !alreadyUsed.has(w)
-            ) {
+    const sameLenLimit = Math.min(maxOffset, 2500);
+    let anyLenFallback: string | null = null;
+    for (let offset = 0; offset <= maxOffset; offset++) {
+      for (const candidateIdx of [mid + offset, mid - offset]) {
+        if (candidateIdx >= start && candidateIdx <= end) {
+          const w = validArray[candidateIdx];
+          if (w && w !== secretWord && !alreadyUsed.has(w)) {
+            if (w.length === requiredLen) {
               return w;
+            }
+            if (!anyLenFallback) {
+              anyLenFallback = w;
             }
           }
         }
       }
+      if (anyLenFallback && offset >= sameLenLimit) {
+        return anyLenFallback;
+      }
+    }
+    if (anyLenFallback) {
+      return anyLenFallback;
     }
   }
 

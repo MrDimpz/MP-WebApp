@@ -130,7 +130,7 @@ export function MpwhOverlayView({
               ) : hasBoards && state ? (
                 <>
                   <span className="text-xs font-extrabold text-[#F6C915] truncate">
-                    Type any 4–8 letter word in chat to climb A–Z!
+                    Type any word in chat to climb A–Z!
                   </span>
                   <span className="font-mono text-[11px] font-bold text-[#D4C0EC] tabular-nums shrink-0">
                     {state.totalGuesses} {state.totalGuesses === 1 ? 'guess' : 'guesses'}

@@ -79,18 +79,18 @@ export function GuessInputBar({
           placeholder={
             disabled
               ? 'Press Start Game to begin guessing...'
-              : 'Type a 4–8 letter word (or let TikTok chat guess)...'
+              : 'Type any dictionary word (any length) or let chat guess...'
           }
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
-          maxLength={12}
-          aria-label="Enter a 4 to 8 letter word guess"
+          maxLength={32}
+          aria-label="Enter any dictionary word guess"
           className="flex-1 min-w-0 rounded-xl border border-[#D4A437]/40 bg-[#140321] px-4 py-3 font-mono text-base font-bold tracking-wider uppercase text-white placeholder:normal-case placeholder:tracking-normal placeholder:font-sans placeholder:font-normal placeholder:text-[#9F84C2] focus:border-[#F6C915] focus:outline-none disabled:opacity-50"
         />
         <button
           type="submit"
-          disabled={disabled || value.trim().length < 4}
+          disabled={disabled || value.trim().length < 2}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F6C915] px-5 py-3 text-sm font-extrabold text-[#1D0830] hover:bg-[#FFE047] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap shrink-0"
         >
           <span>Guess</span>
@@ -130,7 +130,7 @@ export function GuessInputBar({
           <span className="text-[11px] text-[#9F84C2] truncate">
             {disabled
               ? 'Start a round or connect TikTok LIVE chat to play.'
-              : 'Viewers in chat can type any 4–8 letter word or !guess <word>.'}
+              : 'Viewers in chat can type any dictionary word or !guess <word>.'}
           </span>
         )}
       </div>

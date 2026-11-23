@@ -69,7 +69,7 @@ function isValidMode(mode: unknown): mode is LadderMode {
 }
 
 /**
- * Extracts a candidate 4-8 letter guess word from a TikTok chat comment.
+ * Extracts a candidate single-word guess from a TikTok chat comment.
  * Supports plain single-word guesses ("castle") and optional command prefix ("!guess castle" or "/g castle").
  * Multi-word conversational sentences return null so normal chat doesn't spam invalid errors.
  */
@@ -89,7 +89,7 @@ export function extractWordGuessFromChat(comment: string): string | null {
   }
 
   const normalized = normalizeGuessWord(candidate);
-  if (normalized.length < 4 || normalized.length > 8) return null;
+  if (normalized.length < 2 || normalized.length > 32) return null;
   return normalized;
 }
 

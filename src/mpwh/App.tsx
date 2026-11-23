@@ -71,7 +71,7 @@ function normalizeChannelSlug(raw: string): string {
 }
 
 /**
- * Extracts a single 4-8 letter guess word from TikTok chat comments.
+ * Extracts a single-word guess from TikTok chat comments.
  * Ignores multi-word conversational messages so normal chat stays noise-free.
  */
 function parseTikTokChatGuess(comment: string): string | null {
@@ -94,7 +94,7 @@ function parseTikTokChatGuess(comment: string): string | null {
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z]/g, '');
-  if (normalized.length < 4 || normalized.length > 8) return null;
+  if (normalized.length < 2 || normalized.length > 32) return null;
   return normalized;
 }
 
@@ -945,7 +945,7 @@ function MpwhHostApp() {
                         <strong className="text-emerald-300">
                           @{tiktokStatus.username}
                         </strong>
-                        . Viewers type any 4–8 letter word in chat to climb the
+                        . Viewers type any dictionary word in chat to climb the
                         ladder.
                       </>
                     ) : (

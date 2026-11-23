@@ -201,10 +201,10 @@ export function applyGuess(
   }
 
   const word = normalizeGuessWord(rawWord);
-  if (word.length < 4 || word.length > 8) {
+  if (word.length < 2 || word.length > 32) {
     return {
       accepted: false,
-      reason: 'Words must be 4–8 letters long.',
+      reason: 'Words must be at least 2 letters long.',
       word,
       firstSolvedWords: [],
       bufferMatchedWords: [],
