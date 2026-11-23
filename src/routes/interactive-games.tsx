@@ -666,7 +666,7 @@ export function InteractiveGamesPage() {
                 gameTitle="Word Hunt Extreme"
                 gameSlug="mpwh"
                 streamerHandle={activeStreamer?.username}
-                recommendedSize="620 × 760 or 1080 × 1920"
+                recommendedSize="620 × 900 or 1080 × 1920"
                 label="LIVE Overlay"
               />
             </div>

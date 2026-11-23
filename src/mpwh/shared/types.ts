@@ -15,6 +15,7 @@ export interface GuessEntry {
 export interface TargetWinner {
   name: string;
   tiktokHandle?: string;
+  avatarUrl?: string;
   guessedAt: number;
   isFirst: boolean;
   word: string;

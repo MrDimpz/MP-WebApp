@@ -85,7 +85,7 @@ import { recordDailyPuzzleSolved, useDailyStreak } from '../lib/daily-streak';
 import { triggerVictoryConfetti } from '../lib/confetti';
 import { DailyStreakBadge } from '../components/daily-streak-badge';
 import { LanguageMenu } from '../components/language-menu';
-import { useDictionaryLanguage } from '../lib/dictionary-languages';
+import { stripDiacritics, useDictionaryLanguage } from '../lib/dictionary-languages';
 
 type GameState = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'VICTORY';
 
@@ -522,8 +522,8 @@ export default function App() {
         return;
       }
 
-      // Check candidate words (4+ letters)
-      const candidateWords = rawComment.toUpperCase().match(/[A-Z]{4,15}/g);
+      // Check candidate words (4+ letters, diacritic-insensitive)
+      const candidateWords = stripDiacritics(rawComment).toUpperCase().match(/[A-Z]{4,15}/g);
       let matchedWord: string | undefined;
       let matchedPoints: number | undefined;
 

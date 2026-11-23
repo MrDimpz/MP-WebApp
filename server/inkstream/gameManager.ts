@@ -610,9 +610,24 @@ export class GameManager {
       return { error: 'Only the lobby owner can update room settings.' };
     }
     if (room.phase !== 'LOBBY' && room.phase !== 'GAME_OVER') {
-      // Allow toggling streamerMode mid-game for convenience, block other settings
-      if (Object.keys(patch).length === 1 && typeof patch.streamerMode === 'boolean') {
-        room.settings.streamerMode = patch.streamerMode;
+      // Allow toggling streamerMode and dictionary language mid-game cleanly
+      const patchKeys = Object.keys(patch);
+      const onlyLiveSafe = patchKeys.every(
+        (k) => k === 'streamerMode' || k === 'language'
+      );
+      if (onlyLiveSafe && patchKeys.length > 0) {
+        const prevLang = room.settings.language;
+        room.settings = sanitizeSettings(room.settings, patch);
+        if (room.settings.language !== prevLang) {
+          room.usedWords.clear();
+          if (room.phase === 'WORD_SELECT') {
+            room.wordOptions = this.pickWordOptions(room);
+          }
+          this.pushSystemMessage(
+            room,
+            `Dictionary language switched to ${(room.settings.language || 'en').toUpperCase()}.`
+          );
+        }
         this.broadcastRoomState(room);
         return {};
       }
@@ -1504,9 +1519,11 @@ export class GameManager {
     room.timer = setInterval(() => {
       room.timeRemaining -= 1;
       if (room.timeRemaining <= 0) {
+        const langPool = getInkStreamWords(room.settings.language);
         const autoWord =
           room.wordOptions[Math.floor(Math.random() * room.wordOptions.length)] ??
-          getInkStreamWords(room.settings.language)[0] ?? DEFAULT_WORDS[0];
+          langPool[0] ??
+          (room.settings.language === 'en' ? DEFAULT_WORDS[0] : 'word');
         this.startDrawingPhase(room, autoWord);
       } else {
         this.io.to(room.id).emit('game:tick', {
@@ -1572,7 +1589,11 @@ export class GameManager {
     reason: 'all_guessed' | 'time_up' | 'drawer_left' | 'solo_finished'
   ): void {
     this.clearTimer(room);
-    const word = room.secretWord ?? room.wordOptions[0] ?? 'sketch';
+    const word =
+      room.secretWord ??
+      room.wordOptions[0] ??
+      getInkStreamWords(room.settings.language)[0] ??
+      'sketch';
     const drawer = room.drawerId ? room.players.get(room.drawerId) : undefined;
 
     let likes = 0;

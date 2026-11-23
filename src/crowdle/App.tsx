@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import './index.css';
 import {
-  dictionary,
+  getCrowdleDictionaryPool,
   isValidCrowdleWord,
   pickTargetWord,
   evaluateCrowdleGuess,
@@ -69,7 +69,7 @@ import {
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { LanguageMenu } from '@/components/language-menu';
-import { useDictionaryLanguage } from '@/lib/dictionary-languages';
+import { stripDiacritics, useDictionaryLanguage } from '@/lib/dictionary-languages';
 
 const KEYBOARD_ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -178,7 +178,9 @@ export default function CrowdleApp() {
   // Core Game State
   const [roundId, setRoundId] = useState<number>(1);
   const [wordLength, setWordLength] = useState<number>(5);
-  const [targetWord, setTargetWord] = useState<string>(() => pickTargetWord(5));
+  const [targetWord, setTargetWord] = useState<string>(() =>
+    pickTargetWord(5, null, dictionaryLanguage)
+  );
   const [guesses, setGuesses] = useState<CrowdleGuess[]>([]);
   const [status, setStatus] = useState<CrowdleStatus>('PLAYING');
   const [roundTimerDuration, setRoundTimerDuration] = useState<number>(30);
@@ -254,6 +256,7 @@ export default function CrowdleApp() {
     wordTopVoterMap,
     allowMultiVotePerUser,
     targetWordGuesser,
+    dictionaryLanguage,
   });
 
   useEffect(() => {
@@ -279,6 +282,7 @@ export default function CrowdleApp() {
       wordTopVoterMap,
       allowMultiVotePerUser,
       targetWordGuesser,
+      dictionaryLanguage,
     };
   });
 
@@ -327,7 +331,11 @@ export default function CrowdleApp() {
       }
       const endless = overrideEndless !== undefined ? overrideEndless : st.isEndlessMode;
       const nextLen = endless ? 5 : overrideLength !== undefined ? overrideLength : st.wordLength;
-      const nextTarget = pickTargetWord(nextLen, st.lastWinningWord || st.targetWord);
+      const nextTarget = pickTargetWord(
+        nextLen,
+        st.lastWinningWord || st.targetWord,
+        st.dictionaryLanguage
+      );
 
       const initialGuesses: CrowdleGuess[] = [];
       if (endless && st.lastWinningWord && st.lastWinningWord.length === 5 && st.lastWinningWord !== nextTarget) {
@@ -392,7 +400,7 @@ export default function CrowdleApp() {
     (wordToSubmit: string, voteCount: number = 1, topVoterName?: string) => {
       const st = stateRef.current;
       if (st.status !== 'PLAYING') return;
-      const clean = wordToSubmit.trim().toUpperCase();
+      const clean = stripDiacritics(wordToSubmit).trim().toUpperCase();
       if (clean.length !== st.wordLength) return;
 
       const evaluation = evaluateCrowdleGuess(clean, st.targetWord);
@@ -489,7 +497,7 @@ export default function CrowdleApp() {
       if (st.status !== 'PLAYING') return;
 
       // Extract first candidate token matching wordLength or exact trimmed word
-      const cleanedMsg = rawComment.trim().toUpperCase();
+      const cleanedMsg = stripDiacritics(rawComment).trim().toUpperCase();
       const tokens = cleanedMsg.split(/[^A-Z]+/).filter(Boolean);
       const candidate =
         tokens.find((t) => t.length === st.wordLength) ||
@@ -502,7 +510,7 @@ export default function CrowdleApp() {
       // Prevent voting for a word already guessed in this round
       if (st.guesses.some((g) => g.word === candidate)) return;
 
-      const valid = isValidCrowdleWord(candidate, st.wordLength);
+      const valid = isValidCrowdleWord(candidate, st.wordLength, st.dictionaryLanguage);
       const feedItem: LiveVoteFeedItem = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         uniqueId,
@@ -829,7 +837,7 @@ export default function CrowdleApp() {
 
   // Simulate a burst of realistic viewer votes so the streamer can test/demo anytime
   const handleSimulateCrowdRush = () => {
-    const pool = dictionary[wordLength] || dictionary[5];
+    const pool = getCrowdleDictionaryPool(wordLength, dictionaryLanguage);
     const available = pool.filter((w) => !guesses.some((g) => g.word === w));
     if (available.length === 0) return;
 
@@ -859,7 +867,7 @@ export default function CrowdleApp() {
 
   const handleHostVoteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const clean = hostVoteInput.trim().toUpperCase();
+    const clean = stripDiacritics(hostVoteInput).trim().toUpperCase();
     if (!clean) return;
     const displayName = unifiedUser ? getCleanDisplayName(unifiedUser) : 'Stream Host';
     processIncomingVote(
@@ -878,7 +886,7 @@ export default function CrowdleApp() {
       submitGuessWord(topWord, topCount);
     } else if (
       hostDraftWord.length === wordLength &&
-      isValidCrowdleWord(hostDraftWord, wordLength)
+      isValidCrowdleWord(hostDraftWord, wordLength, dictionaryLanguage)
     ) {
       submitGuessWord(hostDraftWord, 1, 'Stream Host');
     }
@@ -893,7 +901,7 @@ export default function CrowdleApp() {
       } else if (key === 'ENTER') {
         if (
           hostDraftWord.length === wordLength &&
-          isValidCrowdleWord(hostDraftWord, wordLength)
+          isValidCrowdleWord(hostDraftWord, wordLength, dictionaryLanguage)
         ) {
           const displayName = unifiedUser ? getCleanDisplayName(unifiedUser) : 'Stream Host';
           processIncomingVote(
@@ -908,7 +916,15 @@ export default function CrowdleApp() {
         setHostDraftWord((prev) => (prev.length < wordLength ? prev + key : prev));
       }
     },
-    [hostDraftWord, isOverlay, processIncomingVote, status, unifiedUser, wordLength]
+    [
+      dictionaryLanguage,
+      hostDraftWord,
+      isOverlay,
+      processIncomingVote,
+      status,
+      unifiedUser,
+      wordLength,
+    ]
   );
 
   // Render the core Crowdle Broadcast Arena (shared between Host center column and OBS Overlay)

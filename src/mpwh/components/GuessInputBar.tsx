@@ -9,6 +9,10 @@ interface GuessInputBarProps {
   onSelectBoard: (idx: number | null) => void;
   onSubmitGuess: (word: string) => void;
   feedback: { text: string; tone: 'error' | 'success' | 'info' } | null;
+  winNotice?: {
+    roundNumber: number;
+    onViewWinners: () => void;
+  } | null;
 }
 
 export function GuessInputBar({
@@ -18,6 +22,7 @@ export function GuessInputBar({
   onSelectBoard,
   onSubmitGuess,
   feedback,
+  winNotice,
 }: GuessInputBarProps) {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,7 +37,7 @@ export function GuessInputBar({
   };
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       {mode === 'quad' && (
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <span className="font-semibold text-[#C8B2E4] mr-1">Target:</span>
@@ -93,20 +98,42 @@ export function GuessInputBar({
         </button>
       </form>
 
-      {feedback && (
-        <p
-          role="status"
-          className={`text-xs font-semibold ${
-            feedback.tone === 'error'
-              ? 'text-rose-300'
-              : feedback.tone === 'success'
-              ? 'text-emerald-300'
-              : 'text-[#F6C915]'
-          }`}
-        >
-          {feedback.text}
-        </p>
-      )}
+      {/* Fixed-height status/feedback row so errors, solves, and wins never resize the container */}
+      <div className="h-5 flex items-center justify-between gap-3">
+        {feedback ? (
+          <p
+            role="status"
+            className={`text-xs font-semibold truncate ${
+              feedback.tone === 'error'
+                ? 'text-rose-300'
+                : feedback.tone === 'success'
+                ? 'text-emerald-300'
+                : 'text-[#F6C915]'
+            }`}
+          >
+            {feedback.text}
+          </p>
+        ) : winNotice ? (
+          <div className="flex items-center justify-between gap-3 w-full">
+            <span className="text-xs font-bold text-emerald-300 truncate">
+              Round #{winNotice.roundNumber} solved!
+            </span>
+            <button
+              type="button"
+              onClick={winNotice.onViewWinners}
+              className="text-xs font-extrabold text-[#F6C915] hover:underline cursor-pointer whitespace-nowrap shrink-0"
+            >
+              View Winners
+            </button>
+          </div>
+        ) : (
+          <span className="text-[11px] text-[#9F84C2] truncate">
+            {disabled
+              ? 'Start a round or connect TikTok LIVE chat to play.'
+              : 'Viewers in chat can type any 4–8 letter word or !guess <word>.'}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

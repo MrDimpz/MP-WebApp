@@ -1,4 +1,9 @@
-import { ALL_WORDS_BY_LEN, VALID_WORD_SET } from './wordBank';
+import { getUnolingoWordBank } from './wordBank';
+import {
+  getDictionaryLanguage,
+  normalizeDictionaryLanguage,
+  type DictionaryLanguageCode,
+} from '../../lib/dictionary-languages';
 
 export interface WordSlot {
   id: string;
@@ -12,6 +17,7 @@ export interface WordSlot {
 
 export interface UnolingoPuzzle {
   dateStr: string;
+  language: DictionaryLanguageCode;
   gridSize: 10;
   /** '.' for playable cell, '#' for black block */
   layout: string[][];
@@ -150,6 +156,63 @@ const BASE_TEMPLATES: string[][] = [
   ],
 ];
 
+// 4 verified 45-50 white-cell templates (zero 2-letter runs, max slot 6, 100% connected)
+// used automatically if tight templates cannot fit all 26 unique letters cleanly.
+const FALLBACK_TEMPLATES: string[][] = [
+  // F0: 48 white cells, 14 slots
+  [
+    '.##.....##',
+    '.#####.###',
+    '...#......',
+    '.#.#.#.#.#',
+    '.....#....',
+    '##.###.#.#',
+    '...####...',
+    '.#########',
+    '......####',
+    '.#########',
+  ],
+  // F1: 45 white cells, 15 slots
+  [
+    '##.....###',
+    '##.###.###',
+    '...###....',
+    '########.#',
+    '....###...',
+    '.###.###.#',
+    '...#.#....',
+    '.#.#.#.###',
+    '##......##',
+    '##.###.###',
+  ],
+  // F2: 50 white cells, 14 slots
+  [
+    '.....#....',
+    '##.#.#.###',
+    '.....#....',
+    '.#.#.#.#.#',
+    '.###.....#',
+    '.#####.#.#',
+    '.....###.#',
+    '##.#.#####',
+    '##.....###',
+    '##.#.#####',
+  ],
+  // F3: 49 white cells, 13 slots
+  [
+    '......####',
+    '##.#.#.###',
+    '##.#.....#',
+    '####.#.###',
+    '.....#....',
+    '.#.###.###',
+    '.....#....',
+    '.#.#####.#',
+    '.....###.#',
+    '.#.#######',
+  ],
+];
+
 function hashString(str: string): number {
   let h = 2166136261 >>> 0;
   for (let i = 0; i < str.length; i++) {
@@ -194,19 +257,63 @@ interface WordEntry {
   rareCount: number;
 }
 
-const WORD_ENTRIES_BY_LEN: Record<number, WordEntry[]> = {};
-for (const len of [3, 4, 5, 6]) {
-  const clean = (ALL_WORDS_BY_LEN[len] || []).filter(
-    (w) => w.length === len && /^[A-Z]+$/.test(w)
-  );
-  WORD_ENTRIES_BY_LEN[len] = clean.map((w) => {
-    const mask = wordMask(w);
-    return {
-      word: w,
-      mask,
-      rareCount: popcount(mask & RARE_LETTER_MASK),
-    };
-  });
+const wordEntriesCache = new Map<
+  DictionaryLanguageCode,
+  { byLen: Record<number, WordEntry[]>; rareMask: number }
+>();
+
+function getWordEntriesForLanguage(language: DictionaryLanguageCode): {
+  byLen: Record<number, WordEntry[]>;
+  rareMask: number;
+} {
+  const cached = wordEntriesCache.get(language);
+  if (cached) return cached;
+
+  const { wordsByLen } = getUnolingoWordBank(language);
+  const freq = new Array<number>(26).fill(0);
+  const cleanByLen: Record<number, string[]> = {};
+
+  for (const len of [3, 4, 5, 6]) {
+    const clean = (wordsByLen[len] || []).filter(
+      (w) => w.length === len && /^[A-Z]+$/.test(w)
+    );
+    cleanByLen[len] = clean;
+    for (const w of clean) {
+      let seen = 0;
+      for (let i = 0; i < w.length; i++) {
+        seen |= 1 << (w.charCodeAt(i) - 65);
+      }
+      for (let b = 0; b < 26; b++) {
+        if (seen & (1 << b)) freq[b]++;
+      }
+    }
+  }
+
+  // Mark the 8 least-common letters in THIS language's word bank as rare
+  const ranked = freq
+    .map((count, bit) => ({ bit, count }))
+    .sort((a, b) => a.count - b.count);
+  let rareMask = RARE_LETTER_MASK;
+  rareMask = 0;
+  for (let i = 0; i < 8; i++) {
+    rareMask |= 1 << ranked[i].bit;
+  }
+
+  const byLen: Record<number, WordEntry[]> = {};
+  for (const len of [3, 4, 5, 6]) {
+    byLen[len] = cleanByLen[len].map((w) => {
+      const mask = wordMask(w);
+      return {
+        word: w,
+        mask,
+        rareCount: popcount(mask & rareMask),
+      };
+    });
+  }
+
+  const entry = { byLen, rareMask };
+  wordEntriesCache.set(language, entry);
+  return entry;
 }
 
 function transformGrid(raw: string[], variant: number): string[][] {
@@ -315,7 +422,9 @@ export function extractSlots(layout: string[][]): WordSlot[] {
 function solvePangramCrossword(
   layout: string[][],
   slots: WordSlot[],
-  rng: () => number
+  rng: () => number,
+  wordEntriesByLen: Record<number, WordEntry[]>,
+  rareMask: number
 ): string[][] | null {
   const grid: string[][] = layout.map((row) =>
     row.map((ch) => (ch === '.' ? '' : '#'))
@@ -335,7 +444,7 @@ function solvePangramCrossword(
   // Shuffle pools deterministically per attempt
   const pools: Record<number, WordEntry[]> = {};
   for (const len of [3, 4, 5, 6]) {
-    const arr = [...(WORD_ENTRIES_BY_LEN[len] || [])];
+    const arr = [...(wordEntriesByLen[len] || [])];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1));
       const tmp = arr[i];
@@ -348,9 +457,9 @@ function solvePangramCrossword(
   const assigned = new Array<string | null>(slots.length).fill(null);
   const usedWords = new Set<string>();
   let steps = 0;
-  const MAX_STEPS = 3500;
+  const MAX_STEPS = 2500;
 
-  function getCandidates(slotIdx: number, missingMask: number): WordEntry[] {
+  function getMatchingCandidates(slotIdx: number): WordEntry[] {
     const slot = slots[slotIdx];
     const pool = pools[slot.length] || [];
     const pattern: string[] = slot.cells.map(({ r, c }) => grid[r][c]);
@@ -370,21 +479,6 @@ function solvePangramCrossword(
         matches.push(entry);
       }
     }
-
-    // Score candidates to prioritize covering missing rare letters and missing letters overall
-    if (missingMask !== 0 && matches.length > 1) {
-      const missingRare = missingMask & RARE_LETTER_MASK;
-      matches.sort((a, b) => {
-        const aRare = popcount(a.mask & missingRare);
-        const bRare = popcount(b.mask & missingRare);
-        if (aRare !== bRare) return bRare - aRare;
-        const aMiss = popcount(a.mask & missingMask);
-        const bMiss = popcount(b.mask & missingMask);
-        if (aMiss !== bMiss) return bMiss - aMiss;
-        return 0;
-      });
-    }
-
     return matches;
   }
 
@@ -420,25 +514,45 @@ function solvePangramCrossword(
     const missingCount = popcount(missingMask);
     if (missingCount > openCells) return false;
 
-    // MRV: pick unfilled slot with fewest candidates
+    // MRV + Forward-check: every unfilled slot must have >= 1 candidate,
+    // AND the union of all remaining candidates + usedMask must cover all 26 letters.
     let bestSlotIdx = -1;
     let bestCandidates: WordEntry[] = [];
+    let unionPossibleMask = usedMask;
     for (let i = 0; i < slots.length; i++) {
       if (assigned[i] !== null) continue;
-      const cands = getCandidates(i, missingMask);
+      const cands = getMatchingCandidates(i);
       if (cands.length === 0) return false;
+      for (let k = 0; k < cands.length; k++) {
+        unionPossibleMask |= cands[k].mask;
+      }
       if (bestSlotIdx === -1 || cands.length < bestCandidates.length) {
         bestSlotIdx = i;
         bestCandidates = cands;
-        if (cands.length === 1) break;
       }
     }
+    if ((unionPossibleMask & ALL_26_MASK) !== ALL_26_MASK) return false;
 
     if (bestSlotIdx === -1) return false;
+
+    // Sort only the selected slot's candidates to cover missing rare letters first
+    if (missingMask !== 0 && bestCandidates.length > 1) {
+      const missingRare = missingMask & rareMask;
+      bestCandidates.sort((a, b) => {
+        const aRare = popcount(a.mask & missingRare);
+        const bRare = popcount(b.mask & missingRare);
+        if (aRare !== bRare) return bRare - aRare;
+        const aMiss = popcount(a.mask & missingMask);
+        const bMiss = popcount(b.mask & missingMask);
+        if (aMiss !== bMiss) return bMiss - aMiss;
+        return 0;
+      });
+    }
+
     const slot = slots[bestSlotIdx];
     const prevChars = slot.cells.map(({ r, c }) => grid[r][c]);
 
-    const limit = Math.min(bestCandidates.length, 48);
+    const limit = Math.min(bestCandidates.length, 64);
     for (let i = 0; i < limit; i++) {
       const cand = bestCandidates[i];
       assigned[bestSlotIdx] = cand.word;
@@ -470,25 +584,32 @@ const puzzleCache = new Map<string, UnolingoPuzzle>();
  * Deterministically generates a verified 10x10 Unolingo puzzle for YYYY-MM-DD.
  * Contains all 26 letters A-Z exactly once in the 26 blank cells, plus pre-filled anchor tiles.
  */
-export function getPuzzleForDate(dateStr: string): UnolingoPuzzle {
-  const cached = puzzleCache.get(dateStr);
+export function getPuzzleForDate(
+  dateStr: string,
+  language?: DictionaryLanguageCode | string | null
+): UnolingoPuzzle {
+  const activeLang = normalizeDictionaryLanguage(language ?? getDictionaryLanguage());
+  const cacheKey = `${dateStr}:${activeLang}`;
+  const cached = puzzleCache.get(cacheKey);
   if (cached) return cached;
 
-  const baseSeed = hashString(`unolingo-daily-v1:${dateStr}`);
+  const baseSeed = hashString(`unolingo-daily-v1:${activeLang}:${dateStr}`);
+  const { byLen: wordEntriesByLen, rareMask } = getWordEntriesForLanguage(activeLang);
 
   let chosenLayout: string[][] | null = null;
   let chosenSlots: WordSlot[] = [];
   let chosenSolution: string[][] | null = null;
   let finalRng = mulberry32(baseSeed);
 
-  for (let attempt = 0; attempt < 48; attempt++) {
+  for (let attempt = 0; attempt < 128; attempt++) {
     const attemptSeed = (baseSeed + Math.imul(attempt + 1, 0x9e3779b1)) >>> 0;
     const rng = mulberry32(attemptSeed);
-    const templateIdx = Math.floor(rng() * BASE_TEMPLATES.length);
+    const pool = attempt < 40 ? BASE_TEMPLATES : FALLBACK_TEMPLATES;
+    const templateIdx = Math.floor(rng() * pool.length);
     const variant = Math.floor(rng() * 8);
-    const layout = transformGrid(BASE_TEMPLATES[templateIdx], variant);
+    const layout = transformGrid(pool[templateIdx], variant);
     const slots = extractSlots(layout);
-    const solved = solvePangramCrossword(layout, slots, rng);
+    const solved = solvePangramCrossword(layout, slots, rng, wordEntriesByLen, rareMask);
     if (solved) {
       chosenLayout = layout;
       chosenSlots = slots;
@@ -499,7 +620,7 @@ export function getPuzzleForDate(dateStr: string): UnolingoPuzzle {
   }
 
   if (!chosenLayout || !chosenSolution) {
-    throw new Error(`Failed to generate puzzle for ${dateStr}`);
+    throw new Error(`Failed to generate puzzle for ${dateStr} (${activeLang})`);
   }
 
   // Group all playable cells by letter A-Z
@@ -563,6 +684,7 @@ export function getPuzzleForDate(dateStr: string): UnolingoPuzzle {
 
   const puzzle: UnolingoPuzzle = {
     dateStr,
+    language: activeLang,
     gridSize: 10,
     layout: chosenLayout,
     solution: chosenSolution,
@@ -574,7 +696,7 @@ export function getPuzzleForDate(dateStr: string): UnolingoPuzzle {
     givenCount: totalWhiteCells - 26,
   };
 
-  puzzleCache.set(dateStr, puzzle);
+  puzzleCache.set(cacheKey, puzzle);
   return puzzle;
 }
 
@@ -584,7 +706,8 @@ export function getPuzzleForDate(dateStr: string): UnolingoPuzzle {
  */
 export function validateSolvedBoard(
   puzzle: UnolingoPuzzle,
-  boardLetters: string[]
+  boardLetters: string[],
+  language?: DictionaryLanguageCode | string | null
 ): { isComplete: boolean; isSolved: boolean; invalidSlotIds: string[] } {
   if (boardLetters.length !== 26 || boardLetters.some((ch) => ch.length !== 1)) {
     return { isComplete: false, isSolved: false, invalidSlotIds: [] };
@@ -596,6 +719,8 @@ export function validateSolvedBoard(
     return { isComplete: false, isSolved: false, invalidSlotIds: [] };
   }
 
+  const { validWordSet } = getUnolingoWordBank(language ?? puzzle.language);
+
   // Construct candidate 10x10 grid
   const candidate: string[][] = puzzle.layout.map((row, r) =>
     row.map((cell, c) => {
@@ -605,12 +730,12 @@ export function validateSolvedBoard(
     })
   );
 
-  // Check if every word slot is a valid word in our dictionary (or matches exact solution)
+  // Check if every word slot is a valid word in our active language dictionary (or matches exact solution)
   const invalidSlotIds: string[] = [];
   for (const slot of puzzle.slots) {
     const word = slot.cells.map(({ r, c }) => candidate[r][c]).join('');
     const solWord = slot.cells.map(({ r, c }) => puzzle.solution[r][c]).join('');
-    if (word !== solWord && !VALID_WORD_SET.has(word)) {
+    if (word !== solWord && !validWordSet.has(word)) {
       invalidSlotIds.push(slot.id);
     }
   }

@@ -380,7 +380,11 @@ export class TikTokIntegrationService {
         const state = gameEngine.getFullState();
         const discoveredSet = new Set(state.discoveredWords.map((d) => d.word.toLowerCase()));
         const possible = gameEngine['currentBoard'].possibleWords.filter((w) => !discoveredSet.has(w));
-        const chosenWord = possible.length > 0 ? possible[Math.floor(Math.random() * possible.length)] : 'STREAM';
+        const fallbackBoardWord = state.board.letters.join('').toLowerCase();
+        const chosenWord =
+          possible.length > 0
+            ? possible[Math.floor(Math.random() * possible.length)]
+            : fallbackBoardWord;
         return chatHandler.handleIncomingChat({
           ...simUser,
           comment: chosenWord.toUpperCase(),
@@ -396,7 +400,10 @@ export class TikTokIntegrationService {
       }
       case 'chat_duplicate': {
         const state = gameEngine.getFullState();
-        const existingWord = state.discoveredWords[0]?.word || 'APPLE';
+        const existingWord =
+          state.discoveredWords[0]?.word ||
+          gameEngine['currentBoard'].possibleWords[0] ||
+          state.board.letters.join('');
         return chatHandler.handleIncomingChat({
           ...simUser,
           comment: existingWord,

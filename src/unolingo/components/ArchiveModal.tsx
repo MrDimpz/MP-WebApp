@@ -8,7 +8,9 @@ import {
   ChevronRight,
   Clock,
 } from 'lucide-react';
+import { type DictionaryLanguageCode } from '@/lib/dictionary-languages';
 import { GameView, PuzzleProgressRecord } from '../types';
+import { getProgressDateKey } from '../engine/storage';
 import {
   ARCHIVE_DAYS_COUNT,
   formatDuration,
@@ -19,6 +21,7 @@ import {
 interface ArchiveCalendarPickerProps {
   onSelectDate: (dateStr: string) => void;
   progressMap: Record<string, PuzzleProgressRecord>;
+  dictionaryLanguage?: DictionaryLanguageCode;
   todayLondonStr: string;
   selectedDateStr?: string;
   onClose?: () => void;
@@ -44,6 +47,7 @@ const MONTH_NAMES = [
 export const ArchiveCalendarPicker: React.FC<ArchiveCalendarPickerProps> = ({
   onSelectDate,
   progressMap,
+  dictionaryLanguage = 'en',
   todayLondonStr,
   selectedDateStr,
   onClose,
@@ -220,7 +224,7 @@ export const ArchiveCalendarPicker: React.FC<ArchiveCalendarPickerProps> = ({
             );
           }
 
-          const rec = progressMap[cell.dateStr];
+          const rec = progressMap[getProgressDateKey(cell.dateStr, dictionaryLanguage)];
           const isCompleted = rec?.status === 'completed';
           const isInProgress = rec?.status === 'in_progress';
           const isToday = cell.dateStr === todayLondonStr;
@@ -309,6 +313,7 @@ interface ArchiveModalProps {
   setCurrentView: (view: GameView) => void;
   onSelectDate: (dateStr: string) => void;
   progressMap: Record<string, PuzzleProgressRecord>;
+  dictionaryLanguage?: DictionaryLanguageCode;
   todayLondonStr: string;
   selectedDateStr?: string;
 }
@@ -317,12 +322,19 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   setCurrentView,
   onSelectDate,
   progressMap,
+  dictionaryLanguage = 'en',
   todayLondonStr,
   selectedDateStr,
 }) => {
   const solvedCount = useMemo(
-    () => Object.values(progressMap).filter((p) => p.status === 'completed').length,
-    [progressMap]
+    () =>
+      Object.entries(progressMap).filter(([key, p]) => {
+        if (p.status !== 'completed') return false;
+        return dictionaryLanguage === 'en'
+          ? !key.includes(':')
+          : key.endsWith(`:${dictionaryLanguage}`);
+      }).length,
+    [progressMap, dictionaryLanguage]
   );
 
   return (
@@ -351,6 +363,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
       <ArchiveCalendarPicker
         progressMap={progressMap}
+        dictionaryLanguage={dictionaryLanguage}
         todayLondonStr={todayLondonStr}
         selectedDateStr={selectedDateStr}
         onSelectDate={(dateStr) => {

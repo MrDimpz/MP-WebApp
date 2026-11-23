@@ -138,7 +138,7 @@ export const TikTokLiveModal: React.FC<TikTokLiveModalProps> = ({
           </button>
         </div>
 
-        <div className="p-6 flex flex-col gap-5 max-h-[82vh] overflow-y-auto">
+        <div className="p-6 flex flex-col gap-5 max-h-[82vh] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {/* Active Connection Banner */}
           {status.connected && (
             <div className="p-4 rounded-xl bg-emerald-950/55 border border-emerald-400/45 flex items-center justify-between gap-3">

@@ -22,7 +22,9 @@ import {
   formatCountdown,
   formatDisplayDate,
 } from '../engine/londonTime';
+import { type DictionaryLanguageCode } from '@/lib/dictionary-languages';
 import { UnolingoPuzzle } from '../engine/puzzleGenerator';
+import { getProgressDateKey } from '../engine/storage';
 import { GameView, PuzzleProgressRecord, UnolingoStats } from '../types';
 
 interface TitleMenuProps {
@@ -31,6 +33,7 @@ interface TitleMenuProps {
   countdownMs: number;
   todayPuzzle: UnolingoPuzzle;
   progressMap: Record<string, PuzzleProgressRecord>;
+  dictionaryLanguage?: DictionaryLanguageCode;
   stats: UnolingoStats;
   effectiveStreak: number;
   onSelectDate: (dateStr: string) => void;
@@ -45,6 +48,7 @@ export const TitleMenu: React.FC<TitleMenuProps> = ({
   countdownMs,
   todayPuzzle,
   progressMap,
+  dictionaryLanguage = 'en',
   stats,
   effectiveStreak,
   onSelectDate,
@@ -52,7 +56,7 @@ export const TitleMenu: React.FC<TitleMenuProps> = ({
   onOpenSignIn,
   onOpenUnifiedLeaderboard,
 }) => {
-  const todayRecord = progressMap[todayLondonStr];
+  const todayRecord = progressMap[getProgressDateKey(todayLondonStr, dictionaryLanguage)];
   const todayStatus = todayRecord?.status;
   const placedCount = todayRecord ? todayRecord.boardLetters.filter(Boolean).length : 0;
 

@@ -110,6 +110,14 @@ function MpwhOverlayRoute() {
   const overlayConfig = useOverlayConfig();
   const [syncedState, setSyncedState] = useState<MpwhOverlayState | null>(null);
 
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add('mpwh-overlay-lock');
+    return () => {
+      html.classList.remove('mpwh-overlay-lock');
+    };
+  }, []);
+
   const { isReceivingHostSync } = useOverlaySync<MpwhOverlayState>({
     gameId: 'mpwh',
     streamer: overlayConfig.streamer,
@@ -129,6 +137,13 @@ function MpwhOverlayRoute() {
 }
 
 function MpwhHostApp() {
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add('mpwh-hide-scrollbar');
+    return () => {
+      html.classList.remove('mpwh-hide-scrollbar');
+    };
+  }, []);
   const { user: siteUser } = useUnifiedAuth();
   const activeStreamer = getActiveInteractiveStreamerSession();
   const [dictionaryLanguage] = useDictionaryLanguage();
@@ -607,7 +622,7 @@ function MpwhHostApp() {
               gameTitle="Word Hunt Extreme"
               gameSlug="mpwh"
               streamerHandle={resolvedOverlayStreamer || undefined}
-              recommendedSize="620 × 760 or 1080 × 1920"
+              recommendedSize="620 × 900 or 1080 × 1920"
               label="Overlay"
             />
 
@@ -750,97 +765,93 @@ function MpwhHostApp() {
 
             {/* Main Play Area + Live Activity Sidebar */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              {/* Left / Primary Stage */}
+              {/* Left / Primary Stage — Fixed-height unified panel across all round states */}
               <div className="lg:col-span-8 space-y-4">
-                {isIdle || !game || game.boards.length === 0 ? (
-                  <div className="relative overflow-hidden rounded-2xl border border-[#F6C915]/40 bg-[#210736]/95 p-8 sm:p-10 text-center shadow-2xl space-y-5">
-                    <div
-                      aria-hidden="true"
-                      className="pointer-events-none select-none absolute inset-0 flex items-center justify-center z-0"
-                    >
-                      <img
-                        src="/assets/aistudio/3d_logo_944e5372.png"
-                        alt=""
-                        className="w-[90%] h-[90%] object-contain opacity-25"
-                      />
-                    </div>
-                    <div className="relative z-10 space-y-5">
-                      <img
-                        src="/assets/aistudio/3d_logo_944e5372.png"
-                        alt="The Missing Piece Word Hunt Extreme"
-                        className="mx-auto h-16 w-16 rounded-full object-contain drop-shadow-lg"
-                      />
-                      <div className="space-y-2 max-w-md mx-auto">
-                        <p className="text-xs font-extrabold uppercase tracking-widest text-[#F6C915]">
-                          {formatModeLabel(currentMode)} · {langMeta.flag}{' '}
-                          {langMeta.label}
-                        </p>
-                        <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                          Ready for Word Hunt Extreme?
-                        </h2>
-                        <p className="text-sm text-[#D9C7EE] leading-relaxed">
-                          Press Start Game to generate a secret 4–8 letter word.
-                          Every guess narrows the alphabetical ladder above and
-                          below—with a 4-second TikTok LIVE stream-lag window on
-                          every win.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => handleStartRound()}
-                          className="inline-flex items-center gap-2 rounded-xl bg-[#F6C915] px-6 py-3 text-sm font-black text-[#1D0830] hover:bg-[#FFE047] transition-colors cursor-pointer shadow-lg whitespace-nowrap shrink-0"
-                        >
-                          <Play className="h-4 w-4 fill-current" aria-hidden="true" />
-                          <span>Start {formatModeLabel(currentMode)}</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowTikTokModal(true)}
-                          className="inline-flex items-center gap-2 rounded-xl border border-[#D4A437]/45 bg-[#140321] px-5 py-3 text-sm font-bold text-[#F6C915] hover:bg-[#2C0C47] transition-colors cursor-pointer whitespace-nowrap shrink-0"
-                        >
-                          <Radio className="h-4 w-4" aria-hidden="true" />
-                          <span>
-                            {tiktokStatus.connected
-                              ? `LIVE: @${tiktokStatus.username}`
-                              : 'Connect TikTok LIVE'}
-                          </span>
-                        </button>
-                      </div>
-                    </div>
+                <div
+                  className={`relative rounded-2xl border bg-[#210736]/95 shadow-xl overflow-hidden transition-colors ${
+                    !isIdle && game && game.boards.every((b) => b.lockedSolved)
+                      ? 'border-emerald-400/50'
+                      : !isIdle &&
+                        game &&
+                        game.boards.some((b) =>
+                          b.targets.some((t) => t.bufferActive)
+                        )
+                      ? 'border-[#F6C915] shadow-[0_0_0_1px_rgba(246,201,21,0.3)]'
+                      : 'border-[#D4A437]/35'
+                  }`}
+                >
+                  {/* Missing Piece Emblem Watermark (25% opacity, 90% size of main board section) */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none select-none absolute inset-0 flex items-center justify-center z-0"
+                  >
+                    <img
+                      src="/assets/aistudio/3d_logo_944e5372.png"
+                      alt=""
+                      className="w-[90%] h-[90%] object-contain opacity-25"
+                    />
                   </div>
-                ) : (
-                  <>
-                    {/* Unified Main Panel: Ladder Board(s) + Merged Compact 4-Row Guess Marquee */}
-                    <div
-                      className={`relative rounded-2xl border bg-[#210736]/95 shadow-xl overflow-hidden transition-colors ${
-                        game.boards.every((b) => b.lockedSolved)
-                          ? 'border-emerald-400/50'
-                          : game.boards.some((b) =>
-                              b.targets.some((t) => t.bufferActive)
-                            )
-                          ? 'border-[#F6C915] shadow-[0_0_0_1px_rgba(246,201,21,0.3)]'
-                          : 'border-[#D4A437]/35'
-                      }`}
-                    >
-                      {/* Missing Piece Emblem Watermark (25% opacity, 90% size of main board section) */}
-                      <div
-                        aria-hidden="true"
-                        className="pointer-events-none select-none absolute inset-0 flex items-center justify-center z-0"
-                      >
-                        <img
-                          src="/assets/aistudio/3d_logo_944e5372.png"
-                          alt=""
-                          className="w-[90%] h-[90%] object-contain opacity-25"
-                        />
-                      </div>
 
-                      <div className="relative z-10">
+                  <div className="relative z-10 flex flex-col">
+                    {/* Fixed-Height Game Field Stage */}
+                    <div
+                      className={
+                        !isIdle && game?.mode === 'quad'
+                          ? 'min-h-[524px] sm:h-[524px] flex flex-col justify-center overflow-hidden'
+                          : 'h-[524px] flex flex-col justify-center overflow-hidden'
+                      }
+                    >
+                      {isIdle || !game || game.boards.length === 0 ? (
+                        <div className="p-6 sm:p-8 text-center space-y-5">
+                          <img
+                            src="/assets/aistudio/3d_logo_944e5372.png"
+                            alt="The Missing Piece Word Hunt Extreme"
+                            className="mx-auto h-16 w-16 rounded-full object-contain drop-shadow-lg"
+                          />
+                          <div className="space-y-2 max-w-md mx-auto">
+                            <p className="text-xs font-extrabold uppercase tracking-widest text-[#F6C915]">
+                              {formatModeLabel(currentMode)} · {langMeta.flag}{' '}
+                              {langMeta.label}
+                            </p>
+                            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                              Ready for Word Hunt Extreme?
+                            </h2>
+                            <p className="text-sm text-[#D9C7EE] leading-relaxed">
+                              Press Start Game to generate a secret 4–8 letter word.
+                              Every guess narrows the alphabetical ladder above and
+                              below—with a 4-second TikTok LIVE stream-lag window on
+                              every win.
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleStartRound()}
+                              className="inline-flex items-center gap-2 rounded-xl bg-[#F6C915] px-6 py-3 text-sm font-black text-[#1D0830] hover:bg-[#FFE047] transition-colors cursor-pointer shadow-lg whitespace-nowrap shrink-0"
+                            >
+                              <Play className="h-4 w-4 fill-current" aria-hidden="true" />
+                              <span>Start {formatModeLabel(currentMode)}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowTikTokModal(true)}
+                              className="inline-flex items-center gap-2 rounded-xl border border-[#D4A437]/45 bg-[#140321] px-5 py-3 text-sm font-bold text-[#F6C915] hover:bg-[#2C0C47] transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                            >
+                              <Radio className="h-4 w-4" aria-hidden="true" />
+                              <span>
+                                {tiktokStatus.connected
+                                  ? `LIVE: @${tiktokStatus.username}`
+                                  : 'Connect TikTok LIVE'}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                         <div
                           className={
                             game.mode === 'quad'
-                              ? 'grid grid-cols-1 md:grid-cols-2 gap-3.5 p-3.5 sm:p-4'
-                              : ''
+                              ? 'grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3'
+                              : 'w-full'
                           }
                         >
                           {game.boards.map((board) => (
@@ -867,54 +878,48 @@ function MpwhHostApp() {
                               hintsRemaining={game.hintsRemaining}
                               onUseHint={handleUseHint}
                               isGaveUp={isGaveUp}
+                              hideQuadSolvedPopup={isWon || isGaveUp}
                               clockOffsetMs={clockOffsetMs}
                             />
                           ))}
                         </div>
-
-                        {/* Merged 50%-Compact 4-Name-High Scrolling Player Guess Marquee */}
-                        <GuessMarquee items={game.guessFeed ?? []} embedded />
-                      </div>
-                    </div>
-
-                    {/* Guess Input Bar */}
-                    <div className="rounded-2xl border border-[#D4A437]/30 bg-[#210736]/95 p-4 shadow-xl">
-                      <GuessInputBar
-                        mode={game.mode}
-                        disabled={!isPlaying}
-                        selectedBoardIndex={selectedBoardIndex}
-                        onSelectBoard={setSelectedBoardIndex}
-                        onSubmitGuess={(word) =>
-                          submitGuess(word, {
-                            playerName,
-                            tiktokHandle:
-                              activeStreamer?.username?.replace(/^@+/, '') ||
-                              siteUser?.linkedTikTokHandle?.replace(/^@+/, '') ||
-                              undefined,
-                            avatarUrl: siteUser?.photoURL || undefined,
-                            targetBoardIndex: selectedBoardIndex,
-                          })
-                        }
-                        feedback={feedback}
-                      />
-
-                      {isWon && (
-                        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-emerald-400/40 bg-emerald-950/40 px-3.5 py-2.5">
-                          <span className="text-xs font-bold text-emerald-200">
-                            Round #{game.roundNumber} solved!
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setWinnerModalOpen(true)}
-                            className="text-xs font-extrabold text-[#F6C915] hover:underline cursor-pointer whitespace-nowrap"
-                          >
-                            View Winners
-                          </button>
-                        </div>
                       )}
                     </div>
-                  </>
-                )}
+
+                    {/* Merged Sideways-Scrolling Player Guess Marquee (Always Rendered) */}
+                    <GuessMarquee items={game?.guessFeed ?? []} embedded />
+                  </div>
+                </div>
+
+                {/* Guess Input Bar (Always Mounted) */}
+                <div className="rounded-2xl border border-[#D4A437]/30 bg-[#210736]/95 p-4 shadow-xl">
+                  <GuessInputBar
+                    mode={game?.mode ?? currentMode}
+                    disabled={!isPlaying}
+                    selectedBoardIndex={selectedBoardIndex}
+                    onSelectBoard={setSelectedBoardIndex}
+                    onSubmitGuess={(word) =>
+                      submitGuess(word, {
+                        playerName,
+                        tiktokHandle:
+                          activeStreamer?.username?.replace(/^@+/, '') ||
+                          siteUser?.linkedTikTokHandle?.replace(/^@+/, '') ||
+                          undefined,
+                        avatarUrl: siteUser?.photoURL || undefined,
+                        targetBoardIndex: selectedBoardIndex,
+                      })
+                    }
+                    feedback={feedback}
+                    winNotice={
+                      isWon && game
+                        ? {
+                            roundNumber: game.roundNumber,
+                            onViewWinners: () => setWinnerModalOpen(true),
+                          }
+                        : null
+                    }
+                  />
+                </div>
               </div>
 
               {/* Right Sidebar: Live Activity Feed & Stream Status */}
@@ -969,7 +974,7 @@ function MpwhHostApp() {
                       Guesses, hints, and winners will appear here live.
                     </p>
                   ) : (
-                    <ul className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
+                    <ul className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                       {game.recentActivity.map((item) => (
                         <li
                           key={item.id}

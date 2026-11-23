@@ -1,7 +1,15 @@
 import { scheduleCloudProgressSync } from '@/lib/cloud-progress';
+import { type DictionaryLanguageCode } from '@/lib/dictionary-languages';
 import { getCurrentUserSessionPrefix } from '@/lib/unified-game-auth';
 import { PuzzleProgressRecord, UnolingoPrefs, UnolingoStats } from '../types';
 import { shiftDateStr } from './londonTime';
+
+export function getProgressDateKey(
+  dateStr: string,
+  language: DictionaryLanguageCode = 'en'
+): string {
+  return language === 'en' ? dateStr : `${dateStr}:${language}`;
+}
 
 export const DEFAULT_STATS: UnolingoStats = {
   currentStreak: 0,

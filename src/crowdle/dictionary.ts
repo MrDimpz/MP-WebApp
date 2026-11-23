@@ -267,7 +267,10 @@ function getCrowdleSetsForLanguage(lang?: DictionaryLanguageCode | string | null
 
   const pack = getMultiLangPack(code);
   if (!pack) {
-    return { validWordSets, targetPool };
+    return {
+      validWordSets: { 5: new Set(), 6: new Set(), 7: new Set(), 8: new Set() },
+      targetPool: { 5: [], 6: [], 7: [], 8: [] },
+    };
   }
 
   const langValidSets: Record<number, Set<string>> = {
@@ -304,6 +307,25 @@ function getCrowdleSetsForLanguage(lang?: DictionaryLanguageCode | string | null
   return entry;
 }
 
+export function getCrowdleDictionaryPool(
+  length: number,
+  language?: DictionaryLanguageCode | string | null
+): string[] {
+  const code = normalizeDictionaryLanguage(language ?? getDictionaryLanguage());
+  const sets = getCrowdleSetsForLanguage(code);
+  const pool = sets.targetPool[length];
+  if (pool && pool.length > 0) return pool;
+  if (code !== 'en') {
+    for (const fallbackLen of [5, 6, 7, 8]) {
+      if (sets.targetPool[fallbackLen]?.length) {
+        return sets.targetPool[fallbackLen];
+      }
+    }
+    return [];
+  }
+  return dictionary[length] || dictionary[5];
+}
+
 export function isValidCrowdleWord(
   word: string,
   length: number,
@@ -320,12 +342,9 @@ export function pickTargetWord(
   excludeWord?: string | null,
   language?: DictionaryLanguageCode
 ): string {
-  const sets = getCrowdleSetsForLanguage(language);
-  const pool =
-    sets.targetPool[length] && sets.targetPool[length].length > 0
-      ? sets.targetPool[length]
-      : dictionary[length];
-  if (!pool || pool.length === 0) return 'APPLE';
+  const code = normalizeDictionaryLanguage(language ?? getDictionaryLanguage());
+  const pool = getCrowdleDictionaryPool(length, code);
+  if (!pool || pool.length === 0) return code === 'en' ? 'APPLE' : '';
   const filtered = excludeWord ? pool.filter((w) => w !== excludeWord) : pool;
   const source = filtered.length > 0 ? filtered : pool;
   return source[Math.floor(Math.random() * source.length)];

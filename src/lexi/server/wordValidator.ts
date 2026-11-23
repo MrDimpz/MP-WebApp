@@ -219,7 +219,7 @@ export class WordValidator {
         valid: false,
         normalizedWord: normalized,
         reason: 'EMPTY_OR_INVALID_CHARS',
-        message: 'Word must contain only English letters A–Z.',
+        message: 'Word must contain only letters A–Z.',
       };
     }
 

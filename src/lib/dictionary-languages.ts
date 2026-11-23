@@ -25,12 +25,14 @@ export const LANGUAGE_CONTROLLED_GAMES = [
   'InkStream',
   'Crowdle',
   'Lexi Tiles',
+  'Word Hunt Extreme',
   'Squared',
   'Squared Interactive',
   'DeStack',
   'DeStack Interactive',
   'MP Search',
   'MP Search Interactive',
+  'Unolingo',
 ] as const;
 
 export const DICTIONARY_LANGUAGE_STORAGE_KEY = 'mp_dictionary_language_v1';

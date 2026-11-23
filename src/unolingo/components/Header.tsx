@@ -24,7 +24,10 @@ import {
 } from '@/lib/unified-game-auth';
 import { useDailyStreak } from '@/lib/daily-streak';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
+import { LanguageMenu } from '@/components/language-menu';
+import { useDictionaryLanguage } from '@/lib/dictionary-languages';
 import { UserProfileIcon } from '@/components/user-profile-icon';
+import { getProgressDateKey } from '../engine/storage';
 
 interface HeaderProps {
   currentView: GameView;
@@ -62,8 +65,10 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [archiveDropdownOpen, setArchiveDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [dictionaryLanguage] = useDictionaryLanguage();
 
-  const solvedToday = progressMap[todayLondonStr]?.status === 'completed';
+  const solvedToday =
+    progressMap[getProgressDateKey(todayLondonStr, dictionaryLanguage)]?.status === 'completed';
   const dailyStreak = useDailyStreak('unolingo', todayLondonStr, solvedToday, effectiveStreak);
 
   useEffect(() => {
@@ -167,6 +172,7 @@ export const Header: React.FC<HeaderProps> = ({
               <ArchiveCalendarPicker
                 compact
                 progressMap={progressMap}
+                dictionaryLanguage={dictionaryLanguage}
                 todayLondonStr={todayLondonStr}
                 selectedDateStr={selectedDateStr}
                 onSelectDate={(dateStr) => {
@@ -209,6 +215,8 @@ export const Header: React.FC<HeaderProps> = ({
           variant="light"
           compact
         />
+
+        <LanguageMenu variant="compact" />
 
         <button
           type="button"

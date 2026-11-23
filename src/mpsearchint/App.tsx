@@ -335,8 +335,8 @@ export default function MPSearchInteractiveApp() {
       }
       const nextPuzzle = specificDateKey
         ? archive.find((p) => p.dateKey === specificDateKey) ||
-          pickRandomArchivePuzzle(archive, currentDateKey)
-        : pickRandomArchivePuzzle(archive, currentDateKey);
+          pickRandomArchivePuzzle(archive, currentDateKey, dictionaryLanguage)
+        : pickRandomArchivePuzzle(archive, currentDateKey, dictionaryLanguage);
 
       setCurrentDateKey(nextPuzzle.dateKey);
       setRoundNumber((r) => r + 1);

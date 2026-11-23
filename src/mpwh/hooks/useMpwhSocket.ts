@@ -43,7 +43,8 @@ export function useMpwhSocket({
   useEffect(() => {
     let active = true;
     const ch = encodeURIComponent(channel);
-    fetch(`/api/mpwh/game?channel=${ch}`)
+    const langParam = encodeURIComponent(language);
+    fetch(`/api/mpwh/game?channel=${ch}&language=${langParam}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { game?: LiveGameStateView } | null) => {
         if (!active || !data?.game) return;
@@ -63,7 +64,7 @@ export function useMpwhSocket({
     return () => {
       active = false;
     };
-  }, [channel]);
+  }, [channel, language]);
 
   useEffect(() => {
     const socket = io('/mpwh', {

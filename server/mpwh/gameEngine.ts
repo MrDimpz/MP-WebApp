@@ -186,7 +186,8 @@ export function applyGuess(
   rawWord: string,
   guessedBy: string,
   targetBoardIndex?: number | null,
-  tiktokHandle?: string
+  tiktokHandle?: string,
+  avatarUrl?: string
 ): ApplyGuessResult {
   if (set.status !== 'playing') {
     return {
@@ -236,6 +237,7 @@ export function applyGuess(
           target.winners.push({
             name: guessedBy,
             tiktokHandle,
+            avatarUrl,
             guessedAt: now,
             isFirst: false,
             word: target.word,
@@ -308,6 +310,7 @@ export function applyGuess(
         target.winners.push({
           name: guessedBy,
           tiktokHandle,
+          avatarUrl,
           guessedAt: now,
           isFirst: true,
           word: target.word,

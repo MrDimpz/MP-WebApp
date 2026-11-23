@@ -1,6 +1,4 @@
 import crypto from 'node:crypto';
-import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import { RAW_TARGET_POOL } from './targetWordsEn.ts';
 import { MULTILANG_WORD_PACKS } from '../../src/data/dictionaries/multilang-word-packs.ts';
 import {
@@ -10,40 +8,30 @@ import {
 } from '../../src/lib/dictionary-languages.ts';
 import type { LadderMode } from '../../src/mpwh/shared/types.ts';
 
-const require = createRequire(import.meta.url);
-const wordsJsonPath = require.resolve('an-array-of-english-words/index.json');
-const words = JSON.parse(fs.readFileSync(wordsJsonPath, 'utf8')) as string[];
-
 interface LanguageDictionary {
   validArray: string[];
   validSet: Set<string>;
   targetWords: string[];
 }
 
-// Build English dictionary once (4-8 lowercase ASCII letters, ~80,000+ words)
-const EN_VALID_ARRAY: string[] = [];
-const EN_VALID_SET = new Set<string>();
-for (const w of words) {
-  if (w.length >= 4 && w.length <= 8 && /^[a-z]+$/.test(w)) {
-    EN_VALID_SET.add(w);
-    EN_VALID_ARRAY.push(w);
-  }
-}
-EN_VALID_ARRAY.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-
-const EN_TARGET_WORDS = Array.from(
+// Build English Word Hunt dictionary from the 500 most common 4–8 letter words
+const EN_VALID_ARRAY = Array.from(
   new Set(
     RAW_TARGET_POOL.map((w) => w.toLowerCase().trim()).filter(
-      (w) => w.length >= 4 && w.length <= 8 && EN_VALID_SET.has(w)
+      (w) => w.length >= 4 && w.length <= 8 && /^[a-z]+$/.test(w)
     )
   )
-).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+)
+  .slice(0, 500)
+  .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+
+const EN_VALID_SET = new Set<string>(EN_VALID_ARRAY);
 
 const DICTIONARIES = new Map<DictionaryLanguageCode, LanguageDictionary>();
 DICTIONARIES.set('en', {
   validArray: EN_VALID_ARRAY,
   validSet: EN_VALID_SET,
-  targetWords: EN_TARGET_WORDS,
+  targetWords: EN_VALID_ARRAY,
 });
 
 function getLanguageDictionary(langInput?: string): LanguageDictionary {
@@ -61,6 +49,7 @@ function getLanguageDictionary(langInput?: string): LanguageDictionary {
 
   if (pack) {
     for (const rawWord of pack.words) {
+      if (validArray.length >= 500) break;
       const clean = stripDiacritics(rawWord).toLowerCase().replace(/[^a-z]/g, '');
       if (clean.length >= 4 && clean.length <= 8 && !validSet.has(clean)) {
         validSet.add(clean);
@@ -68,6 +57,7 @@ function getLanguageDictionary(langInput?: string): LanguageDictionary {
       }
     }
     for (const rawPrompt of pack.drawingPrompts) {
+      if (validArray.length >= 500) break;
       if (rawPrompt.includes(' ') || rawPrompt.includes('-')) continue;
       const clean = stripDiacritics(rawPrompt).toLowerCase().replace(/[^a-z]/g, '');
       if (clean.length >= 4 && clean.length <= 8 && !validSet.has(clean)) {
@@ -78,11 +68,6 @@ function getLanguageDictionary(langInput?: string): LanguageDictionary {
   }
 
   validArray.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-
-  // Fallback to English if a pack somehow had too few words
-  if (validArray.length < 30) {
-    return DICTIONARIES.get('en')!;
-  }
 
   const dict: LanguageDictionary = {
     validArray,
@@ -213,7 +198,7 @@ export function computeBisectHint(
     const end = side === 'before' ? secretIdx - 1 : afterIdx - (closestAfter ? 1 : 0);
     if (start > end) continue;
 
-    // Prefer a recognizable target word of the same length first
+    // Prefer a target word of the same length first
     const requiredLen = secretWord.length;
     const targetCandidates = targetWords.filter(
       (w) =>
@@ -235,7 +220,7 @@ export function computeBisectHint(
       ];
     }
 
-    // Fallback: bisect full dictionary array (prefer matching length, then any valid length)
+    // Fallback: bisect dictionary array (prefer matching length, then any valid length)
     const mid = Math.floor((start + end) / 2);
     const maxOffset = Math.max(mid - start, end - mid);
     for (const enforceLength of [true, false]) {

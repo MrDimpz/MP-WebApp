@@ -853,3 +853,36 @@ html.tiktok-live-overlay body::before {
   );
 }
 
+/* Word Hunt Extreme: Hide scrollbars cleanly on host and lock 620x900 overlay viewport */
+html.mpwh-hide-scrollbar,
+html.mpwh-hide-scrollbar body,
+.mpwh-hide-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html.mpwh-hide-scrollbar::-webkit-scrollbar,
+html.mpwh-hide-scrollbar body::-webkit-scrollbar,
+.mpwh-hide-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+html.mpwh-overlay-lock,
+html.mpwh-overlay-lock body,
+html.mpwh-overlay-lock #root {
+  overflow: hidden !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html.mpwh-overlay-lock::-webkit-scrollbar,
+html.mpwh-overlay-lock body::-webkit-scrollbar,
+html.mpwh-overlay-lock #root::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}

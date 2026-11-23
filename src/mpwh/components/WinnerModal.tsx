@@ -110,7 +110,7 @@ export function WinnerModal({
               Great hunt!
             </p>
           ) : (
-            <ul className="space-y-2 max-h-56 overflow-y-auto pr-1">
+            <ul className="space-y-2 max-h-56 overflow-y-auto pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               {winners.map((winner, idx) => (
                 <li
                   key={winner.name}

@@ -284,7 +284,7 @@ export function getSquaredLexicon(
 
   const pack = getMultiLangPack(code);
   if (!pack) {
-    return { dictionary: CORE_DICTIONARY, prefixes: CORE_PREFIXES };
+    return { dictionary: new Set<string>(), prefixes: new Set<string>() };
   }
 
   const dict = new Set<string>();
@@ -389,7 +389,7 @@ export async function fetchWordDefinition(rawWord: string): Promise<WordDefiniti
             example: defObj.example,
             source: 'dictionaryapi',
           };
-          definitionCache.set(word, result);
+          definitionCache.set(cacheKey, result);
           return result;
         }
       }
@@ -426,7 +426,7 @@ export async function fetchWordDefinition(rawWord: string): Promise<WordDefiniti
             definition: defParts.join(' '),
             source: 'datamuse',
           };
-          definitionCache.set(word, result);
+          definitionCache.set(cacheKey, result);
           return result;
         }
       }
@@ -437,7 +437,7 @@ export async function fetchWordDefinition(rawWord: string): Promise<WordDefiniti
 
   if (CORE_DICTIONARY.has(word)) {
     const fallback = getCuratedFallback(word);
-    definitionCache.set(word, fallback);
+    definitionCache.set(cacheKey, fallback);
     return fallback;
   }
 

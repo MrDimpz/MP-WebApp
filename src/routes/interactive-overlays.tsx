@@ -112,8 +112,8 @@ const INTERACTIVE_OVERLAY_SPECS: OverlayGameSpec[] = [
     hostPath: '/interactive-games/mpwh',
     overlaySlug: 'mpwh',
     virtualWidth: 620,
-    virtualHeight: 760,
-    sizeLabel: '620 × 760 · Ladder',
+    virtualHeight: 900,
+    sizeLabel: '620 × 900 · Ladder',
   },
 ];
 

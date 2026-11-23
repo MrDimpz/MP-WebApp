@@ -43,6 +43,7 @@ import { soundFx } from './engine/soundFx';
 import {
   calculateUnolingoScore,
   computeEffectiveStreak,
+  getProgressDateKey,
   readPrefs,
   readProgressMap,
   readStats,
@@ -52,7 +53,7 @@ import {
   writeProgressMap,
   writeStats,
 } from './engine/storage';
-import { VALID_WORD_SET } from './engine/wordBank';
+import { isValidUnolingoWord } from './engine/wordBank';
 import {
   GameView,
   PuzzleProgressRecord,
@@ -62,9 +63,11 @@ import {
   UnolingoVictoryData,
 } from './types';
 import { CLOUD_HYDRATED_EVENT } from '@/lib/cloud-progress';
+import { stripDiacritics, useDictionaryLanguage } from '@/lib/dictionary-languages';
 import './index.css';
 
 export default function App() {
+  const [dictionaryLanguage] = useDictionaryLanguage();
   const [todayLondonStr, setTodayLondonStr] = useState<string>(() => getLondonDateStr());
   const [countdownMs, setCountdownMs] = useState<number>(() =>
     getMsUntilNextLondonMidnight()
@@ -167,14 +170,19 @@ export default function App() {
     [stats, todayLondonStr]
   );
 
+  const progressDateKey = useMemo(
+    () => getProgressDateKey(selectedDateStr, dictionaryLanguage),
+    [selectedDateStr, dictionaryLanguage]
+  );
+
   // Puzzles
   const puzzle: UnolingoPuzzle = useMemo(
-    () => getPuzzleForDate(selectedDateStr),
-    [selectedDateStr]
+    () => getPuzzleForDate(selectedDateStr, dictionaryLanguage),
+    [selectedDateStr, dictionaryLanguage]
   );
   const todayPuzzle: UnolingoPuzzle = useMemo(
-    () => getPuzzleForDate(todayLondonStr),
-    [todayLondonStr]
+    () => getPuzzleForDate(todayLondonStr, dictionaryLanguage),
+    [todayLondonStr, dictionaryLanguage]
   );
 
   // Active board state
@@ -201,13 +209,14 @@ export default function App() {
     toastTimerRef.current = window.setTimeout(() => setToastMsg(null), 2800);
   }, []);
 
-  // Hydrate board state whenever date or account changes
+  // Hydrate board state whenever date, language, or account changes
   useEffect(() => {
-    const hydrationKey = `${currentUser?.uid || 'guest'}:${selectedDateStr}`;
+    const hydrationKey = `${currentUser?.uid || 'guest'}:${selectedDateStr}:${dictionaryLanguage}`;
     if (hydratedKeyRef.current === hydrationKey) return;
     hydratedKeyRef.current = hydrationKey;
 
-    const saved = progressMap[selectedDateStr];
+    setVictoryData(null);
+    const saved = progressMap[progressDateKey];
     if (saved) {
       setBoardLetters(sanitizeBoardLetters(saved.boardLetters));
       setHintIndices(sanitizeHintIndices(saved.hintIndices));
@@ -237,7 +246,7 @@ export default function App() {
       );
       setDirection(hasAcross ? 'across' : 'down');
     }
-  }, [selectedDateStr, currentUser?.uid, progressMap, puzzle]);
+  }, [selectedDateStr, dictionaryLanguage, progressDateKey, currentUser?.uid, progressMap, puzzle]);
 
   // Elapsed timer when actively playing
   useEffect(() => {
@@ -265,7 +274,7 @@ export default function App() {
         return;
       }
       setProgressMap((prev) => {
-        const existing = prev[selectedDateStr];
+        const existing = prev[progressDateKey];
         // Don't overwrite a completed puzzle back to in_progress
         if (existing?.status === 'completed' && solvedStatus !== 'completed') {
           return prev;
@@ -281,12 +290,12 @@ export default function App() {
           status: solvedStatus,
           completedAt: solvedStatus === 'completed' ? Date.now() : existing?.completedAt,
         };
-        const nextMap = { ...prev, [selectedDateStr]: updatedRecord };
+        const nextMap = { ...prev, [progressDateKey]: updatedRecord };
         writeProgressMap(nextMap);
         return nextMap;
       });
     },
-    [selectedDateStr]
+    [progressDateKey, selectedDateStr]
   );
 
   // Save elapsed time cleanly every 5s while playing
@@ -345,7 +354,7 @@ export default function App() {
       nextHintsCount: number,
       nextMistakes: number
     ) => {
-      const check = validateSolvedBoard(puzzle, nextLetters);
+      const check = validateSolvedBoard(puzzle, nextLetters, dictionaryLanguage);
       if (!check.isComplete) return;
 
       if (check.isSolved) {
@@ -355,7 +364,7 @@ export default function App() {
 
         const finalTime = Math.max(1, elapsedSec);
         const finalScore = calculateUnolingoScore(finalTime, nextHintsCount, nextMistakes);
-        const isFirstCompletion = progressMap[selectedDateStr]?.status !== 'completed';
+        const isFirstCompletion = progressMap[progressDateKey]?.status !== 'completed';
         const isDailyToday = selectedDateStr === todayLondonStr;
         const prevBestScore = Object.values(progressMap).reduce(
           (max, rec) => Math.max(max, rec.score || 0),
@@ -423,8 +432,11 @@ export default function App() {
         void saveUnifiedLeaderboardScore({
           user: currentUser,
           gameId: 'unolingo',
-          puzzleId: selectedDateStr,
-          puzzleTitle: `Unolingo ${selectedDateStr}`,
+          puzzleId: progressDateKey,
+          puzzleTitle:
+            dictionaryLanguage === 'en'
+              ? `Unolingo ${selectedDateStr}`
+              : `Unolingo ${selectedDateStr} (${dictionaryLanguage.toUpperCase()})`,
           score: finalScore,
           metricLabel: `${formatDuration(finalTime)} · ${nextHintsCount} hint${
             nextHintsCount === 1 ? '' : 's'
@@ -470,8 +482,10 @@ export default function App() {
     },
     [
       puzzle,
+      dictionaryLanguage,
       elapsedSec,
       progressMap,
+      progressDateKey,
       selectedDateStr,
       todayLondonStr,
       persistProgress,
@@ -485,7 +499,7 @@ export default function App() {
   const placeLetterAtBlankIndex = useCallback(
     (targetBlankIdx: number, rawLetter: string) => {
       if (isSolved) return;
-      const letter = rawLetter.toUpperCase();
+      const letter = stripDiacritics(rawLetter).toUpperCase().replace(/[^A-Z]/g, '').slice(0, 1);
       if (!/^[A-Z]$/.test(letter)) return;
       if (hintIndices.includes(targetBlankIdx)) {
         soundFx.playError();
@@ -568,7 +582,7 @@ export default function App() {
             return idx !== undefined ? nextLetters[idx] : puzzle.givens[r][c];
           })
           .join('');
-        if (formed.length === activeSlot.length && VALID_WORD_SET.has(formed)) {
+        if (formed.length === activeSlot.length && isValidUnolingoWord(formed, dictionaryLanguage)) {
           soundFx.playWordValid();
         }
       }
@@ -580,6 +594,7 @@ export default function App() {
       hintIndices,
       boardLetters,
       puzzle,
+      dictionaryLanguage,
       selectedCell,
       mistakes,
       prefs.autoCheck,
@@ -911,9 +926,10 @@ export default function App() {
         return;
       }
 
-      if (/^[a-zA-Z]$/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const normalizedKey = stripDiacritics(e.key).toUpperCase();
+      if (/^[A-Z]$/.test(normalizedKey) && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
-        handleLetterPress(e.key.toUpperCase());
+        handleLetterPress(normalizedKey);
         return;
       }
 
@@ -1022,6 +1038,7 @@ export default function App() {
             countdownMs={countdownMs}
             todayPuzzle={todayPuzzle}
             progressMap={progressMap}
+            dictionaryLanguage={dictionaryLanguage}
             stats={stats}
             effectiveStreak={effectiveStreak}
             onSelectDate={handleSelectDate}
@@ -1160,7 +1177,7 @@ export default function App() {
                         hintsUsed,
                         mistakes,
                         score:
-                          progressMap[selectedDateStr]?.score ??
+                          progressMap[progressDateKey]?.score ??
                           calculateUnolingoScore(elapsedSec, hintsUsed, mistakes),
                         isDailyStreakAdvance: false,
                       })
@@ -1225,6 +1242,7 @@ export default function App() {
             setCurrentView={setCurrentView}
             onSelectDate={handleSelectDate}
             progressMap={progressMap}
+            dictionaryLanguage={dictionaryLanguage}
             todayLondonStr={todayLondonStr}
             selectedDateStr={selectedDateStr}
           />

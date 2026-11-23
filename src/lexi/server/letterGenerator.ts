@@ -72,7 +72,13 @@ export class LetterGenerator {
     const minRequiredWords =
       difficulty === 'easy' ? 24 : difficulty === 'medium' ? 18 : difficulty === 'hard' ? 12 : 9;
 
-    let bestCoreLetters: string[] = ['S', 'T', 'R', 'E', 'A', 'M', 'S'].slice(0, coreSize);
+    const fallbackSeedWord =
+      allWords.find((w) => w.length === coreSize) ||
+      allWords[0] ||
+      '';
+    let bestCoreLetters: string[] = fallbackSeedWord
+      ? this.shuffleLetters(fallbackSeedWord.toUpperCase().split('')).slice(0, coreSize)
+      : this.generateBalancedRandomLetters(coreSize, difficulty);
     let bestPossibleWords: string[] = [];
     let bestPangrams: string[] = [];
 
@@ -112,8 +118,24 @@ export class LetterGenerator {
     }
 
     if (bestPossibleWords.length === 0) {
-      bestPossibleWords = ['star', 'team', 'meat', 'seat', 'east', 'rate', 'tear', 'steam', 'stream', 'master'];
-      bestPangrams = ['streams'];
+      const fallbackCenterIdx = params.mandatoryCenterLetter
+        ? Math.floor(bestCoreLetters.length / 2)
+        : null;
+      const fallbackCenter = fallbackCenterIdx !== null ? bestCoreLetters[fallbackCenterIdx] : null;
+      bestPossibleWords = this.validator.findPossibleWords(
+        bestCoreLetters,
+        params.minWordLength,
+        params.maxWordLength,
+        fallbackCenter
+      );
+      if (bestPossibleWords.length === 0 && fallbackPool.length > 0) {
+        const forcedSeed = fallbackPool[0].toUpperCase();
+        bestCoreLetters = forcedSeed.split('');
+        bestPossibleWords = [forcedSeed.toLowerCase()];
+        bestPangrams = [forcedSeed.toLowerCase()];
+      } else {
+        bestPangrams = bestPossibleWords.filter((w) => w.length === coreSize);
+      }
     }
 
     // Build progressive round modifiers (Hidden Letters, Decoy Letters, Locked Letters, Golden Bonus Tiles)

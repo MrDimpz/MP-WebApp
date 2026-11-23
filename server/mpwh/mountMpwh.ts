@@ -478,7 +478,8 @@ export class MpwhManager {
       rawWord,
       cleanName,
       targetBoardIndex,
-      tiktokHandle
+      tiktokHandle,
+      cleanAvatar
     );
 
     if (!result.accepted) {
@@ -682,6 +683,12 @@ export function mountMpwh(
   app.get('/api/mpwh/game', (req, res) => {
     const channel = sanitizeChannel(req.query.channel);
     const sess = manager.getOrCreateChannel(channel);
+    if (
+      typeof req.query.language === 'string' &&
+      (!sess.ladderSet || sess.ladderSet.status === 'idle')
+    ) {
+      sess.language = normalizeDictionaryLanguage(req.query.language);
+    }
     res.json({ game: manager.serializeGame(sess) });
   });
 

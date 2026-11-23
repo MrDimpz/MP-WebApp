@@ -1,3 +1,11 @@
+import {
+  getDictionaryLanguage,
+  normalizeDictionaryLanguage,
+  stripDiacritics,
+  type DictionaryLanguageCode,
+} from '../../lib/dictionary-languages';
+import { getMultiLangPack } from '../../data/dictionaries/multilang-word-packs';
+
 // Curated common English words (lengths 3–6) balanced across all 26 letters A–Z,
 // including rich coverage of Q, X, Z, J, K, V, W, Y for pangrammatic Unolingo grids.
 
@@ -127,3 +135,74 @@ export const VALID_WORD_SET: Set<string> = new Set([
   ...WORDS_5,
   ...WORDS_6,
 ]);
+
+export interface UnolingoWordBankData {
+  wordsByLen: Record<number, string[]>;
+  validWordSet: Set<string>;
+}
+
+const multiLangWordBankCache = new Map<DictionaryLanguageCode, UnolingoWordBankData>();
+
+export function getUnolingoWordBank(
+  language?: DictionaryLanguageCode | string | null
+): UnolingoWordBankData {
+  const code = normalizeDictionaryLanguage(language ?? getDictionaryLanguage());
+  if (code === 'en') {
+    return { wordsByLen: ALL_WORDS_BY_LEN, validWordSet: VALID_WORD_SET };
+  }
+
+  const cached = multiLangWordBankCache.get(code);
+  if (cached) return cached;
+
+  const pack = getMultiLangPack(code);
+  const byLenSets: Record<number, Set<string>> = {
+    3: new Set<string>(),
+    4: new Set<string>(),
+    5: new Set<string>(),
+    6: new Set<string>(),
+  };
+
+  if (pack) {
+    for (const rawWord of pack.words) {
+      const clean = stripDiacritics(rawWord).toUpperCase().replace(/[^A-Z]/g, '');
+      if (clean.length >= 3 && clean.length <= 6) {
+        byLenSets[clean.length].add(clean);
+      }
+    }
+    for (const prompt of pack.drawingPrompts) {
+      if (!prompt.includes(' ') && !prompt.includes('-')) {
+        const clean = stripDiacritics(prompt).toUpperCase().replace(/[^A-Z]/g, '');
+        if (clean.length >= 3 && clean.length <= 6) {
+          byLenSets[clean.length].add(clean);
+        }
+      }
+    }
+  }
+
+  const wordsByLen: Record<number, string[]> = {
+    3: Array.from(byLenSets[3]),
+    4: Array.from(byLenSets[4]),
+    5: Array.from(byLenSets[5]),
+    6: Array.from(byLenSets[6]),
+  };
+  const validWordSet = new Set<string>([
+    ...wordsByLen[3],
+    ...wordsByLen[4],
+    ...wordsByLen[5],
+    ...wordsByLen[6],
+  ]);
+
+  const data: UnolingoWordBankData = { wordsByLen, validWordSet };
+  multiLangWordBankCache.set(code, data);
+  return data;
+}
+
+export function isValidUnolingoWord(
+  word: string,
+  language?: DictionaryLanguageCode | string | null
+): boolean {
+  const clean = stripDiacritics(word).trim().toUpperCase();
+  if (clean.length < 3 || clean.length > 6 || !/^[A-Z]+$/.test(clean)) return false;
+  return getUnolingoWordBank(language).validWordSet.has(clean);
+}
+

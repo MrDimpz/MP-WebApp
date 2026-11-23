@@ -14,7 +14,7 @@ import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { LanguageMenu } from '@/components/language-menu';
-import { useDictionaryLanguage } from '@/lib/dictionary-languages';
+import { stripDiacritics, useDictionaryLanguage } from '@/lib/dictionary-languages';
 import {
   RotateCw,
   Lightbulb,
@@ -568,10 +568,11 @@ export default function App() {
         return;
       }
 
-      // Letter typing A-Z
-      if (/^[a-zA-Z]$/.test(e.key)) {
+      // Letter typing A-Z (diacritic-insensitive)
+      const normalizedKey = stripDiacritics(e.key).toUpperCase();
+      if (/^[A-Z]$/.test(normalizedKey)) {
         e.preventDefault();
-        const typedChar = e.key.toUpperCase();
+        const typedChar = normalizedKey;
         const currentTypedWord = activePath.map((idx) => grid[idx]).join('') + typedChar;
         const matchingPaths = findPathsForInput(grid, basePuzzle.size, currentTypedWord);
 
