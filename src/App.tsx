@@ -23,6 +23,7 @@ const MPSearchPage = lazy(() => import('@/routes/mpsearch'));
 const MPDifferencePage = lazy(() => import('@/routes/mpdifference'));
 const MPColossalPage = lazy(() => import('@/routes/mpcolossal'));
 const TekscodlePage = lazy(() => import('@/routes/tekscodle'));
+const WordHuntSoloPage = lazy(() => import('@/routes/wordhunt'));
 const SquaredIntGamePage = lazy(() => import('@/routes/squaredint-game'));
 const WikirecGamePage = lazy(() => import('@/routes/wikirec-game'));
 const WikiconGamePage = lazy(() => import('@/routes/wikicon-game'));
@@ -54,6 +55,7 @@ const STANDALONE_GAME_PATHS = new Set([
   '/solo-games/mpdifference',
   '/solo-games/mpcolossal',
   '/solo-games/tekscodle',
+  '/solo-games/wordhunt',
   '/interactive-games/overlays',
   '/interactive-games/wikirec',
   '/interactive-games/wikirec/overlay',
@@ -183,6 +185,7 @@ function AppShell() {
           <Route path="/solo-games/mpdifference" element={<MPDifferencePage />} />
           <Route path="/solo-games/mpcolossal" element={<MPColossalPage />} />
           <Route path="/solo-games/tekscodle" element={<TekscodlePage />} />
+          <Route path="/solo-games/wordhunt" element={<WordHuntSoloPage />} />
           <Route path="/interactive-games/overlays" element={<InteractiveOverlaysWallPage />} />
           <Route path="/interactive-games/wikirec" element={<WikirecGamePage />} />
           <Route path="/interactive-games/wikirec/overlay" element={<WikirecGamePage />} />

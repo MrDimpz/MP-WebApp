@@ -15,6 +15,7 @@ import {
   type InternalLadderSet,
 } from './gameEngine.ts';
 import { addLeaderboardEntry, getLeaderboard } from './leaderboardStore.ts';
+import { mountMpwhSoloRoutes } from './soloRoutes.ts';
 import {
   normalizeDictionaryLanguage,
   type DictionaryLanguageCode,
@@ -31,6 +32,8 @@ import type {
 
 interface ChannelSession {
   channel: string;
+  streamerHandle?: string;
+  ownerSessionId?: string;
   roundId: string;
   roundNumber: number;
   mode: LadderMode;
@@ -54,6 +57,15 @@ function sanitizeChannel(raw: unknown): string {
     .replace(/[^a-z0-9_-]/g, '')
     .slice(0, 48);
   return cleaned || 'global';
+}
+
+function sanitizeOptionalSlug(raw: unknown): string {
+  return String(raw ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^@+/, '')
+    .replace(/[^a-z0-9_.:-]/g, '')
+    .slice(0, 160);
 }
 
 function sanitizeName(raw: unknown): string {
@@ -138,6 +150,17 @@ export class MpwhManager {
     }
     sess.lastActiveAt = Date.now();
     return sess;
+  }
+
+  public setChannelIdentity(
+    rawChannel: string,
+    identity: { streamerHandle?: unknown; sessionId?: unknown }
+  ): void {
+    const sess = this.getOrCreateChannel(rawChannel);
+    const cleanStreamer = sanitizeOptionalSlug(identity.streamerHandle);
+    const cleanSession = sanitizeOptionalSlug(identity.sessionId);
+    if (cleanStreamer) sess.streamerHandle = cleanStreamer;
+    if (cleanSession) sess.ownerSessionId = cleanSession;
   }
 
   private clearChannelTimers(sess: ChannelSession): void {
@@ -246,9 +269,12 @@ export class MpwhManager {
     });
   }
 
-  private finalizeRoundAndRecordWinners(sess: ChannelSession): void {
+  private computeRoundWinnerSummaries(
+    sess: ChannelSession,
+    recordLeaderboard: boolean
+  ): { summaries: RoundWinnerSummary[]; latestEntry?: LeaderboardEntry } {
     const set = sess.ladderSet;
-    if (!set) return;
+    if (!set) return { summaries: [] };
 
     const now = Date.now();
     const durationMs = set.startedAt ? Math.max(1000, now - set.startedAt) : 1000;
@@ -303,26 +329,38 @@ export class MpwhManager {
         pieces,
       });
 
-      const entry: LeaderboardEntry = {
-        id: crypto.randomUUID(),
-        playerName: record.name,
-        mode: set.mode,
-        score,
-        pieces,
-        guesses: set.totalGuesses,
-        hintsUsed: set.hintsUsed,
-        durationMs,
-        wordsFound: wordsFoundArr.length,
-        createdAt: now,
-      };
-      addLeaderboardEntry(entry);
-      latestEntry = entry;
+      if (recordLeaderboard) {
+        const entry: LeaderboardEntry = {
+          id: crypto.randomUUID(),
+          playerName: record.name,
+          mode: set.mode,
+          score,
+          pieces,
+          guesses: set.totalGuesses,
+          hintsUsed: set.hintsUsed,
+          durationMs,
+          wordsFound: wordsFoundArr.length,
+          createdAt: now,
+        };
+        addLeaderboardEntry(entry);
+        latestEntry = entry;
+      }
     }
 
     summaries.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return b.firstSolves - a.firstSolves;
     });
+
+    return { summaries, latestEntry };
+  }
+
+  private finalizeRoundAndRecordWinners(sess: ChannelSession): void {
+    const set = sess.ladderSet;
+    if (!set) return;
+
+    const now = Date.now();
+    const { summaries, latestEntry } = this.computeRoundWinnerSummaries(sess, true);
 
     sess.roundWinners = summaries;
 
@@ -609,42 +647,82 @@ export class MpwhManager {
     const sess = this.getOrCreateChannel(rawChannel);
     if (!sess.ladderSet || sess.ladderSet.status !== 'playing') return;
     this.clearChannelTimers(sess);
+    const now = Date.now();
     sess.ladderSet.status = 'gave_up';
-    sess.ladderSet.finishedAt = Date.now();
+    sess.ladderSet.finishedAt = now;
+    const { summaries } = this.computeRoundWinnerSummaries(sess, false);
+    sess.roundWinners = summaries;
     this.pushActivity(sess, 'Round revealed by host.', 'system');
+
+    if (sess.mode === 'quad' && sess.autoNextRound) {
+      const finishedRoundId = sess.roundId;
+      sess.nextRoundAt = now + NEXT_ROUND_DELAY_MS;
+      sess.nextRoundTimer = setTimeout(() => {
+        if (sess.roundId !== finishedRoundId) return;
+        this.startRound(sess.channel, sess.mode, sess.language);
+      }, NEXT_ROUND_DELAY_MS);
+    }
+
     this.broadcastGameState(sess);
   }
 
   /**
-   * Forwards external TikFinity / BetterTok webhook chat messages into active Word Hunt Extreme rooms.
+   * Forwards external TikFinity / BetterTok webhook chat messages strictly into matching Word Hunt Extreme rooms.
    */
   public injectExternalWebhookChat(
-    streamerHint: string,
+    target:
+      | string
+      | {
+          streamerHint?: string;
+          channel?: string;
+          sessionId?: string;
+        },
     payload: {
       uniqueId?: string;
       nickname?: string;
       comment: string;
       profilePictureUrl?: string;
     }
-  ): void {
+  ): number {
     const candidateWord = extractWordGuessFromChat(payload.comment);
-    if (!candidateWord) return;
+    if (!candidateWord) return 0;
 
-    const cleanHint = streamerHint ? sanitizeChannel(streamerHint) : '';
+    const targetObj = typeof target === 'string' ? { streamerHint: target } : target || {};
+    const cleanChannel = targetObj.channel?.trim() ? sanitizeChannel(targetObj.channel) : '';
+    const cleanHint = sanitizeOptionalSlug(targetObj.streamerHint);
+    const cleanSessionId = sanitizeOptionalSlug(targetObj.sessionId);
+
+    if (!cleanChannel && !cleanHint && !cleanSessionId) {
+      return 0;
+    }
+
     const displayName = sanitizeName(payload.nickname || payload.uniqueId || 'Viewer');
     const tiktokHandle = payload.uniqueId || payload.nickname || undefined;
 
-    const targetSessions: ChannelSession[] = [];
-    if (cleanHint && this.channels.has(cleanHint)) {
-      targetSessions.push(this.channels.get(cleanHint)!);
-    } else {
-      for (const sess of this.channels.values()) {
-        if (sess.ladderSet && sess.ladderSet.status === 'playing') {
-          targetSessions.push(sess);
-        }
+    const targetSessions = new Set<ChannelSession>();
+    if (cleanChannel) {
+      const exact = this.channels.get(cleanChannel);
+      if (exact && exact.ladderSet?.status === 'playing') {
+        targetSessions.add(exact);
       }
     }
 
+    for (const sess of this.channels.values()) {
+      if (sess.ladderSet?.status !== 'playing') continue;
+      if (cleanSessionId && sess.ownerSessionId && sess.ownerSessionId === cleanSessionId) {
+        targetSessions.add(sess);
+        continue;
+      }
+      if (
+        cleanHint &&
+        (sess.channel === cleanHint ||
+          sanitizeOptionalSlug(sess.streamerHandle) === cleanHint)
+      ) {
+        targetSessions.add(sess);
+      }
+    }
+
+    let forwarded = 0;
     for (const sess of targetSessions) {
       if (sess.ladderSet?.status !== 'playing') continue;
       this.submitGuess(
@@ -655,7 +733,9 @@ export class MpwhManager {
         tiktokHandle,
         payload.profilePictureUrl
       );
+      forwarded += 1;
     }
+    return forwarded;
   }
 }
 
@@ -665,6 +745,9 @@ export function mountMpwh(
 ): { manager: MpwhManager } {
   const mpwhIo = io.of('/mpwh');
   const manager = new MpwhManager(mpwhIo);
+
+  // --- Single-Player Word Hunt Solo REST API Routes (/api/mpwh/solo/*) ---
+  mountMpwhSoloRoutes(app);
 
   // --- REST API Routes (/api/mpwh/*) ---
   app.get('/api/mpwh/health', (req, res) => {
@@ -696,6 +779,10 @@ export function mountMpwh(
     const channel = sanitizeChannel(req.body?.channel ?? req.query.channel);
     const requestedMode = req.body?.mode;
     const requestedLang = req.body?.language;
+    manager.setChannelIdentity(channel, {
+      streamerHandle: req.body?.streamerHandle,
+      sessionId: req.body?.sessionId,
+    });
     const mode = isValidMode(requestedMode) ? requestedMode : undefined;
     const lang =
       typeof requestedLang === 'string'
@@ -747,6 +834,8 @@ export function mountMpwh(
       channel?: string;
       playerName?: string;
       language?: string;
+      streamerHandle?: string;
+      sessionId?: string;
     };
     const channel = sanitizeChannel(auth.channel || socket.handshake.query.channel);
     let playerName = sanitizeName(
@@ -755,6 +844,10 @@ export function mountMpwh(
 
     void socket.join(channel);
     const sess = manager.getOrCreateChannel(channel);
+    manager.setChannelIdentity(channel, {
+      streamerHandle: auth.streamerHandle,
+      sessionId: auth.sessionId,
+    });
     if (
       typeof auth.language === 'string' &&
       (!sess.ladderSet || sess.ladderSet.status === 'idle')
@@ -776,6 +869,16 @@ export function mountMpwh(
       }
     });
 
+    socket.on(
+      'mpwh:set_streamer',
+      (payload: { streamerHandle?: string; sessionId?: string }) => {
+        manager.setChannelIdentity(channel, {
+          streamerHandle: payload?.streamerHandle,
+          sessionId: payload?.sessionId,
+        });
+      }
+    );
+
     socket.on('mpwh:set_mode', (payload: { mode?: LadderMode }) => {
       if (payload?.mode && isValidMode(payload.mode)) {
         manager.setMode(channel, payload.mode);
@@ -794,7 +897,13 @@ export function mountMpwh(
         mode?: LadderMode;
         language?: string;
         autoNextRound?: boolean;
+        streamerHandle?: string;
+        sessionId?: string;
       }) => {
+        manager.setChannelIdentity(channel, {
+          streamerHandle: payload?.streamerHandle,
+          sessionId: payload?.sessionId,
+        });
         const mode = payload?.mode && isValidMode(payload.mode) ? payload.mode : undefined;
         const lang =
           typeof payload?.language === 'string'

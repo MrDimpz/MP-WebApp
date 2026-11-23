@@ -12,6 +12,8 @@ export interface UseMpwhSocketOptions {
   channel: string;
   playerName: string;
   language: DictionaryLanguageCode;
+  streamerHandle?: string;
+  sessionId?: string;
   onGuessResult?: (res: GuessOutcomePayload) => void;
   onError?: (message: string) => void;
 }
@@ -20,6 +22,8 @@ export function useMpwhSocket({
   channel,
   playerName,
   language,
+  streamerHandle,
+  sessionId,
   onGuessResult,
   onError,
 }: UseMpwhSocketOptions) {
@@ -66,6 +70,12 @@ export function useMpwhSocket({
     };
   }, [channel, language]);
 
+  const streamerHandleRef = useRef(streamerHandle);
+  streamerHandleRef.current = streamerHandle;
+
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
+
   useEffect(() => {
     const socket = io('/mpwh', {
       path: '/socket.io',
@@ -73,6 +83,8 @@ export function useMpwhSocket({
         channel,
         playerName: playerNameRef.current,
         language,
+        streamerHandle: streamerHandleRef.current,
+        sessionId: sessionIdRef.current,
       },
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -149,6 +161,16 @@ export function useMpwhSocket({
     }
   }, [connected, language]);
 
+  // Keep streamer/session ownership metadata current on channel session
+  useEffect(() => {
+    if (connected && socketRef.current && (streamerHandle || sessionId)) {
+      socketRef.current.emit('mpwh:set_streamer', {
+        streamerHandle,
+        sessionId,
+      });
+    }
+  }, [connected, streamerHandle, sessionId]);
+
   const setMode = useCallback((mode: LadderMode) => {
     socketRef.current?.emit('mpwh:set_mode', { mode });
   }, []);
@@ -163,6 +185,8 @@ export function useMpwhSocket({
         mode: opts?.mode,
         language: opts?.language,
         autoNextRound: opts?.autoNextRound,
+        streamerHandle: streamerHandleRef.current,
+        sessionId: sessionIdRef.current,
       });
     },
     []

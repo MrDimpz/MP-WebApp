@@ -17,6 +17,9 @@ interface TikTokLiveModalProps {
   isOpen: boolean;
   status: MpwhTikTokStatus;
   defaultHandle?: string;
+  channel?: string;
+  streamerHandle?: string;
+  sessionId?: string;
   onConnect: (
     username: string,
     isTestMode: boolean
@@ -30,6 +33,9 @@ export const TikTokLiveModal: React.FC<TikTokLiveModalProps> = ({
   isOpen,
   status,
   defaultHandle,
+  channel,
+  streamerHandle,
+  sessionId,
   onConnect,
   onDisconnect,
   onSendTestChat,
@@ -50,8 +56,16 @@ export const TikTokLiveModal: React.FC<TikTokLiveModalProps> = ({
     typeof window !== 'undefined'
       ? window.location.origin
       : 'https://missingpiecepuzzles.fun';
-  const tikfinityUrl = `${siteOrigin}/api/tikfinity/event`;
-  const bettertokUrl = `${siteOrigin}/api/bettertok/event`;
+  const webhookParams = new URLSearchParams({ gameId: 'mpwh' });
+  if (channel) webhookParams.set('channel', channel);
+  if (sessionId) webhookParams.set('sessionId', sessionId);
+  const cleanHookStreamer = (status.username || streamerHandle || defaultHandle || '')
+    .trim()
+    .replace(/^@+/, '');
+  if (cleanHookStreamer) webhookParams.set('streamer', cleanHookStreamer);
+  const webhookQuery = webhookParams.toString();
+  const tikfinityUrl = `${siteOrigin}/api/tikfinity/event?${webhookQuery}`;
+  const bettertokUrl = `${siteOrigin}/api/bettertok/event?${webhookQuery}`;
 
   useEffect(() => {
     if (status.username) setUsername(status.username);

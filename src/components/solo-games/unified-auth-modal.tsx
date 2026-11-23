@@ -130,6 +130,12 @@ const SOLO_GAME_META: Record<
     shortTitle: 'TEKSCOdle',
     subtitle: '3-Round Daily & Endless Supermarket Checkout Scores',
   },
+  wordhunt: {
+    number: '13',
+    title: 'Word Hunt — Alphabetical Ladder',
+    shortTitle: 'Word Hunt',
+    subtitle: 'Daily & Endless Classic, Dual, and Quad Ladder High Scores',
+  },
 };
 
 const ALLOWED_GAMES: SoloGameId[] = [
@@ -145,6 +151,7 @@ const ALLOWED_GAMES: SoloGameId[] = [
   'mpdifference',
   'mpcolossal',
   'tekscodle',
+  'wordhunt',
 ];
 
 export function UnifiedLeaderboardPanel({
@@ -175,6 +182,7 @@ export function UnifiedLeaderboardPanel({
     mpdifference: [],
     mpcolossal: [],
     tekscodle: [],
+    wordhunt: [],
     cruciverbalist: [],
     crossword: [],
   });

@@ -121,7 +121,7 @@ export function InteractiveGamesPage() {
                       Streamer {activeStreamer.displayHandle}
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                      Unlimited rounds unlocked across all 9 interactive games. Scores for linked
+                      Unlimited rounds unlocked across all 8 interactive games. Scores for linked
                       TikTok @ accounts sync automatically to their website profile.
                     </p>
                   </>
@@ -134,7 +134,7 @@ export function InteractiveGamesPage() {
                       Play up to {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} rounds per game each day — or unlock unlimited with a Stream Key
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-1 leading-relaxed">
-                      Anyone can jump straight into all 9 interactive games with{' '}
+                      Anyone can jump straight into all 8 interactive games with{' '}
                       <strong className="text-white">
                         {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} free rounds per game per day
                       </strong>{' '}
@@ -414,52 +414,8 @@ export function InteractiveGamesPage() {
                 <span className="status-dot" /> NOW PLAYING
               </span>
               <div className="flex items-center gap-2">
-                {renderLimitBadge('lexi')}
-                <span className="card-number">04 /</span>
-              </div>
-            </div>
-            <Link
-              to="/interactive-games/lexi"
-              className="game-art game-art-thumb"
-              aria-label="Play Lexi Tiles interactive game"
-            >
-              <img
-                className="game-thumbnail"
-                src="/lexi-website-thumbnail.svg"
-                alt="Preview of Lexi Tiles interactive lexicon word arena and TikTok Live chat duel"
-              />
-            </Link>
-            <h3>Lexi Tiles</h3>
-            <p>
-              The fast-paced live lexicon showdown. Race against the clock and chat to assemble
-              words from dynamic letter pools, score combo multipliers, and discover rare high-value
-              vocabulary in real time.
-            </p>
-            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
-              <Link className="game-link" to="/interactive-games/lexi">
-                Play Lexi Tiles{' '}
-                <span>
-                  <ArrowUpRight size={22} />
-                </span>
-              </Link>
-              <LiveOverlayButton
-                gameTitle="Lexi Tiles"
-                gameSlug="lexi"
-                streamerHandle={activeStreamer?.username}
-                recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
-                label="LIVE Overlay"
-              />
-            </div>
-          </article>
-
-          <article className="game-card">
-            <div className="card-top">
-              <span className="category-label">
-                <span className="status-dot" /> NOW PLAYING
-              </span>
-              <div className="flex items-center gap-2">
                 {renderLimitBadge('destackint')}
-                <span className="card-number">05 /</span>
+                <span className="card-number">04 /</span>
               </div>
             </div>
             <Link
@@ -503,7 +459,7 @@ export function InteractiveGamesPage() {
               </span>
               <div className="flex items-center gap-2">
                 {renderLimitBadge('crowdle')}
-                <span className="card-number">06 /</span>
+                <span className="card-number">05 /</span>
               </div>
             </div>
             <Link
@@ -547,7 +503,7 @@ export function InteractiveGamesPage() {
               </span>
               <div className="flex items-center gap-2">
                 {renderLimitBadge('mpsearchint')}
-                <span className="card-number">07 /</span>
+                <span className="card-number">06 /</span>
               </div>
             </div>
             <Link
@@ -591,7 +547,7 @@ export function InteractiveGamesPage() {
               </span>
               <div className="flex items-center gap-2">
                 {renderLimitBadge('inkstream')}
-                <span className="card-number">08 /</span>
+                <span className="card-number">07 /</span>
               </div>
             </div>
             <Link
@@ -635,7 +591,7 @@ export function InteractiveGamesPage() {
               </span>
               <div className="flex items-center gap-2">
                 {renderLimitBadge('mpwh')}
-                <span className="card-number">09 /</span>
+                <span className="card-number">08 /</span>
               </div>
             </div>
             <Link

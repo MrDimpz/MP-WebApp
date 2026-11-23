@@ -141,15 +141,15 @@ export const SEO_ROUTES: Record<string, RouteSeoMeta> = {
     canonicalPath: "/solo-games",
     title: "Free Daily Word & Crossword Games | The Missing Piece",
     description:
-      "Play 12 free daily word games, crosswords, visual rebuses, word searches, and price puzzles in your browser with daily streaks and cloud leaderboards.",
+      "Play 13 free daily word games, crosswords, alphabetical word hunts, visual rebuses, word searches, and price puzzles in your browser with daily streaks and cloud leaderboards.",
     keywords:
-      "free word games, daily word games, online crossword puzzles, browser word games, squared word grid, thematix, destack, unolingo, rebus puzzles, mp colossal",
+      "free word games, daily word games, online crossword puzzles, browser word games, word hunt, squared word grid, thematix, destack, unolingo, rebus puzzles, mp colossal",
     ogImagePath: DEFAULT_OG_IMAGE_PATH,
-    ogImageAlt: "12 free solo word, crossword, and visual puzzle games on The Missing Piece",
+    ogImageAlt: "13 free solo word, crossword, and visual puzzle games on The Missing Piece",
     robots: DEFAULT_ROBOTS,
     heading: "Free Daily Solo Word, Crossword & Puzzle Games",
     summary:
-      "Play 12 daily and endless browser word games including 200x200 MP Colossal crossword, Squared word grids, Unolingo, Thematix, DeStack, and Missing Rebus.",
+      "Play 13 daily and endless browser word games including Word Hunt, 200x200 MP Colossal crossword, Squared word grids, Unolingo, Thematix, DeStack, and Missing Rebus.",
     inLanguages: ALL_7_LANGUAGES,
     breadcrumbs: [
       { name: "Home", path: "/" },
@@ -597,6 +597,28 @@ export const SEO_ROUTES: Record<string, RouteSeoMeta> = {
       { name: "TEKSCOdle", path: "/solo-games/tekscodle" },
     ],
   },
+  "/solo-games/wordhunt": {
+    canonicalPath: "/solo-games/wordhunt",
+    title: "Word Hunt — Free Solo Alphabetical Word Ladder Game",
+    description:
+      "Play solo Word Hunt in Classic (1 word), Dual (2 words), and Quad (4 boards) modes. Narrow the A–Z alphabetical ladder using any dictionary word across 7 languages.",
+    keywords:
+      "word hunt solo, alphabetical word ladder game, binary search word game, daily word hunt, quad word hunt, free browser word puzzle",
+    ogImagePath: DEFAULT_OG_IMAGE_PATH,
+    ogImageAlt: "Word Hunt solo alphabetical word ladder puzzle game",
+    robots: DEFAULT_ROBOTS,
+    heading: "Word Hunt — Solo Alphabetical Word Ladder",
+    summary:
+      "Crack hidden 4–8 letter words by narrowing the alphabetical bracket above and below across Classic, Dual, and Quad solo modes in 7 languages.",
+    gameGenre: "Word Game",
+    isSolo: true,
+    inLanguages: ALL_7_LANGUAGES,
+    breadcrumbs: [
+      { name: "Home", path: "/" },
+      { name: "Solo Word Games", path: "/solo-games" },
+      { name: "Word Hunt", path: "/solo-games/wordhunt" },
+    ],
+  },
 };
 
 const ALIAS_TO_CANONICAL: Record<string, string> = {
@@ -749,6 +771,7 @@ export function buildStructuredData(meta: RouteSeoMeta, origin = SITE_ORIGIN): R
           { "@type": "ListItem", position: 9, name: "MP Search Word Search", url: `${origin}/solo-games/mpsearch` },
           { "@type": "ListItem", position: 10, name: "MP Difference", url: `${origin}/solo-games/mpdifference` },
           { "@type": "ListItem", position: 11, name: "TEKSCOdle", url: `${origin}/solo-games/tekscodle` },
+          { "@type": "ListItem", position: 12, name: "Word Hunt", url: `${origin}/solo-games/wordhunt` },
         ],
       },
     });

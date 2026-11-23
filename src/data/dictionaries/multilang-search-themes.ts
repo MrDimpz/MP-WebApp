@@ -119,6 +119,86 @@ export const MULTILANG_MPSEARCH_THEMES: Record<
       category: 'Historia',
       pool: normalizePool(['CASTILLO', 'MURALLA', 'TORREON', 'ESCUDO', 'ESPADA', 'CORONA', 'CABALLO', 'PUENTE', 'ANTORCHA', 'TESORO', 'REINO', 'TRONO']),
     },
+    {
+      title: 'Estadio Olímpico',
+      category: 'Deportes',
+      pool: normalizePool(['FUTBOL', 'TENIS', 'ATLETA', 'MEDALLA', 'TROFEO', 'CARRERA', 'NATACION', 'BOXEO', 'CICLISMO', 'ESGRIMA', 'REMOS', 'SALTO']),
+    },
+    {
+      title: 'Cocina Hispana',
+      category: 'Platos Típicos',
+      pool: normalizePool(['PAELLA', 'GAZPACHO', 'TORTILLA', 'EMPANADA', 'CHURROS', 'CEVICHE', 'TAMALES', 'TACOS', 'AREPAS', 'CROQUETA', 'FABADA', 'FLAN']),
+    },
+    {
+      title: 'Estudio de Pintor',
+      category: 'Bellas Artes',
+      pool: normalizePool(['PALETA', 'LIENZO', 'PINCEL', 'BOCETO', 'RETRATO', 'PASTEL', 'MOSAICO', 'FRESCO', 'ACUARELA', 'COLOR', 'SOMBRA', 'MARCO']),
+    },
+    {
+      title: 'Hogar y Muebles',
+      category: 'Casa',
+      pool: normalizePool(['SILLA', 'MESA', 'SOFA', 'LAMPARA', 'ESPEJO', 'VENTANA', 'PUERTA', 'ALFOMBRA', 'CORTINA', 'ARMARIO', 'CAMA', 'ESTANTE']),
+    },
+    {
+      title: 'Oficios y Carreras',
+      category: 'Profesiones',
+      pool: normalizePool(['MEDICO', 'MAESTRO', 'BOMBERO', 'PILOTO', 'PINTOR', 'ABOGADO', 'CHEF', 'DENTISTA', 'MUSICO', 'NOTARIO', 'SASTRE', 'JUEZ']),
+    },
+    {
+      title: 'Viaje en Tren',
+      category: 'Transporte',
+      pool: normalizePool(['ESTACION', 'ANDEN', 'VAGON', 'BILLETE', 'MALETA', 'VIAJERO', 'TUNEL', 'PUENTE', 'RIELES', 'LOCOMOTOR', 'RUTA', 'TREN']),
+    },
+    {
+      title: 'Sabana Africana',
+      category: 'Vida Salvaje',
+      pool: normalizePool(['LEON', 'JIRAFA', 'CEBRA', 'ELEFANTE', 'GUEPARDO', 'HIENA', 'ANTILOPE', 'BUFALO', 'AVESTRUZ', 'LEOPARDO', 'CHACAL', 'MONO']),
+    },
+    {
+      title: 'Ropa y Moda',
+      category: 'Vestuario',
+      pool: normalizePool(['CAMISA', 'PANTALON', 'VESTIDO', 'ABRIGO', 'BUFANDA', 'SOMBRERO', 'ZAPATO', 'CORBATA', 'CHAQUETA', 'FALDA', 'GUANTE', 'BOTA']),
+    },
+    {
+      title: 'Mundo Digital',
+      category: 'Tecnología',
+      pool: normalizePool(['TECLADO', 'PANTALLA', 'CORREO', 'ARCHIVO', 'CODIGO', 'DATOS', 'SERVIDOR', 'MEMORIA', 'SISTEMA', 'ENLACE', 'CONSOLA', 'SENSOR']),
+    },
+    {
+      title: 'Fiesta y Carnaval',
+      category: 'Celebración',
+      pool: normalizePool(['MASCARA', 'DESFILE', 'MUSICA', 'BAILE', 'CONFETI', 'DISFRAZ', 'TAMBOR', 'ALEGRIA', 'REGALO', 'PIÑATA', 'BRINDIS', 'GLOBO']),
+    },
+    {
+      title: 'Cuerpo Humano',
+      category: 'Salud',
+      pool: normalizePool(['CORAZON', 'CEREBRO', 'PULMON', 'HUESO', 'SANGRE', 'MUSCULO', 'MANO', 'BRAZO', 'PIERNA', 'RODILLA', 'ESPALDA', 'DIENTE']),
+    },
+    {
+      title: 'Aula y Escuela',
+      category: 'Educación',
+      pool: normalizePool(['LAPIZ', 'CUADERNO', 'PIZARRA', 'REGLA', 'MOCHILA', 'EXAMEN', 'LECTURA', 'CIENCIA', 'HISTORIA', 'MAPA', 'CLASE', 'TIZA']),
+    },
+    {
+      title: 'Verduras Frescas',
+      category: 'Huerta',
+      pool: normalizePool(['TOMATE', 'CEBOLLA', 'PEPINO', 'LECHUGA', 'ESPINACA', 'BROCOLI', 'PATATA', 'APIO', 'RABANO', 'PUERRO', 'NABO', 'ACELGA']),
+    },
+    {
+      title: 'Cine y Teatro',
+      category: 'Espectáculo',
+      pool: normalizePool(['ACTOR', 'GUION', 'ESCENA', 'TELON', 'CAMARA', 'ESTRENO', 'DRAMA', 'COMEDIA', 'BUTACA', 'APLAUSO', 'PAPEL', 'CARTEL']),
+    },
+    {
+      title: 'Desierto y Dunas',
+      category: 'Paisajes',
+      pool: normalizePool(['ARENA', 'DUNA', 'OASIS', 'CACTUS', 'CAMELLO', 'ESPEJISMO', 'PALMERA', 'CALOR', 'SEQUIA', 'CAÑON', 'MESETA', 'COYOTE']),
+    },
+    {
+      title: 'Joyería Real',
+      category: 'Tesoros',
+      pool: normalizePool(['ANILLO', 'COLLAR', 'PULSERA', 'PERLA', 'DIAMANTE', 'ORO', 'PLATA', 'BRONCE', 'BROCHE', 'DIADEMA', 'GEMAS', 'JOYA']),
+    },
   ],
   fr: [
     {
@@ -201,6 +281,86 @@ export const MULTILANG_MPSEARCH_THEMES: Record<
       category: 'Beaux-Arts',
       pool: normalizePool(['PALETTE', 'TOILE', 'PINCEAU', 'ESQUISSE', 'PORTRAIT', 'PASTEL', 'MOSAIQUE', 'ATELIER', 'FRESQUE', 'COULEUR', 'OMBRE', 'CADRE']),
     },
+    {
+      title: 'Stade Olympique',
+      category: 'Sports',
+      pool: normalizePool(['TENNIS', 'FOOTBALL', 'NATATION', 'ESCRIME', 'CYCLISME', 'BOXE', 'ATHLETE', 'MEDAILLE', 'TROPHEE', 'COURSE', 'SAUT', 'EQUIPE']),
+    },
+    {
+      title: 'Bistrot Parisien',
+      category: 'Cuisine Française',
+      pool: normalizePool(['QUICHE', 'CREPE', 'FROMAGE', 'SOUPE', 'SALADE', 'OMELETTE', 'POTAGE', 'DESSERT', 'CAFE', 'CARAFE', 'MENU', 'ASSIETTE']),
+    },
+    {
+      title: 'Maison et Mobilier',
+      category: 'Intérieur',
+      pool: normalizePool(['CHAISE', 'TABLE', 'CANAPE', 'LAMPE', 'MIROIR', 'FENETRE', 'PORTE', 'TAPIS', 'RIDEAU', 'ARMOIRE', 'COUSSIN', 'ETAGERE']),
+    },
+    {
+      title: 'Métiers du Monde',
+      category: 'Professions',
+      pool: normalizePool(['MEDECIN', 'POMPIER', 'PILOTE', 'PEINTRE', 'AVOCAT', 'NOTAIRE', 'DENTISTE', 'ARTISAN', 'BAKER', 'MAIRE', 'JUGE', 'BOUCHER']),
+    },
+    {
+      title: 'Mode et Couture',
+      category: 'Vêtements',
+      pool: normalizePool(['CHEMISE', 'PANTALON', 'MANTEAU', 'ECHARPE', 'CHAPEAU', 'ROBE', 'JUPE', 'VESTE', 'CRAVATE', 'GANT', 'BOTTE', 'CEINTURE']),
+    },
+    {
+      title: 'Savane Africaine',
+      category: 'Faune Sauvage',
+      pool: normalizePool(['LION', 'GIRAFE', 'ZEBRE', 'ELEPHANT', 'GUEPARD', 'HYENE', 'ANTILOPE', 'BUFFLE', 'AUTRUCHE', 'LEOPARD', 'CHACAL', 'SINGE']),
+    },
+    {
+      title: 'Voyage en Train',
+      category: 'Transports',
+      pool: normalizePool(['GARE', 'QUAI', 'WAGON', 'BILLET', 'VALISE', 'VOYAGEUR', 'TUNNEL', 'PONT', 'RAILS', 'TRAJET', 'TRAIN', 'HORAIRE']),
+    },
+    {
+      title: 'École et Savoir',
+      category: 'Éducation',
+      pool: normalizePool(['CRAYON', 'CAHIER', 'TABLEAU', 'REGLE', 'CARTABLE', 'EXAMEN', 'LECTURE', 'SCIENCE', 'HISTOIRE', 'CARTE', 'CLASSE', 'CRAIE']),
+    },
+    {
+      title: 'Potager de Saison',
+      category: 'Légumes',
+      pool: normalizePool(['TOMATE', 'OIGNON', 'CAROTTE', 'POIREAU', 'LAITUE', 'EPINARD', 'BROCOLI', 'RADIS', 'NAVET', 'CELERI', 'HARICOT', 'COURGE']),
+    },
+    {
+      title: 'Théâtre et Cinéma',
+      category: 'Spectacle',
+      pool: normalizePool(['ACTEUR', 'SCENARIO', 'SCENE', 'RIDEAU', 'CAMERA', 'DRAME', 'COMEDIE', 'FAUTEUIL', 'ROLE', 'AFFICHE', 'DECORS', 'STUDIO']),
+    },
+    {
+      title: 'Corps Humain',
+      category: 'Santé',
+      pool: normalizePool(['COEUR', 'CERVEAU', 'POUMON', 'SANG', 'MUSCLE', 'MAIN', 'BRAS', 'JAMBE', 'GENOU', 'EPAULE', 'DENT', 'OREILLE']),
+    },
+    {
+      title: 'Monde Numérique',
+      category: 'Technologie',
+      pool: normalizePool(['CLAVIER', 'ECRAN', 'FICHIER', 'CODE', 'SERVEUR', 'MEMOIRE', 'RESEAU', 'LOGICIEL', 'LIEN', 'CAPTEUR', 'DONNEE', 'CONSOLE']),
+    },
+    {
+      title: 'Bijoux et Gemmes',
+      category: 'Joaillerie',
+      pool: normalizePool(['BAGUE', 'COLLIER', 'BRACELET', 'PERLE', 'DIAMANT', 'ARGENT', 'BRONZE', 'BROCHE', 'DIADEME', 'BIJOU', 'EMERAUDE', 'AMETHYSTE']),
+    },
+    {
+      title: 'Fête et Carnaval',
+      category: 'Célébration',
+      pool: normalizePool(['MASQUE', 'DEFILE', 'MUSIQUE', 'DANSE', 'CONFETTI', 'COSTUME', 'TAMBOUR', 'JOIE', 'CADEAU', 'BALLON', 'BOUGIE', 'FANFARE']),
+    },
+    {
+      title: 'Vignoble et Terroir',
+      category: 'Viticulture',
+      pool: normalizePool(['RAISIN', 'TONNEAU', 'CAVE', 'VENDANGE', 'TERROIR', 'CEPAGE', 'BOUCHON', 'VERRE', 'AROME', 'MILLESIME', 'DOMAINE', 'VIGNE']),
+    },
+    {
+      title: 'Désert et Dunes',
+      category: 'Paysages',
+      pool: normalizePool(['SABLE', 'DUNE', 'OASIS', 'CACTUS', 'CHAMEAU', 'MIRAGE', 'PALMIER', 'CHALEUR', 'CARAVANE', 'CANYON', 'PLATEAU', 'NOMADE']),
+    },
   ],
   de: [
     {
@@ -266,7 +426,7 @@ export const MULTILANG_MPSEARCH_THEMES: Record<
     {
       title: 'Korallenriff',
       category: 'Meeresleben',
-      pool: normalizePool(['DELFIN', 'KRAKE', 'HUMMER', 'SCHWAMM', 'PLANKTON', 'RIFF', 'FLUT', 'HAI', 'WAL', 'QUALLE', 'KRABBE', 'FISCH']),
+      pool: normalizePool(['DELFIN', 'KRAKE', 'HUMMER', 'SCHWAMM', 'PLANKTON', 'RIFF', 'FLUT', 'QUALLE', 'KRABBE', 'FISCH', 'ROBBE', 'MUSCHEL']),
     },
     {
       title: 'Obstmarkt',
@@ -282,6 +442,86 @@ export const MULTILANG_MPSEARCH_THEMES: Record<
       title: 'Maleratelier',
       category: 'Kunst',
       pool: normalizePool(['PALETTE', 'LEINWAND', 'PINSEL', 'SKIZZE', 'PORTRAIT', 'PASTELL', 'MOSAIK', 'ATELIER', 'FRESKO', 'FARBE', 'RAHMEN', 'BILD']),
+    },
+    {
+      title: 'Olympiastadion',
+      category: 'Sport',
+      pool: normalizePool(['FUSSBALL', 'TENNIS', 'ATHLET', 'MEDAILLE', 'POKAL', 'RENNEN', 'BOXEN', 'FECHTEN', 'RUDERN', 'SPRUNG', 'LAUF', 'TEAM']),
+    },
+    {
+      title: 'Wohnen & Möbel',
+      category: 'Zuhause',
+      pool: normalizePool(['STUHL', 'TISCH', 'SOFA', 'LAMPE', 'SPIEGEL', 'FENSTER', 'TEPPICH', 'VORHANG', 'SCHRANK', 'KISSEN', 'REGAL', 'BETT']),
+    },
+    {
+      title: 'Berufe & Handwerk',
+      category: 'Berufe',
+      pool: normalizePool(['ARZT', 'LEHRER', 'PILOT', 'MALER', 'ANWALT', 'BACKER', 'KOCH', 'RICHTER', 'SCHMIED', 'GARTNER', 'MUSIKER', 'BARBIER']),
+    },
+    {
+      title: 'Mode & Kleidung',
+      category: 'Kleidung',
+      pool: normalizePool(['HEMD', 'HOSE', 'MANTEL', 'SCHAL', 'KLEID', 'ROCK', 'JACKE', 'KRAWATTE', 'STIEFEL', 'GURTEL', 'MUTZE', 'SCHUH']),
+    },
+    {
+      title: 'Afrikanische Savanne',
+      category: 'Wildtiere',
+      pool: normalizePool(['LOWE', 'GIRAFFE', 'ZEBRA', 'ELEFANT', 'GEPARD', 'HYANE', 'ANTILOPE', 'BUFFEL', 'STRAUSS', 'LEOPARD', 'SCHAKAL', 'AFFE']),
+    },
+    {
+      title: 'Bahnreise',
+      category: 'Verkehr',
+      pool: normalizePool(['BAHNHOF', 'WAGGON', 'TICKET', 'KOFFER', 'TUNNEL', 'BRUCKE', 'SCHIENE', 'STRECKE', 'FAHRT', 'GLEIS', 'ABTEIL', 'REISE']),
+    },
+    {
+      title: 'Schule & Lernen',
+      category: 'Bildung',
+      pool: normalizePool(['STIFT', 'HEFT', 'TAFEL', 'LINEAL', 'RANZEN', 'PRUFUNG', 'LEKTURE', 'CHEMIE', 'KARTE', 'KLASSE', 'KREIDE', 'ATLAS']),
+    },
+    {
+      title: 'Gemüsegarten',
+      category: 'Gemüse',
+      pool: normalizePool(['TOMATE', 'ZWIEBEL', 'GURKE', 'SALAT', 'SPINAT', 'KAROTTE', 'SELLERIE', 'RETTICH', 'LAUCH', 'BOHNE', 'ERBSE', 'KOHL']),
+    },
+    {
+      title: 'Theater & Film',
+      category: 'Kultur',
+      pool: normalizePool(['BUHNE', 'VORHANG', 'KAMERA', 'DRAMA', 'KOMODIE', 'SESSEL', 'APPLAUS', 'ROLLE', 'PLAKAT', 'KULISSE', 'STUDIO', 'FILM']),
+    },
+    {
+      title: 'Menschlicher Körper',
+      category: 'Gesundheit',
+      pool: normalizePool(['HERZ', 'GEHIRN', 'LUNGE', 'KNOCHEN', 'BLUT', 'MUSKEL', 'HAND', 'BEIN', 'KNIE', 'SCHULTER', 'ZAHN', 'RUCKEN']),
+    },
+    {
+      title: 'Digitale Welt',
+      category: 'Technik',
+      pool: normalizePool(['TASTATUR', 'DATEI', 'CODE', 'SERVER', 'SPEICHER', 'NETZWERK', 'SYSTEM', 'SENSOR', 'KONSOLE', 'DATEN', 'KABEL', 'MODEM']),
+    },
+    {
+      title: 'Schmuck & Juwelen',
+      category: 'Kostbarkeiten',
+      pool: normalizePool(['RING', 'KETTE', 'ARMBAND', 'PERLE', 'DIAMANT', 'GOLD', 'SILBER', 'BRONZE', 'BROSCHE', 'DIADEM', 'JUWEL', 'SMARAGD']),
+    },
+    {
+      title: 'Fest & Karneval',
+      category: 'Feier',
+      pool: normalizePool(['MASKE', 'UMZUG', 'MUSIK', 'TANZ', 'KONFETTI', 'KOSTUM', 'TROMMEL', 'FREUDE', 'GESCHENK', 'BALLON', 'KERZE', 'FEST']),
+    },
+    {
+      title: 'Deutsche Küche',
+      category: 'Kulinarik',
+      pool: normalizePool(['BRATEN', 'SUPPE', 'KNODEL', 'WURST', 'SPATZLE', 'STRUDEL', 'SALAT', 'SENF', 'SAUCE', 'SCHINKEN', 'KASE', 'QUARK']),
+    },
+    {
+      title: 'Wüste & Dünen',
+      category: 'Landschaften',
+      pool: normalizePool(['SAND', 'DUNE', 'OASE', 'KAKTUS', 'KAMEL', 'PALME', 'HITZE', 'KARAWANE', 'SCHLUCHT', 'NOMADE', 'SONNE', 'STAUB']),
+    },
+    {
+      title: 'Werkstatt & Werkzeug',
+      category: 'Handwerk',
+      pool: normalizePool(['HAMMER', 'ZANGE', 'SAGE', 'NAGEL', 'SCHRAUBE', 'BOHRER', 'FEILE', 'HOBEL', 'MEISSEL', 'SEIL', 'KETTE', 'SCHLOSS']),
     },
   ],
   it: [
@@ -365,6 +605,86 @@ export const MULTILANG_MPSEARCH_THEMES: Record<
       category: 'Belle Arti',
       pool: normalizePool(['TAVOLOZZA', 'TELA', 'PENNELLO', 'SCHIZZO', 'RITRATTO', 'PASTELLO', 'MOSAICO', 'STUDIO', 'AFFRESCO', 'COLORE', 'CORNICE', 'QUADRO']),
     },
+    {
+      title: 'Stadio Olimpico',
+      category: 'Sport',
+      pool: normalizePool(['CALCIO', 'TENNIS', 'ATLETA', 'MEDAGLIA', 'TROFEO', 'CORSA', 'NUOTO', 'SCHERMA', 'CICLISMO', 'PUGILATO', 'SALTO', 'SQUADRA']),
+    },
+    {
+      title: 'Trattoria Italiana',
+      category: 'Cucina Italiana',
+      pool: normalizePool(['PIZZA', 'PASTA', 'RISOTTO', 'LASAGNA', 'GNOCCHI', 'RAVIOLI', 'FOCACCIA', 'GELATO', 'TIRAMISU', 'PESTO', 'SUGO', 'POLENTA']),
+    },
+    {
+      title: 'Casa e Arredo',
+      category: 'Interni',
+      pool: normalizePool(['SEDIA', 'TAVOLO', 'DIVANO', 'LAMPADA', 'SPECCHIO', 'FINESTRA', 'PORTA', 'TAPPETO', 'TENDA', 'ARMADIO', 'CUSCINO', 'LETTO']),
+    },
+    {
+      title: 'Mestieri e Professioni',
+      category: 'Lavoro',
+      pool: normalizePool(['MEDICO', 'MAESTRO', 'POMPIERE', 'PILOTA', 'PITTORE', 'AVVOCATO', 'CUOCO', 'DENTISTA', 'NOTAIO', 'SARTO', 'GIUDICE', 'FORNAIO']),
+    },
+    {
+      title: 'Moda Milanese',
+      category: 'Abbigliamento',
+      pool: normalizePool(['CAMICIA', 'PANTALONE', 'CAPPOTTO', 'SCIARPA', 'CAPPELLO', 'ABITO', 'GONNA', 'GIACCA', 'CRAVATTA', 'STIVALE', 'CINTURA', 'GUANTO']),
+    },
+    {
+      title: 'Savana Africana',
+      category: 'Fauna Selvatica',
+      pool: normalizePool(['LEONE', 'GIRAFFA', 'ZEBRA', 'ELEFANTE', 'GHEPARDO', 'IENA', 'ANTILOPE', 'BUFALO', 'STRUZZO', 'LEOPARDO', 'SCIACALLO', 'SCIMMIA']),
+    },
+    {
+      title: 'Viaggio in Treno',
+      category: 'Trasporti',
+      pool: normalizePool(['STAZIONE', 'BINARIO', 'VAGONE', 'BIGLIETTO', 'VALIGIA', 'GALLERIA', 'PONTE', 'ROTAIA', 'TRAGITTO', 'TRENO', 'ORARIO', 'PARTENZA']),
+    },
+    {
+      title: 'Scuola e Sapere',
+      category: 'Istruzione',
+      pool: normalizePool(['MATITA', 'QUADERNO', 'LAVAGNA', 'RIGHELLO', 'ZAINO', 'ESAME', 'LETTURA', 'SCIENZA', 'STORIA', 'MAPPA', 'CLASSE', 'GESSO']),
+    },
+    {
+      title: 'Orto di Stagione',
+      category: 'Verdure',
+      pool: normalizePool(['POMODORO', 'CIPOLLA', 'CAROTA', 'PORRO', 'LATTUGA', 'SPINACI', 'BROCCOLI', 'RAPANO', 'SEDANO', 'FAGIOLO', 'ZUCCHINA', 'CAVOLO']),
+    },
+    {
+      title: 'Cinema e Teatro',
+      category: 'Spettacolo',
+      pool: normalizePool(['ATTORE', 'COPIONE', 'SCENA', 'SIPARIO', 'REGISTA', 'DRAMMA', 'COMMEDIA', 'POLTRONA', 'APPLAUSO', 'RUOLO', 'LOCANDINA', 'PALCO']),
+    },
+    {
+      title: 'Corpo Umano',
+      category: 'Salute',
+      pool: normalizePool(['CUORE', 'CERVELLO', 'POLMONE', 'OSSO', 'SANGUE', 'MUSCOLO', 'MANO', 'BRACCIO', 'GAMBA', 'GINOCCHIO', 'SPALLA', 'DENTE']),
+    },
+    {
+      title: 'Mondo Digitale',
+      category: 'Tecnologia',
+      pool: normalizePool(['TASTIERA', 'SCHERMO', 'CODICE', 'SERVER', 'MEMORIA', 'SISTEMA', 'RETE', 'SENSORE', 'CONSOLE', 'DATI', 'CAVO', 'MODEM']),
+    },
+    {
+      title: 'Gioielli e Gemme',
+      category: 'Oreficeria',
+      pool: normalizePool(['ANELLO', 'COLLANA', 'BRACCIALE', 'PERLA', 'DIAMANTE', 'ARGENTO', 'BRONZO', 'SPILLA', 'DIADEMA', 'GIOIELLO', 'SMERALDO', 'AMETISTA']),
+    },
+    {
+      title: 'Carnevale di Venezia',
+      category: 'Festa',
+      pool: normalizePool(['MASCHERA', 'SFILATA', 'MUSICA', 'BALLO', 'CORIANDOL', 'COSTUME', 'TAMBURO', 'GIOIA', 'REGALO', 'GONDOLA', 'CANALE', 'FESTA']),
+    },
+    {
+      title: 'Deserto e Dune',
+      category: 'Paesaggi',
+      pool: normalizePool(['SABBIA', 'DUNA', 'OASI', 'CACTUS', 'CAMMELLO', 'MIRAGGIO', 'PALMA', 'CALORE', 'CAROVANA', 'GOLA', 'NOMADE', 'POLVERE']),
+    },
+    {
+      title: 'Officina e Attrezzi',
+      category: 'Artigianato',
+      pool: normalizePool(['MARTELLO', 'PINZA', 'SEGA', 'CHIODO', 'VITE', 'TRAPANO', 'LIMA', 'PIALLA', 'SCALPELLO', 'CORDA', 'CATENA', 'CHIAVE']),
+    },
   ],
   pt: [
     {
@@ -447,87 +767,389 @@ export const MULTILANG_MPSEARCH_THEMES: Record<
       category: 'Belas Artes',
       pool: normalizePool(['PALETA', 'TELA', 'PINCEL', 'ESBOCO', 'RETRATO', 'PASTEL', 'MOSAICO', 'ATELIE', 'AFRESCO', 'CORES', 'MOLDURA', 'QUADRO']),
     },
+    {
+      title: 'Estádio Olímpico',
+      category: 'Esportes',
+      pool: normalizePool(['FUTEBOL', 'TENIS', 'ATLETA', 'MEDALHA', 'TROFEU', 'CORRIDA', 'NATACAO', 'BOXE', 'CICLISMO', 'ESGRIMA', 'REMO', 'SALTO']),
+    },
+    {
+      title: 'Cozinha Lusófona',
+      category: 'Pratos Típicos',
+      pool: normalizePool(['FEIJOADA', 'BACALHAU', 'MOQUECA', 'COXINHA', 'PASTEL', 'PUDIM', 'TAPIOCA', 'ACARAJE', 'FAROFA', 'CALDO', 'EMPADA', 'BOLO']),
+    },
+    {
+      title: 'Casa e Móveis',
+      category: 'Lar',
+      pool: normalizePool(['CADEIRA', 'MESA', 'SOFA', 'LAMPADA', 'ESPELHO', 'JANELA', 'PORTA', 'TAPETE', 'CORTINA', 'ARMARIO', 'CAMA', 'ESTANTE']),
+    },
+    {
+      title: 'Profissões e Ofícios',
+      category: 'Carreiras',
+      pool: normalizePool(['MEDICO', 'MESTRE', 'BOMBEIRO', 'PILOTO', 'PINTOR', 'ADVOGADO', 'DENTISTA', 'MUSICO', 'PADEIRO', 'ALFAIATE', 'JUIZ', 'CHEF']),
+    },
+    {
+      title: 'Moda e Vestuário',
+      category: 'Roupas',
+      pool: normalizePool(['CAMISA', 'CALCA', 'VESTIDO', 'CASACO', 'CACHECOL', 'CHAPEU', 'SAPATO', 'GRAVATA', 'JAQUETA', 'SAIA', 'LUVA', 'BOTA']),
+    },
+    {
+      title: 'Savana Africana',
+      category: 'Vida Selvagem',
+      pool: normalizePool(['LEAO', 'GIRAFA', 'ZEBRA', 'ELEFANTE', 'GUEPARDO', 'HIENA', 'ANTILOPE', 'BUFALO', 'AVESTRUZ', 'LEOPARDO', 'CHACAL', 'MACACO']),
+    },
+    {
+      title: 'Viagem de Trem',
+      category: 'Transportes',
+      pool: normalizePool(['ESTACAO', 'VAGAO', 'BILHETE', 'MALA', 'VIAJANTE', 'TUNEL', 'PONTE', 'TRILHO', 'ROTA', 'TREM', 'HORARIO', 'PARTIDA']),
+    },
+    {
+      title: 'Escola e Saber',
+      category: 'Educação',
+      pool: normalizePool(['LAPIS', 'CADERNO', 'QUADRO', 'REGUA', 'MOCHILA', 'EXAME', 'LEITURA', 'CIENCIA', 'HISTORIA', 'MAPA', 'AULA', 'LIVRO']),
+    },
+    {
+      title: 'Horta de Legumes',
+      category: 'Verduras',
+      pool: normalizePool(['TOMATE', 'CEBOLA', 'PEPINO', 'ALFACE', 'ESPINAFRE', 'BROCOLIS', 'BATATA', 'CENOURA', 'RABANETE', 'NABO', 'COUVE', 'QUIABO']),
+    },
+    {
+      title: 'Cinema e Teatro',
+      category: 'Espetáculo',
+      pool: normalizePool(['ATOR', 'ROTEIRO', 'CENA', 'CORTINA', 'CAMERA', 'ESTREIA', 'DRAMA', 'COMEDIA', 'POLTRONA', 'APLAUSO', 'PAPEL', 'PALCO']),
+    },
+    {
+      title: 'Corpo Humano',
+      category: 'Saúde',
+      pool: normalizePool(['CORACAO', 'CEREBRO', 'PULMAO', 'OSSO', 'SANGUE', 'MUSCULO', 'BRACO', 'PERNA', 'JOELHO', 'OMBRO', 'DENTE', 'ORELHA']),
+    },
+    {
+      title: 'Mundo Digital',
+      category: 'Tecnologia',
+      pool: normalizePool(['TECLADO', 'TELA', 'ARQUIVO', 'CODIGO', 'DADOS', 'SERVIDOR', 'MEMORIA', 'SISTEMA', 'REDE', 'SENSOR', 'CONSOLE', 'CABO']),
+    },
+    {
+      title: 'Joias e Gemas',
+      category: 'Joalheria',
+      pool: normalizePool(['ANEL', 'COLAR', 'PULSEIRA', 'PEROLA', 'DIAMANTE', 'OURO', 'PRATA', 'BRONZE', 'BROCHE', 'DIADEMA', 'GEMA', 'ESMERALDA']),
+    },
+    {
+      title: 'Festa e Carnaval',
+      category: 'Celebração',
+      pool: normalizePool(['MASCARA', 'DESFILE', 'MUSICA', 'DANCA', 'CONFETE', 'FANTASIA', 'TAMBOR', 'ALEGRIA', 'SAMBA', 'TRIO', 'BALAO', 'FESTA']),
+    },
+    {
+      title: 'Deserto e Dunas',
+      category: 'Paisagens',
+      pool: normalizePool(['AREIA', 'DUNA', 'OASIS', 'CACTO', 'CAMELO', 'MIRAGEM', 'PALMEIRA', 'CALOR', 'CARAVANA', 'CANION', 'NOMADE', 'POEIRA']),
+    },
+    {
+      title: 'Oficina e Ferramentas',
+      category: 'Artesanato',
+      pool: normalizePool(['MARTELO', 'ALICATE', 'SERRA', 'PREGO', 'PARAFUSO', 'FURADEIRA', 'LIMA', 'PLAINA', 'CORDA', 'CORRENTE', 'CADEADO', 'CHAVE']),
+    },
   ],
   tl: [
+    // 1–16: Core Filipino & Tagalog Themes
     {
       title: 'Pagkaing Pinoy',
       category: 'Lutuin',
-      pool: normalizePool(['ADOBO', 'SINIGANG', 'LUMPIA', 'LECHON', 'PANCIT', 'BIBINGKA', 'KAREKARE', 'TINOLA', 'SISIG', 'BULALO', 'PUTO', 'TURON']),
+      pool: normalizePool(['ADOBO', 'SINIGANG', 'LUMPIA', 'LECHON', 'PANCIT', 'BIBINGKA', 'KAREKARE', 'TINOLA', 'SISIG', 'BULALO', 'PUTO', 'TURON', 'MENUDO', 'LAING']),
     },
     {
       title: 'Prutas sa Palengke',
       category: 'Ani at Prutas',
-      pool: normalizePool(['MANGGA', 'SAGING', 'PINYA', 'PAKWAN', 'PAPAYA', 'BAYABAS', 'RAMBUTAN', 'DURIAN', 'LANSONES', 'NIYOG', 'ATIS', 'CHICO']),
+      pool: normalizePool(['MANGGA', 'SAGING', 'PINYA', 'PAKWAN', 'PAPAYA', 'BAYABAS', 'RAMBUTAN', 'DURIAN', 'LANSONES', 'NIYOG', 'ATIS', 'CHICO', 'SANTOL', 'DUHAT']),
     },
     {
       title: 'Gulay sa Bahay Kubo',
       category: 'Halaman',
-      pool: normalizePool(['TALONG', 'KALABASA', 'SITAW', 'AMPALAYA', 'KAMATIS', 'SIBUYAS', 'BAWANG', 'PATATAS', 'LABANOS', 'MUSTASA', 'SINGKAMAS', 'PATOLA']),
+      pool: normalizePool(['TALONG', 'KALABASA', 'SITAW', 'AMPALAYA', 'KAMATIS', 'SIBUYAS', 'BAWANG', 'PATATAS', 'LABANOS', 'MUSTASA', 'SINGKAMAS', 'PATOLA', 'KUNDOL', 'SIGARILYAS']),
     },
     {
       title: 'Hayop sa Pilipinas',
       category: 'Kalikasan',
-      pool: normalizePool(['KALABAW', 'AGILA', 'TARSIER', 'PAGONG', 'BUWAYA', 'UNGGOY', 'KABAYO', 'MANOK', 'PALAKA', 'PARUPARO', 'BALYENA', 'PATING']),
+      pool: normalizePool(['KALABAW', 'AGILA', 'TARSIER', 'PAGONG', 'BUWAYA', 'UNGGOY', 'KABAYO', 'MANOK', 'PALAKA', 'PARUPARO', 'BALYENA', 'PATING', 'TAMARAW', 'USA']),
     },
     {
       title: 'Kalikasan at Panahon',
       category: 'Kapaligiran',
-      pool: normalizePool(['BUNDOK', 'BULKAN', 'DAGAT', 'ILOG', 'GUBAT', 'BAGYO', 'KIDLAT', 'KULOG', 'BAHAGHARI', 'HANGIN', 'ULAP', 'ULAN']),
+      pool: normalizePool(['BUNDOK', 'BULKAN', 'DAGAT', 'ILOG', 'GUBAT', 'BAGYO', 'KIDLAT', 'KULOG', 'BAHAGHARI', 'HANGIN', 'ULAP', 'ULAN', 'BUROL', 'TALON']),
     },
     {
       title: 'Sa Loob ng Bahay',
       category: 'Tahanan',
-      pool: normalizePool(['KUSINA', 'KWARTO', 'BINTANA', 'PINTUAN', 'HAGDAN', 'BUBONG', 'LAMPARA', 'SILID', 'KAMA', 'MESA', 'SILYA', 'UNAN']),
+      pool: normalizePool(['KUSINA', 'KWARTO', 'BINTANA', 'PINTUAN', 'HAGDAN', 'BUBONG', 'LAMPARA', 'SILID', 'KAMA', 'MESA', 'SILYA', 'UNAN', 'KUMOT', 'BANIG']),
     },
     {
       title: 'Laro ng Lahi',
       category: 'Kultura',
-      pool: normalizePool(['PATINTERO', 'SUNGKA', 'SIPA', 'TUMBANG', 'TRUMPO', 'HOLEN', 'PIKO', 'TAGUAN', 'HABULAN', 'LANGIT', 'LUPA', 'TAYA']),
+      pool: normalizePool(['PATINTERO', 'SUNGKA', 'SIPA', 'TUMBANG', 'TRUMPO', 'HOLEN', 'PIKO', 'TAGUAN', 'HABULAN', 'LANGIT', 'LUPA', 'TAYA', 'LUKSONG', 'AGAWAN']),
     },
     {
       title: 'Pista at Tradisyon',
       category: 'Pagdiriwang',
-      pool: normalizePool(['PAROL', 'PISTA', 'HARANA', 'SAYAW', 'KANTA', 'BANDILA', 'PAPUTOK', 'SIMBANG', 'REGALO', 'MUSIKA', 'GITARA', 'TAMBOL']),
+      pool: normalizePool(['PAROL', 'PISTA', 'HARANA', 'SAYAW', 'KANTA', 'BANDILA', 'PAPUTOK', 'SIMBANG', 'REGALO', 'MUSIKA', 'GITARA', 'TAMBOL', 'PARADA', 'FIESTA']),
     },
     {
       title: 'Sasakyan sa Kalsada',
       category: 'Biyahe',
-      pool: normalizePool(['JEEPNEY', 'KALESA', 'TRICYCLE', 'BANGKA', 'BARKO', 'EROPLANO', 'BISIKLETA', 'KOTSE', 'TREN', 'TRAK', 'TULAY', 'KALYE']),
+      pool: normalizePool(['JEEPNEY', 'KALESA', 'TRICYCLE', 'BANGKA', 'BARKO', 'EROPLANO', 'BISIKLETA', 'KOTSE', 'TREN', 'TRAK', 'TULAY', 'KALYE', 'PEDICAB', 'BUS']),
     },
     {
       title: 'Sa Paaralan',
       category: 'Edukasyon',
-      pool: normalizePool(['GURO', 'AKLAT', 'LAPIS', 'PAPEL', 'PISARA', 'KLASE', 'SULAT', 'BASA', 'ARALIN', 'KWADERNO', 'PAMBURA', 'SILID']),
+      pool: normalizePool(['GURO', 'AKLAT', 'LAPIS', 'PAPEL', 'PISARA', 'KLASE', 'SULAT', 'BASA', 'ARALIN', 'KWADERNO', 'PAMBURA', 'SILID', 'TISA', 'RULER']),
     },
     {
       title: 'Kalangitan at Bituin',
       category: 'Astronomiya',
-      pool: normalizePool(['ARAW', 'BUWAN', 'BITUIN', 'TALA', 'PLANETA', 'KOMETA', 'ULAP', 'LANGIT', 'SINAG', 'LIWANAG', 'DILIM', 'GABI']),
+      pool: normalizePool(['ARAW', 'BUWAN', 'BITUIN', 'TALA', 'PLANETA', 'KOMETA', 'ULAP', 'LANGIT', 'SINAG', 'LIWANAG', 'DILIM', 'GABI', 'EKLIPSE', 'BULALAKAW']),
     },
     {
       title: 'Buhay sa Dagat',
       category: 'Karagatan',
-      pool: normalizePool(['ISDA', 'ALIMANGO', 'HIPON', 'PUGITA', 'TAHONG', 'KORALES', 'ALON', 'DALUYONG', 'BUHANGIN', 'PULO', 'BANGKA', 'LAMBAT']),
+      pool: normalizePool(['ISDA', 'ALIMANGO', 'HIPON', 'PUGITA', 'TAHONG', 'KORALES', 'ALON', 'DALUYONG', 'BUHANGIN', 'PULO', 'BANGKA', 'LAMBAT', 'TALABA', 'PAWIKAN']),
     },
     {
       title: 'Mga Kulay at Sining',
       category: 'Sining',
-      pool: normalizePool(['PULA', 'ASUL', 'DILAW', 'BERDE', 'LILA', 'KAHEL', 'PUTI', 'ITIM', 'PINTA', 'KULAY', 'HUGIS', 'GUHIT']),
+      pool: normalizePool(['PULA', 'ASUL', 'DILAW', 'BERDE', 'LILA', 'KAHEL', 'PUTI', 'ITIM', 'PINTA', 'KULAY', 'HUGIS', 'GUHIT', 'KAYUMANGI', 'ROSA']),
     },
     {
       title: 'Katawan ng Tao',
       category: 'Kalusugan',
-      pool: normalizePool(['MATA', 'ILONG', 'BIBIG', 'TAINGA', 'NGIPIN', 'DILA', 'KAMAY', 'BALIKAT', 'TUHOD', 'PUSO', 'UTAK', 'BUHOK']),
+      pool: normalizePool(['MATA', 'ILONG', 'BIBIG', 'TAINGA', 'NGIPIN', 'DILA', 'KAMAY', 'BALIKAT', 'TUHOD', 'PUSO', 'UTAK', 'BUHOK', 'BRASO', 'TIYAN']),
     },
     {
       title: 'Pamilya at Kaibigan',
       category: 'Lipunan',
-      pool: normalizePool(['NANAY', 'TATAY', 'KUYA', 'LOLO', 'LOLA', 'KAPATID', 'KAIBIGAN', 'PINSAN', 'ANAK', 'PAMILYA', 'BAYAN', 'KAPWA']),
+      pool: normalizePool(['NANAY', 'TATAY', 'KUYA', 'LOLO', 'LOLA', 'KAPATID', 'KAIBIGAN', 'PINSAN', 'ANAK', 'PAMILYA', 'BAYAN', 'KAPWA', 'NINONG', 'NINANG']),
     },
     {
       title: 'Alamat at Hiwaga',
       category: 'Mitolohiya',
-      pool: normalizePool(['DIWATA', 'SIRENA', 'KAPRE', 'DUWENDE', 'DRAGON', 'HARI', 'REYNA', 'PRINSIPE', 'PRINSESA', 'KASTILYO', 'KORONA', 'ESPADA']),
+      pool: normalizePool(['DIWATA', 'SIRENA', 'KAPRE', 'DUWENDE', 'DRAGON', 'HARI', 'REYNA', 'PRINSIPE', 'PRINSESA', 'KASTILYO', 'KORONA', 'ESPADA', 'TIKBALANG', 'ASWANG']),
+    },
+    // 17–60: Expanded Filipino & Tagalog Categories (60 Total!)
+    {
+      title: 'Meryenda at Kakanin',
+      category: 'Kakanin',
+      pool: normalizePool(['KUTSINTA', 'SUMAN', 'PALITAW', 'BIKO', 'MAJA', 'ESPASOL', 'KARIOCA', 'PITSI', 'TAHO', 'BANANAQ', 'KAMOTEQ', 'BINGKA', 'TUPIG', 'PUTOBUNGO']),
+    },
+    {
+      title: 'Almusal ng Pinoy',
+      category: 'Almusal',
+      pool: normalizePool(['TAPSILOG', 'LONGSILOG', 'TOSILOG', 'PANDESAL', 'KAPE', 'ITLOG', 'TUYO', 'DAING', 'SINANGAG', 'KESO', 'LUGAW', 'GOTO', 'TINAPA', 'ENSAYMADA']),
+    },
+    {
+      title: 'Panghimagas at Matamis',
+      category: 'Matamis',
+      pool: normalizePool(['HALOHALO', 'LECHEFLAN', 'YEMA', 'PASTILLAS', 'POLVORON', 'SORBETES', 'GULAMAN', 'SAGO', 'MAKAPUNO', 'LANGKA', 'PINIPIG', 'MATAMIS', 'ASUKAL', 'PULOT']),
+    },
+    {
+      title: 'Inumin at Palamig',
+      category: 'Inumin',
+      pool: normalizePool(['SALABAT', 'KALAMANSI', 'BUKO', 'LAMBANOG', 'TUBA', 'BASI', 'GATAS', 'TUBIG', 'SABAW', 'KATAS', 'PALAMIG', 'KAPENG', 'TSOKOLATE', 'SAGO']),
+    },
+    {
+      title: 'Pampalasa at Sawsawan',
+      category: 'Pampalasa',
+      pool: normalizePool(['TOYO', 'SUKA', 'PATIS', 'BAGOONG', 'ASIN', 'PAMINTA', 'LUYA', 'SILI', 'TANGLAD', 'LAUREL', 'ATSUETE', 'LABUYO', 'BAWANG', 'SIBUYAS']),
+    },
+    {
+      title: 'Gamit sa Kusina',
+      category: 'Kusina',
+      pool: normalizePool(['KALDERO', 'KAWALI', 'SANDOK', 'KUTSARA', 'TINIDOR', 'KUTSILYO', 'PINGGAN', 'MANGKOK', 'BASO', 'TASA', 'TAKURE', 'PALAYOK', 'KALAN', 'SALAAN']),
+    },
+    {
+      title: 'Kasuotan ng Pilipino',
+      category: 'Kasuotan',
+      pool: normalizePool(['BARONG', 'SAYA', 'KIMONA', 'PATADYONG', 'CAMISA', 'TSINELAS', 'BAKYA', 'SUMBRERO', 'SALAKOT', 'PANTALON', 'DAMIT', 'PALDA', 'MEDYAS', 'SAPATOS']),
+    },
+    {
+      title: 'Alahas at Palamuti',
+      category: 'Palamuti',
+      pool: normalizePool(['SINGSING', 'KWINTAS', 'HIKAW', 'PULSERAS', 'KORONA', 'PERLAS', 'GINTO', 'PILAK', 'BRILYANTE', 'RUBI', 'DYAMANTE', 'BROTSE', 'PANYO', 'PAMAYPAY']),
+    },
+    {
+      title: 'Trabaho at Hanapbuhay',
+      category: 'Propesyon',
+      pool: normalizePool(['DOKTOR', 'ABOGADO', 'INHINYERO', 'BUMBERO', 'PULIS', 'SUNDALO', 'MAGSASAKA', 'PANADERO', 'PINTOR', 'PILOTO', 'DRAYBER', 'KUSINERO', 'BARBERO', 'MANANAHI']),
+    },
+    {
+      title: 'Mga Bulaklak sa Hardin',
+      category: 'Bulaklak',
+      pool: normalizePool(['SAMPAGITA', 'GUMAMELA', 'ROSAL', 'ILANG', 'SANTAN', 'ROSAS', 'LIRYO', 'ORKIDYAS', 'MIRASOL', 'KAMPUPOT', 'SITSIRIKA', 'DAHLIA', 'TULIPAN', 'LOTUS']),
+    },
+    {
+      title: 'Punong Kahoy',
+      category: 'Kagubatan',
+      pool: normalizePool(['NARRA', 'MOLAVE', 'ACACIA', 'BALETE', 'MANGGA', 'NIYOG', 'KAWAYAN', 'BANABA', 'KAMAGONG', 'YAKAL', 'IPIL', 'TALISAY', 'MAHOGANY', 'SAMPALOK']),
+    },
+    {
+      title: 'Mga Ibon sa Langit',
+      category: 'Mga Ibon',
+      pool: normalizePool(['AGILA', 'MAYA', 'KALAPATI', 'LAWIN', 'KUWAGO', 'LORO', 'UWAK', 'TAGAK', 'PUGO', 'BIBE', 'ITIK', 'PATO', 'GANSA', 'PABO']),
+    },
+    {
+      title: 'Insekto at Maliliit',
+      category: 'Insekto',
+      pool: normalizePool(['PARUPARO', 'LANGGAM', 'BUBUYOG', 'LAMOK', 'LANGAW', 'TUTUBI', 'TIPAKLONG', 'GAGAMBA', 'IPIS', 'ALITAPTAP', 'KULIGLIG', 'SALAGINTO', 'PUTAKTI', 'ANAY']),
+    },
+    {
+      title: 'Mga Isda sa Pilipinas',
+      category: 'Isda',
+      pool: normalizePool(['BANGUS', 'TILAPIA', 'HITO', 'DALAG', 'LAPULAPU', 'MAYAMAYA', 'TUNA', 'TAMBAN', 'DILIS', 'BIYA', 'HASAHASA', 'TANIGUE', 'SALMON', 'SARDINAS']),
+    },
+    {
+      title: 'Lugar at Lalawigan',
+      category: 'Heograpiya',
+      pool: normalizePool(['MAYNILA', 'CEBU', 'DAVAO', 'ILOILO', 'BAGUIO', 'PALAWAN', 'BOHOL', 'BORACAY', 'SIARGAO', 'BATANES', 'ILOCOS', 'BICOL', 'LEYTE', 'CAVITE']),
+    },
+    {
+      title: 'Anyong Lupa at Tubig',
+      category: 'Kalupaan',
+      pool: normalizePool(['BUNDOK', 'BUROL', 'TALAMPAS', 'KAPATAGAN', 'LAMBAK', 'BULKAN', 'KWEBA', 'TALON', 'LAWA', 'LOOK', 'KIPOT', 'GOLPO', 'BATIS', 'TANGWAY']),
+    },
+    {
+      title: 'Instrumentong Musika',
+      category: 'Musika',
+      pool: normalizePool(['GITARA', 'PIANO', 'BYOLIN', 'TAMBOL', 'KUDYAPI', 'KULINTANG', 'AGONG', 'GANGSA', 'BANDURIA', 'OKTAVINA', 'FLAUTA', 'TRUMPETA', 'HARPA', 'KUBING']),
+    },
+    {
+      title: 'Katutubong Sayaw',
+      category: 'Sayaw',
+      pool: normalizePool(['TINIKLING', 'PANDANGGO', 'CARINOSA', 'SINGKIL', 'ITIKITIK', 'SUBLI', 'KURATSA', 'BINASUAN', 'SAKUTING', 'RIGODON', 'BALSE', 'INDAK', 'HAKBANG', 'SALUDO']),
+    },
+    {
+      title: 'Palakasan at Isports',
+      category: 'Isports',
+      pool: normalizePool(['BASKETBOL', 'BOLIBOL', 'BOKSING', 'ARNIS', 'SEPAK', 'LANGOY', 'TAKBO', 'TENIS', 'BADMINTON', 'PUTBOL', 'SIKLISMO', 'KAMPYON', 'TROPEO', 'MEDALYA']),
+    },
+    {
+      title: 'Emosyon at Damdamin',
+      category: 'Damdamin',
+      pool: normalizePool(['SAYA', 'LUNGKOT', 'GALIT', 'TAKOT', 'PAGIBIG', 'KILIG', 'HIYA', 'GULAT', 'TUWA', 'PIGHATI', 'PAGASA', 'TIWALA', 'INGGIT', 'GIGIL']),
+    },
+    {
+      title: 'Katangiang Pilipino',
+      category: 'Pagpapahalaga',
+      pool: normalizePool(['SIPAG', 'TIYAGA', 'BAIT', 'TAPANG', 'GALANG', 'KATAPATAN', 'MALASAKIT', 'BAYANIHAN', 'DAMAYAN', 'DANGAL', 'TALINO', 'HUSAY', 'TATAG', 'LINGAP']),
+    },
+    {
+      title: 'Oras at Panahon',
+      category: 'Oras',
+      pool: normalizePool(['UMAGA', 'TANGHALI', 'HAPON', 'GABI', 'BUKAS', 'KAHAPON', 'NGAYON', 'LINGGO', 'BUWAN', 'TAON', 'MINUTO', 'SEGUNDO', 'ORAS', 'DEKADA']),
+    },
+    {
+      title: 'Araw at Buwan',
+      category: 'Kalendaryo',
+      pool: normalizePool(['LUNES', 'MARTES', 'MYERKULES', 'HUWEBES', 'BIYERNES', 'SABADO', 'ENERO', 'PEBRERO', 'MARSO', 'ABRIL', 'MAYO', 'HUNYO', 'HULYO', 'AGOSTO']),
+    },
+    {
+      title: 'Bilang at Sukat',
+      category: 'Matematika',
+      pool: normalizePool(['DALAWA', 'TATLO', 'APAT', 'LIMA', 'ANIM', 'PITO', 'WALO', 'SIYAM', 'SAMPU', 'DAAN', 'LIBO', 'MILYON', 'METRO', 'KILO']),
+    },
+    {
+      title: 'Sa Palengke at Tindahan',
+      category: 'Komersyo',
+      pool: normalizePool(['TINDAHAN', 'PALENGKE', 'PRESYO', 'SUKLI', 'TAWAD', 'BAYAD', 'PERA', 'BARYA', 'SALAPI', 'TIMBANGAN', 'SUPOT', 'BAYONG', 'SUKI', 'TINDERA']),
+    },
+    {
+      title: 'Sa Ospital at Klinika',
+      category: 'Medisina',
+      pool: normalizePool(['OSPITAL', 'KLINIKA', 'GAMOT', 'RESETA', 'INIKSYON', 'BENDAHE', 'LAGNAT', 'SIPON', 'SAKIT', 'SUGAT', 'DUGO', 'PULSO', 'BALAT', 'BITAMINA']),
+    },
+    {
+      title: 'Kasangkapan sa Bahay',
+      category: 'Kagamitan',
+      pool: normalizePool(['MARTILYO', 'LAGARI', 'PAKO', 'TORNILYO', 'LIYABE', 'PLAIS', 'PALA', 'ASAROL', 'KARIT', 'ITAK', 'GUNTING', 'KARAYOM', 'SINULID', 'KANDADO']),
+    },
+    {
+      title: 'Kalinisan at Pagligo',
+      category: 'Kalinisan',
+      pool: normalizePool(['SABON', 'SHAMPOO', 'TUWALYA', 'SEPILYO', 'SUKLAY', 'SALAMIN', 'TABO', 'TIMBA', 'BALDE', 'GRIPO', 'LABABO', 'WALIS', 'BASAHAN', 'PLANTSA']),
+    },
+    {
+      title: 'Bayani at Kasaysayan',
+      category: 'Kasaysayan',
+      pool: normalizePool(['RIZAL', 'BONIFACIO', 'MABINI', 'SILANG', 'KALAYAAN', 'KATIPUNAN', 'BANDILA', 'BAYANI', 'BARANGAY', 'DATU', 'RAHA', 'SULTAN', 'BALANGAY', 'BAYBAYIN']),
+    },
+    {
+      title: 'Makabagong Teknolohiya',
+      category: 'Teknolohiya',
+      pool: normalizePool(['TELEPONO', 'KOMPYUTER', 'INTERNET', 'RADYO', 'KAMERA', 'BATERYA', 'KABLE', 'ISKRIN', 'MENSAHE', 'TAWAG', 'LARAWAN', 'BIDYO', 'TUNOG', 'KORYENTE']),
+    },
+    {
+      title: 'Buhay sa Bukid',
+      category: 'Agrikultura',
+      pool: normalizePool(['BUKID', 'PALAY', 'BIGAS', 'ANIHAN', 'ARARO', 'KUBO', 'PILAPIL', 'PATUBIG', 'BINHI', 'PUNLA', 'DAMO', 'DAYAMI', 'KAMALIG', 'SAKAHAN']),
+    },
+    {
+      title: 'Paglalakbay at Bakasyon',
+      category: 'Turismo',
+      pool: normalizePool(['BAKASYON', 'BIYAHE', 'HOTEL', 'RESORT', 'PLAYA', 'PULO', 'MALETA', 'PASAPORTE', 'TIKET', 'MAPA', 'KOMPAS', 'TULUYAN', 'KAMPING', 'PASYALAN']),
+    },
+    {
+      title: 'Sa Lungsod at Bayan',
+      category: 'Komunidad',
+      pool: normalizePool(['LUNGSOD', 'BAYAN', 'BARANGAY', 'PLASA', 'SIMBAHAN', 'MUNISIPYO', 'PARKE', 'BANGKO', 'TULAY', 'KALSADA', 'ESKINA', 'KANTO', 'GUSALI', 'PALIPARAN']),
+    },
+    {
+      title: 'Pasko sa Pilipinas',
+      category: 'Pasko',
+      pool: normalizePool(['PASKO', 'PAROL', 'BELEN', 'SIMBANG', 'NOCHE', 'AGUINALDO', 'REGALO', 'KANTAHAN', 'HARANA', 'PUTO', 'BIBINGKA', 'HAMON', 'ANGHEL', 'KAMPANA']),
+    },
+    {
+      title: 'Pagsusulat at Panitikan',
+      category: 'Panitikan',
+      pool: normalizePool(['TULA', 'KWENTO', 'ALAMAT', 'PABULA', 'NOBELA', 'SANAYSAY', 'BUGTONG', 'TALATA', 'SAKNONG', 'TUGMA', 'AKDA', 'PAHINA', 'PAMAGAT', 'SALITA']),
+    },
+    {
+      title: 'Panahon at Sakuna',
+      category: 'Klima',
+      pool: normalizePool(['TAGINIT', 'TAGULAN', 'AMIHAN', 'HABAGAT', 'BAGYO', 'BAHA', 'LINDOL', 'TSUNAMI', 'INIT', 'LAMIG', 'GINAW', 'HAMOG', 'AMBON', 'BUHAWI']),
+    },
+    {
+      title: 'Mga Kilos at Galaw',
+      category: 'Pandiwa',
+      pool: normalizePool(['TAKBO', 'LAKAD', 'TALON', 'LANGOY', 'LIPAD', 'SAYAW', 'KANTA', 'TAWA', 'IYAK', 'TULOG', 'GISING', 'KAIN', 'INOM', 'TULONG']),
+    },
+    {
+      title: 'Mga Paglalarawan',
+      category: 'Pang-uri',
+      pool: normalizePool(['MAGANDA', 'MALAKI', 'MALIIT', 'MATAAS', 'MABABA', 'MABILIS', 'MABAGAL', 'MALAKAS', 'MAHINA', 'MATAMIS', 'MAASIM', 'MAALAT', 'MAPAIT', 'MALINIS']),
+    },
+    {
+      title: 'Pangingisda at Baybayin',
+      category: 'Pangingisda',
+      pool: normalizePool(['LAMBAT', 'BINGWIT', 'PAIN', 'BANGKA', 'SAGWAN', 'LAYAG', 'ANGKLA', 'PAROLA', 'DAUNGAN', 'PANTALAN', 'KABIBE', 'PERLAS', 'TALABA', 'ALIMASAG']),
+    },
+    {
+      title: 'Negosyo at Tanggapan',
+      category: 'Opisina',
+      pool: normalizePool(['OPISINA', 'MESA', 'UPUAN', 'PAPEL', 'BOLPEN', 'KUWENTA', 'SALAPI', 'BANGKO', 'RESIBO', 'KONTRATA', 'PULONG', 'PLANO', 'PROYEKTO', 'SAHOD']),
+    },
+    {
+      title: 'Sining at Likhang Kamay',
+      category: 'Likhang Kamay',
+      pool: normalizePool(['BANIG', 'BAKOL', 'PALAYOK', 'LILOK', 'UKIT', 'HABI', 'BURDA', 'PINTA', 'GUHIT', 'ESKULTURA', 'TEATRO', 'PELIKULA', 'MASKARA', 'BANDERA']),
+    },
+    {
+      title: 'Pangarap at Tagumpay',
+      category: 'Inspirasyon',
+      pool: normalizePool(['PANGARAP', 'TAGUMPAY', 'PAGASA', 'LAKAS', 'TAPANG', 'TIWALA', 'LIGAYA', 'PAYAPA', 'BIYAYA', 'GRASYA', 'SWERTE', 'HIMALA', 'LANDAS', 'LAYUNIN']),
+    },
+    {
+      title: 'Mga Alagang Hayop',
+      category: 'Alaga',
+      pool: normalizePool(['PUSA', 'IBON', 'ISDA', 'KONEHO', 'PAGONG', 'HAMSTER', 'MANOK', 'BIBE', 'BABOY', 'BAKA', 'KAMBING', 'TUPA', 'TUTA', 'KUTING', 'SISIW']),
+    },
+    {
+      title: 'Piyesta ng Baryo',
+      category: 'Baryo',
+      pool: normalizePool(['BARYO', 'BANDERA', 'MUSIKO', 'PARADA', 'PALARO', 'PALOSEBO', 'PABITIN', 'PUKPOK', 'LECHON', 'HANDAAN', 'BISITA', 'TAWANAN', 'KASIYAHAN', 'SAYAWAN']),
     },
   ],
 };

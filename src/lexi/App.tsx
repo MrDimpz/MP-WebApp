@@ -531,7 +531,7 @@ export default function App() {
             <LiveOverlayButton
               gameTitle="Lexi Tiles"
               gameSlug="lexi"
-              streamerHandle={gameState.tiktok.username}
+              streamerHandle={gameState.tiktok?.username || ''}
               recommendedSize="540 × 1200 or 1080 × 2400 (20:9)"
               label="LIVE Overlay"
             />
@@ -544,13 +544,13 @@ export default function App() {
                 }
               }}
               className={`px-3.5 py-2 text-xs font-bold rounded-lg border transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                gameState.tiktok.status === 'CONNECTED'
+                gameState.tiktok?.status === 'CONNECTED'
                   ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300 hover:bg-emerald-900/80'
                   : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800'
               }`}
             >
-              <Wifi className={`w-3.5 h-3.5 ${gameState.tiktok.status === 'CONNECTED' ? 'text-emerald-400' : 'text-slate-400'}`} />
-              <span>{gameState.tiktok.status === 'CONNECTED' ? `@${gameState.tiktok.username} Connected` : 'Connect TikTok'}</span>
+              <Wifi className={`w-3.5 h-3.5 ${gameState.tiktok?.status === 'CONNECTED' ? 'text-emerald-400' : 'text-slate-400'}`} />
+              <span>{gameState.tiktok?.status === 'CONNECTED' ? `@${gameState.tiktok?.username} Connected` : 'Connect TikTok'}</span>
             </button>
             <button
               type="button"
@@ -636,7 +636,7 @@ export default function App() {
                   <span>
                     Mode:{' '}
                     <strong className="text-slate-100 capitalize">
-                      {gameState.gameConfig.modes[gameState.gameMode]?.name || gameState.gameMode}
+                      {gameState.gameConfig?.modes?.[gameState.gameMode]?.name || gameState.gameMode}
                     </strong>
                   </span>
                   <span aria-hidden="true">·</span>
@@ -679,7 +679,7 @@ export default function App() {
                 aria-label="Select Game Mode"
                 className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-medium text-slate-200 focus:outline-none focus:border-amber-400 cursor-pointer"
               >
-                {Object.entries(gameState.gameConfig.modes).map(([key, m]) => (
+                {Object.entries(gameState.gameConfig?.modes || {}).map(([key, m]) => (
                   <option key={key} value={key}>
                     {m.name}
                   </option>
@@ -1048,13 +1048,13 @@ export default function App() {
                   onClick={() => navigate('admin', '/admin')}
                   className="flex items-center gap-1.5 font-mono font-semibold text-xs mt-0.5 hover:underline cursor-pointer"
                 >
-                  {gameState.tiktok.status === 'CONNECTED' ? (
+                  {gameState.tiktok?.status === 'CONNECTED' ? (
                     <span className="text-emerald-400 flex items-center gap-1">
-                      <Wifi className="w-3.5 h-3.5" /> @{gameState.tiktok.username} (LIVE)
+                      <Wifi className="w-3.5 h-3.5" /> @{gameState.tiktok?.username} (LIVE)
                     </span>
                   ) : (
                     <span className="text-slate-300 flex items-center gap-1">
-                      <WifiOff className="w-3.5 h-3.5 text-slate-400" /> {gameState.tiktok.status} (Configure)
+                      <WifiOff className="w-3.5 h-3.5 text-slate-400" /> {gameState.tiktok?.status || 'DISCONNECTED'} (Configure)
                     </span>
                   )}
                 </button>

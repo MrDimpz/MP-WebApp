@@ -42,11 +42,12 @@ export function SoloGameList() {
         <h1 id="solo-title">Your game, your moment.</h1>
         <p>
           Solo games to play on your own and weave into your creator content. Explore our daily
-          20×20 &amp; 8×8 crosswords, 733+ visual rebus challenges, tactile daily word grids,
-          daily word association puzzles, 3D layered word unstacking towers, the colossal
-          200×200 crossword atlas, 26-letter zero-clue crosswords, 8-connected Wikipedia word
-          grids, redacted Wikipedia article discovery, daily 10×10 word searches, twin-plate
-          spot-the-difference challenges, and UK supermarket basket price-guessing in TEKSCOdle.
+          20×20 &amp; 8×8 crosswords, alphabetical Word Hunt ladders, 733+ visual rebus challenges,
+          tactile daily word grids, daily word association puzzles, 3D layered word unstacking
+          towers, the colossal 200×200 crossword atlas, 26-letter zero-clue crosswords, 8-connected
+          Wikipedia word grids, redacted Wikipedia article discovery, daily 10×10 word searches,
+          twin-plate spot-the-difference challenges, and UK supermarket basket price-guessing in
+          TEKSCOdle.
         </p>
         <div className="mt-4">
           <a
@@ -87,7 +88,7 @@ export function SoloGameList() {
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
                   Your Google / Email login is synced across Crossword, Missing Rebus, Squared,
                   Thematix, DeStack, MP Colossal, Unolingo, WiKirecTangled, WikiContexto, MP Search,
-                  MP Difference &amp; TEKSCOdle.
+                  MP Difference, TEKSCOdle &amp; Word Hunt.
                 </p>
               </>
             ) : (
@@ -99,7 +100,7 @@ export function SoloGameList() {
                   Sign in with Google or Email &amp; Password
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                  Use a single account across all 12 solo games to record your high scores and
+                  Use a single account across all 13 solo games to record your high scores and
                   compete on the visitor leaderboards.
                 </p>
               </>
@@ -687,6 +688,49 @@ export function SoloGameList() {
             <button
               type="button"
               onClick={() => openModal('tekscodle', 'leaderboards')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
+            >
+              <Trophy size={13} />
+              <span>Leaderboard</span>
+            </button>
+          </div>
+        </article>
+
+        <article className="game-card">
+          <div className="card-top">
+            <span className="category-label">
+              <span className="status-dot" /> NOW PLAYING
+            </span>
+            <span className="card-number">13 /</span>
+          </div>
+          <Link
+            to="/solo-games/wordhunt"
+            className="game-art game-art-thumb"
+            aria-label="Open Word Hunt Solo Alphabetical Ladder Game"
+          >
+            <img
+              className="game-thumbnail"
+              src="/mpwh-website-thumbnail.svg"
+              alt="Word Hunt — Solo Alphabetical Word Ladder website thumbnail"
+              referrerPolicy="no-referrer"
+            />
+          </Link>
+          <h3>Word Hunt — Alphabetical Ladder</h3>
+          <p>
+            Narrow the A–Z dictionary bracket above and below to crack hidden 4–8 letter words in
+            Classic (1 word), Dual (2 words), and Quad (4 boards) modes. Play Daily Challenges or
+            Endless Practice across 7 languages with smart bisect hints.
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-2">
+            <Link className="game-link flex-1" to="/solo-games/wordhunt">
+              Play Word Hunt{' '}
+              <span>
+                <ArrowUpRight size={22} />
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => openModal('wordhunt', 'leaderboards')}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
             >
               <Trophy size={13} />

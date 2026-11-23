@@ -146,5 +146,6 @@ export interface MpwhOverlayState {
   guessFeed: GuessFeedItem[];
   tiktokConnected: boolean;
   tiktokUsername: string | null;
+  serverClockOffsetMs?: number;
   updatedAt: number;
 }

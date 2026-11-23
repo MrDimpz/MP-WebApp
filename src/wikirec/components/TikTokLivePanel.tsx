@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Eye, Gift, Heart, Radio, Send, Terminal, Wifi, WifiOff, AlertTriangle, X, Check } from 'lucide-react';
 import { LiveChatItem, PublicGameState, SearchWordSlot, TikTokConnectionStatus } from '../shared/types';
-import { getCurrentUserSessionPrefix } from '@/lib/unified-game-auth';
+import { getLiveConnectionSessionId } from '@/lib/unified-game-auth';
 import { triggerResilientConnect } from '@/lib/live-chat-bridge';
 import { touchActiveInteractiveStreamerSession } from '@/lib/interactive-key-auth';
 
@@ -134,11 +134,12 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
 
   // Connect to backend via Socket.IO inside useEffect
   useEffect(() => {
+    const liveSessionId = getLiveConnectionSessionId('wikirec');
     const socket = io({
       path: '/socket.io',
       transports: ['websocket', 'polling'],
       query: {
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: liveSessionId,
         gameId: 'wikirec',
       },
     });
@@ -148,7 +149,8 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
     if (authorizedStreamer?.username) {
       socket.emit('register-streamer', {
         username: authorizedStreamer.username,
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: liveSessionId,
+        gameId: 'wikirec',
       });
     }
 
@@ -233,7 +235,8 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
     if (socketRef.current && authorizedStreamer?.username) {
       socketRef.current.emit('register-streamer', {
         username: authorizedStreamer.username,
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('wikirec'),
+        gameId: 'wikirec',
       });
     }
   }, [authorizedStreamer?.username]);
@@ -251,7 +254,7 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
       {
         username: cleaned,
         key: authorizedStreamer?.key,
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('wikirec'),
         gameId: 'wikirec',
       },
       (info) => {
@@ -263,10 +266,19 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
   };
 
   const handleDisconnect = () => {
+    const liveSessionId = getLiveConnectionSessionId('wikirec');
+    fetch('/api/tiktok/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: liveSessionId,
+        gameId: 'wikirec',
+      }),
+    }).catch(() => {});
     if (!socketRef.current) return;
     socketRef.current.emit('disconnect-tiktok', {
       username: authorizedStreamer?.username || username.trim(),
-      sessionId: getCurrentUserSessionPrefix(),
+      sessionId: liveSessionId,
       gameId: 'wikirec',
     });
   };
@@ -281,6 +293,7 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
   const emitSimulatedWord = (word: string) => {
     if (!socketRef.current || !word.trim()) return;
     touchActiveInteractiveStreamerSession();
+    const liveSessionId = getLiveConnectionSessionId('wikirec');
     const viewer = getSelectedViewer();
     const payload = {
       uniqueId: viewer.uniqueId,
@@ -294,7 +307,8 @@ export const TikTokLivePanel: React.FC<TikTokLivePanelProps> = ({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: liveSessionId,
+        gameId: 'wikirec',
         type: 'chat-message',
         payload,
       }),

@@ -37,7 +37,8 @@ export type ProgressBucketId =
   | "mpsearch"
   | "mpdifference"
   | "mpcolossal"
-  | "tekscodle";
+  | "tekscodle"
+  | "wordhunt";
 
 export const VALID_PROGRESS_BUCKETS: ReadonlySet<ProgressBucketId> = new Set([
   "daily_streaks",
@@ -52,6 +53,7 @@ export const VALID_PROGRESS_BUCKETS: ReadonlySet<ProgressBucketId> = new Set([
   "mpdifference",
   "mpcolossal",
   "tekscodle",
+  "wordhunt",
 ]);
 
 export const CLOUD_HYDRATED_EVENT = "mp-cloud-progress-hydrated";
@@ -1237,6 +1239,49 @@ function mergeBucketWithLocal(
       const localHadExtra =
         !cloudPayload ||
         Number(l?.gamesPlayed || 0) > Number(r?.gamesPlayed || 0) ||
+        dailyDates.length > (Array.isArray(r?.dailyCompletedDates) ? r!.dailyCompletedDates.length : 0);
+      return { merged: { stats: merged }, shouldPushToCloud: localHadExtra };
+    }
+
+    case "wordhunt": {
+      const localKey = `wordhunt_solo_stats_v1_${userPrefix}`;
+      const l = readJsonLocal<Record<string, any>>(localKey);
+      const r = isPlainObject(cloudPayload?.stats)
+        ? (cloudPayload!.stats as Record<string, any>)
+        : null;
+      if (!l && !r) return { merged: null, shouldPushToCloud: false };
+
+      const dailyDates = Array.from(
+        new Set([
+          ...(Array.isArray(r?.dailyCompletedDates) ? r!.dailyCompletedDates : []),
+          ...(Array.isArray(l?.dailyCompletedDates) ? l!.dailyCompletedDates : []),
+        ]),
+      ).sort();
+
+      const mergeFewest = (a: unknown, b: unknown): number | null => {
+        const na = typeof a === "number" && a > 0 ? a : null;
+        const nb = typeof b === "number" && b > 0 ? b : null;
+        if (na === null) return nb;
+        if (nb === null) return na;
+        return Math.min(na, nb);
+      };
+
+      const merged = {
+        gamesPlayed: Math.max(Number(l?.gamesPlayed || 0), Number(r?.gamesPlayed || 0)),
+        gamesWon: Math.max(Number(l?.gamesWon || 0), Number(r?.gamesWon || 0)),
+        currentStreak: Math.max(Number(l?.currentStreak || 0), Number(r?.currentStreak || 0)),
+        bestStreak: Math.max(Number(l?.bestStreak || 0), Number(r?.bestStreak || 0)),
+        bestScore: Math.max(Number(l?.bestScore || 0), Number(r?.bestScore || 0)),
+        fewestClassic: mergeFewest(l?.fewestClassic, r?.fewestClassic),
+        fewestDual: mergeFewest(l?.fewestDual, r?.fewestDual),
+        fewestQuad: mergeFewest(l?.fewestQuad, r?.fewestQuad),
+        dailyCompletedDates: dailyDates,
+      };
+      writeJsonLocal(localKey, merged);
+      const localHadExtra =
+        !cloudPayload ||
+        Number(l?.gamesPlayed || 0) > Number(r?.gamesPlayed || 0) ||
+        Number(l?.bestScore || 0) > Number(r?.bestScore || 0) ||
         dailyDates.length > (Array.isArray(r?.dailyCompletedDates) ? r!.dailyCompletedDates.length : 0);
       return { merged: { stats: merged }, shouldPushToCloud: localHadExtra };
     }

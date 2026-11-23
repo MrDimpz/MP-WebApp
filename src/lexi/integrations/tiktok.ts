@@ -7,7 +7,7 @@ import {
   triggerResilientConnect,
 } from '@/lib/live-chat-bridge';
 import { getOverlayConfigFromLocation } from '@/lib/live-overlay';
-import { getCurrentUserSessionPrefix } from '@/lib/unified-game-auth';
+import { getLiveConnectionSessionId } from '@/lib/unified-game-auth';
 import { touchActiveInteractiveStreamerSession } from '@/lib/interactive-key-auth';
 import { gameEngine } from '../server/gameEngine.ts';
 import { eventManager } from '../server/eventManager.ts';
@@ -55,7 +55,7 @@ export class TikTokIntegrationService {
         reconnectionDelayMax: 15000,
         timeout: 5000,
         query: {
-          sessionId: getCurrentUserSessionPrefix(),
+          sessionId: getLiveConnectionSessionId('lexi'),
           gameId: 'lexi',
         },
       });
@@ -162,6 +162,7 @@ export class TikTokIntegrationService {
     }
 
     attachResilientChatListeners({
+      gameId: 'lexi',
       deduplicator: this.deduplicator,
       onChat: (data) => {
         touchActiveInteractiveStreamerSession();
@@ -261,12 +262,20 @@ export class TikTokIntegrationService {
     this.addLog('info', `Connecting to TikTok LIVE stream for @${cleanUsername}...`);
     eventManager.emitGameEvent('tiktok:connected', this.getState());
 
+    const liveSessionId = getLiveConnectionSessionId('lexi');
+    if (this.socket?.connected) {
+      this.socket.emit('join-session', {
+        sessionId: liveSessionId,
+        gameId: 'lexi',
+      });
+    }
+
     triggerResilientConnect(
       this.socket,
       {
         username: cleanUsername,
         gameId: 'lexi',
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: liveSessionId,
       },
       (info) => {
         this.status = 'CONNECTED';
@@ -285,18 +294,19 @@ export class TikTokIntegrationService {
   }
 
   public async disconnect(): Promise<void> {
+    const liveSessionId = getLiveConnectionSessionId('lexi');
     fetch('/api/tiktok/disconnect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: liveSessionId,
         gameId: 'lexi',
       }),
     }).catch(() => {});
     if (this.socket) {
       try {
         this.socket.emit('disconnect-tiktok', {
-          sessionId: getCurrentUserSessionPrefix(),
+          sessionId: liveSessionId,
           gameId: 'lexi',
         });
       } catch {}
@@ -318,6 +328,13 @@ export class TikTokIntegrationService {
     const cleanUsername = (this.username || gameEngine.getSettingsConfig().tiktok.username || 'streamer')
       .trim()
       .replace(/^@/, '');
+    const liveSessionId = getLiveConnectionSessionId('lexi');
+    if (this.socket?.connected) {
+      this.socket.emit('join-session', {
+        sessionId: liveSessionId,
+        gameId: 'lexi',
+      });
+    }
     this.addLog('info', `Manual reconnect requested for @${cleanUsername}...`);
     this.status = 'CONNECTED';
     this.roomId = `live-${cleanUsername}`;
@@ -328,7 +345,7 @@ export class TikTokIntegrationService {
       {
         username: cleanUsername,
         gameId: 'lexi',
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: liveSessionId,
       },
       (info) => {
         this.status = 'CONNECTED';

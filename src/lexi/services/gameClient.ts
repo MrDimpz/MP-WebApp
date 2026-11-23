@@ -53,7 +53,6 @@ function buildCompleteState(): GameFullState {
 export function useGameClient(isOverlay = false) {
   const [gameState, setGameState] = useState<GameFullState | null>(() => {
     if (isOverlay) return null;
-    gameEngine.ensureStarted();
     return buildCompleteState();
   });
   const [wsConnected, setWsConnected] = useState<boolean>(!isOverlay);
@@ -93,12 +92,35 @@ export function useGameClient(isOverlay = false) {
     soundEngine.configure(initial.settingsConfig?.audio);
     setWsConnected(true);
 
+    const clearRoundTransientUi = () => {
+      setRoundSummary(null);
+      setActiveCelebration(null);
+      setLastHighlightedIndices([]);
+      setLastWordBanner(null);
+      setSubmissionFeedback(null);
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+        highlightTimeoutRef.current = null;
+      }
+      if (celebrationTimeoutRef.current) {
+        window.clearTimeout(celebrationTimeoutRef.current);
+        celebrationTimeoutRef.current = null;
+      }
+    };
+
     const handleServerEvent = (msg: any) => {
       const { type, payload, simulated } = msg;
 
       if (type === 'state:sync') {
-        setGameState(payload);
-        soundEngine.configure(payload.settingsConfig?.audio);
+        const complete: GameFullState = {
+          ...buildCompleteState(),
+          ...(payload || {}),
+          tiktok: payload?.tiktok ?? tiktokService.getState(),
+          giftsConfig: payload?.giftsConfig ?? giftHandler.getConfig(),
+          giftHistory: payload?.giftHistory ?? giftHandler.getGiftHistory(30),
+        };
+        setGameState(complete);
+        soundEngine.configure(complete.settingsConfig?.audio);
         return;
       }
 
@@ -114,6 +136,180 @@ export function useGameClient(isOverlay = false) {
         return;
       }
 
+      // Run all side effects and secondary React state updates OUTSIDE setGameState's updater
+      switch (type) {
+        case 'round:countdown':
+          clearRoundTransientUi();
+          soundEngine.play('countdown', payload.countdownSeconds <= 1 ? 1 : 0);
+          break;
+
+        case 'board:generated':
+          setRoundSummary(null);
+          setActiveCelebration(null);
+          setLastHighlightedIndices([]);
+          setLastWordBanner(null);
+          setSubmissionFeedback(null);
+          break;
+
+        case 'board:modifier_updated':
+          if (payload.notice) {
+            setSubmissionFeedback({ type: 'success', message: payload.notice });
+          }
+          break;
+
+        case 'difficulty:adapted':
+          triggerCelebration({
+            id: `diff-${Date.now()}`,
+            type: 'milestone',
+            title: `Adaptive Difficulty: ${payload.newDifficulty.toUpperCase()}`,
+            subtitle: payload.reason,
+            badgeText: 'DYNAMIC AI PACING',
+          });
+          break;
+
+        case 'round:started':
+          clearRoundTransientUi();
+          soundEngine.play('gameStart');
+          break;
+
+        case 'round:timer':
+          if (payload.isFinalCountdown && payload.remainingSeconds <= 5 && payload.remainingSeconds > 0) {
+            soundEngine.play('countdown', payload.remainingSeconds <= 2 ? 1 : 0);
+          }
+          break;
+
+        case 'game:reset':
+          clearRoundTransientUi();
+          break;
+
+        case 'word:accepted': {
+          const entry: DiscoveredWordEntry = payload.entry;
+          setLastHighlightedIndices(entry.usedTileIndices || []);
+          setLastWordBanner({
+            word: entry.word,
+            finder: entry.foundByNickname,
+            points: entry.points,
+            isPangram: entry.isPangram,
+            comboCount: entry.comboCount,
+          });
+          if (highlightTimeoutRef.current) {
+            window.clearTimeout(highlightTimeoutRef.current);
+          }
+          highlightTimeoutRef.current = window.setTimeout(() => {
+            setLastHighlightedIndices([]);
+            setLastWordBanner(null);
+          }, 2200);
+
+          if (payload.isNewPersonalHigh || entry.isPangram) {
+            soundEngine.play('highScore');
+          } else {
+            soundEngine.play('validWord', entry.word.length - 3);
+          }
+
+          if (payload.scoreBreakdown?.milestoneTriggered) {
+            soundEngine.play('milestone');
+            triggerCelebration({
+              id: `ms-${Date.now()}`,
+              type: 'milestone',
+              title: 'Community Score Milestone!',
+              subtitle: `+${payload.scoreBreakdown.milestoneBonusPoints} Bonus Community Points Unlocked!`,
+              points: payload.scoreBreakdown.milestoneBonusPoints,
+              simulated,
+            });
+          }
+          break;
+        }
+
+        case 'word:rejected':
+          soundEngine.play('invalidWord');
+          break;
+
+        case 'hint:revealed':
+          soundEngine.play('milestone');
+          break;
+
+        case 'gift:received': {
+          const giftRec: ProcessedGiftRecord = payload;
+          soundEngine.play('giftReceived');
+          triggerCelebration(
+            {
+              id: giftRec.id,
+              type: 'gift',
+              title: `${giftRec.nickname} sent ${giftRec.giftName}${giftRec.repeatCount > 1 ? ` x${giftRec.repeatCount}` : ''}!`,
+              subtitle: giftRec.message,
+              points: giftRec.pointsAwarded,
+              badgeText: giftRec.tier.toUpperCase() + ' GIFT',
+              tier: giftRec.tier,
+              simulated: giftRec.simulated,
+            },
+            5000
+          );
+          break;
+        }
+
+        case 'like:milestone':
+          soundEngine.play('milestone');
+          triggerCelebration({
+            id: `like-ms-${Date.now()}`,
+            type: 'milestone',
+            title: `${payload.milestone} Stream Likes Reached!`,
+            subtitle: `Triggered by ${payload.triggeredBy} · +${payload.bonusPoints} Pts & +${payload.bonusTimeSeconds}s Time!`,
+            points: payload.bonusPoints,
+            simulated,
+          });
+          break;
+
+        case 'follow:received':
+          soundEngine.play('newFollower');
+          triggerCelebration({
+            id: `follow-${Date.now()}`,
+            type: 'follow',
+            title: `Welcome New Follower: ${payload.nickname}!`,
+            subtitle: `Joined the leaderboard +${payload.bonusPoints} Community Points!`,
+            points: payload.bonusPoints,
+            simulated,
+          });
+          break;
+
+        case 'share:received':
+          soundEngine.play('milestone');
+          triggerCelebration({
+            id: `share-${Date.now()}`,
+            type: 'share',
+            title: `${payload.nickname} Shared the Stream!`,
+            subtitle: `Community Celebration +${payload.bonusPoints} Points!`,
+            points: payload.bonusPoints,
+            simulated,
+          });
+          break;
+
+        case 'round:ended':
+          setRoundSummary({
+            roundNumber: payload.roundNumber,
+            reason: payload.reason,
+            roundScore: payload.roundScore,
+            targetScore: payload.targetScore,
+            targetReached: payload.targetReached,
+            discoveredWords: payload.discoveredWords,
+            missedWords: payload.missedWords,
+            totalPossibleWords: payload.totalPossibleWords,
+          });
+          recordInteractiveRoundCompleted('lexi', `round-${payload.roundNumber}`);
+          if (payload.targetReached) {
+            soundEngine.play('victory');
+          } else {
+            soundEngine.play('roundEnd');
+          }
+          break;
+
+        case 'config:updated':
+          if (payload.settingsConfig) {
+            soundEngine.configure(payload.settingsConfig.audio);
+          }
+          break;
+      }
+
+      // Pure state transition inside setGameState
       setGameState((prev) => {
         if (!prev) return buildCompleteState();
         const next = { ...prev };
@@ -123,20 +319,6 @@ export function useGameClient(isOverlay = false) {
             next.status = payload.status;
             next.roundNumber = payload.roundNumber;
             next.countdownSeconds = payload.countdownSeconds;
-            setRoundSummary(null);
-            setActiveCelebration(null);
-            setLastHighlightedIndices([]);
-            setLastWordBanner(null);
-            setSubmissionFeedback(null);
-            if (highlightTimeoutRef.current) {
-              window.clearTimeout(highlightTimeoutRef.current);
-              highlightTimeoutRef.current = null;
-            }
-            if (celebrationTimeoutRef.current) {
-              window.clearTimeout(celebrationTimeoutRef.current);
-              celebrationTimeoutRef.current = null;
-            }
-            soundEngine.play('countdown', payload.countdownSeconds <= 1 ? 1 : 0);
             break;
 
           case 'board:generated':
@@ -152,11 +334,6 @@ export function useGameClient(isOverlay = false) {
             };
             next.targetScore = payload.targetScore;
             if (payload.difficulty) next.difficulty = payload.difficulty;
-            setRoundSummary(null);
-            setActiveCelebration(null);
-            setLastHighlightedIndices([]);
-            setLastWordBanner(null);
-            setSubmissionFeedback(null);
             break;
 
           case 'board:modifier_updated':
@@ -167,9 +344,6 @@ export function useGameClient(isOverlay = false) {
               centerIndex: payload.centerIndex,
               modifiers: payload.modifiers || next.board.modifiers,
             };
-            if (payload.notice) {
-              setSubmissionFeedback({ type: 'success', message: payload.notice });
-            }
             break;
 
           case 'difficulty:adapted':
@@ -177,13 +351,6 @@ export function useGameClient(isOverlay = false) {
             if (payload.metrics) {
               next.performanceMetrics = payload.metrics;
             }
-            triggerCelebration({
-              id: `diff-${Date.now()}`,
-              type: 'milestone',
-              title: `Adaptive Difficulty: ${payload.newDifficulty.toUpperCase()}`,
-              subtitle: payload.reason,
-              badgeText: 'DYNAMIC AI PACING',
-            });
             break;
 
           case 'round:started':
@@ -201,20 +368,6 @@ export function useGameClient(isOverlay = false) {
                 wordSlots: payload.wordSlots || next.board.wordSlots,
               };
             }
-            setRoundSummary(null);
-            setActiveCelebration(null);
-            setLastHighlightedIndices([]);
-            setLastWordBanner(null);
-            setSubmissionFeedback(null);
-            if (highlightTimeoutRef.current) {
-              window.clearTimeout(highlightTimeoutRef.current);
-              highlightTimeoutRef.current = null;
-            }
-            if (celebrationTimeoutRef.current) {
-              window.clearTimeout(celebrationTimeoutRef.current);
-              celebrationTimeoutRef.current = null;
-            }
-            soundEngine.play('gameStart');
             break;
 
           case 'round:timer':
@@ -222,9 +375,6 @@ export function useGameClient(isOverlay = false) {
             next.remainingSeconds = payload.remainingSeconds;
             if (typeof payload.intermissionSeconds === 'number') {
               next.intermissionSeconds = payload.intermissionSeconds;
-            }
-            if (payload.isFinalCountdown && payload.remainingSeconds <= 5 && payload.remainingSeconds > 0) {
-              soundEngine.play('countdown', payload.remainingSeconds <= 2 ? 1 : 0);
             }
             break;
 
@@ -235,20 +385,13 @@ export function useGameClient(isOverlay = false) {
             break;
 
           case 'game:reset':
-            setRoundSummary(null);
-            setActiveCelebration(null);
-            setLastHighlightedIndices([]);
-            setLastWordBanner(null);
-            setSubmissionFeedback(null);
-            if (highlightTimeoutRef.current) {
-              window.clearTimeout(highlightTimeoutRef.current);
-              highlightTimeoutRef.current = null;
-            }
-            if (celebrationTimeoutRef.current) {
-              window.clearTimeout(celebrationTimeoutRef.current);
-              celebrationTimeoutRef.current = null;
-            }
-            return { ...prev, ...payload };
+            return {
+              ...prev,
+              ...payload,
+              tiktok: payload?.tiktok ?? prev.tiktok ?? tiktokService.getState(),
+              giftsConfig: payload?.giftsConfig ?? prev.giftsConfig ?? giftHandler.getConfig(),
+              giftHistory: payload?.giftHistory ?? prev.giftHistory ?? giftHandler.getGiftHistory(30),
+            };
 
           case 'word:accepted': {
             const entry: DiscoveredWordEntry = payload.entry;
@@ -267,46 +410,8 @@ export function useGameClient(isOverlay = false) {
             if (payload.performanceMetrics) {
               next.performanceMetrics = payload.performanceMetrics;
             }
-
-            setLastHighlightedIndices(entry.usedTileIndices || []);
-            setLastWordBanner({
-              word: entry.word,
-              finder: entry.foundByNickname,
-              points: entry.points,
-              isPangram: entry.isPangram,
-              comboCount: entry.comboCount,
-            });
-            if (highlightTimeoutRef.current) {
-              window.clearTimeout(highlightTimeoutRef.current);
-            }
-            highlightTimeoutRef.current = window.setTimeout(() => {
-              setLastHighlightedIndices([]);
-              setLastWordBanner(null);
-            }, 2200);
-
-            if (payload.isNewPersonalHigh || entry.isPangram) {
-              soundEngine.play('highScore');
-            } else {
-              soundEngine.play('validWord', entry.word.length - 3);
-            }
-
-            if (payload.scoreBreakdown?.milestoneTriggered) {
-              soundEngine.play('milestone');
-              triggerCelebration({
-                id: `ms-${Date.now()}`,
-                type: 'milestone',
-                title: 'Community Score Milestone!',
-                subtitle: `+${payload.scoreBreakdown.milestoneBonusPoints} Bonus Community Points Unlocked!`,
-                points: payload.scoreBreakdown.milestoneBonusPoints,
-                simulated,
-              });
-            }
             break;
           }
-
-          case 'word:rejected':
-            soundEngine.play('invalidWord');
-            break;
 
           case 'hint:revealed':
             next.revealedHints = payload.revealedHints || [...next.revealedHints, payload.hint];
@@ -316,7 +421,6 @@ export function useGameClient(isOverlay = false) {
                 wordSlots: payload.wordSlots,
               };
             }
-            soundEngine.play('milestone');
             break;
 
           case 'score:updated':
@@ -342,20 +446,6 @@ export function useGameClient(isOverlay = false) {
           case 'gift:received': {
             const giftRec: ProcessedGiftRecord = payload;
             next.giftHistory = [giftRec, ...(next.giftHistory || [])].slice(0, 30);
-            soundEngine.play('giftReceived');
-            triggerCelebration(
-              {
-                id: giftRec.id,
-                type: 'gift',
-                title: `${giftRec.nickname} sent ${giftRec.giftName}${giftRec.repeatCount > 1 ? ` x${giftRec.repeatCount}` : ''}!`,
-                subtitle: giftRec.message,
-                points: giftRec.pointsAwarded,
-                badgeText: giftRec.tier.toUpperCase() + ' GIFT',
-                tier: giftRec.tier,
-                simulated: giftRec.simulated,
-              },
-              5000
-            );
             break;
           }
 
@@ -364,64 +454,12 @@ export function useGameClient(isOverlay = false) {
             next.nextLikeMilestone = payload.nextMilestone;
             break;
 
-          case 'like:milestone':
-            soundEngine.play('milestone');
-            triggerCelebration({
-              id: `like-ms-${Date.now()}`,
-              type: 'milestone',
-              title: `${payload.milestone} Stream Likes Reached!`,
-              subtitle: `Triggered by ${payload.triggeredBy} · +${payload.bonusPoints} Pts & +${payload.bonusTimeSeconds}s Time!`,
-              points: payload.bonusPoints,
-              simulated,
-            });
-            break;
-
-          case 'follow:received':
-            soundEngine.play('newFollower');
-            triggerCelebration({
-              id: `follow-${Date.now()}`,
-              type: 'follow',
-              title: `Welcome New Follower: ${payload.nickname}!`,
-              subtitle: `Joined the leaderboard +${payload.bonusPoints} Community Points!`,
-              points: payload.bonusPoints,
-              simulated,
-            });
-            break;
-
-          case 'share:received':
-            soundEngine.play('milestone');
-            triggerCelebration({
-              id: `share-${Date.now()}`,
-              type: 'share',
-              title: `${payload.nickname} Shared the Stream!`,
-              subtitle: `Community Celebration +${payload.bonusPoints} Points!`,
-              points: payload.bonusPoints,
-              simulated,
-            });
-            break;
-
           case 'round:ended':
             next.status = payload.status;
             next.remainingSeconds = 0;
             next.leaderboards = payload.leaderboards || next.leaderboards;
             if (payload.difficulty) next.difficulty = payload.difficulty;
             if (payload.performanceMetrics) next.performanceMetrics = payload.performanceMetrics;
-            setRoundSummary({
-              roundNumber: payload.roundNumber,
-              reason: payload.reason,
-              roundScore: payload.roundScore,
-              targetScore: payload.targetScore,
-              targetReached: payload.targetReached,
-              discoveredWords: payload.discoveredWords,
-              missedWords: payload.missedWords,
-              totalPossibleWords: payload.totalPossibleWords,
-            });
-            recordInteractiveRoundCompleted('lexi', `round-${payload.roundNumber}`);
-            if (payload.targetReached) {
-              soundEngine.play('victory');
-            } else {
-              soundEngine.play('roundEnd');
-            }
             break;
 
           case 'tiktok:connected':
@@ -443,7 +481,6 @@ export function useGameClient(isOverlay = false) {
             if (payload.scoringConfig) next.scoringConfig = payload.scoringConfig;
             if (payload.settingsConfig) {
               next.settingsConfig = payload.settingsConfig;
-              soundEngine.configure(payload.settingsConfig.audio);
             }
             if (payload.giftsConfig) next.giftsConfig = payload.giftsConfig;
             break;
@@ -460,7 +497,7 @@ export function useGameClient(isOverlay = false) {
       if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
       if (celebrationTimeoutRef.current) window.clearTimeout(celebrationTimeoutRef.current);
     };
-  }, [triggerCelebration]);
+  }, [triggerCelebration, isOverlay]);
 
   const sendControlAction = async (action: string) => {
     switch (action) {

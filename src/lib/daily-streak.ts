@@ -20,6 +20,7 @@ export type DailyStreakGameId =
   | 'lexi'
   | 'crowdle'
   | 'tekscodle'
+  | 'wordhunt'
   | 'inkstream'
   | 'mpwh';
 

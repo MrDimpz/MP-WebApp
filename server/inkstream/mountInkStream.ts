@@ -129,6 +129,7 @@ export function mountInkStream(
   inkstreamIo.use((socket, next) => {
     const auth = socket.handshake.auth as {
       token?: string;
+      liveSessionId?: string;
       streamerRoomId?: string;
       streamerSecret?: string;
     };
@@ -156,6 +157,8 @@ export function mountInkStream(
       return;
     }
     socket.data.session = session;
+    socket.data.liveSessionId =
+      typeof auth?.liveSessionId === 'string' ? auth.liveSessionId.trim().slice(0, 120) : undefined;
     next();
   });
 
@@ -179,13 +182,16 @@ export function mountInkStream(
       return fresh?.user ?? (socket.data.session as ActiveSession).user;
     };
 
+    const liveSessionId =
+      typeof socket.data.liveSessionId === 'string' ? socket.data.liveSessionId : undefined;
+
     socket.on(
       'room:create',
       (
         settings: Partial<RoomSettings> | undefined,
         ack?: (res: { ok: boolean; roomId?: string; error?: string }) => void
       ) => {
-        const room = gameManager.createRoom(getUser(), socket.id, settings);
+        const room = gameManager.createRoom(getUser(), socket.id, settings, liveSessionId);
         ack?.({ ok: true, roomId: room.id });
       }
     );
@@ -201,7 +207,7 @@ export function mountInkStream(
         const isAckFirst = typeof payloadOrAck === 'function';
         const ack = isAckFirst ? payloadOrAck : maybeAck;
         const language = !isAckFirst ? payloadOrAck?.language : undefined;
-        const room = gameManager.joinOrQuickPlay(getUser(), socket.id, language);
+        const room = gameManager.joinOrQuickPlay(getUser(), socket.id, language, liveSessionId);
         ack?.({ ok: true, roomId: room.id });
       }
     );

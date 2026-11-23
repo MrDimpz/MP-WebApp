@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import { getCurrentUserSessionPrefix } from "./unified-game-auth";
+import { getLiveConnectionSessionId } from "./unified-game-auth";
 import { touchActiveInteractiveStreamerSession } from "./interactive-key-auth";
 
 export interface LiveChatCommentEvent {
@@ -162,10 +162,14 @@ export function triggerResilientConnect(
   const clean = String(options.username || "")
     .trim()
     .replace(/^@+/, "");
-  const sessionId = options.sessionId || getCurrentUserSessionPrefix();
   const gameId = options.gameId;
+  const sessionId = options.sessionId || getLiveConnectionSessionId();
   const isTestMode = Boolean(options.isTestMode);
   if (!clean) return;
+
+  if (gameId) {
+    liveChatBridge.setActiveGame(gameId);
+  }
 
   if (socket) {
     socket.emit("connect-tiktok", {
@@ -220,12 +224,16 @@ export function emitResilientEvent(
   type: "chat-message" | "like-event" | "gift-event",
   payload: Record<string, unknown>,
 ) {
-  const sessionId = getCurrentUserSessionPrefix();
+  const gameId = typeof payload?.gameId === "string" ? payload.gameId : undefined;
+  const sessionId =
+    typeof payload?.sessionId === "string" && payload.sessionId.trim()
+      ? payload.sessionId.trim()
+      : getLiveConnectionSessionId();
   if (typeof window !== "undefined") {
     fetch("/api/tiktok/simulate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId, type, payload }),
+      body: JSON.stringify({ sessionId, gameId, type, payload }),
     }).catch(() => {
       if (socket) {
         socket.emit(type, payload);
@@ -237,12 +245,16 @@ export function emitResilientEvent(
 }
 
 export function attachResilientChatListeners(params: {
+  gameId?: string;
   onChat?: (data: any) => void;
   onLike?: (data: any) => void;
   onGift?: (data: any) => void;
   onStatus?: (status: LiveStatusEvent) => void;
   deduplicator?: EventDeduplicator;
 }): () => void {
+  if (params.gameId) {
+    liveChatBridge.setActiveGame(params.gameId);
+  }
   const dedup = params.deduplicator || createEventDeduplicator();
   const unsubs: Array<() => void> = [];
 
@@ -277,7 +289,9 @@ export function attachResilientChatListeners(params: {
   if (params.onStatus) {
     unsubs.push(
       liveChatBridge.onStatus((status) => {
-        params.onStatus?.(status);
+        if (!params.gameId || !status.gameId || status.gameId === params.gameId) {
+          params.onStatus?.(status);
+        }
       }),
     );
   }
@@ -307,6 +321,7 @@ class LiveChatBridge {
   private currentStatus: LiveStatusEvent = { connected: false };
   private initialized = false;
   private sessionId = "isolated_default";
+  private activeGameId: string | undefined = undefined;
 
   private isOverlayRoute(): boolean {
     if (typeof window === "undefined") return false;
@@ -319,22 +334,39 @@ class LiveChatBridge {
     );
   }
 
-  private getSessionId(): string {
-    const nextId = getCurrentUserSessionPrefix();
+  public getSessionId(): string {
+    const nextId = getLiveConnectionSessionId();
     if (nextId !== this.sessionId) {
       this.sessionId = nextId;
-      if (this.socket && this.socket.connected) {
-        this.socket.emit("join-session", this.sessionId);
-      }
+      this.syncSocketMembership();
     }
     return this.sessionId;
+  }
+
+  public setActiveGame(gameId?: string): void {
+    const clean = gameId ? String(gameId).trim().toLowerCase() : undefined;
+    if (clean === this.activeGameId) return;
+    this.activeGameId = clean;
+    this.lastSeq = 0;
+    this.seenSeqs.clear();
+    this.currentStatus = { connected: false, gameId: clean };
+    this.syncSocketMembership();
+  }
+
+  private syncSocketMembership(): void {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit("join-session", {
+        sessionId: this.sessionId,
+        gameId: this.activeGameId,
+      });
+    }
   }
 
   public init() {
     if (this.initialized || typeof window === "undefined") return;
     if (this.isOverlayRoute()) return;
     this.initialized = true;
-    this.sessionId = getCurrentUserSessionPrefix();
+    this.sessionId = getLiveConnectionSessionId();
 
     try {
       this.socket = io(window.location.origin, {
@@ -346,14 +378,19 @@ class LiveChatBridge {
         randomizationFactor: 0.5,
         query: {
           sessionId: this.sessionId,
+          ...(this.activeGameId ? { gameId: this.activeGameId } : {}),
         },
       });
 
       this.socket.on("connect", () => {
-        this.socket?.emit("join-session", this.getSessionId());
+        this.getSessionId();
+        this.syncSocketMembership();
       });
 
       this.socket.on("tiktok-status", (status: LiveStatusEvent) => {
+        if (this.activeGameId && status?.gameId && status.gameId !== this.activeGameId) {
+          return;
+        }
         this.updateStatus(status);
       });
 
@@ -423,8 +460,11 @@ class LiveChatBridge {
     this.lastPollAt = now;
     try {
       const sid = encodeURIComponent(this.getSessionId());
+      const gidParam = this.activeGameId
+        ? `&gameId=${encodeURIComponent(this.activeGameId)}`
+        : "";
       const res = await fetch(
-        `/api/tiktok/events?sessionId=${sid}&since=${this.lastSeq}`,
+        `/api/tiktok/events?sessionId=${sid}${gidParam}&since=${this.lastSeq}`,
       );
       if (!res.ok) {
         if (
@@ -461,6 +501,7 @@ class LiveChatBridge {
           connected: data.connected,
           username: data.username,
           roomId: data.roomId,
+          gameId: this.activeGameId,
         });
       }
 
@@ -507,6 +548,9 @@ class LiveChatBridge {
     },
   ): Promise<LiveStatusEvent> {
     this.init();
+    if (gameId) {
+      this.setActiveGame(gameId);
+    }
     const clean = username.trim().replace(/^@+/, "");
     if (!clean) {
       const errStatus = { connected: false, error: "Enter a TikTok @username" };
@@ -515,6 +559,12 @@ class LiveChatBridge {
     }
 
     const sessionId = extraOptions?.sessionId || this.getSessionId();
+    if (this.socket && this.socket.connected) {
+      this.socket.emit("join-session", {
+        sessionId,
+        gameId: gameId || this.activeGameId,
+      });
+    }
 
     try {
       const res = await fetch("/api/tiktok/connect", {
@@ -549,19 +599,22 @@ class LiveChatBridge {
     return fallbackStatus;
   }
 
-  public async disconnectStream(gameId?: string): Promise<void> {
+  public async disconnectStream(gameId?: string, explicitSessionId?: string): Promise<void> {
     this.init();
-    const sessionId = this.getSessionId();
+    const sessionId = explicitSessionId || this.getSessionId();
     try {
       await fetch("/api/tiktok/disconnect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, gameId }),
+        body: JSON.stringify({ sessionId, gameId: gameId || this.activeGameId }),
       });
     } catch {
-      this.socket?.emit("disconnect-tiktok", { sessionId, gameId });
+      this.socket?.emit("disconnect-tiktok", {
+        sessionId,
+        gameId: gameId || this.activeGameId,
+      });
     }
-    this.updateStatus({ connected: false });
+    this.updateStatus({ connected: false, gameId: gameId || this.activeGameId });
   }
 
   public onStatus(cb: Listener<LiveStatusEvent>): () => void {

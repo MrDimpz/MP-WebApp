@@ -18,6 +18,9 @@ interface TikTokConnectModalProps {
   isOpen: boolean;
   status: TikTokStatus;
   defaultHandle?: string;
+  roomId?: string;
+  streamerHandle?: string;
+  sessionId?: string;
   onConnect: (username: string, isTestMode: boolean) => Promise<{ ok: boolean; error?: string }>;
   onDisconnect: () => void;
   onSendTestChat: (nickname: string, text: string) => void;
@@ -28,6 +31,9 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
   isOpen,
   status,
   defaultHandle,
+  roomId,
+  streamerHandle,
+  sessionId,
   onConnect,
   onDisconnect,
   onSendTestChat,
@@ -45,8 +51,16 @@ export const TikTokConnectModal: React.FC<TikTokConnectModalProps> = ({
 
   const siteOrigin =
     typeof window !== 'undefined' ? window.location.origin : 'https://missingpiecepuzzles.fun';
-  const tikfinityUrl = `${siteOrigin}/api/tikfinity/event`;
-  const bettertokUrl = `${siteOrigin}/api/bettertok/event`;
+  const webhookParams = new URLSearchParams({ gameId: 'inkstream' });
+  if (roomId) webhookParams.set('roomId', roomId);
+  if (sessionId) webhookParams.set('sessionId', sessionId);
+  const cleanHookStreamer = (status.username || streamerHandle || defaultHandle || '')
+    .trim()
+    .replace(/^@+/, '');
+  if (cleanHookStreamer) webhookParams.set('streamer', cleanHookStreamer);
+  const webhookQuery = webhookParams.toString();
+  const tikfinityUrl = `${siteOrigin}/api/tikfinity/event?${webhookQuery}`;
+  const bettertokUrl = `${siteOrigin}/api/bettertok/event?${webhookQuery}`;
 
   const handleCopyWebhook = async (url: string, label: string) => {
     try {

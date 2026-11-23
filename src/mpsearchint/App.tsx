@@ -38,6 +38,7 @@ import {
 import {
   creditInteractiveScoreByTikTokHandle,
   getCleanDisplayName,
+  getLiveConnectionSessionId,
   saveUnifiedLeaderboardScore,
   useUnifiedAuth,
 } from '@/lib/unified-game-auth';
@@ -666,6 +667,10 @@ export default function MPSearchInteractiveApp() {
       reconnectionAttempts: 12,
       reconnectionDelay: 2000,
       reconnectionDelayMax: 15000,
+      query: {
+        sessionId: getLiveConnectionSessionId('mpsearchint'),
+        gameId: 'mpsearchint',
+      },
     });
     socketRef.current = newSocket;
 
@@ -777,6 +782,7 @@ export default function MPSearchInteractiveApp() {
     };
 
     const detachChat = attachResilientChatListeners({
+      gameId: 'mpsearchint',
       onChat: handleIncomingChat,
       onStatus: (status) => {
         if (status.connected) {
@@ -798,13 +804,39 @@ export default function MPSearchInteractiveApp() {
     if (!socketRef.current || !tiktokUsername.trim()) return;
     setConnectionError(null);
     const clean = tiktokUsername.trim().replace(/^@/, '');
-    triggerResilientConnect(socketRef.current, { username: clean, gameId: 'mpsearchint' });
+    triggerResilientConnect(socketRef.current, {
+      username: clean,
+      gameId: 'mpsearchint',
+      sessionId: getLiveConnectionSessionId('mpsearchint'),
+    });
   };
 
   const handleForceReconnect = () => {
     if (!socketRef.current || !tiktokUsername.trim()) return;
     const clean = tiktokUsername.trim().replace(/^@/, '');
-    forceReconnectBridge(socketRef.current, { username: clean, gameId: 'mpsearchint' });
+    forceReconnectBridge(socketRef.current, {
+      username: clean,
+      gameId: 'mpsearchint',
+      sessionId: getLiveConnectionSessionId('mpsearchint'),
+    });
+  };
+
+  const handleDisconnectTikTok = () => {
+    const liveSessionId = getLiveConnectionSessionId('mpsearchint');
+    fetch('/api/tiktok/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: liveSessionId,
+        gameId: 'mpsearchint',
+      }),
+    }).catch(() => {});
+    socketRef.current?.emit('disconnect-tiktok', {
+      sessionId: liveSessionId,
+      gameId: 'mpsearchint',
+    });
+    setIsConnected(false);
+    setConnectionError(null);
   };
 
   // Submit word from Host / Simulator Chat Input
@@ -1985,14 +2017,23 @@ export default function MPSearchInteractiveApp() {
 
                 <div className="flex items-center justify-end gap-2">
                   {isConnected && (
-                    <button
-                      type="button"
-                      onClick={handleForceReconnect}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-800 text-purple-100 text-xs font-bold"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      Reconnect
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleDisconnectTikTok}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-950/80 border border-rose-500/40 text-rose-200 text-xs font-bold cursor-pointer"
+                      >
+                        Disconnect
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleForceReconnect}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-800 text-purple-100 text-xs font-bold cursor-pointer"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Reconnect
+                      </button>
+                    </>
                   )}
                   <button
                     type="submit"

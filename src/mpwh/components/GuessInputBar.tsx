@@ -13,6 +13,10 @@ interface GuessInputBarProps {
     roundNumber: number;
     onViewWinners: () => void;
   } | null;
+  placeholder?: string;
+  disabledPlaceholder?: string;
+  helperText?: string;
+  disabledHelperText?: string;
 }
 
 export function GuessInputBar({
@@ -23,6 +27,10 @@ export function GuessInputBar({
   onSubmitGuess,
   feedback,
   winNotice,
+  placeholder = 'Type any dictionary word (any length) or let chat guess...',
+  disabledPlaceholder = 'Press Start Game to begin guessing...',
+  helperText = 'Viewers in chat can type any dictionary word or !guess <word>.',
+  disabledHelperText = 'Start a round or connect TikTok LIVE chat to play.',
 }: GuessInputBarProps) {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -76,11 +84,7 @@ export function GuessInputBar({
           value={value}
           disabled={disabled}
           onChange={(e) => setValue(e.target.value)}
-          placeholder={
-            disabled
-              ? 'Press Start Game to begin guessing...'
-              : 'Type any dictionary word (any length) or let chat guess...'
-          }
+          placeholder={disabled ? disabledPlaceholder : placeholder}
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
@@ -128,9 +132,7 @@ export function GuessInputBar({
           </div>
         ) : (
           <span className="text-[11px] text-[#9F84C2] truncate">
-            {disabled
-              ? 'Start a round or connect TikTok LIVE chat to play.'
-              : 'Viewers in chat can type any dictionary word or !guess <word>.'}
+            {disabled ? disabledHelperText : helperText}
           </span>
         )}
       </div>

@@ -14,7 +14,6 @@ import { AdminAuthModal } from './components/AdminAuthModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { StreamerLoginModal } from './components/StreamerLoginModal';
 import { sfx } from './utils/sfx';
-import { getOrInitTabSessionId } from './utils/session';
 import { Link } from 'react-router';
 import { createNewGameInstance, WiKirecGame } from './server/game';
 import {
@@ -41,6 +40,7 @@ import {
 import {
   creditInteractiveScoreByTikTokHandle,
   getCurrentUserSessionPrefix,
+  getLiveConnectionSessionId,
   saveUnifiedLeaderboardScore,
   getUserProfileAvatarUrl,
 } from '../lib/unified-game-auth';
@@ -351,14 +351,14 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
       localStorage.removeItem('wkt_streamer_auth');
     } catch {}
 
+    const liveSessionId = getLiveConnectionSessionId('wikirec');
     if (currentStreamer?.username) {
-      const tabSessionId = getCurrentUserSessionPrefix();
       fetch('/api/auth/streamer-logout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: currentStreamer.username,
-          sessionId: tabSessionId,
+          sessionId: liveSessionId,
         }),
       }).catch(() => {});
     }
@@ -366,7 +366,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
     if (socketRef.current) {
       socketRef.current.emit('disconnect-tiktok', {
         username: currentStreamer?.username || null,
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: liveSessionId,
         gameId: 'wikirec',
       });
     }
@@ -397,7 +397,8 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
       if (socketRef.current) {
         socketRef.current.emit('register-streamer', {
           username: auth.username,
-          sessionId: getCurrentUserSessionPrefix(),
+          sessionId: getLiveConnectionSessionId('wikirec'),
+          gameId: 'wikirec',
         });
       }
     },
@@ -451,7 +452,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
         isTestMode,
         provider: inlineChatProvider,
         key: authorizedStreamer?.key,
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('wikirec'),
         gameId: 'wikirec',
       },
       ({ username: uname }) => {
@@ -485,7 +486,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
         isTestMode: false,
         provider: inlineChatProvider,
         key: authorizedStreamer?.key,
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('wikirec'),
         gameId: 'wikirec',
       },
       ({ username: uname }) => {
@@ -501,6 +502,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
   };
 
   const handleInlineDisconnect = () => {
+    const liveSessionId = getLiveConnectionSessionId('wikirec');
     setInlineConnecting(false);
     setTiktokStatus((prev) => ({
       ...prev,
@@ -511,14 +513,14 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: liveSessionId,
         gameId: 'wikirec',
       }),
     }).catch(() => {});
     if (!socketRef.current) return;
     socketRef.current.emit('disconnect-tiktok', {
       username: authorizedStreamer?.username || inlineLiveHandle.trim().replace(/^@+/, ''),
-      sessionId: getCurrentUserSessionPrefix(),
+      sessionId: liveSessionId,
       gameId: 'wikirec',
     });
   };
@@ -528,7 +530,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
     const handleBeforeUnload = () => {
       const current = authorizedStreamerRef.current;
       if (current?.username) {
-        const tabSessionId = getCurrentUserSessionPrefix();
+        const tabSessionId = getLiveConnectionSessionId('wikirec');
         const payload = JSON.stringify({
           username: current.username,
           sessionId: tabSessionId,
@@ -589,7 +591,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
     }, 5000);
 
     const heartbeat = setInterval(() => {
-      const tabSessionId = getCurrentUserSessionPrefix();
+      const tabSessionId = getLiveConnectionSessionId('wikirec');
       fetch('/api/auth/streamer-activity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -644,7 +646,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
       reconnectionAttempts: 10,
       timeout: 5000,
       query: {
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('wikirec'),
         gameId: 'wikirec',
       },
     });
@@ -654,7 +656,8 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
     if (authorizedStreamerRef.current?.username) {
       socket.emit('register-streamer', {
         username: authorizedStreamerRef.current.username,
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('wikirec'),
+        gameId: 'wikirec',
       });
     }
 
@@ -940,6 +943,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
     });
 
     const detachBridge = attachResilientChatListeners({
+      gameId: 'wikirec',
       onChat: processChatEvent,
       onLike: processLikeEvent,
       onGift: processGiftEvent,

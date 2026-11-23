@@ -59,6 +59,7 @@ export type SoloGameId =
   | "mpdifference"
   | "mpcolossal"
   | "tekscodle"
+  | "wordhunt"
   | "cruciverbalist"
   | "crossword";
 
@@ -138,6 +139,10 @@ export const SOLO_GAME_LABELS: Record<
   tekscodle: {
     title: "TEKSCOdle",
     metric: "Supermarket Basket Score",
+  },
+  wordhunt: {
+    title: "Word Hunt",
+    metric: "Alphabetical Ladder Score",
   },
   cruciverbalist: {
     title: "Cruciverbalist Crossword",
@@ -450,6 +455,48 @@ export function getCurrentUserSessionPrefix(): string {
   } catch {
     return "guest_default";
   }
+}
+
+let memoryTabInstanceId = "";
+
+/**
+ * Returns a stable per-browser-tab unique identifier (persisted in sessionStorage so
+ * reloads in the same tab reconnect seamlessly while separate tabs/windows remain isolated).
+ */
+export function getBrowserTabInstanceId(): string {
+  if (typeof window === "undefined") return "server_tab";
+  try {
+    let tabInstance = window.sessionStorage.getItem(BROWSER_INSTANCE_ID_KEY);
+    if (!tabInstance) {
+      tabInstance = `inst_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+      window.sessionStorage.setItem(BROWSER_INSTANCE_ID_KEY, tabInstance);
+    }
+    memoryTabInstanceId = tabInstance;
+    return tabInstance;
+  } catch {
+    if (!memoryTabInstanceId) {
+      memoryTabInstanceId = `inst_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+    }
+    return memoryTabInstanceId;
+  }
+}
+
+/**
+ * Returns a globally unique live connection session ID scoped to BOTH the current
+ * user/streamer identity AND the current browser tab/window instance.
+ * Two streamers, or the same streamer open in two tabs/computers, will never collide.
+ */
+export function getLiveConnectionSessionId(gameId?: string): string {
+  if (typeof window === "undefined") return gameId ? `server__${gameId}` : "server";
+  const basePrefix = getCurrentUserSessionPrefix();
+  const tabId = getBrowserTabInstanceId();
+  const baseWithTab =
+    basePrefix === tabId ? tabId : `${basePrefix}__${tabId}`;
+  const cleanGame = String(gameId || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "");
+  return cleanGame ? `${baseWithTab}__${cleanGame}` : baseWithTab;
 }
 
 function getStoredAccounts(): StoredSiteAccount[] {
@@ -2282,6 +2329,7 @@ export function subscribeToAllLeaderboards(
       mpdifference: [],
       mpcolossal: [],
       tekscodle: [],
+      wordhunt: [],
       cruciverbalist: [],
       crossword: [],
     };

@@ -50,7 +50,7 @@ import {
   getCleanDisplayName,
   saveUnifiedLeaderboardScore,
   creditInteractiveScoreByTikTokHandle,
-  getCurrentUserSessionPrefix,
+  getLiveConnectionSessionId,
 } from '@/lib/unified-game-auth';
 import {
   getActiveInteractiveStreamerSession,
@@ -644,7 +644,7 @@ export default function CrowdleApp() {
       reconnection: true,
       reconnectionAttempts: 10,
       query: {
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('crowdle'),
         gameId: 'crowdle',
       },
     });
@@ -709,6 +709,7 @@ export default function CrowdleApp() {
     });
 
     const detachChat = attachResilientChatListeners({
+      gameId: 'crowdle',
       onChat: handleChatPayload,
       deduplicator,
     });
@@ -736,7 +737,7 @@ export default function CrowdleApp() {
         username: clean,
         isTestMode: false,
         gameId: 'crowdle',
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('crowdle'),
       },
       ({ username: uname }) => {
         setIsConnected(true);
@@ -747,11 +748,21 @@ export default function CrowdleApp() {
   };
 
   const handleDisconnectTikTok = () => {
-    if (!socketRef.current) return;
-    socketRef.current.emit('disconnect-tiktok', {
-      gameId: 'crowdle',
-      sessionId: getCurrentUserSessionPrefix(),
-    });
+    const liveSessionId = getLiveConnectionSessionId('crowdle');
+    fetch('/api/tiktok/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: liveSessionId,
+        gameId: 'crowdle',
+      }),
+    }).catch(() => {});
+    if (socketRef.current) {
+      socketRef.current.emit('disconnect-tiktok', {
+        gameId: 'crowdle',
+        sessionId: liveSessionId,
+      });
+    }
     setIsConnected(false);
     setIsConnecting(false);
   };
@@ -1723,7 +1734,7 @@ export default function CrowdleApp() {
                         forceReconnectBridge(socketRef.current, {
                           username: tiktokUsername,
                           gameId: 'crowdle',
-                          sessionId: getCurrentUserSessionPrefix(),
+                          sessionId: getLiveConnectionSessionId('crowdle'),
                         });
                       }
                     }}

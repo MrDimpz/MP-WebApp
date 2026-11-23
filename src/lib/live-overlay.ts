@@ -1136,16 +1136,22 @@ export function useOverlaySync<T>({
     const packetMatchesOverlayScope = (packet: OverlaySyncPacket<T>) => {
       const pktChannel = sanitizeChannelToken(packet.channel);
       const pktStreamer = sanitizeStreamerHandle(packet.streamer);
-      if (cleanStreamer && pktStreamer && pktStreamer === cleanStreamer) {
-        return true;
-      }
       if (resolvedChannel && pktChannel && pktChannel !== resolvedChannel) {
+        return false;
+      }
+      if (resolvedChannel && !pktChannel && cleanStreamer && pktStreamer && pktStreamer !== cleanStreamer) {
         return false;
       }
       if (!resolvedChannel && cleanStreamer && pktStreamer && pktStreamer !== cleanStreamer) {
         return false;
       }
-      return true;
+      if (resolvedChannel && pktChannel && pktChannel === resolvedChannel) {
+        return true;
+      }
+      if (cleanStreamer && pktStreamer && pktStreamer === cleanStreamer) {
+        return true;
+      }
+      return !resolvedChannel && !cleanStreamer && !pktChannel && !pktStreamer;
     };
 
     const acceptRemotePacket = (

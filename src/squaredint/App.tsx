@@ -63,6 +63,7 @@ import { io, Socket } from 'socket.io-client';
 import {
   creditInteractiveScoreByTikTokHandle,
   getCurrentUserSessionPrefix,
+  getLiveConnectionSessionId,
 } from '../lib/unified-game-auth';
 import {
   getActiveInteractiveStreamerSession,
@@ -748,7 +749,7 @@ export default function App() {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
       query: {
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('squaredint'),
         gameId: 'squaredint',
       },
     });
@@ -801,6 +802,7 @@ export default function App() {
     });
 
     const detachBridge = attachResilientChatListeners({
+      gameId: 'squaredint',
       onChat: (data) => {
         handleIncomingChatMessage(data);
       },
@@ -846,7 +848,7 @@ export default function App() {
           username: clean,
           isTestMode: Boolean(isTestMode),
           gameId: 'squaredint',
-          sessionId: getCurrentUserSessionPrefix(),
+          sessionId: getLiveConnectionSessionId('squaredint'),
         },
         ({ username: uname, roomId: rId }) => {
           setIsLiveConnected(true);
@@ -891,7 +893,7 @@ export default function App() {
           username: clean,
           isTestMode: Boolean(isTestMode),
           gameId: 'squaredint',
-          sessionId: getCurrentUserSessionPrefix(),
+          sessionId: getLiveConnectionSessionId('squaredint'),
         },
         ({ username: uname, roomId: rId }) => {
           setIsLiveConnected(true);
@@ -909,17 +911,18 @@ export default function App() {
   );
 
   const handleDisconnectTikTok = useCallback(() => {
+    const liveSessionId = getLiveConnectionSessionId('squaredint');
     fetch('/api/tiktok/disconnect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: liveSessionId,
         gameId: 'squaredint',
       }),
     }).catch(() => {});
     socket?.emit('disconnect-tiktok', {
       gameId: 'squaredint',
-      sessionId: getCurrentUserSessionPrefix(),
+      sessionId: liveSessionId,
     });
     setIsLiveConnected(false);
     setRoomId('');
@@ -936,11 +939,16 @@ export default function App() {
   const handleSimulateChat = useCallback(
     (data: { uniqueId: string; nickname: string; comment: string; profilePictureUrl: string }) => {
       touchActiveInteractiveStreamerSession();
+      const liveSessionId = getLiveConnectionSessionId('squaredint');
       // Instantly evaluate locally so test guesses always show immediately
       void handleIncomingChatMessage(data);
       // Emit to server so it relays to other observers
-      socket?.emit('chat-message', { ...data, gameId: 'squaredint' });
-      emitResilientEvent(socket, 'chat-message', { ...data, gameId: 'squaredint' });
+      socket?.emit('chat-message', { ...data, gameId: 'squaredint', sessionId: liveSessionId });
+      emitResilientEvent(socket, 'chat-message', {
+        ...data,
+        gameId: 'squaredint',
+        sessionId: liveSessionId,
+      });
     },
     [socket, handleIncomingChatMessage]
   );

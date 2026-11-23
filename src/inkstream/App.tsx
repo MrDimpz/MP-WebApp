@@ -55,6 +55,7 @@ import {
 import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
 import {
   creditInteractiveScoreByTikTokHandle,
+  getLiveConnectionSessionId,
   useUnifiedAuth,
 } from '@/lib/unified-game-auth';
 import {
@@ -169,6 +170,10 @@ function InkStreamApp() {
   const autoSignedInRef = useRef(false);
   const prevTikTokScoresRef = useRef<Map<string, number>>(new Map());
   const chatDedupRef = useRef(createEventDeduplicator());
+  const liveSessionId = useMemo(
+    () => getLiveConnectionSessionId('inkstream'),
+    [activeStreamer?.username, siteUser?.uid]
+  );
 
   const clearCloseGuessNotice = useCallback(() => {
     if (closeGuessTimerRef.current) {
@@ -309,9 +314,10 @@ function InkStreamApp() {
     }
   }, [room?.tiktokLeaderboard]);
 
-  // Bridge site-wide TikFinity / BetterTok liveChatBridge messages into active InkStream room
+  // Bridge TikFinity / BetterTok liveChatBridge messages scoped to this tab & InkStream room
   useEffect(() => {
     if (!room || !user || room.ownerId !== user.id) return;
+    liveChatBridge.setActiveGame('inkstream');
     const unsub = liveChatBridge.onChat((evt) => {
       if (!chatDedupRef.current.shouldProcess('chat', evt)) return;
       if (!evt.comment?.trim()) return;
@@ -379,7 +385,7 @@ function InkStreamApp() {
 
     const socket = io('/inkstream', {
       path: '/socket.io',
-      auth: { token },
+      auth: { token, liveSessionId },
       transports: ['websocket', 'polling'],
       reconnection: true,
     });
@@ -1231,6 +1237,9 @@ function InkStreamApp() {
           isOpen={showTikTokModal}
           status={room.tiktokStatus}
           defaultHandle={user.tiktokHandle || activeStreamer?.username}
+          roomId={room.id}
+          streamerHandle={resolvedOverlayStreamer || undefined}
+          sessionId={liveSessionId}
           onConnect={handleConnectTikTok}
           onDisconnect={handleDisconnectTikTok}
           onSendTestChat={handleSendTikTokTestChat}

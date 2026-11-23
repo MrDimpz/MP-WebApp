@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CheckCircle2, Clock, RotateCcw } from 'lucide-react';
 import type { GuessFeedItem } from '../shared/types';
 
@@ -12,6 +12,8 @@ const TRACK_HEIGHT_PX = 128; // h-32 (128px) -> 144px total bar height (triple o
 const CHIP_HEIGHT_PX = 28; // h-7
 const MIN_TOP_OFFSET_PX = 4;
 const MAX_TOP_OFFSET_PX = TRACK_HEIGHT_PX - CHIP_HEIGHT_PX - 4; // 96px
+const CHIP_GAP_PX = 12;
+const SPEED_PX_PER_SEC = 54;
 
 /**
  * Deterministic 32-bit FNV-1a + avalanche hash of the guess ID so each entry
@@ -77,24 +79,14 @@ function PlayerAvatar({ item }: { item: GuessFeedItem }) {
   );
 }
 
-function GuessChip({
-  item,
-  isNewest = false,
-}: {
-  item: GuessFeedItem;
-  isNewest?: boolean;
-}) {
+function GuessChipContent({ item }: { item: GuessFeedItem }) {
   const isDuplicate = item.alreadyGuessed || item.status === 'duplicate';
   const isSolved = item.status === 'solved';
   const isBuffer = item.status === 'buffer';
-  const topOffsetPx = getRandomTopOffset(item.id);
 
   return (
     <div
-      style={{ marginTop: `${topOffsetPx}px` }}
-      className={`h-7 px-2.5 rounded-lg border inline-flex items-center gap-1.5 shrink-0 transition-colors ${
-        isNewest ? 'animate-pop' : ''
-      } ${
+      className={`h-7 px-2.5 rounded-lg border inline-flex items-center gap-1.5 shrink-0 select-none ${
         isDuplicate
           ? 'border-amber-400/50 bg-amber-950/40'
           : isSolved
@@ -147,85 +139,149 @@ function GuessChip({
 }
 
 /**
- * Triple-height horizontal sideways-scrolling player guess ticker showing player
- * pictures, names, guessed words, and duplicate/solve badges entering at random heights.
+ * Triple-height horizontal conveyor marquee: new guesses smoothly enter from the
+ * right edge at random vertical heights and glide leftward without shifting or jumping
+ * existing guesses already on screen.
  */
 export function GuessMarquee({ items, embedded = false }: GuessMarqueeProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const singleTrackRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
-  const lastTopIdRef = useRef<string | null>(null);
-  const [isOverflowing, setIsOverflowing] = useState(false);
 
-  const measureOverflow = useCallback(() => {
-    const viewport = viewportRef.current;
-    const track = singleTrackRef.current;
-    if (!viewport || !track) {
-      setIsOverflowing(false);
+  const [renderEntries, setRenderEntries] = useState<GuessFeedItem[]>(() =>
+    [...items].reverse()
+  );
+
+  const latestIdsRef = useRef<Set<string>>(new Set(items.map((i) => i.id)));
+  const seenIdsRef = useRef<Set<string>>(new Set(items.map((i) => i.id)));
+  const positionsRef = useRef<Map<string, { x: number; y: number; width: number }>>(
+    new Map()
+  );
+  const elMapRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const isInitialSeedRef = useRef(true);
+
+  useEffect(() => {
+    latestIdsRef.current = new Set(items.map((i) => i.id));
+
+    if (items.length === 0) {
+      seenIdsRef.current.clear();
+      positionsRef.current.clear();
+      isInitialSeedRef.current = true;
+      setRenderEntries((prev) => (prev.length === 0 ? prev : []));
       return;
     }
-    setIsOverflowing(track.scrollWidth > viewport.clientWidth + 4);
-  }, []);
 
-  useLayoutEffect(() => {
-    measureOverflow();
-  }, [items, measureOverflow]);
-
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => measureOverflow());
-    ro.observe(viewport);
-    if (singleTrackRef.current) {
-      ro.observe(singleTrackRef.current);
-    }
-    return () => ro.disconnect();
-  }, [measureOverflow, items.length]);
-
-  // Snap back to the leading edge whenever a brand-new guess arrives so it enters immediately
-  useEffect(() => {
-    const newestId = items[0]?.id ?? null;
-    if (newestId && newestId !== lastTopIdRef.current) {
-      lastTopIdRef.current = newestId;
-      if (viewportRef.current) {
-        viewportRef.current.scrollLeft = 0;
+    // Collect newly arrived guesses in chronological order (oldest -> newest)
+    const freshChronological: GuessFeedItem[] = [];
+    for (let i = items.length - 1; i >= 0; i--) {
+      const candidate = items[i];
+      if (!seenIdsRef.current.has(candidate.id)) {
+        seenIdsRef.current.add(candidate.id);
+        freshChronological.push(candidate);
       }
+    }
+
+    if (freshChronological.length > 0) {
+      isInitialSeedRef.current = false;
+      setRenderEntries((prev) => [...prev, ...freshChronological]);
     }
   }, [items]);
 
-  // Smooth continuous sideways marquee scroll when guesses exceed the viewport width
-  useEffect(() => {
-    if (!isOverflowing || items.length === 0) {
-      if (viewportRef.current) {
-        viewportRef.current.scrollLeft = 0;
+  // Measure any unpositioned chips synchronously before paint and spawn them off the right edge
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || renderEntries.length === 0) return;
+
+    const viewportWidth = viewport.clientWidth || 560;
+    let maxRight = isInitialSeedRef.current
+      ? Math.max(40, viewportWidth - 80)
+      : viewportWidth + 10;
+
+    for (const [id, pos] of positionsRef.current.entries()) {
+      const el = elMapRef.current.get(id);
+      if (el) {
+        pos.width = el.offsetWidth || pos.width;
       }
-      return;
+      const rightEdge = pos.x + pos.width + CHIP_GAP_PX;
+      if (rightEdge > maxRight) {
+        maxRight = rightEdge;
+      }
     }
+
+    for (const entry of renderEntries) {
+      if (positionsRef.current.has(entry.id)) continue;
+      const el = elMapRef.current.get(entry.id);
+      if (!el) continue;
+
+      const width = el.offsetWidth || 150;
+      const spawnX = maxRight;
+      const y = getRandomTopOffset(entry.id);
+      positionsRef.current.set(entry.id, { x: spawnX, y, width });
+      el.style.transform = `translate3d(${spawnX.toFixed(2)}px, ${y}px, 0)`;
+      maxRight = spawnX + width + CHIP_GAP_PX;
+    }
+    isInitialSeedRef.current = false;
+  }, [renderEntries]);
+
+  // Continuous 60fps GPU-transform marquee loop
+  useEffect(() => {
+    if (renderEntries.length === 0) return;
 
     let rafId = 0;
     let lastTs = performance.now();
-    let carryPx = 0;
-    const SPEED_PX_PER_SEC = 42;
 
     const tick = (ts: number) => {
-      const dt = Math.min(0.1, (ts - lastTs) / 1000);
+      const dt = Math.min(0.08, Math.max(0, (ts - lastTs) / 1000));
       lastTs = ts;
 
-      const el = viewportRef.current;
-      const singleTrack = singleTrackRef.current;
-      if (el && singleTrack && !pausedRef.current) {
-        const cycleWidth = singleTrack.offsetWidth;
-        if (cycleWidth > 0) {
-          carryPx += dt * SPEED_PX_PER_SEC;
-          if (carryPx >= 0.5) {
-            const step = Math.floor(carryPx);
-            carryPx -= step;
-            el.scrollLeft += step;
-            if (el.scrollLeft >= cycleWidth) {
-              el.scrollLeft -= cycleWidth;
-            }
+      const viewport = viewportRef.current;
+      const viewportWidth = viewport?.clientWidth || 560;
+      const expiredIds: string[] = [];
+
+      if (viewport && !pausedRef.current) {
+        const dx = dt * SPEED_PX_PER_SEC;
+
+        // First advance all active positions smoothly leftward
+        for (const [id, pos] of positionsRef.current.entries()) {
+          const el = elMapRef.current.get(id);
+          if (el && pos.width === 0) {
+            pos.width = el.offsetWidth || 150;
+          }
+          pos.x -= dx;
+        }
+
+        // Compute current rightmost edge once so wrapping chips queue cleanly off the right edge
+        let maxRight = viewportWidth + 10;
+        for (const pos of positionsRef.current.values()) {
+          const rightEdge = pos.x + pos.width + CHIP_GAP_PX;
+          if (rightEdge > maxRight) {
+            maxRight = rightEdge;
           }
         }
+
+        for (const [id, pos] of positionsRef.current.entries()) {
+          if (pos.x + pos.width < -24) {
+            if (latestIdsRef.current.has(id)) {
+              pos.x = maxRight;
+              maxRight = pos.x + pos.width + CHIP_GAP_PX;
+            } else {
+              expiredIds.push(id);
+              continue;
+            }
+          }
+          const el = elMapRef.current.get(id);
+          if (el) {
+            el.style.transform = `translate3d(${pos.x.toFixed(2)}px, ${pos.y}px, 0)`;
+          }
+        }
+      }
+
+      if (expiredIds.length > 0) {
+        const expiredSet = new Set(expiredIds);
+        for (const id of expiredIds) {
+          positionsRef.current.delete(id);
+          seenIdsRef.current.delete(id);
+        }
+        setRenderEntries((prev) => prev.filter((item) => !expiredSet.has(item.id)));
       }
 
       rafId = window.requestAnimationFrame(tick);
@@ -233,7 +289,36 @@ export function GuessMarquee({ items, embedded = false }: GuessMarqueeProps) {
 
     rafId = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(rafId);
-  }, [isOverflowing, items.length]);
+  }, [renderEntries.length]);
+
+  const handleWheelNudge = (delta: number) => {
+    const viewport = viewportRef.current;
+    if (!viewport || positionsRef.current.size === 0 || delta === 0) return;
+    const viewportWidth = viewport.clientWidth || 560;
+
+    for (const pos of positionsRef.current.values()) {
+      pos.x -= delta;
+    }
+
+    let maxRight = viewportWidth + 10;
+    for (const pos of positionsRef.current.values()) {
+      const rightEdge = pos.x + pos.width + CHIP_GAP_PX;
+      if (rightEdge > maxRight) {
+        maxRight = rightEdge;
+      }
+    }
+
+    for (const [id, pos] of positionsRef.current.entries()) {
+      if (pos.x + pos.width < -24 && latestIdsRef.current.has(id)) {
+        pos.x = maxRight;
+        maxRight = pos.x + pos.width + CHIP_GAP_PX;
+      }
+      const el = elMapRef.current.get(id);
+      if (el) {
+        el.style.transform = `translate3d(${pos.x.toFixed(2)}px, ${pos.y}px, 0)`;
+      }
+    }
+  };
 
   return (
     <div
@@ -259,37 +344,41 @@ export function GuessMarquee({ items, embedded = false }: GuessMarqueeProps) {
           pausedRef.current = false;
         }}
         onWheel={(e) => {
-          if (viewportRef.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-            viewportRef.current.scrollLeft += e.deltaY;
-          }
+          const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+          handleWheelNudge(delta);
         }}
-        className={`h-32 flex items-start overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
-          isOverflowing
-            ? '[mask-image:linear-gradient(to_right,black,black_calc(100%-24px),transparent)]'
+        className={`relative h-32 w-full overflow-hidden ${
+          renderEntries.length > 0
+            ? '[mask-image:linear-gradient(to_right,transparent,black_20px,black_calc(100%-24px),transparent)]'
             : ''
         }`}
       >
-        {items.length === 0 ? (
+        {renderEntries.length === 0 ? (
           <div className="h-full w-full flex items-center justify-center text-center px-3 rounded-lg border border-dashed border-[#D4A437]/25 bg-[#12031E]/70">
             <p className="text-[11px] font-medium text-[#B8A0D6] truncate">
               Player pictures, names, guesses &amp; duplicate alerts scroll here live.
             </p>
           </div>
         ) : (
-          <div className="flex flex-row items-start h-full w-max">
-            <div ref={singleTrackRef} className="flex flex-row items-start gap-2.5 pr-2.5 h-full">
-              {items.map((item, idx) => (
-                <GuessChip key={item.id} item={item} isNewest={idx === 0} />
-              ))}
+          renderEntries.map((item) => (
+            <div
+              key={item.id}
+              ref={(node) => {
+                if (node) {
+                  elMapRef.current.set(item.id, node);
+                } else {
+                  elMapRef.current.delete(item.id);
+                }
+              }}
+              style={{
+                willChange: 'transform',
+                transform: `translate3d(9999px, ${getRandomTopOffset(item.id)}px, 0)`,
+              }}
+              className="absolute top-0 left-0"
+            >
+              <GuessChipContent item={item} />
             </div>
-            {isOverflowing && (
-              <div aria-hidden="true" className="flex flex-row items-start gap-2.5 pr-2.5 h-full">
-                {items.map((item) => (
-                  <GuessChip key={`${item.id}-dup`} item={item} />
-                ))}
-              </div>
-            )}
-          </div>
+          ))
         )}
       </div>
     </div>

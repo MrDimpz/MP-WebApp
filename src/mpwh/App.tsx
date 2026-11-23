@@ -38,6 +38,7 @@ import {
 import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
 import {
   creditInteractiveScoreByTikTokHandle,
+  getLiveConnectionSessionId,
   useUnifiedAuth,
 } from '@/lib/unified-game-auth';
 import { GuessInputBar } from './components/GuessInputBar';
@@ -46,6 +47,7 @@ import { HowToPlayView } from './components/HowToPlayView';
 import { LadderBoard } from './components/LadderBoard';
 import { LeaderboardView } from './components/LeaderboardView';
 import { MpwhOverlayView } from './components/MpwhOverlayView';
+import { QuadFinalPopup } from './components/QuadFinalPopup';
 import { TikTokLiveModal } from './components/TikTokLiveModal';
 import { WinnerModal } from './components/WinnerModal';
 import { useMpwhSocket } from './hooks/useMpwhSocket';
@@ -175,28 +177,36 @@ function MpwhHostApp() {
     ).slice(0, 24);
   });
 
-  // Derive an isolated channel slug for this streamer/host so multiple hosts don't collide
+  const liveSessionId = useMemo(
+    () => getLiveConnectionSessionId('mpwh'),
+    [activeStreamer?.username, siteUser?.uid]
+  );
+
+  // Derive an isolated per-tab channel slug for this streamer/host so two tabs/hosts never share a room unless explicitly joined via ?channel=
   const hostChannel = useMemo(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const explicit = params.get('channel') || params.get('room');
       if (explicit) return normalizeChannelSlug(explicit);
     }
-    if (activeStreamer?.username) {
-      return normalizeChannelSlug(activeStreamer.username);
+    const baseName =
+      activeStreamer?.username || siteUser?.linkedTikTokHandle || 'host';
+    const baseSlug = normalizeChannelSlug(baseName);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = window.sessionStorage.getItem('mpwh_tab_channel_v1');
+        if (stored && stored.startsWith(`${baseSlug}_`)) {
+          return normalizeChannelSlug(stored);
+        }
+        const suffix = Math.random().toString(36).slice(2, 8);
+        const created = normalizeChannelSlug(`${baseSlug}_${suffix}`);
+        window.sessionStorage.setItem('mpwh_tab_channel_v1', created);
+        return created;
+      } catch {
+        // ignore sessionStorage failure
+      }
     }
-    if (siteUser?.linkedTikTokHandle) {
-      return normalizeChannelSlug(siteUser.linkedTikTokHandle);
-    }
-    try {
-      const existing = localStorage.getItem('mpwh_local_channel');
-      if (existing) return normalizeChannelSlug(existing);
-      const created = `mpwh_${Math.random().toString(36).slice(2, 10)}`;
-      localStorage.setItem('mpwh_local_channel', created);
-      return created;
-    } catch {
-      return 'global';
-    }
+    return normalizeChannelSlug(`${baseSlug}_${Math.random().toString(36).slice(2, 8)}`);
   }, [activeStreamer?.username, siteUser?.linkedTikTokHandle]);
 
   const [tiktokStatus, setTiktokStatus] = useState<MpwhTikTokStatus>({
@@ -266,6 +276,12 @@ function MpwhHostApp() {
     [showFeedback]
   );
 
+  const resolvedStreamerHandle =
+    tiktokStatus.username ||
+    activeStreamer?.username ||
+    siteUser?.linkedTikTokHandle ||
+    '';
+
   const {
     connected,
     onlineCount,
@@ -281,6 +297,8 @@ function MpwhHostApp() {
     channel: hostChannel,
     playerName,
     language: dictionaryLanguage,
+    streamerHandle: resolvedStreamerHandle || undefined,
+    sessionId: liveSessionId,
     onGuessResult: handleGuessResult,
     onError: handleSocketError,
   });
@@ -332,7 +350,9 @@ function MpwhHostApp() {
     }
 
     if (game.status === 'won' && prevStatus !== 'won') {
-      setWinnerModalOpen(true);
+      if (game.mode !== 'quad') {
+        setWinnerModalOpen(true);
+      }
       soundFX.playVictory();
       void confetti({
         particleCount: 85,
@@ -358,9 +378,12 @@ function MpwhHostApp() {
     }
   }, [game]);
 
-  // Subscribe to site-wide liveChatBridge status & chat comments (Direct TikTok LIVE, TikFinity, BetterTok, Test Simulator)
+  // Subscribe to isolated liveChatBridge for this host tab & game
   useEffect(() => {
+    liveChatBridge.setActiveGame('mpwh');
+
     const unsubStatus = liveChatBridge.onStatus((st) => {
+      if (st.gameId && st.gameId !== 'mpwh') return;
       setTiktokStatus((prev) => ({
         ...prev,
         connected: st.connected,
@@ -395,7 +418,7 @@ function MpwhHostApp() {
       unsubStatus();
       unsubChat();
     };
-  }, [submitGuess]);
+  }, [submitGuess, liveSessionId]);
 
   // Sync live state to TikTok LIVE Studio / OBS Overlay
   const overlayState = useMemo<MpwhOverlayState | null>(() => {
@@ -417,9 +440,10 @@ function MpwhHostApp() {
       guessFeed: (game.guessFeed ?? []).slice(0, 20),
       tiktokConnected: tiktokStatus.connected,
       tiktokUsername: tiktokStatus.username,
+      serverClockOffsetMs: clockOffsetMs,
       updatedAt: Date.now(),
     };
-  }, [game, tiktokStatus.connected, tiktokStatus.username]);
+  }, [game, tiktokStatus.connected, tiktokStatus.username, clockOffsetMs]);
 
   const resolvedOverlayStreamer =
     tiktokStatus.username ||
@@ -444,6 +468,7 @@ function MpwhHostApp() {
         lastError: null,
       }));
       const res = await liveChatBridge.connectStream(username, 'mpwh', {
+        sessionId: liveSessionId,
         isTestMode,
       });
       if (!res.connected) {
@@ -454,17 +479,17 @@ function MpwhHostApp() {
       }
       return { ok: true };
     },
-    []
+    [liveSessionId]
   );
 
   const handleDisconnectTikTok = useCallback(() => {
-    void liveChatBridge.disconnectStream('mpwh');
+    void liveChatBridge.disconnectStream('mpwh', liveSessionId);
     setTiktokStatus((prev) => ({
       ...prev,
       connected: false,
       lastError: null,
     }));
-  }, []);
+  }, [liveSessionId]);
 
   const handleSendTestChat = useCallback((nickname: string, text: string) => {
     liveChatBridge.emitSimulatedChat(nickname, text);
@@ -797,8 +822,8 @@ function MpwhHostApp() {
                     <div
                       className={
                         !isIdle && game?.mode === 'quad'
-                          ? 'min-h-[524px] sm:h-[524px] flex flex-col justify-center overflow-hidden'
-                          : 'h-[524px] flex flex-col justify-center overflow-hidden'
+                          ? 'relative min-h-[524px] sm:h-[524px] flex flex-col justify-center overflow-hidden'
+                          : 'relative h-[524px] flex flex-col justify-center overflow-hidden'
                       }
                     >
                       {isIdle || !game || game.boards.length === 0 ? (
@@ -883,6 +908,19 @@ function MpwhHostApp() {
                             />
                           ))}
                         </div>
+                      )}
+
+                      {game && game.mode === 'quad' && (isWon || isGaveUp) && (
+                        <QuadFinalPopup
+                          roundNumber={game.roundNumber}
+                          status={game.status}
+                          boards={game.boards}
+                          roundWinners={game.roundWinners}
+                          nextRoundAt={game.nextRoundAt}
+                          totalGuesses={game.totalGuesses}
+                          clockOffsetMs={clockOffsetMs}
+                          onStartNow={() => handleStartRound()}
+                        />
                       )}
                     </div>
 
@@ -1002,8 +1040,8 @@ function MpwhHostApp() {
         )}
       </main>
 
-      {/* Winner Celebration Modal */}
-      {game && (
+      {/* Winner Celebration Modal (Classic / Dual modes) */}
+      {game && game.mode !== 'quad' && (
         <WinnerModal
           game={game}
           clockOffsetMs={clockOffsetMs}
@@ -1022,6 +1060,9 @@ function MpwhHostApp() {
           siteUser?.linkedTikTokHandle?.replace(/^@+/, '') ||
           ''
         }
+        channel={hostChannel}
+        streamerHandle={resolvedOverlayStreamer || undefined}
+        sessionId={liveSessionId}
         onConnect={handleConnectTikTok}
         onDisconnect={handleDisconnectTikTok}
         onSendTestChat={handleSendTestChat}

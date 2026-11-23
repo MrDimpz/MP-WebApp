@@ -481,43 +481,17 @@ async function startServer() {
 
     if (cleanChannel) {
       const chSnap = overlaySnapshots.get(`overlay:${gameId}:ch:${cleanChannel}`);
-      const strSnap = cleanStreamer
+      if (chSnap) return chSnap;
+      return cleanStreamer
         ? overlaySnapshots.get(`overlay:${gameId}:s:${cleanStreamer}`)
         : undefined;
-      if (chSnap && strSnap) {
-        return strSnap.serverVersion > chSnap.serverVersion ? strSnap : chSnap;
-      }
-      return chSnap || strSnap;
     }
 
     if (cleanStreamer) {
       return overlaySnapshots.get(`overlay:${gameId}:s:${cleanStreamer}`);
     }
 
-    const defaultSnap = overlaySnapshots.get(`overlay:${gameId}:default`);
-    if (defaultSnap) return defaultSnap;
-
-    // Fallback for legacy unpaired overlay URLs with neither ?channel= nor ?streamer=
-    let newest:
-      | {
-          state: unknown;
-          updatedAt: number;
-          streamer: string;
-          channel: string;
-          hostSessionId?: string;
-          seq?: number;
-          stateHash?: string;
-          serverVersion: number;
-        }
-      | undefined;
-    const prefix = `overlay:${gameId}:`;
-    for (const [k, rec] of overlaySnapshots.entries()) {
-      if (!k.startsWith(prefix)) continue;
-      if (!newest || rec.serverVersion > newest.serverVersion) {
-        newest = rec;
-      }
-    }
-    return newest;
+    return overlaySnapshots.get(`overlay:${gameId}:default`);
   }
 
   function upsertOverlaySnapshot(params: {
@@ -720,17 +694,44 @@ async function startServer() {
 
   function normalizeSessionKey(rawSessionId: unknown): string {
     if (typeof rawSessionId === "string" && rawSessionId.trim()) {
-      return rawSessionId.trim();
+      return rawSessionId.trim().slice(0, 140);
     }
     return "default_isolated_session";
   }
 
-  function getOrCreateSession(rawSessionId: unknown): any {
-    const sessionId = normalizeSessionKey(rawSessionId);
-    let state = sessions.get(sessionId);
+  function normalizeGameId(rawGameId: unknown): string {
+    if (typeof rawGameId === "string" && rawGameId.trim()) {
+      return rawGameId
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, "")
+        .slice(0, 48);
+    }
+    return "";
+  }
+
+  function resolveSessionKey(rawSessionId: unknown, rawGameId?: unknown): {
+    sessionKey: string;
+    baseSessionId: string;
+    gameId: string;
+  } {
+    const baseSessionId = normalizeSessionKey(rawSessionId);
+    const gameId = normalizeGameId(rawGameId);
+    const sessionKey = gameId ? `${baseSessionId}::${gameId}` : baseSessionId;
+    return { sessionKey, baseSessionId, gameId };
+  }
+
+  function getOrCreateSession(rawSessionId: unknown, rawGameId?: unknown): any {
+    const { sessionKey, baseSessionId, gameId } = resolveSessionKey(
+      rawSessionId,
+      rawGameId,
+    );
+    let state = sessions.get(sessionKey);
     if (!state) {
       state = {
-        sessionId,
+        sessionId: sessionKey,
+        baseSessionId,
+        gameId,
         tiktokConn: null,
         connectingPromise: null,
         retryTimer: null,
@@ -738,12 +739,12 @@ async function startServer() {
         connectedRoomId: null,
         isTestMode: false,
         provider: "tikfinity",
-        connectedGames: new Set(),
+        connectedGames: new Set(gameId ? [gameId] : []),
         eventSeq: 0,
         recentEvents: [],
         lastActiveAt: Date.now(),
       };
-      sessions.set(sessionId, state);
+      sessions.set(sessionKey, state);
     }
     state.lastActiveAt = Date.now();
     return state;
@@ -777,11 +778,26 @@ async function startServer() {
     session.connectedGames.clear();
   }
 
+  // Clean up idle abandoned sessions and release zombie TikTokLiveConnection sockets
+  const sessionCleanupTimer = setInterval(() => {
+    const cutoff = Date.now() - 2 * 60 * 60 * 1000;
+    for (const [key, sess] of sessions.entries()) {
+      const room = io.sockets.adapter.rooms.get(`session:${sess.sessionId}`);
+      const hasSockets = Boolean(room && room.size > 0);
+      if (!hasSockets && sess.lastActiveAt < cutoff) {
+        disconnectSessionTikTok(sess);
+        sessions.delete(key);
+      }
+    }
+  }, 10 * 60 * 1000);
+  sessionCleanupTimer.unref();
+
   function pushAndEmitToSession(session: any, type: string, payload: any) {
     session.eventSeq += 1;
     session.lastActiveAt = Date.now();
     const enriched = {
       ...payload,
+      ...(session.gameId ? { gameId: payload?.gameId || session.gameId } : {}),
       _seq: session.eventSeq,
       timestamp: Number(payload?.timestamp) || Date.now(),
     };
@@ -795,21 +811,16 @@ async function startServer() {
       session.recentEvents.splice(0, session.recentEvents.length - 250);
     }
     io.to(`session:${session.sessionId}`).emit(type, enriched);
-    if (session.connectedUsername) {
-      io.to(`streamer:${session.connectedUsername.toLowerCase()}`).emit(
-        type,
-        enriched,
-      );
-    }
   }
 
   function emitConnectedState(session: any, gameId?: string) {
     const cleanUsername = session.connectedUsername || "streamer";
     const roomId = session.connectedRoomId || `LIVE_${cleanUsername}`;
+    const resolvedGameId = gameId || session.gameId || undefined;
     const connPayload = {
       username: cleanUsername,
       roomId,
-      gameId,
+      gameId: resolvedGameId,
       isTestMode: Boolean(session.isTestMode),
       provider: session.provider || "tikfinity",
     };
@@ -817,25 +828,13 @@ async function startServer() {
       connected: true,
       username: cleanUsername,
       roomId,
-      gameId,
+      gameId: resolvedGameId,
       isTestMode: Boolean(session.isTestMode),
       provider: session.provider || "tikfinity",
     };
 
     io.to(`session:${session.sessionId}`).emit("tiktok-connected", connPayload);
     io.to(`session:${session.sessionId}`).emit("tiktok-status", statusPayload);
-    if (cleanUsername) {
-      io.to(`streamer:${cleanUsername.toLowerCase()}`).emit(
-        "tiktok-connected",
-        connPayload,
-      );
-      io.to(`streamer:${cleanUsername.toLowerCase()}`).emit(
-        "tiktok-status",
-        statusPayload,
-      );
-    }
-    io.emit("tiktok-connected", connPayload);
-    io.emit("tiktok-status", statusPayload);
   }
 
   function attachTikTokConnListeners(
@@ -1335,45 +1334,112 @@ async function startServer() {
     lastWebhookTime = Date.now();
     lastWebhookProvider = providerName;
 
-    const targetSessionId = payload.sessionId;
-    if (targetSessionId) {
-      const session = getOrCreateSession(targetSessionId);
-      pushAndEmitToSession(session, normType, normData);
-    } else {
-      // Broadcast to all active sessions when webhook comes from external tool (TikFinity / BetterTok)
-      if (sessions.size === 0) {
-        const def = getOrCreateSession("default_isolated_session");
-        pushAndEmitToSession(def, normType, normData);
-      } else {
-        for (const sess of sessions.values()) {
-          pushAndEmitToSession(sess, normType, normData);
-        }
+    const targetSessionId =
+      typeof payload.sessionId === "string" && payload.sessionId.trim()
+        ? normalizeSessionKey(payload.sessionId)
+        : "";
+    const targetGameId = normalizeGameId(payload.gameId);
+    const targetChannel =
+      typeof payload.channel === "string" ? payload.channel.trim() : "";
+    const targetRoomId =
+      typeof payload.roomId === "string"
+        ? payload.roomId.trim()
+        : typeof payload.room === "string"
+          ? payload.room.trim()
+          : "";
+    const streamerHint = String(
+      payload.streamer ||
+        payload.streamerUsername ||
+        payload.host ||
+        payload.roomUsername ||
+        "",
+    )
+      .trim()
+      .replace(/^@+/, "");
+    const cleanStreamerHint = streamerHint.toLowerCase();
+
+    let inkstreamForwarded = 0;
+    let mpwhForwarded = 0;
+
+    // Route webhook chat directly into matching InkStream / Word Hunt rooms when scoped
+    if (normType === "chat-message" && normData && "comment" in normData) {
+      if (!targetGameId || targetGameId === "inkstream") {
+        inkstreamForwarded = inkstream.gameManager.injectExternalWebhookChat(
+          {
+            streamerHint: cleanStreamerHint,
+            roomId: targetRoomId,
+            sessionId: targetSessionId,
+          },
+          {
+            uniqueId: normData.uniqueId,
+            nickname: normData.nickname,
+            comment: normData.comment,
+            profilePictureUrl: normData.profilePictureUrl,
+          },
+        );
+      }
+      if (!targetGameId || targetGameId === "mpwh") {
+        mpwhForwarded = mpwh.manager.injectExternalWebhookChat(
+          {
+            streamerHint: cleanStreamerHint,
+            channel: targetChannel || targetRoomId,
+            sessionId: targetSessionId,
+          },
+          {
+            uniqueId: normData.uniqueId,
+            nickname: normData.nickname,
+            comment: normData.comment,
+            profilePictureUrl: normData.profilePictureUrl,
+          },
+        );
       }
     }
 
-    // Forward webhook chat messages into any active InkStream room as well
-    if (normType === "chat-message" && normData && "comment" in normData) {
-      const streamerHint = String(
-        payload.streamer ||
-          payload.channel ||
-          payload.host ||
-          payload.roomUsername ||
-          "",
-      )
-        .trim()
-        .replace(/^@+/, "");
-      inkstream.gameManager.injectExternalWebhookChat(streamerHint, {
-        uniqueId: normData.uniqueId,
-        nickname: normData.nickname,
-        comment: normData.comment,
-        profilePictureUrl: normData.profilePictureUrl,
-      });
-      mpwh.manager.injectExternalWebhookChat(streamerHint, {
-        uniqueId: normData.uniqueId,
-        nickname: normData.nickname,
-        comment: normData.comment,
-        profilePictureUrl: normData.profilePictureUrl,
-      });
+    // Route strictly to the targeted streamer session(s) — NEVER broadcast globally across all connected streamers
+    const skipBridgeEcho =
+      (targetGameId === "inkstream" && inkstreamForwarded > 0) ||
+      (targetGameId === "mpwh" && mpwhForwarded > 0);
+
+    if (!skipBridgeEcho) {
+      if (targetSessionId) {
+        if (targetGameId) {
+          const exactSess = getOrCreateSession(targetSessionId, targetGameId);
+          pushAndEmitToSession(exactSess, normType, normData);
+        } else {
+          let matchedAny = false;
+          for (const sess of sessions.values()) {
+            if (
+              sess.baseSessionId === targetSessionId ||
+              sess.sessionId === targetSessionId
+            ) {
+              pushAndEmitToSession(sess, normType, normData);
+              matchedAny = true;
+            }
+          }
+          if (!matchedAny) {
+            const defSess = getOrCreateSession(targetSessionId);
+            pushAndEmitToSession(defSess, normType, normData);
+          }
+        }
+      } else if (cleanStreamerHint) {
+        for (const sess of sessions.values()) {
+          if (targetGameId && sess.gameId && sess.gameId !== targetGameId) {
+            continue;
+          }
+          if (
+            sess.connectedUsername &&
+            sess.connectedUsername.toLowerCase() === cleanStreamerHint
+          ) {
+            pushAndEmitToSession(sess, normType, normData);
+          }
+        }
+      } else if (sessions.has("default_isolated_session")) {
+        pushAndEmitToSession(
+          sessions.get("default_isolated_session"),
+          normType,
+          normData,
+        );
+      }
     }
 
     return { type: normType, payload: normData, provider: providerName };
@@ -1383,12 +1449,9 @@ async function startServer() {
   // REST Endpoints for TikTok Bridge & Admin Auth
   // ============================================================================
   app.get("/api/tiktok/status", (req, res) => {
-    const session = getOrCreateSession(req.query.sessionId);
-    const gameId =
-      typeof req.query.gameId === "string" ? req.query.gameId.trim() : undefined;
-    const isGameConnected = gameId
-      ? session.connectedGames.has(gameId) || Boolean(session.connectedUsername)
-      : Boolean(session.connectedUsername);
+    const gameId = normalizeGameId(req.query.gameId) || undefined;
+    const session = getOrCreateSession(req.query.sessionId, gameId);
+    const isGameConnected = Boolean(session.connectedUsername);
     res.json({
       ok: true,
       connected: isGameConnected,
@@ -1404,7 +1467,8 @@ async function startServer() {
   });
 
   app.get("/api/tiktok/events", (req, res) => {
-    const session = getOrCreateSession(req.query.sessionId);
+    const gameId = normalizeGameId(req.query.gameId) || undefined;
+    const session = getOrCreateSession(req.query.sessionId, gameId);
     const since = Number(req.query.since) || 0;
     const events = session.recentEvents.filter((e: any) => e.seq > since);
     res.json({
@@ -1412,13 +1476,15 @@ async function startServer() {
       connected: Boolean(session.connectedUsername),
       username: session.connectedUsername || "",
       roomId: session.connectedRoomId || "",
+      gameId,
       seq: session.eventSeq,
       events,
     });
   });
 
   app.get("/api/tiktok/diagnostic", (req, res) => {
-    const session = getOrCreateSession(req.query.sessionId);
+    const gameId = normalizeGameId(req.query.gameId) || undefined;
+    const session = getOrCreateSession(req.query.sessionId, gameId);
     res.json({
       ok: true,
       connected: Boolean(session.connectedUsername),
@@ -1454,65 +1520,44 @@ async function startServer() {
   });
 
   app.post("/api/tiktok/connect", async (req, res) => {
+    const gameId =
+      normalizeGameId(req.body?.gameId || req.query.gameId) || undefined;
     const session = getOrCreateSession(
       req.body?.sessionId || req.query.sessionId,
+      gameId,
     );
     const result = await connectSessionTikTokStream(
       session,
       req.body?.username || "",
-      req.body?.gameId,
+      gameId,
       {
         isTestMode: Boolean(req.body?.isTestMode),
         provider: req.body?.provider,
         forceReconnect: Boolean(req.body?.forceReconnect),
       },
     );
-    res.json(result);
+    res.json({ ...result, gameId });
   });
 
   app.post("/api/tiktok/disconnect", (req, res) => {
+    const gameId =
+      normalizeGameId(req.body?.gameId || req.query.gameId) || undefined;
     const session = getOrCreateSession(
       req.body?.sessionId || req.query.sessionId,
+      gameId,
     );
-    const gameId =
-      typeof req.body?.gameId === "string" ? req.body.gameId.trim() : undefined;
-    if (gameId) {
-      session.connectedGames.delete(gameId);
-      io.to(`session:${session.sessionId}`).emit("tiktok-status", {
-        connected: false,
-        username: "",
-        roomId: "",
-        gameId,
-      });
-      io.emit("tiktok-status", {
-        connected: false,
-        username: "",
-        roomId: "",
-        gameId,
-      });
-      io.to(`session:${session.sessionId}`).emit("tiktok-disconnected", {
-        gameId,
-      });
-      io.emit("tiktok-disconnected", { gameId });
-      if (session.connectedGames.size === 0) {
-        disconnectSessionTikTok(session);
-      }
-    } else {
-      disconnectSessionTikTok(session);
-      io.to(`session:${session.sessionId}`).emit("tiktok-status", {
-        connected: false,
-        username: "",
-        roomId: "",
-      });
-      io.emit("tiktok-status", {
-        connected: false,
-        username: "",
-        roomId: "",
-      });
-      io.to(`session:${session.sessionId}`).emit("tiktok-disconnected");
-      io.emit("tiktok-disconnected");
-    }
-    res.json({ ok: true, connected: false });
+    disconnectSessionTikTok(session);
+    io.to(`session:${session.sessionId}`).emit("tiktok-status", {
+      connected: false,
+      username: "",
+      roomId: "",
+      gameId,
+    });
+    io.to(`session:${session.sessionId}`).emit(
+      "tiktok-disconnected",
+      gameId ? { gameId } : undefined,
+    );
+    res.json({ ok: true, connected: false, gameId });
   });
 
   // External Webhook & Event Ingestion Endpoints (TikFinity, BetterTok, custom scripts)
@@ -1553,8 +1598,13 @@ async function startServer() {
   });
 
   app.post("/api/tiktok/simulate", (req, res) => {
+    const gameId =
+      normalizeGameId(
+        req.body?.gameId || req.body?.payload?.gameId || req.query.gameId,
+      ) || undefined;
     const session = getOrCreateSession(
       req.body?.sessionId || req.query.sessionId,
+      gameId,
     );
     const { type, payload } = req.body || {};
     if (
@@ -1628,18 +1678,37 @@ async function startServer() {
 
   // Streamer Auth & Activity Endpoints
   app.post("/api/auth/streamer-activity", (req, res) => {
-    const session = getOrCreateSession(
+    const rawSid = normalizeSessionKey(
       req.body?.sessionId || req.query.sessionId,
     );
-    session.lastActiveAt = Date.now();
+    const now = Date.now();
+    for (const sess of sessions.values()) {
+      if (sess.baseSessionId === rawSid || sess.sessionId === rawSid) {
+        sess.lastActiveAt = now;
+      }
+    }
     res.json({ ok: true });
   });
 
   app.post("/api/auth/streamer-logout", (req, res) => {
-    const session = getOrCreateSession(
+    const rawSid = normalizeSessionKey(
       req.body?.sessionId || req.query.sessionId,
     );
-    disconnectSessionTikTok(session);
+    for (const sess of sessions.values()) {
+      if (sess.baseSessionId === rawSid || sess.sessionId === rawSid) {
+        disconnectSessionTikTok(sess);
+        io.to(`session:${sess.sessionId}`).emit("tiktok-status", {
+          connected: false,
+          username: "",
+          roomId: "",
+          gameId: sess.gameId || undefined,
+        });
+        io.to(`session:${sess.sessionId}`).emit(
+          "tiktok-disconnected",
+          sess.gameId ? { gameId: sess.gameId } : undefined,
+        );
+      }
+    }
     res.json({ ok: true });
   });
 
@@ -1890,7 +1959,7 @@ async function startServer() {
   });
 
   // ============================================================================
-  // Socket.IO Handlers (Scoped to client session and global relay)
+  // Socket.IO Handlers (Strictly scoped to each client's individual session & game)
   // ============================================================================
   io.on("connection", (socket) => {
     const handshakeSessionId =
@@ -1898,26 +1967,13 @@ async function startServer() {
       socket.handshake.query.sessionId.trim()
         ? socket.handshake.query.sessionId.trim()
         : socket.id;
-    const socketGameId =
-      typeof socket.handshake.query?.gameId === "string"
-        ? socket.handshake.query.gameId.trim()
-        : "";
+    let socketGameId = normalizeGameId(socket.handshake.query?.gameId);
 
-    let activeSession = getOrCreateSession(handshakeSessionId);
+    let activeSession = getOrCreateSession(handshakeSessionId, socketGameId);
     socket.join(`session:${activeSession.sessionId}`);
+
+    // Send initial status if this specific (session, game) instance is already connected
     if (activeSession.connectedUsername) {
-      socket.join(
-        `streamer:${activeSession.connectedUsername.toLowerCase()}`,
-      );
-    }
-
-    // Send initial status if this session is already connected
-    const isThisGameConnected = socketGameId
-      ? activeSession.connectedGames.has(socketGameId) ||
-        Boolean(activeSession.connectedUsername)
-      : Boolean(activeSession.connectedUsername);
-
-    if (isThisGameConnected && activeSession.connectedUsername) {
       socket.emit("tiktok-status", {
         connected: true,
         username: activeSession.connectedUsername,
@@ -1926,19 +1982,50 @@ async function startServer() {
       });
     }
 
-    socket.on("join-session", (rawSessionId) => {
-      if (typeof rawSessionId === "string" && rawSessionId.trim()) {
+    const switchSocketSession = (nextSessionId: unknown, nextGameId?: unknown) => {
+      const targetSid =
+        typeof nextSessionId === "string" && nextSessionId.trim()
+          ? nextSessionId.trim()
+          : activeSession.baseSessionId;
+      const targetGid =
+        nextGameId !== undefined ? normalizeGameId(nextGameId) : socketGameId;
+      socketGameId = targetGid;
+      const nextSession = getOrCreateSession(targetSid, targetGid);
+      if (nextSession.sessionId !== activeSession.sessionId) {
         socket.leave(`session:${activeSession.sessionId}`);
-        activeSession = getOrCreateSession(rawSessionId.trim());
+        activeSession = nextSession;
         socket.join(`session:${activeSession.sessionId}`);
-        if (activeSession.connectedUsername) {
-          socket.join(
-            `streamer:${activeSession.connectedUsername.toLowerCase()}`,
-          );
+      } else {
+        activeSession = nextSession;
+      }
+      return activeSession;
+    };
+
+    socket.on("join-session", (payload) => {
+      let nextSid: unknown = undefined;
+      let nextGid: unknown = undefined;
+      if (typeof payload === "string" && payload.trim()) {
+        nextSid = payload.trim();
+      } else if (payload && typeof payload === "object") {
+        nextSid = (payload as Record<string, unknown>).sessionId;
+        if ("gameId" in payload) {
+          nextGid = (payload as Record<string, unknown>).gameId;
+        }
+      }
+      if (nextSid || nextGid !== undefined) {
+        const switched = switchSocketSession(nextSid, nextGid);
+        if (switched.connectedUsername) {
           socket.emit("tiktok-status", {
             connected: true,
-            username: activeSession.connectedUsername,
-            roomId: activeSession.connectedRoomId || "",
+            username: switched.connectedUsername,
+            roomId: switched.connectedRoomId || "",
+            gameId: socketGameId || undefined,
+          });
+        } else {
+          socket.emit("tiktok-status", {
+            connected: false,
+            username: "",
+            roomId: "",
             gameId: socketGameId || undefined,
           });
         }
@@ -1953,12 +2040,7 @@ async function startServer() {
               .replace(/^@+/, "")
           : "";
       if (payload && typeof payload === "object" && payload.sessionId) {
-        socket.leave(`session:${activeSession.sessionId}`);
-        activeSession = getOrCreateSession(String(payload.sessionId));
-        socket.join(`session:${activeSession.sessionId}`);
-      }
-      if (uname) {
-        socket.join(`streamer:${uname.toLowerCase()}`);
+        switchSocketSession(payload.sessionId, payload.gameId ?? socketGameId);
       }
       if (typeof ack === "function") {
         ack({ ok: true, username: uname });
@@ -1973,9 +2055,6 @@ async function startServer() {
               .trim()
               .replace(/^@+/, "")
           : "";
-      if (uname) {
-        socket.join(`streamer:${uname.toLowerCase()}`);
-      }
       if (typeof ack === "function") {
         ack({ ok: true, username: uname ? `@${uname}` : "@streamer" });
       }
@@ -1991,13 +2070,13 @@ async function startServer() {
       if (typeof payload === "string") {
         targetUser = payload;
       } else if (payload && typeof payload === "object") {
-        if (typeof payload.sessionId === "string" && payload.sessionId.trim()) {
-          socket.leave(`session:${activeSession.sessionId}`);
-          activeSession = getOrCreateSession(payload.sessionId.trim());
-          socket.join(`session:${activeSession.sessionId}`);
-        }
         if (typeof payload.gameId === "string" && payload.gameId.trim()) {
-          targetGameId = payload.gameId.trim();
+          targetGameId = normalizeGameId(payload.gameId);
+        }
+        if (typeof payload.sessionId === "string" && payload.sessionId.trim()) {
+          switchSocketSession(payload.sessionId, targetGameId);
+        } else if (targetGameId !== socketGameId) {
+          switchSocketSession(activeSession.baseSessionId, targetGameId);
         }
         if (typeof payload.username === "string") {
           targetUser = payload.username;
@@ -2014,14 +2093,10 @@ async function startServer() {
       }
 
       const cleanUser = targetUser.trim().replace(/^@+/, "");
-      if (cleanUser) {
-        socket.join(`streamer:${cleanUser.toLowerCase()}`);
-      }
-
       const result = await connectSessionTikTokStream(
         activeSession,
         cleanUser || activeSession.connectedUsername || "streamer",
-        targetGameId,
+        targetGameId || undefined,
         { isTestMode, provider, forceReconnect },
       );
 
@@ -2034,39 +2109,26 @@ async function startServer() {
       let targetGameId = socketGameId;
       if (payload && typeof payload === "object") {
         if (typeof payload.gameId === "string" && payload.gameId.trim()) {
-          targetGameId = payload.gameId.trim();
+          targetGameId = normalizeGameId(payload.gameId);
         }
         if (typeof payload.sessionId === "string" && payload.sessionId.trim()) {
-          activeSession = getOrCreateSession(payload.sessionId.trim());
+          switchSocketSession(payload.sessionId, targetGameId);
+        } else if (targetGameId && targetGameId !== socketGameId) {
+          switchSocketSession(activeSession.baseSessionId, targetGameId);
         }
       }
 
-      if (targetGameId) {
-        activeSession.connectedGames.delete(targetGameId);
-        socket.emit("tiktok-status", {
-          connected: false,
-          username: "",
-          roomId: "",
-          gameId: targetGameId,
-        });
-        socket.emit("tiktok-disconnected", { gameId: targetGameId });
-      }
-
-      if (activeSession.connectedGames.size === 0) {
-        disconnectSessionTikTok(activeSession);
-        io.to(`session:${activeSession.sessionId}`).emit("tiktok-status", {
-          connected: false,
-          username: "",
-          roomId: "",
-        });
-        io.emit("tiktok-status", {
-          connected: false,
-          username: "",
-          roomId: "",
-        });
-        io.to(`session:${activeSession.sessionId}`).emit("tiktok-disconnected");
-        io.emit("tiktok-disconnected");
-      }
+      disconnectSessionTikTok(activeSession);
+      io.to(`session:${activeSession.sessionId}`).emit("tiktok-status", {
+        connected: false,
+        username: "",
+        roomId: "",
+        gameId: targetGameId || undefined,
+      });
+      io.to(`session:${activeSession.sessionId}`).emit(
+        "tiktok-disconnected",
+        targetGameId ? { gameId: targetGameId } : undefined,
+      );
     });
 
     // Support simulated or client-relayed chat messages into all active listeners
@@ -2213,12 +2275,9 @@ async function startServer() {
 
       if (channel) {
         socket.join(`overlay:${gameId}:ch:${channel}`);
-      }
-      if (streamer) {
+      } else if (streamer) {
         socket.join(`overlay:${gameId}:s:${streamer}`);
-        socket.join(`streamer:${streamer}`);
-      }
-      if (!channel && !streamer) {
+      } else {
         socket.join(`overlay:${gameId}:default`);
       }
 

@@ -27,7 +27,7 @@ import {
   useUnifiedAuth,
   saveUnifiedLeaderboardScore,
   creditInteractiveScoreByTikTokHandle,
-  getCurrentUserSessionPrefix,
+  getLiveConnectionSessionId,
 } from '@/lib/unified-game-auth';
 import {
   getActiveInteractiveStreamerSession,
@@ -240,7 +240,7 @@ export default function App() {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
       query: {
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('destackint'),
         gameId: 'destackint',
       },
     });
@@ -307,6 +307,7 @@ export default function App() {
     });
 
     const detachBridge = attachResilientChatListeners({
+      gameId: 'destackint',
       onChat: enqueueChatPayload,
       deduplicator,
     });
@@ -334,7 +335,7 @@ export default function App() {
           username: clean,
           isTestMode: Boolean(isTestMode),
           gameId: 'destackint',
-          sessionId: getCurrentUserSessionPrefix(),
+          sessionId: getLiveConnectionSessionId('destackint'),
         },
         ({ username: uname, roomId: rId }) => {
           setIsLiveConnected(true);
@@ -365,7 +366,7 @@ export default function App() {
           username: clean,
           isTestMode: Boolean(isTestMode),
           gameId: 'destackint',
-          sessionId: getCurrentUserSessionPrefix(),
+          sessionId: getLiveConnectionSessionId('destackint'),
         },
         ({ username: uname, roomId: rId }) => {
           setIsLiveConnected(true);
@@ -379,17 +380,18 @@ export default function App() {
   );
 
   const handleDisconnectTikTok = useCallback(() => {
+    const liveSessionId = getLiveConnectionSessionId('destackint');
     fetch('/api/tiktok/disconnect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: liveSessionId,
         gameId: 'destackint',
       }),
     }).catch(() => {});
     socket?.emit('disconnect-tiktok', {
       gameId: 'destackint',
-      sessionId: getCurrentUserSessionPrefix(),
+      sessionId: liveSessionId,
     });
     setIsLiveConnected(false);
     setRoomId('');
@@ -407,7 +409,12 @@ export default function App() {
           ...data,
         },
       ]);
-      emitResilientEvent(socket, 'chat-message', { id: msgId, ...data, gameId: 'destackint' });
+      emitResilientEvent(socket, 'chat-message', {
+        id: msgId,
+        ...data,
+        gameId: 'destackint',
+        sessionId: getLiveConnectionSessionId('destackint'),
+      });
     },
     [socket]
   );

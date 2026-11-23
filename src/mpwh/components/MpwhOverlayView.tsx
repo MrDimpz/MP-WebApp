@@ -4,6 +4,7 @@ import type { MpwhOverlayState } from '../shared/types';
 import { formatModeLabel } from '../utils/format';
 import { GuessMarquee } from './GuessMarquee';
 import { LadderBoard } from './LadderBoard';
+import { QuadFinalPopup } from './QuadFinalPopup';
 
 interface MpwhOverlayViewProps {
   state: MpwhOverlayState | null;
@@ -20,8 +21,9 @@ export function MpwhOverlayView({
     bgMode === 'transparent' ? 'bg-transparent' : 'bg-[#12031E]';
 
   const hasBoards = Boolean(state && state.boards.length > 0 && state.status !== 'idle');
-  const isWon = Boolean(state && state.status === 'won' && state.roundWinners.length > 0);
+  const isWon = Boolean(state && state.status === 'won');
   const isGaveUp = state?.status === 'gave_up';
+  const hasWinners = Boolean(state && state.roundWinners.length > 0);
   const hasActiveBuffer = Boolean(
     state?.boards.some((b) => b.targets.some((t) => t.bufferActive))
   );
@@ -91,7 +93,7 @@ export function MpwhOverlayView({
                   : 'border-[#D4A437]/25 bg-[#140321]/80'
               }`}
             >
-              {isWon && state ? (
+              {isWon && hasWinners && state ? (
                 <>
                   <div className="flex items-center gap-2 min-w-0">
                     <Trophy className="w-4 h-4 text-[#F6C915] shrink-0" />
@@ -104,6 +106,18 @@ export function MpwhOverlayView({
                   </div>
                   <span className="font-mono text-xs font-extrabold text-[#F6C915] tabular-nums shrink-0">
                     +{state.roundWinners[0].score.toLocaleString()} pts
+                  </span>
+                </>
+              ) : isWon && state ? (
+                <>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Trophy className="w-4 h-4 text-[#F6C915] shrink-0" />
+                    <span className="text-xs sm:text-sm font-black text-white truncate">
+                      Round #{state.roundNumber} Complete!
+                    </span>
+                  </div>
+                  <span className="font-mono text-[11px] font-bold text-[#F5EEFF] tabular-nums shrink-0">
+                    {state.totalGuesses} guesses
                   </span>
                 </>
               ) : hasActiveBuffer ? (
@@ -185,82 +199,17 @@ export function MpwhOverlayView({
                 </div>
               )}
 
-              {/* Central Winners Popup when all Quad words are found */}
-              {isWon && state && state.mode === 'quad' && (
-                <div
-                  role="dialog"
-                  aria-label="Quad Hunt Winners"
-                  className="absolute inset-0 z-30 flex items-center justify-center bg-black/65 backdrop-blur-[3px] p-3 animate-in fade-in zoom-in-95 duration-200"
-                >
-                  <div className="w-full max-w-[460px] rounded-2xl border-2 border-[#F6C915]/75 bg-[#1B052E]/96 p-5 shadow-2xl">
-                    <div className="text-center">
-                      <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#F6C915]/55 bg-[#F6C915]/15 text-[#F6C915]">
-                        <Trophy className="h-5 w-5" aria-hidden="true" />
-                      </div>
-                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#F6C915]">
-                        Round #{state.roundNumber} · Quad Hunt Complete
-                      </p>
-                      <h3 className="mt-0.5 text-2xl font-black tracking-tight text-white">
-                        All 4 Words Found!
-                      </h3>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
-                      {state.boards
-                        .flatMap((b) =>
-                          b.targets
-                            .map((t) => t.word)
-                            .filter((w): w is string => Boolean(w))
-                        )
-                        .map((word) => (
-                          <span
-                            key={word}
-                            className="rounded-lg border border-emerald-400/55 bg-emerald-600/25 px-2.5 py-1 font-mono text-xs font-black uppercase tracking-[0.12em] text-emerald-100"
-                          >
-                            {word}
-                          </span>
-                        ))}
-                    </div>
-
-                    <ul className="mt-4 space-y-2 max-h-[240px] overflow-hidden">
-                      {state.roundWinners.slice(0, 4).map((winner, idx) => (
-                        <li
-                          key={winner.name}
-                          className={`flex items-center justify-between gap-2.5 rounded-xl px-3 py-2 ${
-                            idx === 0
-                              ? 'border border-[#F6C915]/55 bg-[#F6C915]/15'
-                              : 'border border-white/12 bg-[#25093E]'
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-xs font-extrabold text-[#F6C915] tabular-nums">
-                                #{idx + 1}
-                              </span>
-                              <span className="text-sm font-extrabold text-white truncate">
-                                {winner.name}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-[#D4C0EC] truncate">
-                              Found:{' '}
-                              <span className="font-bold uppercase text-emerald-300">
-                                {winner.wordsFound.join(', ')}
-                              </span>
-                            </p>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <div className="font-mono text-xs font-extrabold tabular-nums text-white">
-                              {winner.score.toLocaleString()} pts
-                            </div>
-                            <div className="font-mono text-[10px] font-bold tabular-nums text-[#F6C915]">
-                              +{winner.pieces} pcs
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+              {/* Central Winners Popup when Quad round ends (lasts 15s until next round) */}
+              {(isWon || isGaveUp) && state && state.mode === 'quad' && (
+                <QuadFinalPopup
+                  roundNumber={state.roundNumber}
+                  status={state.status}
+                  boards={state.boards}
+                  roundWinners={state.roundWinners}
+                  nextRoundAt={state.nextRoundAt}
+                  totalGuesses={state.totalGuesses}
+                  clockOffsetMs={state.serverClockOffsetMs ?? 0}
+                />
               )}
             </div>
 

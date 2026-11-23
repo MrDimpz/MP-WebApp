@@ -34,6 +34,7 @@ import {
 import {
   creditInteractiveScoreByTikTokHandle,
   getCurrentUserSessionPrefix,
+  getLiveConnectionSessionId,
   saveUnifiedLeaderboardScore,
   getUserProfileAvatarUrl,
 } from '../lib/unified-game-auth';
@@ -309,8 +310,15 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
     (reason?: string) => {
       clearActiveInteractiveStreamerSession();
       if (socketRef.current) {
-        socketRef.current.emit('streamer-auth-logout');
-        socketRef.current.emit('disconnect-tiktok');
+        const liveSessionId = getLiveConnectionSessionId('wikicon');
+        socketRef.current.emit('streamer-auth-logout', {
+          sessionId: liveSessionId,
+          gameId: 'wikicon',
+        });
+        socketRef.current.emit('disconnect-tiktok', {
+          sessionId: liveSessionId,
+          gameId: 'wikicon',
+        });
       }
       setAuthenticatedStreamer(null);
       setTiktokConnState('disconnected');
@@ -403,7 +411,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
       reconnectionAttempts: 10,
       timeout: 5000,
       query: {
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('wikicon'),
         gameId: 'wikicon',
       },
     });
@@ -582,6 +590,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
     });
 
     const detachBridge = attachResilientChatListeners({
+      gameId: 'wikicon',
       onChat: processChatEvent,
       onLike: processLikeEvent,
       onGift: processGiftEvent,
@@ -768,7 +777,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
         isTestMode,
         provider: savedProvider,
         gameId: 'wikicon',
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('wikicon'),
       },
       ({ username: uname, roomId }) => {
         setTiktokConnState('connected');
@@ -804,7 +813,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
         isTestMode,
         provider: savedProvider,
         gameId: 'wikicon',
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: getLiveConnectionSessionId('wikicon'),
       },
       ({ username: uname, roomId }) => {
         setTiktokConnState('connected');
@@ -816,6 +825,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
   const handleDisconnectTikTok = () => {
     recordActivity();
+    const liveSessionId = getLiveConnectionSessionId('wikicon');
     setTiktokConnState('disconnected');
     setConnectedUsername(null);
     setConnectedRoomId(null);
@@ -823,14 +833,14 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sessionId: getCurrentUserSessionPrefix(),
+        sessionId: liveSessionId,
         gameId: 'wikicon',
       }),
     }).catch(() => {});
     if (!socketRef.current) return;
     socketRef.current.emit('disconnect-tiktok', {
       gameId: 'wikicon',
-      sessionId: getCurrentUserSessionPrefix(),
+      sessionId: liveSessionId,
     });
   };
 

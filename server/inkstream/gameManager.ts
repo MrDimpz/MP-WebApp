@@ -51,6 +51,7 @@ interface PlayerAnalyticsInternal {
 interface InternalRoom {
   id: string;
   ownerId: string;
+  ownerSessionId?: string;
   streamerSecret: string;
   createdAt: number;
   settings: RoomSettings;
@@ -277,6 +278,18 @@ export class GameManager {
 
   constructor(io: Namespace) {
     this.io = io;
+    const cleanup = setInterval(() => {
+      const cutoff = Date.now() - 4 * 60 * 60 * 1000;
+      for (const [roomId, room] of this.rooms.entries()) {
+        const connected = this.getConnectedPlayers(room);
+        if (connected.length === 0 || (room.turnStartedAt || room.createdAt) < cutoff) {
+          this.clearTimer(room);
+          room.tiktokBridge.disconnect(false);
+          this.rooms.delete(roomId);
+        }
+      }
+    }, 15 * 60 * 1000);
+    cleanup.unref();
   }
 
   getRoomOwnerId(roomId: string): string | null {
@@ -336,7 +349,8 @@ export class GameManager {
   createRoom(
     user: PublicUser,
     socketId: string,
-    partialSettings?: Partial<RoomSettings>
+    partialSettings?: Partial<RoomSettings>,
+    ownerSessionId?: string
   ): InternalRoom {
     this.leaveCurrentRoom(socketId);
 
@@ -370,6 +384,7 @@ export class GameManager {
     const room: InternalRoom = {
       id: roomId,
       ownerId: user.id,
+      ownerSessionId: ownerSessionId?.trim() || undefined,
       streamerSecret,
       createdAt: Date.now(),
       settings,
@@ -423,7 +438,8 @@ export class GameManager {
   joinOrQuickPlay(
     user: PublicUser,
     socketId: string,
-    language?: RoomSettings['language']
+    language?: RoomSettings['language'],
+    ownerSessionId?: string
   ): InternalRoom {
     const requestedLang = language ?? 'en';
     for (const room of this.rooms.values()) {
@@ -437,11 +453,16 @@ export class GameManager {
         if (res.room) return res.room;
       }
     }
-    return this.createRoom(user, socketId, {
-      name: `${user.username}'s Public Room`,
-      isPrivate: false,
-      language: requestedLang,
-    });
+    return this.createRoom(
+      user,
+      socketId,
+      {
+        name: `${user.username}'s Public Room`,
+        isPrivate: false,
+        language: requestedLang,
+      },
+      ownerSessionId
+    );
   }
 
   joinRoom(
@@ -727,22 +748,43 @@ export class GameManager {
 
   /**
    * Forward incoming site-wide TikFinity / BetterTok / TikTok webhook chat messages
-   * into any active InkStream room connected to that streamer handle (or active bridge rooms).
+   * strictly into matching active InkStream rooms (scoped by roomId, ownerSessionId, or streamerHandle).
    */
   injectExternalWebhookChat(
-    streamerHint: string | undefined,
+    target:
+      | string
+      | {
+          streamerHint?: string;
+          roomId?: string;
+          sessionId?: string;
+        }
+      | undefined,
     payload: { uniqueId?: string; nickname?: string; comment: string; profilePictureUrl?: string }
   ): number {
-    const cleanHint = String(streamerHint || '')
+    const targetObj = typeof target === 'string' ? { streamerHint: target } : target || {};
+    const cleanRoomId = String(targetObj.roomId || '').trim().toUpperCase();
+    const cleanSessionId = String(targetObj.sessionId || '').trim().toLowerCase();
+    const cleanHint = String(targetObj.streamerHint || '')
       .trim()
       .replace(/^@+/, '')
       .toLowerCase();
+
+    if (!cleanRoomId && !cleanSessionId && !cleanHint) {
+      return 0;
+    }
+
     let forwarded = 0;
     for (const room of this.rooms.values()) {
       const status = room.tiktokBridge.getStatus();
-      if (!status.connected) continue;
-      const roomHandle = String(status.username || '').toLowerCase();
-      if (!cleanHint || !roomHandle || roomHandle === cleanHint) {
+      const roomHandle = String(status.username || '').trim().replace(/^@+/, '').toLowerCase();
+      const matchesRoomId = Boolean(cleanRoomId && room.id === cleanRoomId);
+      const matchesSession = Boolean(
+        cleanSessionId && room.ownerSessionId && room.ownerSessionId.toLowerCase() === cleanSessionId
+      );
+      const matchesHandle = Boolean(
+        status.connected && cleanHint && roomHandle && roomHandle === cleanHint
+      );
+      if (matchesRoomId || matchesSession || matchesHandle) {
         room.tiktokBridge.injectChat(payload);
         forwarded += 1;
       }
