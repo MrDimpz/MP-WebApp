@@ -72,7 +72,9 @@ export type InteractiveGameId =
   | "crowdle"
   | "mpsearchint"
   | "inkstream"
-  | "mpwh";
+  | "mpwh"
+  | "wbr"
+  | "tow";
 
 export { OperationType, handleFirestoreError };
 export type { FirestoreErrorInfo };
@@ -164,6 +166,8 @@ export const INTERACTIVE_GAME_LABELS: Record<InteractiveGameId, string> = {
   mpsearchint: "MP Search Interactive",
   inkstream: "InkStream",
   mpwh: "Word Hunt Extreme",
+  wbr: "Word Bomb Royale",
+  tow: "Tug of Words",
 };
 
 const LOCAL_LEADERBOARD_STORAGE_KEY = "mp_unified_solo_leaderboards_v1";
@@ -420,9 +424,83 @@ export function getCleanUserEmail(
   return trimmed;
 }
 
+const PERSISTENT_GUEST_ID_KEY = "mp_persistent_guest_id_v1";
+
+const KNOWN_GAME_SAVE_PREFIXES = [
+  "tmp_daily_streaks_v1_",
+  "tmp_crossword_progress_v1_",
+  "pad_rebus_edition_v3_",
+  "missing_piece_solo_save_",
+  "missing_piece_save_",
+  "thematik_game_stats_",
+  "thematik_progress_",
+  "destack_game_stats_v1_",
+  "tmp_unolingo_progress_v1_",
+  "mp_search_progress_v1_",
+  "mp_difference_completions_v1_",
+  "mpcolossal_save_v2_",
+  "tekscodle_stats_v1_",
+  "wordhunt_solo_stats_v1_",
+];
+
+function getOrRecoverPersistentGuestId(): string {
+  const existing = window.localStorage.getItem(PERSISTENT_GUEST_ID_KEY);
+  if (existing && existing.trim()) {
+    return existing.trim();
+  }
+
+  // 1. Migrate active tab's legacy sessionStorage prefix if present
+  try {
+    const activeTabInst = window.sessionStorage.getItem(BROWSER_INSTANCE_ID_KEY);
+    if (activeTabInst && activeTabInst.trim()) {
+      window.localStorage.setItem(PERSISTENT_GUEST_ID_KEY, activeTabInst.trim());
+      return activeTabInst.trim();
+    }
+  } catch {}
+
+  // 2. Recover the most populated prior inst_* or guest_* prefix already saved in localStorage
+  try {
+    const counts = new Map<string, number>();
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (!key) continue;
+      for (const prefix of KNOWN_GAME_SAVE_PREFIXES) {
+        if (key.startsWith(prefix)) {
+          const rest = key.slice(prefix.length);
+          const match = rest.match(/^((?:inst|guest)_[a-z0-9]+_[a-z0-9]+)/i);
+          if (match?.[1]) {
+            const candidate = match[1];
+            counts.set(candidate, (counts.get(candidate) || 0) + 1);
+          }
+          break;
+        }
+      }
+    }
+    let bestPrefix = "";
+    let bestCount = 0;
+    for (const [candidate, count] of counts.entries()) {
+      if (count > bestCount) {
+        bestPrefix = candidate;
+        bestCount = count;
+      }
+    }
+    if (bestPrefix) {
+      window.localStorage.setItem(PERSISTENT_GUEST_ID_KEY, bestPrefix);
+      return bestPrefix;
+    }
+  } catch {}
+
+  // 3. First-time guest on this browser: create a permanent localStorage guest ID
+  const newGuestId = `guest_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+  try {
+    window.localStorage.setItem(PERSISTENT_GUEST_ID_KEY, newGuestId);
+  } catch {}
+  return newGuestId;
+}
+
 /**
- * Returns a unique per-user / per-browser-tab session identifier so each
- * individual user has their own isolated game instance.
+ * Returns a persistent per-user / per-browser save identifier so each player's
+ * progress survives tab restarts, page reloads, and new website deployments.
  */
 export function getCurrentUserSessionPrefix(): string {
   if (typeof window === "undefined") return "server";
@@ -446,12 +524,7 @@ export function getCurrentUserSessionPrefix(): string {
         return `u_${parsed.uid}`;
       }
     }
-    let tabInstance = window.sessionStorage.getItem(BROWSER_INSTANCE_ID_KEY);
-    if (!tabInstance) {
-      tabInstance = `inst_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
-      window.sessionStorage.setItem(BROWSER_INSTANCE_ID_KEY, tabInstance);
-    }
-    return tabInstance;
+    return getOrRecoverPersistentGuestId();
   } catch {
     return "guest_default";
   }
@@ -1527,6 +1600,8 @@ export function creditInteractiveScoreByTikTokHandle(params: {
       mpsearchint: 0,
       inkstream: 0,
       mpwh: 0,
+      wbr: 0,
+      tow: 0,
     },
     recentEvents: [],
     updatedAt: Date.now(),

@@ -3,39 +3,93 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, Suspense, lazy, useEffect, type ErrorInfo, type ReactNode } from 'react';
+import { Component, Suspense, lazy, useEffect, type ComponentType, type ErrorInfo, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { CookieBanner } from '@/components/cookie-banner';
 import HomePage from '@/routes/home';
 
-const InteractiveGamesPage = lazy(() => import('@/routes/interactive-games'));
-const SoloGamesPage = lazy(() => import('@/routes/solo-games'));
-const RebusPage = lazy(() => import('@/routes/rebus'));
-const SquaredPage = lazy(() => import('@/routes/squared'));
-const ThematixPage = lazy(() => import('@/routes/thematix'));
-const DeStackPage = lazy(() => import('@/routes/destack'));
-const UnolingoPage = lazy(() => import('@/routes/unolingo'));
-const WikiRecSoloPage = lazy(() => import('@/routes/wikirec-solo'));
-const WikiConSoloPage = lazy(() => import('@/routes/wikicon-solo'));
-const MPSearchPage = lazy(() => import('@/routes/mpsearch'));
-const MPDifferencePage = lazy(() => import('@/routes/mpdifference'));
-const MPColossalPage = lazy(() => import('@/routes/mpcolossal'));
-const TekscodlePage = lazy(() => import('@/routes/tekscodle'));
-const WordHuntSoloPage = lazy(() => import('@/routes/wordhunt'));
-const SquaredIntGamePage = lazy(() => import('@/routes/squaredint-game'));
-const WikirecGamePage = lazy(() => import('@/routes/wikirec-game'));
-const WikiconGamePage = lazy(() => import('@/routes/wikicon-game'));
-const LexiGamePage = lazy(() => import('@/routes/lexi-game'));
-const DeStackIntGamePage = lazy(() => import('@/routes/destackint-game'));
-const CrowdleGamePage = lazy(() =>
+function isDynamicImportError(err: unknown): boolean {
+  const msg = String((err as { message?: unknown })?.message ?? err ?? '').toLowerCase();
+  return (
+    msg.includes('dynamically imported module') ||
+    msg.includes('failed to fetch') ||
+    msg.includes('importing a module script failed') ||
+    msg.includes('loading chunk') ||
+    msg.includes('load failed')
+  );
+}
+
+function lazyWithRetry<T extends ComponentType<any>>(
+  importer: () => Promise<{ default: T }>
+) {
+  return lazy(async () => {
+    const delays = [350, 900];
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt <= delays.length; attempt++) {
+      try {
+        return await importer();
+      } catch (err) {
+        lastError = err;
+        if (!isDynamicImportError(err)) {
+          throw err;
+        }
+        if (attempt < delays.length) {
+          await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+        }
+      }
+    }
+
+    // If retries still failed due to a stale Vite dep/chunk hash, perform one guarded reload
+    if (typeof window !== 'undefined' && isDynamicImportError(lastError)) {
+      const storageKey = `mp_chunk_reload:${window.location.pathname}`;
+      try {
+        const lastReload = Number(window.sessionStorage.getItem(storageKey) || '0');
+        if (!lastReload || Date.now() - lastReload > 15_000) {
+          window.sessionStorage.setItem(storageKey, String(Date.now()));
+          window.location.reload();
+          // Keep Suspense pending while the browser reloads cleanly
+          return await new Promise<{ default: T }>(() => {});
+        }
+      } catch {
+        // Ignore sessionStorage errors and fall through to ErrorBoundary
+      }
+    }
+
+    throw lastError;
+  });
+}
+
+const InteractiveGamesPage = lazyWithRetry(() => import('@/routes/interactive-games'));
+const SoloGamesPage = lazyWithRetry(() => import('@/routes/solo-games'));
+const RebusPage = lazyWithRetry(() => import('@/routes/rebus'));
+const SquaredPage = lazyWithRetry(() => import('@/routes/squared'));
+const ThematixPage = lazyWithRetry(() => import('@/routes/thematix'));
+const DeStackPage = lazyWithRetry(() => import('@/routes/destack'));
+const UnolingoPage = lazyWithRetry(() => import('@/routes/unolingo'));
+const WikiRecSoloPage = lazyWithRetry(() => import('@/routes/wikirec-solo'));
+const WikiConSoloPage = lazyWithRetry(() => import('@/routes/wikicon-solo'));
+const MPSearchPage = lazyWithRetry(() => import('@/routes/mpsearch'));
+const MPDifferencePage = lazyWithRetry(() => import('@/routes/mpdifference'));
+const MPColossalPage = lazyWithRetry(() => import('@/routes/mpcolossal'));
+const TekscodlePage = lazyWithRetry(() => import('@/routes/tekscodle'));
+const WordHuntSoloPage = lazyWithRetry(() => import('@/routes/wordhunt'));
+const SquaredIntGamePage = lazyWithRetry(() => import('@/routes/squaredint-game'));
+const WikirecGamePage = lazyWithRetry(() => import('@/routes/wikirec-game'));
+const WikiconGamePage = lazyWithRetry(() => import('@/routes/wikicon-game'));
+const LexiGamePage = lazyWithRetry(() => import('@/routes/lexi-game'));
+const DeStackIntGamePage = lazyWithRetry(() => import('@/routes/destackint-game'));
+const CrowdleGamePage = lazyWithRetry(() =>
   import('@/routes/crowdle-game').then((m) => ({ default: m.CrowdleGamePage }))
 );
-const MPSearchIntGamePage = lazy(() => import('@/routes/mpsearchint-game'));
-const InkStreamGamePage = lazy(() => import('@/routes/inkstream-game'));
-const MpwhGamePage = lazy(() => import('@/routes/mpwh-game'));
-const InteractiveOverlaysWallPage = lazy(() => import('@/routes/interactive-overlays'));
+const MPSearchIntGamePage = lazyWithRetry(() => import('@/routes/mpsearchint-game'));
+const InkStreamGamePage = lazyWithRetry(() => import('@/routes/inkstream-game'));
+const MpwhGamePage = lazyWithRetry(() => import('@/routes/mpwh-game'));
+const WbrGamePage = lazyWithRetry(() => import('@/routes/wbr-game'));
+const TowGamePage = lazyWithRetry(() => import('@/routes/tow-game'));
+const InteractiveOverlaysWallPage = lazyWithRetry(() => import('@/routes/interactive-overlays'));
 
 import {
   buildStructuredData,
@@ -81,6 +135,10 @@ const STANDALONE_GAME_PATHS = new Set([
   '/interactive-games/inkstream/overlay',
   '/interactive-games/mpwh',
   '/interactive-games/mpwh/overlay',
+  '/interactive-games/wbr',
+  '/interactive-games/wbr/overlay',
+  '/interactive-games/tow',
+  '/interactive-games/tow/overlay',
 ]);
 
 function RouteFallback({ transparent = false }: { transparent?: boolean }) {
@@ -211,6 +269,10 @@ function AppShell() {
           <Route path="/interactive-games/inkstream/overlay" element={<InkStreamGamePage />} />
           <Route path="/interactive-games/mpwh" element={<MpwhGamePage />} />
           <Route path="/interactive-games/mpwh/overlay" element={<MpwhGamePage />} />
+          <Route path="/interactive-games/wbr" element={<WbrGamePage />} />
+          <Route path="/interactive-games/wbr/overlay" element={<WbrGamePage />} />
+          <Route path="/interactive-games/tow" element={<TowGamePage />} />
+          <Route path="/interactive-games/tow/overlay" element={<TowGamePage />} />
         </Routes>
       </Suspense>
     );
@@ -235,6 +297,8 @@ function AppShell() {
           <Route path="/interactive-games/mpsearchint" element={<MPSearchIntGamePage />} />
           <Route path="/interactive-games/inkstream" element={<InkStreamGamePage />} />
           <Route path="/interactive-games/mpwh" element={<MpwhGamePage />} />
+          <Route path="/interactive-games/wbr" element={<WbrGamePage />} />
+          <Route path="/interactive-games/tow" element={<TowGamePage />} />
           <Route path="/solo-games" element={<SoloGamesPage />} />
         </Routes>
       </Suspense>

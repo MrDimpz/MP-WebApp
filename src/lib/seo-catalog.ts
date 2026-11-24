@@ -355,6 +355,50 @@ export const SEO_ROUTES: Record<string, RouteSeoMeta> = {
       { name: "Word Hunt Extreme", path: "/interactive-games/mpwh" },
     ],
   },
+  "/interactive-games/wbr": {
+    canonicalPath: "/interactive-games/wbr",
+    title: "Word Bomb Royale — TikTok LIVE Physics Word Elimination Game",
+    description:
+      "Host Word Bomb Royale live on TikTok! Viewers drop physics avatars into the arena and race to type unique words matching escalating wave rules before the bomb fuse detonates.",
+    keywords:
+      "word bomb royale, tiktok live word game, interactive word elimination, tiktok chat game, physics avatar word battle",
+    ogImagePath: DEFAULT_OG_IMAGE_PATH,
+    ogImageAlt: "Word Bomb Royale 9:16 TikTok LIVE physics word elimination game show",
+    robots: DEFAULT_ROBOTS,
+    heading: "Word Bomb Royale — TikTok LIVE Word Elimination Arena",
+    summary:
+      "9:16 vertical interactive TikTok LIVE word elimination game show with real-time 2D physics avatars, escalating wave rules, cosmetics, bot simulator, and live chat bridge.",
+    gameGenre: "Word Game",
+    isInteractive: true,
+    inLanguages: ["en"],
+    breadcrumbs: [
+      { name: "Home", path: "/" },
+      { name: "TikTok Interactive Games", path: "/interactive-games" },
+      { name: "Word Bomb Royale", path: "/interactive-games/wbr" },
+    ],
+  },
+  "/interactive-games/tow": {
+    canonicalPath: "/interactive-games/tow",
+    title: "Tug of Words — TikTok LIVE Red vs Blue Territory Word War",
+    description:
+      "Host Tug of Words live on TikTok! Viewers auto-balance into Team Red vs Team Blue and fire validated words to push the laser horizon border, claim power-up orbs, activate shields, and win 60-second territory wars.",
+    keywords:
+      "tug of words, tiktok live word game, red vs blue chat game, territory word war, tiktok interactive stream game",
+    ogImagePath: DEFAULT_OG_IMAGE_PATH,
+    ogImageAlt: "Tug of Words 9:16 TikTok LIVE Team Red vs Team Blue territory word battle",
+    robots: DEFAULT_ROBOTS,
+    heading: "Tug of Words — TikTok LIVE Territory Word War",
+    summary:
+      "9:16 vertical TikTok LIVE team tug-of-war word battle with 10,000+ validated words, 60-second 3-phase Overdrive matches, shields, Golden Bounties, battlefield power-up orbs, and Top 3 MVPs.",
+    gameGenre: "Word Game",
+    isInteractive: true,
+    inLanguages: ["en"],
+    breadcrumbs: [
+      { name: "Home", path: "/" },
+      { name: "TikTok Interactive Games", path: "/interactive-games" },
+      { name: "Tug of Words", path: "/interactive-games/tow" },
+    ],
+  },
   "/solo-games/mpcolossal": {
     canonicalPath: "/solo-games/mpcolossal",
     title: "MP Colossal — 200×200 Giant Crossword Word Game",
@@ -747,6 +791,8 @@ export function buildStructuredData(meta: RouteSeoMeta, origin = SITE_ORIGIN): R
           { "@type": "ListItem", position: 7, name: "MP Search Interactive", url: `${origin}/interactive-games/mpsearch` },
           { "@type": "ListItem", position: 8, name: "InkStream", url: `${origin}/interactive-games/inkstream` },
           { "@type": "ListItem", position: 9, name: "Word Hunt Extreme", url: `${origin}/interactive-games/mpwh` },
+          { "@type": "ListItem", position: 10, name: "Word Bomb Royale", url: `${origin}/interactive-games/wbr` },
+          { "@type": "ListItem", position: 11, name: "Tug of Words", url: `${origin}/interactive-games/tow` },
         ],
       },
     });

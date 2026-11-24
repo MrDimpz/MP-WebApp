@@ -91,6 +91,8 @@ const ALLOWED_FIRESTORE_GAMES = new Set([
   'lexi',
   'inkstream',
   'mpwh',
+  'wbr',
+  'tow',
 ]);
 const MAX_FIRESTORE_STATE_BYTES = 750_000;
 
@@ -144,6 +146,15 @@ function buildOverlayFirestoreDocIds(
     ids.push(`${cleanGame}__default`);
   }
   return ids;
+}
+
+function parseOverlayHostCreatedAt(hostSessionId?: string): number {
+  if (!hostSessionId || typeof hostSessionId !== 'string') return 0;
+  const match = /^host_([0-9a-z]+)_/i.exec(hostSessionId.trim());
+  if (!match) return 0;
+  const parsed = parseInt(match[1], 36);
+  if (!Number.isFinite(parsed) || parsed < 1_500_000_000_000) return 0;
+  return parsed;
 }
 
 /**
@@ -405,7 +416,26 @@ const VOLATILE_OVERLAY_TIMER_KEYS = new Set([
   'countdown',
   'countdownSeconds',
   'timeRemaining',
+  'timeRemainingSec',
+  'suddenDeathSec',
+  'bountyRemainingSec',
+  'nextMatchInSeconds',
+  'totalPhaseDuration',
   'roundTimerSeconds',
+  'lunge',
+  'knockback',
+  'shakeTimer',
+  'validFlashTimer',
+  'lastActiveAt',
+  'lastFireAt',
+  'feedbackUntil',
+  'draftedAt',
+  'timestamp',
+  'updatedAt',
+  'expiresAt',
+  'spawnedAt',
+  'createdAt',
+  'lastWordTimestamp',
 ]);
 
 function stripVolatileOverlayTimerFields(val: unknown, depth = 0): unknown {
@@ -413,7 +443,9 @@ function stripVolatileOverlayTimerFields(val: unknown, depth = 0): unknown {
     return val;
   }
   if (Array.isArray(val)) {
-    return val;
+    return depth < 2
+      ? val.map((item) => stripVolatileOverlayTimerFields(item, depth + 1))
+      : val;
   }
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
@@ -540,20 +572,24 @@ export function useOverlaySync<T>({
   const fsQueuedPacketRef = useRef<OverlaySyncPacket<T> | null>(null);
 
   const isMountedRef = useRef<boolean>(true);
+  const cleanStreamerRef = useRef<string>(cleanStreamer);
+  cleanStreamerRef.current = cleanStreamer;
 
   const lastRemoteMetaRef = useRef<{
     hostSessionId: string;
+    hostCreatedAt: number;
     seq: number;
     serverVersion: number;
     bootId: string;
     stateHash: string;
     channel: string;
     updatedAt: number;
+    receivedAt: number;
     hasDelivered: boolean;
     source: 'local' | 'network';
   } | null>(null);
 
-  const roomScope = resolvedChannel || cleanStreamer || 'default';
+  const roomScope = resolvedChannel || (isOverlay ? cleanStreamer : '') || 'default';
   const storageKey = `mp_overlay_snap_${cleanGameId}_${roomScope}`;
 
   const clearPendingFirestorePush = () => {
@@ -576,7 +612,7 @@ export function useOverlaySync<T>({
 
     const docIds = buildOverlayFirestoreDocIds(
       cleanGameId,
-      cleanStreamer,
+      cleanStreamerRef.current,
       resolvedChannel
     );
     if (docIds.length === 0) return;
@@ -656,7 +692,7 @@ export function useOverlaySync<T>({
       const fsPayload = {
         gameId: cleanGameId,
         channel: resolvedChannel,
-        streamer: cleanStreamer.slice(0, 80),
+        streamer: cleanStreamerRef.current.slice(0, 80),
         hostSessionId: safeHostSessionId || 'host_default',
         seq: safeSeq,
         stateHash: pktHash || `${safeJsonSize}:0_0`,
@@ -664,12 +700,12 @@ export function useOverlaySync<T>({
         updatedAt: serverTimestamp(),
       };
 
-      // Write primary doc always; only refresh secondary streamer alias doc on initial write or >=60s after semantic change
+      // Write primary doc always; refresh secondary streamer alias doc sparsely to preserve daily Firestore write quota
       const startedAt = Date.now();
       const shouldIncludeAliasDoc =
         docIds.length > 1 &&
         (lastSecondaryAliasWriteAtRef.current === 0 ||
-          (semanticChanged && startedAt - lastSecondaryAliasWriteAtRef.current >= 60_000));
+          (semanticChanged && startedAt - lastSecondaryAliasWriteAtRef.current >= 120_000));
       const targetDocIds = shouldIncludeAliasDoc ? docIds : [docIds[0]];
 
       fsInFlightRef.current = true;
@@ -772,10 +808,14 @@ export function useOverlaySync<T>({
       !lastFirestoreSentSemanticHashRef.current ||
       semanticHash !== lastFirestoreSentSemanticHashRef.current;
 
-    // If only countdown/elapsed timers ticked while the tab is hidden, skip Firestore writes
+    // If only countdown/elapsed timers ticked, skip Firestore writes completely once seeded
+    if (!semanticChanged && lastFirestoreSuccessAtRef.current > 0) {
+      return;
+    }
+
+    // If the tab is hidden, skip non-forced Firestore writes
     if (
       !forceNow &&
-      !semanticChanged &&
       lastFirestoreSuccessAtRef.current > 0 &&
       typeof document !== 'undefined' &&
       document.hidden
@@ -783,10 +823,14 @@ export function useOverlaySync<T>({
       return;
     }
 
-    // Coalesce real gameplay changes at >=3s and routine timer-only updates at >=30s
-    const minIntervalMs = semanticChanged ? 3000 : 30_000;
+    // When local Socket.IO or HTTP REST overlay relay is healthy, only checkpoint
+    // to Firestore once every 60s to stay well within Firestore's free daily write quota.
+    // Even in fallback mode, throttle to >=15s between semantic checkpoints.
+    const isDirectRelayHealthy =
+      Boolean(socketRef.current?.connected) || lastHttpConfirmedSeqRef.current > 0;
+    const minIntervalMs = isDirectRelayHealthy ? 60_000 : 15_000;
+
     if (
-      (forceNow && semanticChanged) ||
       lastFirestoreWriteAtRef.current === 0 ||
       nowMs - lastFirestoreWriteAtRef.current >= minIntervalMs
     ) {
@@ -797,8 +841,8 @@ export function useOverlaySync<T>({
       flushFirestoreWrite(packet);
     } else if (!firestoreTrailingTimerRef.current) {
       const waitMs = Math.max(
-        500,
-        minIntervalMs - (nowMs - lastFirestoreWriteAtRef.current) + 50
+        2000,
+        minIntervalMs - (nowMs - lastFirestoreWriteAtRef.current) + 100
       );
       firestoreTrailingTimerRef.current = setTimeout(() => {
         firestoreTrailingTimerRef.current = null;
@@ -943,7 +987,7 @@ export function useOverlaySync<T>({
     const headerJson = JSON.stringify({
       type: 'state-sync',
       gameId: cleanGameId,
-      streamer: cleanStreamer,
+      streamer: cleanStreamerRef.current,
       channel: resolvedChannel,
       hostSessionId: hostSessionIdRef.current,
       seq: packetMeta.seq,
@@ -1000,11 +1044,11 @@ export function useOverlaySync<T>({
           path: '/socket.io',
           transports: ['websocket', 'polling'],
           reconnection: true,
-          reconnectionAttempts: 10,
-          reconnectionDelay: 3500,
-          reconnectionDelayMax: 30000,
-          randomizationFactor: 0.5,
-          timeout: 8000,
+          reconnectionAttempts: Infinity,
+          reconnectionDelay: 1500,
+          reconnectionDelayMax: 12000,
+          randomizationFactor: 0.4,
+          timeout: 15000,
           query: { gameId: `${cleanGameId}-overlay` },
         });
     socketRef.current = socket;
@@ -1026,7 +1070,7 @@ export function useOverlaySync<T>({
       const packet: OverlaySyncPacket<T> = {
         type: 'state-sync',
         gameId: cleanGameId,
-        streamer: cleanStreamer,
+        streamer: cleanStreamerRef.current,
         channel: resolvedChannel,
         state: stateObj,
         hostSessionId: hostSessionIdRef.current,
@@ -1162,9 +1206,11 @@ export function useOverlaySync<T>({
       if (packet.unchanged || packet.state === undefined) return;
       if (!packetMatchesOverlayScope(packet)) return;
 
+      const nowMs = Date.now();
       const prev = lastRemoteMetaRef.current;
       const pktSession =
         typeof packet.hostSessionId === 'string' ? packet.hostSessionId : '';
+      const pktHostCreatedAt = parseOverlayHostCreatedAt(pktSession);
       const pktSeq = typeof packet.seq === 'number' ? packet.seq : 0;
       const pktServerVer =
         typeof packet.serverVersion === 'number' ? packet.serverVersion : -1;
@@ -1195,16 +1241,30 @@ export function useOverlaySync<T>({
             return;
           }
         } else {
-          if (source === 'local' && prev.source === 'network' && !pktSession) {
+          // Never let a stale localStorage/same-tab cache overwrite a live network stream
+          if (
+            source === 'local' &&
+            prev.source === 'network' &&
+            (!pktSession || nowMs - prev.receivedAt < 15_000)
+          ) {
             return;
           }
-          // When resolvedChannel is paired, reject older packets arriving from a stale streamer fallback doc
+          // Single-Host Epoch Anti-Flicker Lock:
+          // Reject any packet from an OLDER host session while a newer host is actively publishing
+          if (
+            pktHostCreatedAt > 0 &&
+            prev.hostCreatedAt > 0 &&
+            pktHostCreatedAt < prev.hostCreatedAt &&
+            nowMs - prev.receivedAt < 30_000
+          ) {
+            return;
+          }
+          // When resolvedChannel is paired, reject packets arriving from a non-matching fallback doc while channel is live
           if (
             resolvedChannel &&
             prev.channel === resolvedChannel &&
             pktChannel !== resolvedChannel &&
-            prev.updatedAt > 0 &&
-            (pktUpdatedAt === 0 || pktUpdatedAt <= prev.updatedAt + 2000)
+            nowMs - prev.receivedAt < 30_000
           ) {
             return;
           }
@@ -1212,7 +1272,8 @@ export function useOverlaySync<T>({
           if (
             pktUpdatedAt > 0 &&
             prev.updatedAt > 0 &&
-            pktUpdatedAt + 2000 < prev.updatedAt
+            pktUpdatedAt + 2000 < prev.updatedAt &&
+            !(pktHostCreatedAt > prev.hostCreatedAt && prev.hostCreatedAt > 0)
           ) {
             return;
           }
@@ -1230,12 +1291,14 @@ export function useOverlaySync<T>({
                 : -1;
           lastRemoteMetaRef.current = {
             hostSessionId: pktSession || prev.hostSessionId,
+            hostCreatedAt: pktHostCreatedAt || prev.hostCreatedAt,
             seq: pktSession === prev.hostSessionId ? Math.max(prev.seq, pktSeq) : pktSeq,
             serverVersion: nextServerVer,
             bootId: pktBootId,
             stateHash: pktHash,
             channel: pktChannel || prev.channel,
             updatedAt: Math.max(prev.updatedAt, pktUpdatedAt),
+            receivedAt: nowMs,
             hasDelivered: true,
             source,
           };
@@ -1252,17 +1315,19 @@ export function useOverlaySync<T>({
 
       lastRemoteMetaRef.current = {
         hostSessionId: pktSession || prev?.hostSessionId || '',
+        hostCreatedAt: pktHostCreatedAt || prev?.hostCreatedAt || 0,
         seq: pktSeq,
         serverVersion: resolvedServerVer,
         bootId: pktBootId,
         stateHash: pktHash,
         channel: pktChannel || prev?.channel || '',
-        updatedAt: pktUpdatedAt || Date.now(),
+        updatedAt: pktUpdatedAt || nowMs,
+        receivedAt: nowMs,
         hasDelivered: true,
         source,
       };
       if (source === 'network') {
-        lastDirectSyncAtRef.current = Date.now();
+        lastDirectSyncAtRef.current = nowMs;
       }
 
       if (!hasReceivingSyncRef.current) {
@@ -1308,13 +1373,16 @@ export function useOverlaySync<T>({
       };
       joinOverlayRoom();
 
-      // 4) Firebase Firestore real-time overlay subscription (bridges ais-dev <-> ais-pre <-> Hostinger <-> Cloud Run instances)
+      // 4) Firebase Firestore real-time overlay subscription
+      // Subscribe ONLY to the single most authoritative doc (channel if paired, else streamer, else default)
+      // to prevent dual-doc flickering between channel and streamer alias docs!
       const firestoreUnsubs: Array<() => void> = [];
-      const fsDocIds = buildOverlayFirestoreDocIds(
+      const allFsDocIds = buildOverlayFirestoreDocIds(
         cleanGameId,
         cleanStreamer,
         resolvedChannel
       );
+      const fsDocIds = allFsDocIds.length > 0 ? [allFsDocIds[0]] : [];
       for (const fsDocId of fsDocIds) {
         const fsDocPath = `${OVERLAY_FIRESTORE_COLLECTION}/${fsDocId}`;
         try {
@@ -1511,18 +1579,21 @@ export function useOverlaySync<T>({
         ? setInterval(() => {
             tickCount += 1;
             const now = Date.now();
-            const hasRecentDirectSync = now - lastDirectSyncAtRef.current < 15000;
+            const hasRecentDirectSync = now - lastDirectSyncAtRef.current < 20_000;
             if (!socket || socket.disconnected) {
-              // Only fallback-poll every 10s (2nd tick) when disconnected and Firestore isn't delivering
-              if (!hasRecentDirectSync || tickCount % 2 === 0) {
+              if (socket && !socket.active) {
+                socket.connect();
+              }
+              // Only fallback-poll when Socket.IO is disconnected and Firestore isn't delivering fresh updates
+              if (!hasRecentDirectSync && tickCount % 2 === 0) {
                 void pollHttpSnapshot(false);
               }
             } else {
-              // When Socket.IO or Firestore is active, only reconcile every 25s (5th tick)
-              if (tickCount % 5 === 0) {
+              // When Socket.IO is connected, only reconcile via HTTP if no direct sync arrived recently
+              if (!hasRecentDirectSync && tickCount % 4 === 0) {
                 void pollHttpSnapshot(false);
               }
-              if (tickCount % 4 === 0) {
+              if (tickCount % 6 === 0) {
                 joinOverlayRoom();
               }
             }
@@ -1584,7 +1655,7 @@ export function useOverlaySync<T>({
         if (socket && socket.connected) {
           socket.emit('register-overlay-host', {
             gameId: cleanGameId,
-            streamer: cleanStreamer,
+            streamer: cleanStreamerRef.current,
             channel: resolvedChannel,
             hostSessionId: hostSessionIdRef.current,
           });
@@ -1607,7 +1678,7 @@ export function useOverlaySync<T>({
             const reqCh = sanitizeChannelToken(req?.channel);
             const reqStr = sanitizeStreamerHandle(req?.streamer);
             if (reqCh && resolvedChannel && reqCh !== resolvedChannel) return;
-            if (!reqCh && reqStr && cleanStreamer && reqStr !== cleanStreamer) return;
+            if (!reqCh && reqStr && cleanStreamerRef.current && reqStr !== cleanStreamerRef.current) return;
             pushHostSnapshotNow(true, undefined, true);
           }
         );
@@ -1648,14 +1719,16 @@ export function useOverlaySync<T>({
           latestPacket.stateHash &&
           latestPacket.stateHash !== lastFirestoreSentHashRef.current &&
           !isFirestoreWritePaused() &&
-          Date.now() >= fsCooldownUntilRef.current
+          Date.now() >= fsCooldownUntilRef.current &&
+          (!socket || socket.disconnected) &&
+          lastHttpConfirmedSeqRef.current === 0
         ) {
           scheduleFirestorePush(latestPacket, false);
         }
         if (socket && socket.connected && beatCount % 2 === 0) {
           socket.emit('register-overlay-host', {
             gameId: cleanGameId,
-            streamer: cleanStreamer,
+            streamer: cleanStreamerRef.current,
             channel: resolvedChannel,
             hostSessionId: hostSessionIdRef.current,
           });
@@ -1675,13 +1748,6 @@ export function useOverlaySync<T>({
             lastSerializedPacketRef.current,
             lastPacketRef.current?.seq || 0
           );
-        }
-        if (
-          lastPacketRef.current &&
-          !isFirestoreWritePaused() &&
-          lastPacketRef.current.stateHash !== lastFirestoreSentHashRef.current
-        ) {
-          scheduleFirestorePush(lastPacketRef.current, true);
         }
       };
       if (typeof window !== 'undefined') {
@@ -1721,7 +1787,7 @@ export function useOverlaySync<T>({
         if (socket && socket.connected) {
           socket.emit('overlay-host-leave', {
             gameId: cleanGameId,
-            streamer: cleanStreamer,
+            streamer: cleanStreamerRef.current,
             channel: resolvedChannel,
             hostSessionId: hostSessionIdRef.current,
           });
@@ -1738,7 +1804,22 @@ export function useOverlaySync<T>({
         socketRef.current = null;
       };
     }
-  }, [cleanGameId, cleanStreamer, resolvedChannel, isOverlay, storageKey]);
+  }, [cleanGameId, isOverlay ? cleanStreamer : '', resolvedChannel, isOverlay, storageKey]);
+
+  // Smoothly update host streamer room alias without tearing down the active overlay socket
+  useEffect(() => {
+    if (isOverlay || !cleanStreamer) return;
+    const sock = socketRef.current;
+    if (sock && sock.connected) {
+      sock.emit('register-overlay-host', {
+        gameId: cleanGameId,
+        streamer: cleanStreamer,
+        channel: resolvedChannel,
+        hostSessionId: hostSessionIdRef.current,
+      });
+    }
+    lastSecondaryAliasWriteAtRef.current = 0;
+  }, [isOverlay, cleanGameId, cleanStreamer, resolvedChannel]);
 
   // Host emits state updates cleanly (single pass JSON stringify, coalesced at 120ms)
   useEffect(() => {
@@ -1781,7 +1862,7 @@ export function useOverlaySync<T>({
       const packet: OverlaySyncPacket<T> = {
         type: 'state-sync',
         gameId: cleanGameId,
-        streamer: cleanStreamer,
+        streamer: cleanStreamerRef.current,
         channel: resolvedChannel,
         state: stateToSend,
         hostSessionId: hostSessionIdRef.current,

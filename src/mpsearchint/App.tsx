@@ -664,9 +664,10 @@ export default function MPSearchInteractiveApp() {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 12,
-      reconnectionDelay: 2000,
-      reconnectionDelayMax: 15000,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1500,
+      reconnectionDelayMax: 10000,
+      timeout: 15000,
       query: {
         sessionId: getLiveConnectionSessionId('mpsearchint'),
         gameId: 'mpsearchint',

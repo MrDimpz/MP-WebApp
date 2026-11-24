@@ -451,7 +451,7 @@ export function validateInteractiveStreamerKey(
   return { ok: true, valid: true, user: matched, streamer: matched, session };
 }
 
-export const STREAMER_INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+export const STREAMER_INACTIVITY_TIMEOUT_MS = 4 * 60 * 60 * 1000; // 4 hours so live broadcasts never randomly disconnect
 
 export function touchActiveInteractiveStreamerSession(): void {
   if (typeof window === 'undefined') return;

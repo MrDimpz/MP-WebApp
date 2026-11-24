@@ -1,8 +1,96 @@
-const QUOTA_PAUSE_STORAGE_KEY = 'mp_firestore_quota_pause_until_v1';
-const QUOTA_COOLDOWN_MS = 30 * 60 * 1000;
+import { disableNetwork } from 'firebase/firestore';
+import { db } from '../firebase';
+
+const QUOTA_PAUSE_STORAGE_KEY = 'mp_firestore_quota_pause_until_v2';
+const MIN_QUOTA_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours minimum
+const FALLBACK_QUOTA_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours fallback
+const MAX_QUOTA_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours max
 
 let inMemoryQuotaPauseUntil = 0;
 let hasLoggedQuotaPauseWarning = false;
+let hasDisabledFirestoreNetwork = false;
+
+/**
+ * Computes the next midnight America/Los_Angeles (when Google Cloud Firestore
+ * free-tier daily read/write quotas reset), bounded between 2h and 24h from now.
+ */
+function computeNextDailyQuotaResetMs(): number {
+  const now = Date.now();
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles',
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).formatToParts(new Date(now));
+
+    const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? '0') % 24;
+    const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? '0');
+    const second = Number(parts.find((p) => p.type === 'second')?.value ?? '0');
+
+    const secondsSinceMidnightPt = hour * 3600 + minute * 60 + second;
+    const secondsUntilReset = Math.max(60, 86400 - secondsSinceMidnightPt + 300); // +5m buffer past midnight PT
+    const delayMs = secondsUntilReset * 1000;
+    return now + Math.max(MIN_QUOTA_COOLDOWN_MS, Math.min(MAX_QUOTA_COOLDOWN_MS, delayMs));
+  } catch {
+    return now + FALLBACK_QUOTA_COOLDOWN_MS;
+  }
+}
+
+function haltFirestoreBackgroundRetries(): void {
+  if (hasDisabledFirestoreNetwork) return;
+  hasDisabledFirestoreNetwork = true;
+  try {
+    // Halts the Firestore SDK's queued write retries so it stops spamming
+    // "resource-exhausted" and "Using maximum backoff delay" in the console.
+    void disableNetwork(db).catch(() => {
+      // Ignore shutdown/disabled errors
+    });
+  } catch {
+    // Ignore if db is not ready
+  }
+}
+
+function readStoredPauseUntil(): number {
+  if (typeof window === 'undefined') return 0;
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      const raw = store.getItem(QUOTA_PAUSE_STORAGE_KEY);
+      if (raw) {
+        const parsed = Number(raw);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore storage errors in restricted iframes
+    }
+  }
+  return 0;
+}
+
+function writeStoredPauseUntil(until: number): void {
+  if (typeof window === 'undefined') return;
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      store.setItem(QUOTA_PAUSE_STORAGE_KEY, String(until));
+    } catch {
+      // Ignore storage errors
+    }
+  }
+}
+
+function clearStoredPauseUntil(): void {
+  if (typeof window === 'undefined') return;
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      store.removeItem(QUOTA_PAUSE_STORAGE_KEY);
+    } catch {
+      // Ignore storage errors
+    }
+  }
+}
 
 function extractErrorCodeAndMessage(err: unknown): { code: string; message: string } {
   const code =
@@ -48,38 +136,27 @@ export function isFirestoreWritePaused(): boolean {
   if (inMemoryQuotaPauseUntil > 0 && inMemoryQuotaPauseUntil <= now) {
     inMemoryQuotaPauseUntil = 0;
   }
-  if (typeof window !== 'undefined') {
-    try {
-      const raw = window.sessionStorage.getItem(QUOTA_PAUSE_STORAGE_KEY);
-      if (raw) {
-        const storedUntil = Number(raw);
-        if (Number.isFinite(storedUntil) && storedUntil > now) {
-          inMemoryQuotaPauseUntil = storedUntil;
-          return true;
-        }
-        window.sessionStorage.removeItem(QUOTA_PAUSE_STORAGE_KEY);
-      }
-    } catch {
-      // Ignore storage access errors in restricted iframes
-    }
+  const storedUntil = readStoredPauseUntil();
+  if (storedUntil > now) {
+    inMemoryQuotaPauseUntil = storedUntil;
+    haltFirestoreBackgroundRetries();
+    return true;
+  }
+  if (storedUntil > 0 && storedUntil <= now) {
+    clearStoredPauseUntil();
   }
   return false;
 }
 
 export function markFirestoreQuotaExhausted(_err?: unknown): void {
-  const until = Date.now() + QUOTA_COOLDOWN_MS;
+  const until = computeNextDailyQuotaResetMs();
   inMemoryQuotaPauseUntil = until;
-  if (typeof window !== 'undefined') {
-    try {
-      window.sessionStorage.setItem(QUOTA_PAUSE_STORAGE_KEY, String(until));
-    } catch {
-      // Ignore storage access errors
-    }
-  }
+  writeStoredPauseUntil(until);
+  haltFirestoreBackgroundRetries();
   if (!hasLoggedQuotaPauseWarning) {
     hasLoggedQuotaPauseWarning = true;
     console.warn(
-      '[Firestore] Daily free-tier quota limit reached; pausing Firestore writes for this session while local/Socket.IO/HTTP sync continues.'
+      '[Firestore] Daily free-tier quota limit reached; pausing Firestore network writes until daily reset while local/Socket.IO/HTTP sync continues.'
     );
   }
 }

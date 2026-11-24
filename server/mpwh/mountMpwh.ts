@@ -19,7 +19,7 @@ import { mountMpwhSoloRoutes } from './soloRoutes.ts';
 import {
   normalizeDictionaryLanguage,
   type DictionaryLanguageCode,
-} from '../../src/lib/dictionary-languages.ts';
+} from '../../src/lib/dictionary-language-core.ts';
 import type {
   ActivityFeedItem,
   GuessFeedItem,

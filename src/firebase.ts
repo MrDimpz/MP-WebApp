@@ -33,6 +33,16 @@ async function testConnection() {
     return;
   }
   try {
+    const rawPause =
+      window.localStorage.getItem("mp_firestore_quota_pause_until_v2") ||
+      window.sessionStorage.getItem("mp_firestore_quota_pause_until_v2");
+    if (rawPause && Number(rawPause) > Date.now()) {
+      return;
+    }
+  } catch {
+    // ignore storage errors
+  }
+  try {
     await getDocFromServer(doc(db, "test", "connection"));
   } catch (error) {
     if (

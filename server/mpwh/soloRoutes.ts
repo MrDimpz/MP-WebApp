@@ -17,7 +17,7 @@ import {
 import {
   normalizeDictionaryLanguage,
   type DictionaryLanguageCode,
-} from '../../src/lib/dictionary-languages.ts';
+} from '../../src/lib/dictionary-language-core.ts';
 import type {
   GuessFeedItem,
   LadderInstanceView,

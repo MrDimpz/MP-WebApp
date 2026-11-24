@@ -50,7 +50,14 @@ interface PersistedInkStreamData {
   roundAnalytics: AnalyticsRow[];
 }
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+const customInkStreamDir = (process.env.INKSTREAM_DATA_DIR || '').trim();
+const customPersistentDir = (process.env.PERSISTENT_DATA_DIR || '').trim();
+const DATA_DIR = path.resolve(
+  customInkStreamDir ||
+    (customPersistentDir
+      ? path.join(customPersistentDir, 'inkstream')
+      : path.join(process.cwd(), 'data'))
+);
 const STORE_PATH = path.resolve(DATA_DIR, 'inkstream-store.json');
 const MAX_ARTWORKS_PER_USER = 40;
 const MAX_ANALYTICS_ROWS = 200;

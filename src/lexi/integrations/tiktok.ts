@@ -50,10 +50,11 @@ export class TikTokIntegrationService {
       const s = io({
         path: '/socket.io',
         transports: ['websocket', 'polling'],
-        reconnectionAttempts: 8,
-        reconnectionDelay: 2000,
-        reconnectionDelayMax: 15000,
-        timeout: 5000,
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1500,
+        reconnectionDelayMax: 10000,
+        timeout: 15000,
         query: {
           sessionId: getLiveConnectionSessionId('lexi'),
           gameId: 'lexi',

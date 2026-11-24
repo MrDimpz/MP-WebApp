@@ -412,8 +412,12 @@ async function startServer() {
     perMessageDeflate: false,
     httpCompression: false,
     maxHttpBufferSize: 5e6,
-    pingTimeout: 25000,
-    pingInterval: 15000,
+    pingTimeout: 60000,
+    pingInterval: 20000,
+    connectionStateRecovery: {
+      maxDisconnectionDuration: 2 * 60 * 1000,
+      skipMiddlewares: true,
+    },
   });
 
   app.use((req, res, next) => {
@@ -449,11 +453,21 @@ async function startServer() {
       streamer: string;
       channel: string;
       hostSessionId?: string;
+      hostCreatedAt?: number;
       seq?: number;
       stateHash?: string;
       serverVersion: number;
     }
   >();
+
+  function parseOverlayHostCreatedAt(hostSessionId?: string): number {
+    if (!hostSessionId || typeof hostSessionId !== "string") return 0;
+    const match = /^host_([0-9a-z]+)_/i.exec(hostSessionId.trim());
+    if (!match) return 0;
+    const parsed = parseInt(match[1], 36);
+    if (!Number.isFinite(parsed) || parsed < 1_500_000_000_000) return 0;
+    return parsed;
+  }
 
   function sanitizeOverlayChannel(raw: unknown): string {
     return String(raw || "")
@@ -507,6 +521,8 @@ async function startServer() {
     const { gameId, state, hostSessionId, seq, stateHash, senderSocket } = params;
     const streamer = sanitizeOverlayStreamer(params.streamer);
     const channel = sanitizeOverlayChannel(params.channel);
+    const incomingHostCreatedAt = parseOverlayHostCreatedAt(hostSessionId);
+    const now = Date.now();
 
     const primaryKey = channel
       ? `overlay:${gameId}:ch:${channel}`
@@ -515,29 +531,53 @@ async function startServer() {
         : `overlay:${gameId}:default`;
 
     const currentExisting = overlaySnapshots.get(primaryKey);
-    if (
-      currentExisting &&
-      hostSessionId &&
-      currentExisting.hostSessionId === hostSessionId &&
-      typeof seq === "number" &&
-      typeof currentExisting.seq === "number" &&
-      seq <= currentExisting.seq
-    ) {
-      return {
-        gameId,
-        streamer: currentExisting.streamer,
-        channel: currentExisting.channel,
-        state: currentExisting.state,
-        stateHash: currentExisting.stateHash,
-        updatedAt: currentExisting.updatedAt,
-        hostSessionId: currentExisting.hostSessionId,
-        seq: currentExisting.seq,
-        serverVersion: currentExisting.serverVersion,
-        bootId: serverBootId,
-      };
+    if (currentExisting) {
+      // 1) Reject duplicate/reordered older seq from the same host session
+      if (
+        hostSessionId &&
+        currentExisting.hostSessionId === hostSessionId &&
+        typeof seq === "number" &&
+        typeof currentExisting.seq === "number" &&
+        seq <= currentExisting.seq
+      ) {
+        return {
+          gameId,
+          streamer: currentExisting.streamer,
+          channel: currentExisting.channel,
+          state: currentExisting.state,
+          stateHash: currentExisting.stateHash,
+          updatedAt: currentExisting.updatedAt,
+          hostSessionId: currentExisting.hostSessionId,
+          seq: currentExisting.seq,
+          serverVersion: currentExisting.serverVersion,
+          bootId: serverBootId,
+        };
+      }
+      // 2) Anti-flicker guard: reject updates from an OLDER host tab/session while a newer host is active
+      if (
+        hostSessionId &&
+        currentExisting.hostSessionId &&
+        currentExisting.hostSessionId !== hostSessionId &&
+        incomingHostCreatedAt > 0 &&
+        (currentExisting.hostCreatedAt || 0) > incomingHostCreatedAt &&
+        now - currentExisting.updatedAt < 20_000
+      ) {
+        return {
+          gameId,
+          streamer: currentExisting.streamer,
+          channel: currentExisting.channel,
+          state: currentExisting.state,
+          stateHash: currentExisting.stateHash,
+          updatedAt: currentExisting.updatedAt,
+          hostSessionId: currentExisting.hostSessionId,
+          seq: currentExisting.seq,
+          serverVersion: currentExisting.serverVersion,
+          bootId: serverBootId,
+        };
+      }
     }
 
-    const updatedAt = Date.now();
+    const updatedAt = now;
     const serverVersion = ++overlayVersionCounter;
     const record = {
       state,
@@ -545,6 +585,7 @@ async function startServer() {
       streamer,
       channel,
       hostSessionId,
+      hostCreatedAt: incomingHostCreatedAt,
       seq,
       stateHash,
       serverVersion,
@@ -555,8 +596,18 @@ async function startServer() {
 
     if (channel && streamer) {
       const streamerKey = `overlay:${gameId}:s:${streamer}`;
-      overlaySnapshots.set(streamerKey, record);
-      targetRooms.add(streamerKey);
+      const existingAlias = overlaySnapshots.get(streamerKey);
+      const aliasOwnedByNewerHost =
+        existingAlias &&
+        existingAlias.hostSessionId &&
+        hostSessionId &&
+        existingAlias.hostSessionId !== hostSessionId &&
+        (existingAlias.hostCreatedAt || 0) > incomingHostCreatedAt &&
+        now - existingAlias.updatedAt < 20_000;
+      if (!aliasOwnedByNewerHost) {
+        overlaySnapshots.set(streamerKey, record);
+        targetRooms.add(streamerKey);
+      }
     }
 
     const packet = {
@@ -735,6 +786,8 @@ async function startServer() {
         tiktokConn: null,
         connectingPromise: null,
         retryTimer: null,
+        retryCount: 0,
+        explicitlyDisconnected: false,
         connectedUsername: null,
         connectedRoomId: null,
         isTestMode: false,
@@ -770,6 +823,8 @@ async function startServer() {
   }
 
   function disconnectSessionTikTok(session: any) {
+    session.explicitlyDisconnected = true;
+    session.retryCount = 0;
     closeSessionTikTokConnOnly(session);
     session.connectingPromise = null;
     session.connectedUsername = null;
@@ -780,7 +835,7 @@ async function startServer() {
 
   // Clean up idle abandoned sessions and release zombie TikTokLiveConnection sockets
   const sessionCleanupTimer = setInterval(() => {
-    const cutoff = Date.now() - 2 * 60 * 60 * 1000;
+    const cutoff = Date.now() - 4 * 60 * 60 * 1000;
     for (const [key, sess] of sessions.entries()) {
       const room = io.sockets.adapter.rooms.get(`session:${sess.sessionId}`);
       const hasSockets = Boolean(room && room.size > 0);
@@ -791,6 +846,42 @@ async function startServer() {
     }
   }, 10 * 60 * 1000);
   sessionCleanupTimer.unref();
+
+  // 30-second TikTok LIVE liveness watchdog: detects silent/zombie Webcast drops & auto-heals
+  const tiktokLivenessWatchdog = setInterval(() => {
+    const now = Date.now();
+    for (const sess of sessions.values()) {
+      if (
+        !sess.connectedUsername ||
+        sess.isTestMode ||
+        sess.explicitlyDisconnected ||
+        sess.connectingPromise ||
+        sess.retryTimer
+      ) {
+        continue;
+      }
+      const room = io.sockets.adapter.rooms.get(`session:${sess.sessionId}`);
+      const hasSockets = Boolean(room && room.size > 0);
+      if (!hasSockets && now - sess.lastActiveAt > 4 * 60 * 60 * 1000) {
+        continue;
+      }
+      const conn = sess.tiktokConn;
+      const isAlive = Boolean(
+        conn && (typeof conn.isConnected !== "boolean" || conn.isConnected === true),
+      );
+      if (!isAlive) {
+        if (conn) {
+          try {
+            conn.disconnect();
+          } catch {}
+          sess.tiktokConn = null;
+        }
+        sess.connectedRoomId = "LIVE_RELAY";
+        scheduleBackgroundTikTokRetry(sess, sess.connectedUsername);
+      }
+    }
+  }, 30_000);
+  tiktokLivenessWatchdog.unref();
 
   function pushAndEmitToSession(session: any, type: string, payload: any) {
     session.eventSeq += 1;
@@ -966,10 +1057,22 @@ async function startServer() {
     activeConn.on(ControlEvent.DISCONNECTED, () => {
       if (session.tiktokConn === activeConn) {
         session.tiktokConn = null;
-        // Keep session alive in LIVE_RELAY mode and schedule background reconnect
+        // Keep session alive in LIVE_RELAY mode and schedule fast background reconnect
         // unless the user explicitly disconnected
-        if (session.connectedUsername === cleanUsername && !session.isTestMode) {
+        if (
+          !session.explicitlyDisconnected &&
+          session.connectedUsername === cleanUsername &&
+          !session.isTestMode
+        ) {
           session.connectedRoomId = "LIVE_RELAY";
+          io.to(`session:${session.sessionId}`).emit("tiktok-status", {
+            connected: true,
+            reconnecting: true,
+            username: cleanUsername,
+            roomId: "LIVE_RELAY",
+            gameId: session.gameId || undefined,
+            notice: "TikTok stream hiccup — auto-reconnecting…",
+          });
           scheduleBackgroundTikTokRetry(session, cleanUsername);
         }
       }
@@ -983,15 +1086,25 @@ async function startServer() {
   function scheduleBackgroundTikTokRetry(session: any, cleanUsername: string) {
     clearSessionRetryTimer(session);
     if (
+      session.explicitlyDisconnected ||
       session.isTestMode ||
       !session.connectedUsername ||
       session.connectedUsername !== cleanUsername
     ) {
       return;
     }
+    const backoffScheduleMs = [3000, 5000, 8000, 12000, 15000];
+    const attemptIdx = Math.min(
+      Math.max(0, Number(session.retryCount) || 0),
+      backoffScheduleMs.length - 1,
+    );
+    const delayMs = backoffScheduleMs[attemptIdx];
+    session.retryCount = (Number(session.retryCount) || 0) + 1;
+
     session.retryTimer = setTimeout(async () => {
       session.retryTimer = null;
       if (
+        session.explicitlyDisconnected ||
         !session.connectedUsername ||
         session.connectedUsername !== cleanUsername ||
         session.tiktokConn ||
@@ -1005,26 +1118,34 @@ async function startServer() {
           enableExtendedGiftInfo: false,
         });
         const state = await conn.connect();
-        if (session.connectedUsername !== cleanUsername) {
+        if (
+          session.explicitlyDisconnected ||
+          session.connectedUsername !== cleanUsername
+        ) {
           try {
             conn.disconnect();
           } catch {}
           return;
         }
         session.tiktokConn = conn;
+        session.retryCount = 0;
         session.connectedRoomId = state?.roomId || `LIVE_${cleanUsername}`;
+        session.lastActiveAt = Date.now();
         attachTikTokConnListeners(session, conn, cleanUsername);
         emitConnectedState(session, undefined);
       } catch {
-        // Still offline or using webhook relay; retry again in 15s while session is active
+        // Keep retrying while any client socket is attached or session was active within 4h
+        const room = io.sockets.adapter.rooms.get(`session:${session.sessionId}`);
+        const hasSockets = Boolean(room && room.size > 0);
         if (
+          !session.explicitlyDisconnected &&
           session.connectedUsername === cleanUsername &&
-          Date.now() - session.lastActiveAt < 20 * 60 * 1000
+          (hasSockets || Date.now() - session.lastActiveAt < 4 * 60 * 60 * 1000)
         ) {
           scheduleBackgroundTikTokRetry(session, cleanUsername);
         }
       }
-    }, 15000);
+    }, delayMs);
   }
 
   async function connectSessionTikTokStream(
@@ -1071,13 +1192,21 @@ async function startServer() {
       };
     }
 
-    // 2. If already connected to this exact username and not forcing reconnect, reuse active connection
+    // 2. If already actively connected with a live TikTok connection and not forcing reconnect, reuse it
+    const hasHealthyLiveConn = Boolean(
+      session.tiktokConn &&
+        (typeof session.tiktokConn.isConnected !== "boolean" ||
+          session.tiktokConn.isConnected === true),
+    );
     if (
       !forceReconnect &&
+      hasHealthyLiveConn &&
       session.connectedUsername &&
       session.connectedUsername.toLowerCase() === cleanUsername.toLowerCase() &&
       !session.isTestMode
     ) {
+      session.explicitlyDisconnected = false;
+      session.lastActiveAt = Date.now();
       emitConnectedState(session, gameId);
       return {
         ok: true,
@@ -1095,6 +1224,7 @@ async function startServer() {
       session.connectedUsername &&
       session.connectedUsername.toLowerCase() === cleanUsername.toLowerCase()
     ) {
+      session.explicitlyDisconnected = false;
       emitConnectedState(session, gameId);
       return session.connectingPromise;
     }
@@ -1102,9 +1232,12 @@ async function startServer() {
     // 4. Mark session connected immediately so UI & webhook relays are active right away,
     // and attempt direct TikTokLiveConnection in parallel / with fallback to LIVE_RELAY.
     closeSessionTikTokConnOnly(session);
+    session.explicitlyDisconnected = false;
+    session.retryCount = 0;
     session.isTestMode = false;
     session.connectedUsername = cleanUsername;
     session.connectedRoomId = `LIVE_${cleanUsername}`;
+    session.lastActiveAt = Date.now();
     emitConnectedState(session, gameId);
 
     const connectTask = (async () => {
@@ -1116,15 +1249,19 @@ async function startServer() {
         session.tiktokConn = conn;
 
         const state = await conn.connect();
-        if (session.tiktokConn !== conn) {
+        if (session.tiktokConn !== conn || session.explicitlyDisconnected) {
+          try {
+            conn.disconnect();
+          } catch {}
           return {
             ok: true,
-            connected: true,
+            connected: Boolean(session.connectedUsername),
             username: session.connectedUsername || cleanUsername,
             roomId: session.connectedRoomId || `LIVE_${cleanUsername}`,
           };
         }
 
+        session.retryCount = 0;
         session.connectedUsername = cleanUsername;
         session.connectedRoomId = state?.roomId || `LIVE_${cleanUsername}`;
         if (gameId) {
@@ -2131,6 +2268,29 @@ async function startServer() {
       );
     });
 
+    socket.on("tiktok-keepalive", (payload) => {
+      activeSession.lastActiveAt = Date.now();
+      if (
+        payload &&
+        typeof payload === "object" &&
+        typeof payload.username === "string" &&
+        payload.username.trim() &&
+        !activeSession.connectedUsername &&
+        !activeSession.explicitlyDisconnected
+      ) {
+        const cleanUser = payload.username.trim().replace(/^@+/, "");
+        void connectSessionTikTokStream(
+          activeSession,
+          cleanUser,
+          normalizeGameId(payload.gameId) || socketGameId || undefined,
+          {
+            isTestMode: Boolean(payload.isTestMode),
+            provider: payload.provider,
+          },
+        );
+      }
+    });
+
     // Support simulated or client-relayed chat messages into all active listeners
     socket.on("chat-message", (chatPayload) => {
       if (chatPayload && typeof chatPayload === "object") {
@@ -2367,27 +2527,56 @@ async function startServer() {
       process.env.NODE_ENV === "production" ||
       !isDevLifecycle);
 
+  let viteReady = useProdStatic;
+
   app.get("/api/health", (_req, res) => {
     res.json({
       ok: true,
       mode: useProdStatic ? "production" : "development",
       bootId: serverBootId,
       distReady: hasBuiltDist,
+      viteReady,
       uptimeSec: Math.round(process.uptime()),
     });
   });
 
   if (!useProdStatic) {
-    const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
-      server: {
-        middlewareMode: true,
-        hmr: false,
-        ws: false,
-      },
-      appType: "spa",
+    const viteReadyPromise = import("vite")
+      .then(({ createServer: createViteServer }) =>
+        createViteServer({
+          server: {
+            middlewareMode: true,
+            hmr: false,
+            ws: false,
+            watch:
+              process.env.DISABLE_HMR === "true"
+                ? null
+                : {
+                    ignored: [
+                      "**/dist/**",
+                      "**/.relay_data/**",
+                      "**/data/**",
+                      "**/public/the-missing-piece-hostinger.zip",
+                    ],
+                  },
+          },
+          appType: "spa",
+        }),
+      )
+      .then((vite) => {
+        viteReady = true;
+        return vite;
+      });
+
+    viteReadyPromise.catch((err) => {
+      console.error("[Server] Failed to initialize Vite dev middleware:", err);
     });
-    app.use(vite.middlewares);
+
+    app.use((req, res, next) => {
+      viteReadyPromise
+        .then((vite) => vite.middlewares(req, res, next))
+        .catch(next);
+    });
   } else {
     let cachedIndexHtml: string | null = null;
     const readBuiltIndexHtml = () => {
@@ -2456,11 +2645,36 @@ async function startServer() {
   }
 
   const PORT = Number(process.env.PORT) || 3000;
+  httpServer.on("error", (err) => {
+    console.error("[Server] HTTP server error:", err);
+  });
   httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(
       `Server running on port ${PORT} (${useProdStatic ? "production-static" : "vite-dev"})`,
     );
   });
+
+  const shutdown = (signal: string) => {
+    console.log(`[Server] Received ${signal}, shutting down cleanly...`);
+    httpServer.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 2000).unref();
+  };
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 }
 
-startServer();
+process.on("unhandledRejection", (reason) => {
+  console.error("[Server] Unhandled promise rejection (kept alive):", reason);
+});
+
+process.on("uncaughtException", (err: NodeJS.ErrnoException) => {
+  console.error("[Server] Uncaught exception:", err);
+  if (err && (err.code === "EADDRINUSE" || err.code === "EACCES")) {
+    process.exit(1);
+  }
+});
+
+startServer().catch((err) => {
+  console.error("[Server] Fatal startup error:", err);
+  process.exit(1);
+});

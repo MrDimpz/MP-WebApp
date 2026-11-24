@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Lock,
   LogOut,
+  RefreshCw,
   Send,
 } from 'lucide-react';
 
@@ -67,6 +68,7 @@ export const TikTokStreamModal: React.FC<TikTokStreamModalProps> = ({
   errorMessage,
   onConnectTikTok,
   onDisconnectTikTok,
+  onReconnectTikTok,
   onSimulateChat,
   onSimulateLike,
   onSimulateGift,
@@ -270,27 +272,65 @@ export const TikTokStreamModal: React.FC<TikTokStreamModalProps> = ({
                     className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-[#16041c] border border-[#6b21a8] text-sm text-white focus:outline-none focus:border-[#facc15]"
                   />
                   {connectionState === 'connected' ? (
-                    <button
-                      type="button"
-                      onClick={onDisconnectTikTok}
-                      className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold cursor-pointer whitespace-nowrap"
-                    >
-                      Disconnect
-                    </button>
+                    <>
+                      {onReconnectTikTok && (
+                        <button
+                          type="button"
+                          onClick={() => onReconnectTikTok(liveHandleInput)}
+                          title="Refresh live TikTok chat bridge without disconnecting or resetting your round"
+                          className="px-3 py-2 rounded-xl bg-[#360b42] hover:bg-[#4a1259] border border-[#facc15]/60 text-[#facc15] text-xs font-extrabold cursor-pointer whitespace-nowrap flex items-center gap-1"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" /> Fix
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={onDisconnectTikTok}
+                        className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold cursor-pointer whitespace-nowrap"
+                      >
+                        Disconnect
+                      </button>
+                    </>
                   ) : (
-                    <button
-                      type="submit"
-                      disabled={connectionState === 'connecting'}
-                      className="px-4 py-2 rounded-xl bg-[#facc15] hover:bg-[#fde047] text-[#2d0938] text-xs font-extrabold cursor-pointer whitespace-nowrap"
-                    >
-                      {connectionState === 'connecting' ? 'Connecting...' : 'Connect'}
-                    </button>
+                    <>
+                      <button
+                        type="submit"
+                        disabled={connectionState === 'connecting'}
+                        className="px-4 py-2 rounded-xl bg-[#facc15] hover:bg-[#fde047] text-[#2d0938] text-xs font-extrabold cursor-pointer whitespace-nowrap"
+                      >
+                        {connectionState === 'connecting' ? 'Reconnecting…' : 'Connect'}
+                      </button>
+                      {onReconnectTikTok && (
+                        <button
+                          type="button"
+                          onClick={() => onReconnectTikTok(liveHandleInput)}
+                          title="Force refresh bridge & reconnect immediately"
+                          className="px-3 py-2 rounded-xl bg-[#360b42] hover:bg-[#4a1259] border border-[#facc15]/60 text-[#facc15] text-xs font-extrabold cursor-pointer whitespace-nowrap flex items-center gap-1"
+                        >
+                          <RefreshCw
+                            className={`w-3.5 h-3.5 ${
+                              connectionState === 'connecting' ? 'animate-spin' : ''
+                            }`}
+                          />{' '}
+                          Reconnect
+                        </button>
+                      )}
+                    </>
                   )}
                 </form>
 
                 {errorMessage && (
-                  <div className="p-2.5 rounded-lg bg-red-950/70 border border-red-500/60 text-red-200 text-xs">
-                    {errorMessage}
+                  <div className="p-2.5 rounded-lg bg-amber-950/70 border border-amber-400/60 text-amber-100 text-xs flex items-center justify-between gap-2">
+                    <span>{errorMessage}</span>
+                    {onReconnectTikTok && (
+                      <button
+                        type="button"
+                        onClick={() => onReconnectTikTok(liveHandleInput)}
+                        className="px-2.5 py-1 rounded-lg bg-[#facc15] hover:bg-[#fde047] text-[#2d0938] text-[11px] font-extrabold cursor-pointer whitespace-nowrap shrink-0"
+                      >
+                        Fix Now
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

@@ -1,75 +1,33 @@
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res, err) => function __init() {
-  if (err) throw err[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err = [e], e;
-  }
-};
-
-// firebase-applet-config.json
-var firebase_applet_config_default;
-var init_firebase_applet_config = __esm({
-  "firebase-applet-config.json"() {
-    firebase_applet_config_default = {
-      projectId: "gen-lang-client-0105658986",
-      appId: "1:516742535717:web:d50a88b1917b0f34a1fdcc",
-      apiKey: "AIzaSyCEpngWPe9MmPzQNXKaeNmgyw43_WTW6a0",
-      authDomain: "gen-lang-client-0105658986.firebaseapp.com",
-      firestoreDatabaseId: "ai-studio-remixthemissingp-35a65176-5efc-4f3b-8d39-edf48b6e0cd7",
-      storageBucket: "gen-lang-client-0105658986.firebasestorage.app",
-      messagingSenderId: "516742535717",
-      measurementId: "",
-      oAuthClientId: "516742535717-r2ivqg9tf9ucmdf2u6abtl04kl0rmqhj.apps.googleusercontent.com",
-      recaptchaSiteKey: ""
-    };
-  }
-});
-
-// src/firebase.ts
-import { initializeApp, getApps, getApp } from "firebase/app";
+// server.ts
+import express from "express";
+import { createServer } from "http";
+import { Server } from "socket.io";
+import fs4 from "fs";
+import path4 from "path";
+import { fileURLToPath } from "url";
 import {
-  browserLocalPersistence,
-  getAuth,
-  indexedDBLocalPersistence,
-  setPersistence
-} from "firebase/auth";
-import { doc, getDocFromServer, getFirestore } from "firebase/firestore";
-async function testConnection() {
-  if (typeof window === "undefined") return;
-  const cleanPath = window.location.pathname.toLowerCase().replace(/\/+$/, "");
-  const params = new URLSearchParams(window.location.search);
-  if (cleanPath.endsWith("/overlay") || params.get("overlay") === "1" || params.get("clean") === "1") {
-    return;
-  }
-  try {
-    await getDocFromServer(doc(db, "test", "connection"));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("the client is offline")) {
-      console.error("Please check your Firebase configuration.");
-    }
-  }
-}
-var app, auth, db;
-var init_firebase = __esm({
-  "src/firebase.ts"() {
-    init_firebase_applet_config();
-    app = getApps().length > 0 ? getApp() : initializeApp(firebase_applet_config_default);
-    auth = getAuth(app);
-    db = firebase_applet_config_default.firestoreDatabaseId ? getFirestore(app, firebase_applet_config_default.firestoreDatabaseId) : getFirestore(app);
-    if (typeof window !== "undefined") {
-      setPersistence(auth, indexedDBLocalPersistence).catch(() => {
-        setPersistence(auth, browserLocalPersistence).catch(() => {
-        });
-      });
-    }
-    void testConnection();
-  }
-});
+  TikTokLiveConnection as TikTokLiveConnection2,
+  WebcastEvent as WebcastEvent2,
+  ControlEvent as ControlEvent2
+} from "tiktok-live-connector";
 
-// src/lib/dictionary-languages.ts
-import { useCallback, useEffect, useState } from "react";
+// server/inkstream/mountInkStream.ts
+import crypto3 from "node:crypto";
+
+// server/inkstream/auth.ts
+import crypto from "node:crypto";
+
+// src/lib/dictionary-language-core.ts
+var DICTIONARY_LANGUAGES = [
+  { code: "en", shortCode: "EN", label: "English", nativeLabel: "English", flag: "\u{1F1EC}\u{1F1E7}" },
+  { code: "es", shortCode: "ES", label: "Spanish", nativeLabel: "Espa\xF1ol", flag: "\u{1F1EA}\u{1F1F8}" },
+  { code: "fr", shortCode: "FR", label: "French", nativeLabel: "Fran\xE7ais", flag: "\u{1F1EB}\u{1F1F7}" },
+  { code: "de", shortCode: "DE", label: "German", nativeLabel: "Deutsch", flag: "\u{1F1E9}\u{1F1EA}" },
+  { code: "it", shortCode: "IT", label: "Italian", nativeLabel: "Italiano", flag: "\u{1F1EE}\u{1F1F9}" },
+  { code: "pt", shortCode: "PT", label: "Portuguese", nativeLabel: "Portugu\xEAs", flag: "\u{1F1F5}\u{1F1F9}" },
+  { code: "tl", shortCode: "TL", label: "Filipino / Tagalog", nativeLabel: "Filipino / Tagalog", flag: "\u{1F1F5}\u{1F1ED}" }
+];
+var VALID_CODES = new Set(DICTIONARY_LANGUAGES.map((l) => l.code));
 function normalizeDictionaryLanguage(value) {
   if (typeof value === "string") {
     const lower = value.trim().toLowerCase();
@@ -86,47 +44,6 @@ function stripDiacritics(input) {
   if (!input) return "";
   return input.replace(/ß/g, "ss").replace(/ẞ/g, "SS").replace(/œ/g, "oe").replace(/Œ/g, "OE").replace(/æ/g, "ae").replace(/Æ/g, "AE").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
-var DICTIONARY_LANGUAGES, VALID_CODES;
-var init_dictionary_languages = __esm({
-  "src/lib/dictionary-languages.ts"() {
-    init_firebase();
-    DICTIONARY_LANGUAGES = [
-      { code: "en", shortCode: "EN", label: "English", nativeLabel: "English", flag: "\u{1F1EC}\u{1F1E7}" },
-      { code: "es", shortCode: "ES", label: "Spanish", nativeLabel: "Espa\xF1ol", flag: "\u{1F1EA}\u{1F1F8}" },
-      { code: "fr", shortCode: "FR", label: "French", nativeLabel: "Fran\xE7ais", flag: "\u{1F1EB}\u{1F1F7}" },
-      { code: "de", shortCode: "DE", label: "German", nativeLabel: "Deutsch", flag: "\u{1F1E9}\u{1F1EA}" },
-      { code: "it", shortCode: "IT", label: "Italian", nativeLabel: "Italiano", flag: "\u{1F1EE}\u{1F1F9}" },
-      { code: "pt", shortCode: "PT", label: "Portuguese", nativeLabel: "Portugu\xEAs", flag: "\u{1F1F5}\u{1F1F9}" },
-      { code: "tl", shortCode: "TL", label: "Filipino / Tagalog", nativeLabel: "Filipino / Tagalog", flag: "\u{1F1F5}\u{1F1ED}" }
-    ];
-    VALID_CODES = new Set(DICTIONARY_LANGUAGES.map((l) => l.code));
-  }
-});
-
-// server.ts
-import express from "express";
-import { createServer } from "http";
-import { Server } from "socket.io";
-import fs3 from "fs";
-import path3 from "path";
-import { fileURLToPath } from "url";
-import {
-  TikTokLiveConnection as TikTokLiveConnection2,
-  WebcastEvent as WebcastEvent2,
-  ControlEvent as ControlEvent2
-} from "tiktok-live-connector";
-
-// server/inkstream/mountInkStream.ts
-import crypto3 from "node:crypto";
-
-// server/inkstream/auth.ts
-import crypto from "node:crypto";
-
-// src/inkstream/shared/words.ts
-init_dictionary_languages();
-
-// src/data/dictionaries/multilang-word-packs.ts
-init_dictionary_languages();
 
 // src/data/dictionaries/tl-word-pack.ts
 var TL_RAW_DRAWING_PROMPTS = [
@@ -9690,7 +9607,11 @@ function isCloseGuess(guess, target) {
 // server/inkstream/store.ts
 import fs from "node:fs";
 import path from "node:path";
-var DATA_DIR = path.resolve(process.cwd(), "data");
+var customInkStreamDir = (process.env.INKSTREAM_DATA_DIR || "").trim();
+var customPersistentDir = (process.env.PERSISTENT_DATA_DIR || "").trim();
+var DATA_DIR = path.resolve(
+  customInkStreamDir || (customPersistentDir ? path.join(customPersistentDir, "inkstream") : path.join(process.cwd(), "data"))
+);
 var STORE_PATH = path.resolve(DATA_DIR, "inkstream-store.json");
 var MAX_ARTWORKS_PER_USER = 40;
 var MAX_ANALYTICS_ROWS = 200;
@@ -10112,7 +10033,6 @@ function handleLogout(req, res) {
 
 // server/inkstream/gameManager.ts
 import crypto2 from "node:crypto";
-init_dictionary_languages();
 
 // server/inkstream/tiktokManager.ts
 import {
@@ -10478,6 +10398,18 @@ var GameManager = class {
     this.rooms = /* @__PURE__ */ new Map();
     this.socketRoomMap = /* @__PURE__ */ new Map();
     this.io = io;
+    const cleanup = setInterval(() => {
+      const cutoff = Date.now() - 4 * 60 * 60 * 1e3;
+      for (const [roomId, room] of this.rooms.entries()) {
+        const connected = this.getConnectedPlayers(room);
+        if (connected.length === 0 || (room.turnStartedAt || room.createdAt) < cutoff) {
+          this.clearTimer(room);
+          room.tiktokBridge.disconnect(false);
+          this.rooms.delete(roomId);
+        }
+      }
+    }, 15 * 60 * 1e3);
+    cleanup.unref();
   }
   getRoomOwnerId(roomId) {
     return this.rooms.get(roomId.toUpperCase())?.ownerId ?? null;
@@ -10524,7 +10456,7 @@ var GameManager = class {
     }
     return list.sort((a, b) => b.playerCount - a.playerCount);
   }
-  createRoom(user, socketId, partialSettings) {
+  createRoom(user, socketId, partialSettings, ownerSessionId) {
     this.leaveCurrentRoom(socketId);
     let roomId = generateRoomCode();
     while (this.rooms.has(roomId)) {
@@ -10551,6 +10483,7 @@ var GameManager = class {
     const room = {
       id: roomId,
       ownerId: user.id,
+      ownerSessionId: ownerSessionId?.trim() || void 0,
       streamerSecret,
       createdAt: Date.now(),
       settings,
@@ -10599,7 +10532,7 @@ var GameManager = class {
     this.broadcastRoomState(room);
     return room;
   }
-  joinOrQuickPlay(user, socketId, language) {
+  joinOrQuickPlay(user, socketId, language, ownerSessionId) {
     const requestedLang = language ?? "en";
     for (const room of this.rooms.values()) {
       const connected = this.getConnectedPlayers(room);
@@ -10608,11 +10541,16 @@ var GameManager = class {
         if (res.room) return res.room;
       }
     }
-    return this.createRoom(user, socketId, {
-      name: `${user.username}'s Public Room`,
-      isPrivate: false,
-      language: requestedLang
-    });
+    return this.createRoom(
+      user,
+      socketId,
+      {
+        name: `${user.username}'s Public Room`,
+        isPrivate: false,
+        language: requestedLang
+      },
+      ownerSessionId
+    );
   }
   joinRoom(rawRoomId, user, socketId) {
     const roomId = rawRoomId.trim().toUpperCase();
@@ -10829,16 +10767,28 @@ var GameManager = class {
   }
   /**
    * Forward incoming site-wide TikFinity / BetterTok / TikTok webhook chat messages
-   * into any active InkStream room connected to that streamer handle (or active bridge rooms).
+   * strictly into matching active InkStream rooms (scoped by roomId, ownerSessionId, or streamerHandle).
    */
-  injectExternalWebhookChat(streamerHint, payload) {
-    const cleanHint = String(streamerHint || "").trim().replace(/^@+/, "").toLowerCase();
+  injectExternalWebhookChat(target, payload) {
+    const targetObj = typeof target === "string" ? { streamerHint: target } : target || {};
+    const cleanRoomId = String(targetObj.roomId || "").trim().toUpperCase();
+    const cleanSessionId = String(targetObj.sessionId || "").trim().toLowerCase();
+    const cleanHint = String(targetObj.streamerHint || "").trim().replace(/^@+/, "").toLowerCase();
+    if (!cleanRoomId && !cleanSessionId && !cleanHint) {
+      return 0;
+    }
     let forwarded = 0;
     for (const room of this.rooms.values()) {
       const status = room.tiktokBridge.getStatus();
-      if (!status.connected) continue;
-      const roomHandle = String(status.username || "").toLowerCase();
-      if (!cleanHint || !roomHandle || roomHandle === cleanHint) {
+      const roomHandle = String(status.username || "").trim().replace(/^@+/, "").toLowerCase();
+      const matchesRoomId = Boolean(cleanRoomId && room.id === cleanRoomId);
+      const matchesSession = Boolean(
+        cleanSessionId && room.ownerSessionId && room.ownerSessionId.toLowerCase() === cleanSessionId
+      );
+      const matchesHandle = Boolean(
+        status.connected && cleanHint && roomHandle && roomHandle === cleanHint
+      );
+      if (matchesRoomId || matchesSession || matchesHandle) {
         room.tiktokBridge.injectChat(payload);
         forwarded += 1;
       }
@@ -11807,26 +11757,26 @@ var GameManager = class {
 };
 
 // server/inkstream/mountInkStream.ts
-function mountInkStream(app2, io) {
+function mountInkStream(app, io) {
   const inkstreamIo = io.of("/inkstream");
   const gameManager = new GameManager(inkstreamIo);
-  app2.post("/api/inkstream/auth/register", (req, res) => {
+  app.post("/api/inkstream/auth/register", (req, res) => {
     void handleRegister(req, res);
   });
-  app2.post("/api/inkstream/auth/login", (req, res) => {
+  app.post("/api/inkstream/auth/login", (req, res) => {
     void handleLogin(req, res);
   });
-  app2.post("/api/inkstream/auth/guest", handleGuestLogin);
-  app2.post("/api/inkstream/auth/logout", handleLogout);
-  app2.get("/api/inkstream/auth/me", requireAuth, (req, res) => {
+  app.post("/api/inkstream/auth/guest", handleGuestLogin);
+  app.post("/api/inkstream/auth/logout", handleLogout);
+  app.get("/api/inkstream/auth/me", requireAuth, (req, res) => {
     const session = req.session;
     res.json({ user: session.user });
   });
-  app2.patch("/api/inkstream/auth/profile", requireAuth, handleUpdateProfile);
-  app2.get("/api/inkstream/rooms/public", (_req, res) => {
+  app.patch("/api/inkstream/auth/profile", requireAuth, handleUpdateProfile);
+  app.get("/api/inkstream/rooms/public", (_req, res) => {
     res.json({ rooms: gameManager.listPublicRooms() });
   });
-  app2.get("/api/inkstream/rooms/:roomId/analytics", requireAuth, (req, res) => {
+  app.get("/api/inkstream/rooms/:roomId/analytics", requireAuth, (req, res) => {
     const session = req.session;
     const roomId = String(req.params.roomId || "").trim().toUpperCase();
     const ownerId = gameManager.getRoomOwnerId(roomId);
@@ -11841,7 +11791,7 @@ function mountInkStream(app2, io) {
     const analytics = gameManager.getAnalyticsForRoom(roomId, session.user.id);
     res.json({ analytics });
   });
-  app2.post("/api/inkstream/rooms/:roomId/tiktok-webhook", requireAuth, (req, res) => {
+  app.post("/api/inkstream/rooms/:roomId/tiktok-webhook", requireAuth, (req, res) => {
     const session = req.session;
     const roomId = String(req.params.roomId || "").trim().toUpperCase();
     const comment = typeof req.body?.comment === "string" ? req.body.comment : "";
@@ -11860,12 +11810,12 @@ function mountInkStream(app2, io) {
     }
     res.json({ ok: true });
   });
-  app2.get("/api/inkstream/artworks", requireAuth, (req, res) => {
+  app.get("/api/inkstream/artworks", requireAuth, (req, res) => {
     const session = req.session;
     const artworks = store.listUserArtworks(session.user.id);
     res.json({ artworks });
   });
-  app2.post("/api/inkstream/artworks", requireAuth, (req, res) => {
+  app.post("/api/inkstream/artworks", requireAuth, (req, res) => {
     const session = req.session;
     const word = typeof req.body?.word === "string" ? req.body.word.trim().slice(0, 60) : "Sketch";
     const artistName = typeof req.body?.artistName === "string" ? req.body.artistName.trim().slice(0, 30) : session.user.username;
@@ -11886,7 +11836,7 @@ function mountInkStream(app2, io) {
     });
     res.status(201).json({ artwork: saved });
   });
-  app2.delete("/api/inkstream/artworks/:id", requireAuth, (req, res) => {
+  app.delete("/api/inkstream/artworks/:id", requireAuth, (req, res) => {
     const session = req.session;
     const id = String(req.params.id || "");
     const deleted = store.deleteUserArtwork(session.user.id, id);
@@ -11897,10 +11847,10 @@ function mountInkStream(app2, io) {
     res.json({ ok: true });
   });
   inkstreamIo.use((socket, next) => {
-    const auth2 = socket.handshake.auth;
-    if (typeof auth2?.streamerRoomId === "string" && typeof auth2?.streamerSecret === "string" && auth2.streamerRoomId && auth2.streamerSecret) {
-      const roomId = auth2.streamerRoomId.trim().toUpperCase();
-      if (!gameManager.verifyStreamerPopupCredentials(roomId, auth2.streamerSecret)) {
+    const auth = socket.handshake.auth;
+    if (typeof auth?.streamerRoomId === "string" && typeof auth?.streamerSecret === "string" && auth.streamerRoomId && auth.streamerSecret) {
+      const roomId = auth.streamerRoomId.trim().toUpperCase();
+      if (!gameManager.verifyStreamerPopupCredentials(roomId, auth.streamerSecret)) {
         next(new Error("INVALID_STREAMER_POPUP_KEY"));
         return;
       }
@@ -11909,13 +11859,14 @@ function mountInkStream(app2, io) {
       next();
       return;
     }
-    const token = typeof auth2?.token === "string" ? auth2.token : void 0;
+    const token = typeof auth?.token === "string" ? auth.token : void 0;
     const session = getSessionByToken(token);
     if (!session) {
       next(new Error("UNAUTHORIZED"));
       return;
     }
     socket.data.session = session;
+    socket.data.liveSessionId = typeof auth?.liveSessionId === "string" ? auth.liveSessionId.trim().slice(0, 120) : void 0;
     next();
   });
   inkstreamIo.on("connection", (socket) => {
@@ -11936,10 +11887,11 @@ function mountInkStream(app2, io) {
       const fresh = getSessionByToken(token);
       return fresh?.user ?? socket.data.session.user;
     };
+    const liveSessionId = typeof socket.data.liveSessionId === "string" ? socket.data.liveSessionId : void 0;
     socket.on(
       "room:create",
       (settings, ack) => {
-        const room = gameManager.createRoom(getUser(), socket.id, settings);
+        const room = gameManager.createRoom(getUser(), socket.id, settings, liveSessionId);
         ack?.({ ok: true, roomId: room.id });
       }
     );
@@ -11949,7 +11901,7 @@ function mountInkStream(app2, io) {
         const isAckFirst = typeof payloadOrAck === "function";
         const ack = isAckFirst ? payloadOrAck : maybeAck;
         const language = !isAckFirst ? payloadOrAck?.language : void 0;
-        const room = gameManager.joinOrQuickPlay(getUser(), socket.id, language);
+        const room = gameManager.joinOrQuickPlay(getUser(), socket.id, language, liveSessionId);
         ack?.({ ok: true, roomId: room.id });
       }
     );
@@ -12078,10 +12030,13 @@ function mountInkStream(app2, io) {
 }
 
 // server/mpwh/mountMpwh.ts
-import crypto5 from "node:crypto";
+import crypto6 from "node:crypto";
 
 // server/mpwh/dictionary.ts
 import crypto4 from "node:crypto";
+import fs2 from "node:fs";
+import { createRequire } from "node:module";
+import path2 from "node:path";
 
 // server/mpwh/targetWordsEn.ts
 var RAW_TARGET_POOL = [
@@ -12608,55 +12563,102 @@ var RAW_TARGET_POOL = [
 ];
 
 // server/mpwh/dictionary.ts
-init_dictionary_languages();
-var EN_VALID_ARRAY = Array.from(
-  new Set(
-    RAW_TARGET_POOL.map((w) => w.toLowerCase().trim()).filter(
-      (w) => w.length >= 4 && w.length <= 8 && /^[a-z]+$/.test(w)
-    )
-  )
-).slice(0, 500).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
-var EN_VALID_SET = new Set(EN_VALID_ARRAY);
+var MIN_GUESS_LENGTH = 2;
+var MAX_GUESS_LENGTH = 32;
+function loadFullEnglishWords() {
+  const candidates = [];
+  try {
+    if (typeof import.meta !== "undefined" && import.meta.url) {
+      const req = createRequire(import.meta.url);
+      candidates.push(req.resolve("an-array-of-english-words/index.json"));
+    }
+  } catch {
+  }
+  candidates.push(
+    path2.resolve(process.cwd(), "node_modules/an-array-of-english-words/index.json")
+  );
+  for (const filePath of candidates) {
+    try {
+      if (fs2.existsSync(filePath)) {
+        const parsed = JSON.parse(fs2.readFileSync(filePath, "utf8"));
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch {
+    }
+  }
+  return [];
+}
 var DICTIONARIES = /* @__PURE__ */ new Map();
-DICTIONARIES.set("en", {
-  validArray: EN_VALID_ARRAY,
-  validSet: EN_VALID_SET,
-  targetWords: EN_VALID_ARRAY
-});
+function buildEnglishDictionary() {
+  const targetWords = Array.from(
+    new Set(
+      RAW_TARGET_POOL.map((w) => w.toLowerCase().trim()).filter(
+        (w) => w.length >= 4 && w.length <= 8 && /^[a-z]+$/.test(w)
+      )
+    )
+  ).slice(0, 500).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+  const validSet = new Set(targetWords);
+  for (const raw of loadFullEnglishWords()) {
+    const clean = String(raw).toLowerCase().trim();
+    if (clean.length >= MIN_GUESS_LENGTH && clean.length <= MAX_GUESS_LENGTH && /^[a-z]+$/.test(clean)) {
+      validSet.add(clean);
+    }
+  }
+  const validArray = Array.from(validSet).sort(
+    (a, b) => a < b ? -1 : a > b ? 1 : 0
+  );
+  const dict = {
+    validArray,
+    validSet,
+    targetWords
+  };
+  DICTIONARIES.set("en", dict);
+  return dict;
+}
 function getLanguageDictionary(langInput) {
   const lang = normalizeDictionaryLanguage(langInput);
   const cached = DICTIONARIES.get(lang);
   if (cached) return cached;
   if (lang === "en") {
-    return DICTIONARIES.get("en");
+    return buildEnglishDictionary();
   }
   const pack = MULTILANG_WORD_PACKS[lang];
   const validSet = /* @__PURE__ */ new Set();
-  const validArray = [];
+  const targetSet = /* @__PURE__ */ new Set();
+  const targetWords = [];
   if (pack) {
     for (const rawWord of pack.words) {
-      if (validArray.length >= 500) break;
       const clean = stripDiacritics(rawWord).toLowerCase().replace(/[^a-z]/g, "");
-      if (clean.length >= 4 && clean.length <= 8 && !validSet.has(clean)) {
+      if (clean.length >= MIN_GUESS_LENGTH && clean.length <= MAX_GUESS_LENGTH) {
         validSet.add(clean);
-        validArray.push(clean);
+        if (targetWords.length < 500 && clean.length >= 4 && clean.length <= 8 && !targetSet.has(clean)) {
+          targetSet.add(clean);
+          targetWords.push(clean);
+        }
       }
     }
     for (const rawPrompt of pack.drawingPrompts) {
-      if (validArray.length >= 500) break;
-      if (rawPrompt.includes(" ") || rawPrompt.includes("-")) continue;
-      const clean = stripDiacritics(rawPrompt).toLowerCase().replace(/[^a-z]/g, "");
-      if (clean.length >= 4 && clean.length <= 8 && !validSet.has(clean)) {
-        validSet.add(clean);
-        validArray.push(clean);
+      const isSingle = !rawPrompt.includes(" ") && !rawPrompt.includes("-");
+      for (const token of rawPrompt.split(/[\s-]+/)) {
+        const clean = stripDiacritics(token).toLowerCase().replace(/[^a-z]/g, "");
+        if (clean.length >= MIN_GUESS_LENGTH && clean.length <= MAX_GUESS_LENGTH) {
+          validSet.add(clean);
+          if (isSingle && targetWords.length < 500 && clean.length >= 4 && clean.length <= 8 && !targetSet.has(clean)) {
+            targetSet.add(clean);
+            targetWords.push(clean);
+          }
+        }
       }
     }
   }
-  validArray.sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+  const validArray = Array.from(validSet).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+  targetWords.sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
   const dict = {
     validArray,
     validSet,
-    targetWords: validArray
+    targetWords
   };
   DICTIONARIES.set(lang, dict);
   return dict;
@@ -12666,7 +12668,9 @@ function normalizeGuessWord(raw) {
 }
 function isValidDictionaryWord(word, lang = "en") {
   const clean = normalizeGuessWord(word);
-  if (clean.length < 4 || clean.length > 8) return false;
+  if (clean.length < MIN_GUESS_LENGTH || clean.length > MAX_GUESS_LENGTH) {
+    return false;
+  }
   return getLanguageDictionary(lang).validSet.has(clean);
 }
 function seededIndices(seedStr, count, poolLength) {
@@ -12741,26 +12745,39 @@ function computeBisectHint(secretWord, closestBefore, closestAfter, alreadyUsed,
     const end = side === "before" ? secretIdx - 1 : afterIdx - (closestAfter ? 1 : 0);
     if (start > end) continue;
     const requiredLen = secretWord.length;
-    const targetCandidates = targetWords.filter(
-      (w) => w.length === requiredLen && !alreadyUsed.has(w) && w !== secretWord && (side === "before" ? (!closestBefore || w > closestBefore) && w < secretWord : w > secretWord && (!closestAfter || w < closestAfter))
+    const bracketTargets = targetWords.filter(
+      (w) => !alreadyUsed.has(w) && w !== secretWord && (side === "before" ? (!closestBefore || w > closestBefore) && w < secretWord : w > secretWord && (!closestAfter || w < closestAfter))
     );
+    const sameLengthTargets = bracketTargets.filter((w) => w.length === requiredLen);
+    const targetCandidates = sameLengthTargets.length > 0 ? sameLengthTargets : bracketTargets;
     if (targetCandidates.length > 0) {
       const pickIndex = side === "before" ? Math.floor(targetCandidates.length * 0.65) : Math.floor(targetCandidates.length * 0.35);
       return targetCandidates[Math.min(targetCandidates.length - 1, Math.max(0, pickIndex))];
     }
     const mid = Math.floor((start + end) / 2);
     const maxOffset = Math.max(mid - start, end - mid);
-    for (const enforceLength of [true, false]) {
-      for (let offset = 0; offset <= maxOffset; offset++) {
-        for (const candidateIdx of [mid + offset, mid - offset]) {
-          if (candidateIdx >= start && candidateIdx <= end) {
-            const w = validArray[candidateIdx];
-            if (w && (!enforceLength || w.length === requiredLen) && w !== secretWord && !alreadyUsed.has(w)) {
+    const sameLenLimit = Math.min(maxOffset, 2500);
+    let anyLenFallback = null;
+    for (let offset = 0; offset <= maxOffset; offset++) {
+      for (const candidateIdx of [mid + offset, mid - offset]) {
+        if (candidateIdx >= start && candidateIdx <= end) {
+          const w = validArray[candidateIdx];
+          if (w && w !== secretWord && !alreadyUsed.has(w)) {
+            if (w.length === requiredLen) {
               return w;
+            }
+            if (!anyLenFallback) {
+              anyLenFallback = w;
             }
           }
         }
       }
+      if (anyLenFallback && offset >= sameLenLimit) {
+        return anyLenFallback;
+      }
+    }
+    if (anyLenFallback) {
+      return anyLenFallback;
     }
   }
   return null;
@@ -12900,10 +12917,10 @@ function applyGuess(set, rawWord, guessedBy, targetBoardIndex, tiktokHandle, ava
     };
   }
   const word = normalizeGuessWord(rawWord);
-  if (word.length < 4 || word.length > 8) {
+  if (word.length < 2 || word.length > 32) {
     return {
       accepted: false,
-      reason: "Words must be 4\u20138 letters long.",
+      reason: "Words must be at least 2 letters long.",
       word,
       firstSolvedWords: [],
       bufferMatchedWords: [],
@@ -13185,19 +13202,23 @@ function toBoardView(board, revealAll, language = "en", now = Date.now()) {
 }
 
 // server/mpwh/leaderboardStore.ts
-import fs2 from "node:fs";
-import path2 from "node:path";
-var DATA_DIR2 = path2.resolve(process.cwd(), ".relay_data");
-var DATA_FILE = path2.join(DATA_DIR2, "mpwh_leaderboard.json");
+import fs3 from "node:fs";
+import path3 from "node:path";
+var customMpwhDir = (process.env.MPWH_DATA_DIR || "").trim();
+var customPersistentDir2 = (process.env.PERSISTENT_DATA_DIR || "").trim();
+var DATA_DIR2 = path3.resolve(
+  customMpwhDir || (customPersistentDir2 ? path3.join(customPersistentDir2, "mpwh") : path3.join(process.cwd(), ".relay_data"))
+);
+var DATA_FILE = path3.join(DATA_DIR2, "mpwh_leaderboard.json");
 var MAX_STORED_ENTRIES = 500;
 var entries = [];
 function loadFromDisk() {
   try {
-    if (!fs2.existsSync(DATA_FILE)) {
+    if (!fs3.existsSync(DATA_FILE)) {
       entries = [];
       return;
     }
-    const raw = fs2.readFileSync(DATA_FILE, "utf8");
+    const raw = fs3.readFileSync(DATA_FILE, "utf8");
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       entries = parsed.filter((e) => e && typeof e.playerName === "string" && typeof e.score === "number").map((e) => ({
@@ -13212,10 +13233,12 @@ function loadFromDisk() {
 }
 function saveToDisk() {
   try {
-    if (!fs2.existsSync(DATA_DIR2)) {
-      fs2.mkdirSync(DATA_DIR2, { recursive: true });
+    if (!fs3.existsSync(DATA_DIR2)) {
+      fs3.mkdirSync(DATA_DIR2, { recursive: true });
     }
-    fs2.writeFileSync(DATA_FILE, JSON.stringify(entries, null, 2), "utf8");
+    const tmp = `${DATA_FILE}.tmp`;
+    fs3.writeFileSync(tmp, JSON.stringify(entries, null, 2), "utf8");
+    fs3.renameSync(tmp, DATA_FILE);
   } catch (err) {
     console.warn("[MPWH] Could not persist leaderboard file:", err);
   }
@@ -13244,17 +13267,298 @@ function getLeaderboard(filter = "all", limit = 50) {
   return sortEntries(filtered).slice(0, safeLimit);
 }
 
+// server/mpwh/soloRoutes.ts
+import crypto5 from "node:crypto";
+var MAX_SOLO_SESSIONS = 4e3;
+var SOLO_TTL_MS = 2 * 60 * 60 * 1e3;
+var ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+function isValidMode(mode) {
+  return mode === "classic" || mode === "dual" || mode === "quad";
+}
+function serializeSoloSession(sess) {
+  const set = sess.ladderSet;
+  const now = Date.now();
+  const revealAll = set.status === "won" || set.status === "gave_up";
+  return {
+    gameId: sess.gameId,
+    mode: set.mode,
+    language: set.language,
+    dailyDate: sess.dailyDate,
+    status: set.status === "idle" ? "playing" : set.status,
+    boards: set.boards.map((b) => toBoardView(b, revealAll, set.language, now)),
+    totalGuesses: set.totalGuesses,
+    hintsRemaining: set.hintsRemaining,
+    hintsUsed: set.hintsUsed,
+    startedAt: set.startedAt ?? now,
+    finishedAt: set.finishedAt,
+    score: sess.score,
+    pieces: sess.pieces,
+    guessFeed: sess.guessFeed,
+    dictionarySize: getDictionarySize(set.language)
+  };
+}
+function pushSoloGuessFeed(sess, word, status, alreadyGuessed = false) {
+  sess.guessFeed.unshift({
+    id: crypto5.randomUUID(),
+    playerName: "You",
+    word,
+    alreadyGuessed,
+    status,
+    timestamp: Date.now()
+  });
+  if (sess.guessFeed.length > 60) {
+    sess.guessFeed.length = 60;
+  }
+}
+function applySoloGuessInternal(sess, rawWord, targetBoardIndex) {
+  const set = sess.ladderSet;
+  if (set.status !== "playing") {
+    return {
+      accepted: false,
+      word: "",
+      reason: "This round has already ended. Start a new round!",
+      matchedWords: [],
+      allSolved: set.status === "won"
+    };
+  }
+  const word = normalizeGuessWord(rawWord);
+  if (word.length < 2 || word.length > 32) {
+    return {
+      accepted: false,
+      word,
+      reason: "Words must be at least 2 letters long.",
+      matchedWords: [],
+      allSolved: false
+    };
+  }
+  if (!isValidDictionaryWord(word, set.language)) {
+    return {
+      accepted: false,
+      word,
+      reason: `"${word.toUpperCase()}" is not in the active dictionary.`,
+      matchedWords: [],
+      allSolved: false
+    };
+  }
+  const candidateBoards = set.mode === "quad" && typeof targetBoardIndex === "number" && targetBoardIndex >= 0 && targetBoardIndex < set.boards.length ? [set.boards[targetBoardIndex]] : set.boards.filter((b) => !isBoardAllFound(b));
+  const activeUnsolvedBoards = candidateBoards.filter((b) => !isBoardAllFound(b));
+  if (activeUnsolvedBoards.length === 0) {
+    return {
+      accepted: false,
+      word,
+      reason: "That board is already solved.",
+      matchedWords: [],
+      allSolved: set.boards.every((b) => isBoardAllFound(b))
+    };
+  }
+  const boardsNeedingWord = activeUnsolvedBoards.filter((b) => !b.guessWordSet.has(word));
+  if (boardsNeedingWord.length === 0) {
+    pushSoloGuessFeed(sess, word, "duplicate", true);
+    return {
+      accepted: false,
+      alreadyGuessed: true,
+      word,
+      reason: `You already guessed "${word.toUpperCase()}".`,
+      matchedWords: [],
+      allSolved: false
+    };
+  }
+  const now = Date.now();
+  set.totalGuesses += 1;
+  const matchedWords = [];
+  for (const board of boardsNeedingWord) {
+    board.guessWordSet.add(word);
+    board.lastGuessWord = word;
+    let matchedTarget = false;
+    for (const target of board.targets) {
+      if (!target.solved && target.word === word) {
+        target.solved = true;
+        target.firstSolvedAt = now;
+        target.bufferEndsAt = null;
+        target.solvedAtGuess = set.totalGuesses;
+        target.winners.push({
+          name: "You",
+          guessedAt: now,
+          isFirst: true,
+          word: target.word
+        });
+        matchedTarget = true;
+        matchedWords.push(target.word);
+      }
+    }
+    if (!matchedTarget) {
+      board.guesses.push({
+        word,
+        order: set.totalGuesses,
+        isHint: false,
+        guessedBy: "You",
+        timestamp: now
+      });
+    }
+  }
+  pushSoloGuessFeed(sess, word, matchedWords.length > 0 ? "solved" : "guess", false);
+  const allSolved = set.boards.every((b) => isBoardAllFound(b));
+  if (allSolved) {
+    set.status = "won";
+    set.finishedAt = now;
+    const totalTargets = set.boards.reduce((acc, b) => acc + b.targets.length, 0);
+    const durationMs = Math.max(1e3, now - (set.startedAt ?? now));
+    const { score, pieces } = calculateWinnerScore(
+      set.mode,
+      set.totalGuesses,
+      set.hintsUsed,
+      durationMs,
+      totalTargets,
+      totalTargets
+    );
+    sess.score = score;
+    sess.pieces = pieces;
+  }
+  sess.lastActiveAt = now;
+  return {
+    accepted: true,
+    word,
+    matchedWords,
+    allSolved
+  };
+}
+function mountMpwhSoloRoutes(app) {
+  const soloSessions = /* @__PURE__ */ new Map();
+  const pruneSessions = () => {
+    const cutoff = Date.now() - SOLO_TTL_MS;
+    for (const [id, sess] of soloSessions.entries()) {
+      if (sess.lastActiveAt < cutoff) {
+        soloSessions.delete(id);
+      }
+    }
+    if (soloSessions.size > MAX_SOLO_SESSIONS) {
+      const oldest = Array.from(soloSessions.entries()).sort(
+        (a, b) => a[1].lastActiveAt - b[1].lastActiveAt
+      );
+      const excess = soloSessions.size - MAX_SOLO_SESSIONS;
+      for (let i = 0; i < excess; i++) {
+        soloSessions.delete(oldest[i][0]);
+      }
+    }
+  };
+  const cleanupTimer = setInterval(pruneSessions, 15 * 60 * 1e3);
+  cleanupTimer.unref();
+  app.post("/api/mpwh/solo/start", (req, res) => {
+    pruneSessions();
+    const mode = isValidMode(req.body?.mode) ? req.body.mode : "classic";
+    const language = normalizeDictionaryLanguage(req.body?.language);
+    const rawDaily = typeof req.body?.dailyDate === "string" ? req.body.dailyDate.trim() : "";
+    const dailyDate = ISO_DATE_RE.test(rawDaily) ? rawDaily : null;
+    const secretWords = pickTargetWords(mode, language, dailyDate ?? void 0);
+    const ladderSet = createLadderSet(mode, secretWords, language);
+    if (mode === "classic" && ladderSet.boards[0]) {
+      ladderSet.boards[0].label = dailyDate ? "Daily Word Hunt" : "Word Hunt";
+    }
+    const gameId = crypto5.randomUUID();
+    const sess = {
+      gameId,
+      dailyDate,
+      ladderSet,
+      guessFeed: [],
+      score: 0,
+      pieces: 0,
+      lastActiveAt: Date.now()
+    };
+    const replayActions = Array.isArray(req.body?.replayActions) ? req.body.replayActions.slice(0, 200) : [];
+    for (const action of replayActions) {
+      if (!action || typeof action !== "object") continue;
+      if (action.type === "guess" && typeof action.word === "string") {
+        const boardIdx = typeof action.targetBoardIndex === "number" ? action.targetBoardIndex : null;
+        applySoloGuessInternal(sess, action.word, boardIdx);
+      } else if (action.type === "hint" && (action.hintType === "bracket" || action.hintType === "clue") && typeof action.boardIndex === "number" && typeof action.targetIndex === "number") {
+        applyHint(sess.ladderSet, action.hintType, action.boardIndex, action.targetIndex, "You");
+      } else if (action.type === "reveal") {
+        sess.ladderSet.status = "gave_up";
+        sess.ladderSet.finishedAt = Date.now();
+      }
+    }
+    soloSessions.set(gameId, sess);
+    res.json({ state: serializeSoloSession(sess) });
+  });
+  app.post("/api/mpwh/solo/guess", (req, res) => {
+    const gameId = typeof req.body?.gameId === "string" ? req.body.gameId.trim() : "";
+    const sess = soloSessions.get(gameId);
+    if (!sess) {
+      res.status(404).json({
+        accepted: false,
+        reason: "Session expired. Starting a fresh board...",
+        expired: true
+      });
+      return;
+    }
+    const word = typeof req.body?.word === "string" ? req.body.word : "";
+    const targetBoardIndex = typeof req.body?.targetBoardIndex === "number" ? req.body.targetBoardIndex : null;
+    const outcome = applySoloGuessInternal(sess, word, targetBoardIndex);
+    res.json({
+      outcome,
+      state: serializeSoloSession(sess)
+    });
+  });
+  app.post("/api/mpwh/solo/hint", (req, res) => {
+    const gameId = typeof req.body?.gameId === "string" ? req.body.gameId.trim() : "";
+    const sess = soloSessions.get(gameId);
+    if (!sess) {
+      res.status(404).json({ ok: false, error: "Session expired.", expired: true });
+      return;
+    }
+    const hintType = req.body?.hintType === "clue" ? "clue" : "bracket";
+    const boardIndex = Number(req.body?.boardIndex ?? 0);
+    const targetIndex = Number(req.body?.targetIndex ?? 0);
+    if (!Number.isInteger(boardIndex) || !Number.isInteger(targetIndex)) {
+      res.status(400).json({ ok: false, error: "Invalid hint target." });
+      return;
+    }
+    const result = applyHint(sess.ladderSet, hintType, boardIndex, targetIndex, "You");
+    sess.lastActiveAt = Date.now();
+    if (!result.accepted) {
+      res.json({
+        ok: false,
+        error: result.reason ?? "Hint unavailable.",
+        state: serializeSoloSession(sess)
+      });
+      return;
+    }
+    res.json({
+      ok: true,
+      hintWord: result.hintWord,
+      clueText: result.clueText,
+      state: serializeSoloSession(sess)
+    });
+  });
+  app.post("/api/mpwh/solo/reveal", (req, res) => {
+    const gameId = typeof req.body?.gameId === "string" ? req.body.gameId.trim() : "";
+    const sess = soloSessions.get(gameId);
+    if (!sess) {
+      res.status(404).json({ ok: false, error: "Session expired.", expired: true });
+      return;
+    }
+    if (sess.ladderSet.status === "playing") {
+      sess.ladderSet.status = "gave_up";
+      sess.ladderSet.finishedAt = Date.now();
+    }
+    sess.lastActiveAt = Date.now();
+    res.json({ ok: true, state: serializeSoloSession(sess) });
+  });
+}
+
 // server/mpwh/mountMpwh.ts
-init_dictionary_languages();
 function sanitizeChannel(raw) {
   const cleaned = String(raw ?? "").trim().toLowerCase().replace(/^@+/, "").replace(/[^a-z0-9_-]/g, "").slice(0, 48);
   return cleaned || "global";
+}
+function sanitizeOptionalSlug(raw) {
+  return String(raw ?? "").trim().toLowerCase().replace(/^@+/, "").replace(/[^a-z0-9_.:-]/g, "").slice(0, 160);
 }
 function sanitizeName(raw) {
   const cleaned = String(raw ?? "").replace(/[\r\n\t]+/g, " ").trim().slice(0, 26);
   return cleaned || "Player";
 }
-function isValidMode(mode) {
+function isValidMode2(mode) {
   return mode === "classic" || mode === "dual" || mode === "quad";
 }
 function extractWordGuessFromChat(comment) {
@@ -13270,7 +13574,7 @@ function extractWordGuessFromChat(comment) {
     candidate = stripped;
   }
   const normalized = normalizeGuessWord(candidate);
-  if (normalized.length < 4 || normalized.length > 8) return null;
+  if (normalized.length < 2 || normalized.length > 32) return null;
   return normalized;
 }
 var MpwhManager = class {
@@ -13315,6 +13619,13 @@ var MpwhManager = class {
     sess.lastActiveAt = Date.now();
     return sess;
   }
+  setChannelIdentity(rawChannel, identity) {
+    const sess = this.getOrCreateChannel(rawChannel);
+    const cleanStreamer = sanitizeOptionalSlug(identity.streamerHandle);
+    const cleanSession = sanitizeOptionalSlug(identity.sessionId);
+    if (cleanStreamer) sess.streamerHandle = cleanStreamer;
+    if (cleanSession) sess.ownerSessionId = cleanSession;
+  }
   clearChannelTimers(sess) {
     for (const t of sess.bufferTimers) {
       clearTimeout(t);
@@ -13328,7 +13639,7 @@ var MpwhManager = class {
   }
   pushActivity(sess, text, tone = "neutral") {
     sess.recentActivity.unshift({
-      id: crypto5.randomUUID(),
+      id: crypto6.randomUUID(),
       text,
       timestamp: Date.now(),
       tone
@@ -13339,7 +13650,7 @@ var MpwhManager = class {
   }
   pushGuessFeed(sess, entry) {
     sess.guessFeed.unshift({
-      id: crypto5.randomUUID(),
+      id: crypto6.randomUUID(),
       timestamp: Date.now(),
       ...entry
     });
@@ -13404,9 +13715,9 @@ var MpwhManager = class {
       onlineCount: this.getOnlineCount(channel)
     });
   }
-  finalizeRoundAndRecordWinners(sess) {
+  computeRoundWinnerSummaries(sess, recordLeaderboard) {
     const set = sess.ladderSet;
-    if (!set) return;
+    if (!set) return { summaries: [] };
     const now = Date.now();
     const durationMs = set.startedAt ? Math.max(1e3, now - set.startedAt) : 1e3;
     const winnerMap = /* @__PURE__ */ new Map();
@@ -13452,25 +13763,34 @@ var MpwhManager = class {
         score,
         pieces
       });
-      const entry = {
-        id: crypto5.randomUUID(),
-        playerName: record.name,
-        mode: set.mode,
-        score,
-        pieces,
-        guesses: set.totalGuesses,
-        hintsUsed: set.hintsUsed,
-        durationMs,
-        wordsFound: wordsFoundArr.length,
-        createdAt: now
-      };
-      addLeaderboardEntry(entry);
-      latestEntry = entry;
+      if (recordLeaderboard) {
+        const entry = {
+          id: crypto6.randomUUID(),
+          playerName: record.name,
+          mode: set.mode,
+          score,
+          pieces,
+          guesses: set.totalGuesses,
+          hintsUsed: set.hintsUsed,
+          durationMs,
+          wordsFound: wordsFoundArr.length,
+          createdAt: now
+        };
+        addLeaderboardEntry(entry);
+        latestEntry = entry;
+      }
     }
     summaries.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return b.firstSolves - a.firstSolves;
     });
+    return { summaries, latestEntry };
+  }
+  finalizeRoundAndRecordWinners(sess) {
+    const set = sess.ladderSet;
+    if (!set) return;
+    const now = Date.now();
+    const { summaries, latestEntry } = this.computeRoundWinnerSummaries(sess, true);
     sess.roundWinners = summaries;
     if (summaries.length > 0) {
       const topNames = summaries.slice(0, 3).map((w) => w.name).join(", ");
@@ -13514,7 +13834,7 @@ var MpwhManager = class {
   startRound(rawChannel, mode, language, autoNextRound) {
     const sess = this.getOrCreateChannel(rawChannel);
     this.clearChannelTimers(sess);
-    if (mode && isValidMode(mode)) {
+    if (mode && isValidMode2(mode)) {
       sess.mode = mode;
     }
     if (language) {
@@ -13524,7 +13844,7 @@ var MpwhManager = class {
       sess.autoNextRound = autoNextRound;
     }
     sess.roundNumber += 1;
-    sess.roundId = crypto5.randomUUID();
+    sess.roundId = crypto6.randomUUID();
     const secretWords = pickTargetWords(sess.mode, sess.language);
     sess.ladderSet = createLadderSet(sess.mode, secretWords, sess.language);
     sess.roundWinners = [];
@@ -13541,7 +13861,7 @@ var MpwhManager = class {
   }
   setMode(rawChannel, mode) {
     const sess = this.getOrCreateChannel(rawChannel);
-    if (!isValidMode(mode)) return this.serializeGame(sess);
+    if (!isValidMode2(mode)) return this.serializeGame(sess);
     sess.mode = mode;
     if (!sess.ladderSet || sess.ladderSet.status === "idle") {
       this.broadcastGameState(sess);
@@ -13692,30 +14012,55 @@ var MpwhManager = class {
     const sess = this.getOrCreateChannel(rawChannel);
     if (!sess.ladderSet || sess.ladderSet.status !== "playing") return;
     this.clearChannelTimers(sess);
+    const now = Date.now();
     sess.ladderSet.status = "gave_up";
-    sess.ladderSet.finishedAt = Date.now();
+    sess.ladderSet.finishedAt = now;
+    const { summaries } = this.computeRoundWinnerSummaries(sess, false);
+    sess.roundWinners = summaries;
     this.pushActivity(sess, "Round revealed by host.", "system");
+    if (sess.mode === "quad" && sess.autoNextRound) {
+      const finishedRoundId = sess.roundId;
+      sess.nextRoundAt = now + NEXT_ROUND_DELAY_MS;
+      sess.nextRoundTimer = setTimeout(() => {
+        if (sess.roundId !== finishedRoundId) return;
+        this.startRound(sess.channel, sess.mode, sess.language);
+      }, NEXT_ROUND_DELAY_MS);
+    }
     this.broadcastGameState(sess);
   }
   /**
-   * Forwards external TikFinity / BetterTok webhook chat messages into active Word Hunt Extreme rooms.
+   * Forwards external TikFinity / BetterTok webhook chat messages strictly into matching Word Hunt Extreme rooms.
    */
-  injectExternalWebhookChat(streamerHint, payload) {
+  injectExternalWebhookChat(target, payload) {
     const candidateWord = extractWordGuessFromChat(payload.comment);
-    if (!candidateWord) return;
-    const cleanHint = streamerHint ? sanitizeChannel(streamerHint) : "";
+    if (!candidateWord) return 0;
+    const targetObj = typeof target === "string" ? { streamerHint: target } : target || {};
+    const cleanChannel = targetObj.channel?.trim() ? sanitizeChannel(targetObj.channel) : "";
+    const cleanHint = sanitizeOptionalSlug(targetObj.streamerHint);
+    const cleanSessionId = sanitizeOptionalSlug(targetObj.sessionId);
+    if (!cleanChannel && !cleanHint && !cleanSessionId) {
+      return 0;
+    }
     const displayName = sanitizeName(payload.nickname || payload.uniqueId || "Viewer");
     const tiktokHandle = payload.uniqueId || payload.nickname || void 0;
-    const targetSessions = [];
-    if (cleanHint && this.channels.has(cleanHint)) {
-      targetSessions.push(this.channels.get(cleanHint));
-    } else {
-      for (const sess of this.channels.values()) {
-        if (sess.ladderSet && sess.ladderSet.status === "playing") {
-          targetSessions.push(sess);
-        }
+    const targetSessions = /* @__PURE__ */ new Set();
+    if (cleanChannel) {
+      const exact = this.channels.get(cleanChannel);
+      if (exact && exact.ladderSet?.status === "playing") {
+        targetSessions.add(exact);
       }
     }
+    for (const sess of this.channels.values()) {
+      if (sess.ladderSet?.status !== "playing") continue;
+      if (cleanSessionId && sess.ownerSessionId && sess.ownerSessionId === cleanSessionId) {
+        targetSessions.add(sess);
+        continue;
+      }
+      if (cleanHint && (sess.channel === cleanHint || sanitizeOptionalSlug(sess.streamerHandle) === cleanHint)) {
+        targetSessions.add(sess);
+      }
+    }
+    let forwarded = 0;
     for (const sess of targetSessions) {
       if (sess.ladderSet?.status !== "playing") continue;
       this.submitGuess(
@@ -13726,13 +14071,16 @@ var MpwhManager = class {
         tiktokHandle,
         payload.profilePictureUrl
       );
+      forwarded += 1;
     }
+    return forwarded;
   }
 };
-function mountMpwh(app2, io) {
+function mountMpwh(app, io) {
   const mpwhIo = io.of("/mpwh");
   const manager = new MpwhManager(mpwhIo);
-  app2.get("/api/mpwh/health", (req, res) => {
+  mountMpwhSoloRoutes(app);
+  app.get("/api/mpwh/health", (req, res) => {
     const channel = sanitizeChannel(req.query.channel);
     const sess = manager.getOrCreateChannel(channel);
     res.json({
@@ -13744,7 +14092,7 @@ function mountMpwh(app2, io) {
       roundNumber: sess.roundNumber
     });
   });
-  app2.get("/api/mpwh/game", (req, res) => {
+  app.get("/api/mpwh/game", (req, res) => {
     const channel = sanitizeChannel(req.query.channel);
     const sess = manager.getOrCreateChannel(channel);
     if (typeof req.query.language === "string" && (!sess.ladderSet || sess.ladderSet.status === "idle")) {
@@ -13752,16 +14100,20 @@ function mountMpwh(app2, io) {
     }
     res.json({ game: manager.serializeGame(sess) });
   });
-  app2.post("/api/mpwh/game/start", (req, res) => {
+  app.post("/api/mpwh/game/start", (req, res) => {
     const channel = sanitizeChannel(req.body?.channel ?? req.query.channel);
     const requestedMode = req.body?.mode;
     const requestedLang = req.body?.language;
-    const mode = isValidMode(requestedMode) ? requestedMode : void 0;
+    manager.setChannelIdentity(channel, {
+      streamerHandle: req.body?.streamerHandle,
+      sessionId: req.body?.sessionId
+    });
+    const mode = isValidMode2(requestedMode) ? requestedMode : void 0;
     const lang = typeof requestedLang === "string" ? normalizeDictionaryLanguage(requestedLang) : void 0;
     const game = manager.startRound(channel, mode, lang);
     res.json({ game });
   });
-  app2.post("/api/mpwh/stream/guess", (req, res) => {
+  app.post("/api/mpwh/stream/guess", (req, res) => {
     const channel = sanitizeChannel(req.body?.channel ?? req.query.channel);
     const word = typeof req.body?.word === "string" ? req.body.word : "";
     const username = sanitizeName(req.body?.username ?? req.body?.playerName ?? "Viewer");
@@ -13779,24 +14131,28 @@ function mountMpwh(app2, io) {
     const sess = manager.getOrCreateChannel(channel);
     res.json({ ...outcome, game: manager.serializeGame(sess) });
   });
-  app2.get("/api/mpwh/leaderboard", (req, res) => {
+  app.get("/api/mpwh/leaderboard", (req, res) => {
     const rawFilter = typeof req.query.mode === "string" ? req.query.mode : "all";
-    const filter = isValidMode(rawFilter) ? rawFilter : "all";
+    const filter = isValidMode2(rawFilter) ? rawFilter : "all";
     const limit = Number(req.query.limit ?? 50);
     res.json({
       entries: getLeaderboard(filter, Number.isFinite(limit) ? limit : 50)
     });
   });
   mpwhIo.on("connection", (socket) => {
-    const auth2 = socket.handshake.auth || {};
-    const channel = sanitizeChannel(auth2.channel || socket.handshake.query.channel);
+    const auth = socket.handshake.auth || {};
+    const channel = sanitizeChannel(auth.channel || socket.handshake.query.channel);
     let playerName = sanitizeName(
-      auth2.playerName || `Player-${Math.floor(100 + Math.random() * 900)}`
+      auth.playerName || `Player-${Math.floor(100 + Math.random() * 900)}`
     );
     void socket.join(channel);
     const sess = manager.getOrCreateChannel(channel);
-    if (typeof auth2.language === "string" && (!sess.ladderSet || sess.ladderSet.status === "idle")) {
-      sess.language = normalizeDictionaryLanguage(auth2.language);
+    manager.setChannelIdentity(channel, {
+      streamerHandle: auth.streamerHandle,
+      sessionId: auth.sessionId
+    });
+    if (typeof auth.language === "string" && (!sess.ladderSet || sess.ladderSet.status === "idle")) {
+      sess.language = normalizeDictionaryLanguage(auth.language);
     }
     socket.emit("mpwh:welcome", {
       clientId: socket.id,
@@ -13810,8 +14166,17 @@ function mountMpwh(app2, io) {
         playerName = sanitizeName(payload.playerName);
       }
     });
+    socket.on(
+      "mpwh:set_streamer",
+      (payload) => {
+        manager.setChannelIdentity(channel, {
+          streamerHandle: payload?.streamerHandle,
+          sessionId: payload?.sessionId
+        });
+      }
+    );
     socket.on("mpwh:set_mode", (payload) => {
-      if (payload?.mode && isValidMode(payload.mode)) {
+      if (payload?.mode && isValidMode2(payload.mode)) {
         manager.setMode(channel, payload.mode);
       }
     });
@@ -13823,7 +14188,11 @@ function mountMpwh(app2, io) {
     socket.on(
       "mpwh:start_game",
       (payload) => {
-        const mode = payload?.mode && isValidMode(payload.mode) ? payload.mode : void 0;
+        manager.setChannelIdentity(channel, {
+          streamerHandle: payload?.streamerHandle,
+          sessionId: payload?.sessionId
+        });
+        const mode = payload?.mode && isValidMode2(payload.mode) ? payload.mode : void 0;
         const lang = typeof payload?.language === "string" ? normalizeDictionaryLanguage(payload.language) : void 0;
         manager.startRound(channel, mode, lang, payload?.autoNextRound);
       }
@@ -13967,13 +14336,13 @@ var SEO_ROUTES = {
   "/solo-games": {
     canonicalPath: "/solo-games",
     title: "Free Daily Word & Crossword Games | The Missing Piece",
-    description: "Play 12 free daily word games, crosswords, visual rebuses, word searches, and price puzzles in your browser with daily streaks and cloud leaderboards.",
-    keywords: "free word games, daily word games, online crossword puzzles, browser word games, squared word grid, thematix, destack, unolingo, rebus puzzles, mp colossal",
+    description: "Play 13 free daily word games, crosswords, alphabetical word hunts, visual rebuses, word searches, and price puzzles in your browser with daily streaks and cloud leaderboards.",
+    keywords: "free word games, daily word games, online crossword puzzles, browser word games, word hunt, squared word grid, thematix, destack, unolingo, rebus puzzles, mp colossal",
     ogImagePath: DEFAULT_OG_IMAGE_PATH,
-    ogImageAlt: "12 free solo word, crossword, and visual puzzle games on The Missing Piece",
+    ogImageAlt: "13 free solo word, crossword, and visual puzzle games on The Missing Piece",
     robots: DEFAULT_ROBOTS,
     heading: "Free Daily Solo Word, Crossword & Puzzle Games",
-    summary: "Play 12 daily and endless browser word games including 200x200 MP Colossal crossword, Squared word grids, Unolingo, Thematix, DeStack, and Missing Rebus.",
+    summary: "Play 13 daily and endless browser word games including Word Hunt, 200x200 MP Colossal crossword, Squared word grids, Unolingo, Thematix, DeStack, and Missing Rebus.",
     inLanguages: ALL_7_LANGUAGES,
     breadcrumbs: [
       { name: "Home", path: "/" },
@@ -14360,6 +14729,25 @@ var SEO_ROUTES = {
       { name: "Solo Word Games", path: "/solo-games" },
       { name: "TEKSCOdle", path: "/solo-games/tekscodle" }
     ]
+  },
+  "/solo-games/wordhunt": {
+    canonicalPath: "/solo-games/wordhunt",
+    title: "Word Hunt \u2014 Free Solo Alphabetical Word Ladder Game",
+    description: "Play solo Word Hunt in Classic (1 word), Dual (2 words), and Quad (4 boards) modes. Narrow the A\u2013Z alphabetical ladder using any dictionary word across 7 languages.",
+    keywords: "word hunt solo, alphabetical word ladder game, binary search word game, daily word hunt, quad word hunt, free browser word puzzle",
+    ogImagePath: DEFAULT_OG_IMAGE_PATH,
+    ogImageAlt: "Word Hunt solo alphabetical word ladder puzzle game",
+    robots: DEFAULT_ROBOTS,
+    heading: "Word Hunt \u2014 Solo Alphabetical Word Ladder",
+    summary: "Crack hidden 4\u20138 letter words by narrowing the alphabetical bracket above and below across Classic, Dual, and Quad solo modes in 7 languages.",
+    gameGenre: "Word Game",
+    isSolo: true,
+    inLanguages: ALL_7_LANGUAGES,
+    breadcrumbs: [
+      { name: "Home", path: "/" },
+      { name: "Solo Word Games", path: "/solo-games" },
+      { name: "Word Hunt", path: "/solo-games/wordhunt" }
+    ]
   }
 };
 var ALIAS_TO_CANONICAL = {
@@ -14502,7 +14890,8 @@ function buildStructuredData(meta, origin = SITE_ORIGIN) {
           { "@type": "ListItem", position: 8, name: "WikiContexto Solo", url: `${origin}/solo-games/wikicon` },
           { "@type": "ListItem", position: 9, name: "MP Search Word Search", url: `${origin}/solo-games/mpsearch` },
           { "@type": "ListItem", position: 10, name: "MP Difference", url: `${origin}/solo-games/mpdifference` },
-          { "@type": "ListItem", position: 11, name: "TEKSCOdle", url: `${origin}/solo-games/tekscodle` }
+          { "@type": "ListItem", position: 11, name: "TEKSCOdle", url: `${origin}/solo-games/tekscodle` },
+          { "@type": "ListItem", position: 12, name: "Word Hunt", url: `${origin}/solo-games/wordhunt` }
         ]
       }
     });
@@ -14602,7 +14991,7 @@ function renderSeoNoscriptHtml(rawPath, origin = SITE_ORIGIN) {
 
 // server.ts
 var __filename = fileURLToPath(import.meta.url);
-var __dirname = path3.dirname(__filename);
+var __dirname = path4.dirname(__filename);
 var WebcastPushConnection = TikTokLiveConnection2;
 function cleanUrl2(val) {
   if (!val || typeof val !== "string") return "";
@@ -14644,8 +15033,8 @@ function extractProfilePicture(data) {
   }
   return "";
 }
-var DATA_DIR3 = path3.join(__dirname, ".relay_data");
-var STREAMERS_FILE = path3.join(DATA_DIR3, "authorized_streamers.json");
+var DATA_DIR3 = path4.join(__dirname, ".relay_data");
+var STREAMERS_FILE = path4.join(DATA_DIR3, "authorized_streamers.json");
 var DEFAULT_SERVER_STREAMERS = [
   {
     id: "user-mrdimpz",
@@ -14668,8 +15057,8 @@ var DEFAULT_SERVER_STREAMERS = [
 ];
 function loadServerStreamers() {
   try {
-    if (fs3.existsSync(STREAMERS_FILE)) {
-      const raw = fs3.readFileSync(STREAMERS_FILE, "utf8");
+    if (fs4.existsSync(STREAMERS_FILE)) {
+      const raw = fs4.readFileSync(STREAMERS_FILE, "utf8");
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
@@ -14681,21 +15070,21 @@ function loadServerStreamers() {
 }
 function saveServerStreamers(list) {
   try {
-    if (!fs3.existsSync(DATA_DIR3)) {
-      fs3.mkdirSync(DATA_DIR3, { recursive: true });
+    if (!fs4.existsSync(DATA_DIR3)) {
+      fs4.mkdirSync(DATA_DIR3, { recursive: true });
     }
-    fs3.writeFileSync(STREAMERS_FILE, JSON.stringify(list, null, 2), "utf8");
+    fs4.writeFileSync(STREAMERS_FILE, JSON.stringify(list, null, 2), "utf8");
   } catch {
   }
 }
-var REGISTERED_USERS_FILE = path3.join(DATA_DIR3, "registered_users.json");
-var AVATARS_DIR = path3.join(DATA_DIR3, "tiktok_avatars");
+var REGISTERED_USERS_FILE = path4.join(DATA_DIR3, "registered_users.json");
+var AVATARS_DIR = path4.join(DATA_DIR3, "tiktok_avatars");
 var avatarFetchInFlight = /* @__PURE__ */ new Map();
 function getCachedTikTokAvatarFromDisk(cleanUsername) {
   try {
-    const file = path3.join(AVATARS_DIR, `${cleanUsername}.json`);
-    if (fs3.existsSync(file)) {
-      const parsed = JSON.parse(fs3.readFileSync(file, "utf8"));
+    const file = path4.join(AVATARS_DIR, `${cleanUsername}.json`);
+    if (fs4.existsSync(file)) {
+      const parsed = JSON.parse(fs4.readFileSync(file, "utf8"));
       if (parsed && typeof parsed.dataUrl === "string" && parsed.dataUrl.startsWith("data:image/")) {
         return parsed;
       }
@@ -14770,15 +15159,15 @@ async function downloadTikTokProfileAvatar(rawUsername, forceRefresh = false) {
             updatedAt: Date.now()
           };
           try {
-            if (!fs3.existsSync(AVATARS_DIR)) {
-              fs3.mkdirSync(AVATARS_DIR, { recursive: true });
+            if (!fs4.existsSync(AVATARS_DIR)) {
+              fs4.mkdirSync(AVATARS_DIR, { recursive: true });
             }
-            fs3.writeFileSync(
-              path3.join(AVATARS_DIR, `${cleanUsername}.json`),
+            fs4.writeFileSync(
+              path4.join(AVATARS_DIR, `${cleanUsername}.json`),
               JSON.stringify(record),
               "utf8"
             );
-            fs3.writeFileSync(path3.join(AVATARS_DIR, `${cleanUsername}.jpg`), buf);
+            fs4.writeFileSync(path4.join(AVATARS_DIR, `${cleanUsername}.jpg`), buf);
           } catch {
           }
           return record;
@@ -14825,8 +15214,8 @@ function sanitizeRegisteredUserPayload(raw) {
 }
 function loadServerRegisteredUsers() {
   try {
-    if (fs3.existsSync(REGISTERED_USERS_FILE)) {
-      const raw = fs3.readFileSync(REGISTERED_USERS_FILE, "utf8");
+    if (fs4.existsSync(REGISTERED_USERS_FILE)) {
+      const raw = fs4.readFileSync(REGISTERED_USERS_FILE, "utf8");
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
         return parsed.map(sanitizeRegisteredUserPayload).filter((u) => Boolean(u)).sort((a, b) => b.updatedAt - a.updatedAt);
@@ -14838,10 +15227,10 @@ function loadServerRegisteredUsers() {
 }
 function saveServerRegisteredUsers(list) {
   try {
-    if (!fs3.existsSync(DATA_DIR3)) {
-      fs3.mkdirSync(DATA_DIR3, { recursive: true });
+    if (!fs4.existsSync(DATA_DIR3)) {
+      fs4.mkdirSync(DATA_DIR3, { recursive: true });
     }
-    fs3.writeFileSync(
+    fs4.writeFileSync(
       REGISTERED_USERS_FILE,
       JSON.stringify(list, null, 2),
       "utf8"
@@ -14890,9 +15279,9 @@ function upsertServerRegisteredUsers(incoming) {
   return merged;
 }
 async function startServer() {
-  const app2 = express();
-  app2.set("trust proxy", 1);
-  const httpServer = createServer(app2);
+  const app = express();
+  app.set("trust proxy", 1);
+  const httpServer = createServer(app);
   const io = new Server(httpServer, {
     path: "/socket.io",
     cors: { origin: "*", methods: ["GET", "POST", "OPTIONS"] },
@@ -14904,7 +15293,7 @@ async function startServer() {
     pingTimeout: 25e3,
     pingInterval: 15e3
   });
-  app2.use((req, res, next) => {
+  app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader(
@@ -14917,10 +15306,10 @@ async function startServer() {
     }
     next();
   });
-  app2.use(express.json({ limit: "8mb" }));
-  app2.use(express.urlencoded({ extended: true }));
-  const inkstream = mountInkStream(app2, io);
-  const mpwh = mountMpwh(app2, io);
+  app.use(express.json({ limit: "8mb" }));
+  app.use(express.urlencoded({ extended: true }));
+  const inkstream = mountInkStream(app, io);
+  const mpwh = mountMpwh(app, io);
   const sessions = /* @__PURE__ */ new Map();
   let overlayVersionCounter = 0;
   const serverBootId = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -14936,26 +15325,13 @@ async function startServer() {
     const cleanStreamer = sanitizeOverlayStreamer(streamer);
     if (cleanChannel) {
       const chSnap = overlaySnapshots.get(`overlay:${gameId}:ch:${cleanChannel}`);
-      const strSnap = cleanStreamer ? overlaySnapshots.get(`overlay:${gameId}:s:${cleanStreamer}`) : void 0;
-      if (chSnap && strSnap) {
-        return strSnap.serverVersion > chSnap.serverVersion ? strSnap : chSnap;
-      }
-      return chSnap || strSnap;
+      if (chSnap) return chSnap;
+      return cleanStreamer ? overlaySnapshots.get(`overlay:${gameId}:s:${cleanStreamer}`) : void 0;
     }
     if (cleanStreamer) {
       return overlaySnapshots.get(`overlay:${gameId}:s:${cleanStreamer}`);
     }
-    const defaultSnap = overlaySnapshots.get(`overlay:${gameId}:default`);
-    if (defaultSnap) return defaultSnap;
-    let newest;
-    const prefix = `overlay:${gameId}:`;
-    for (const [k, rec] of overlaySnapshots.entries()) {
-      if (!k.startsWith(prefix)) continue;
-      if (!newest || rec.serverVersion > newest.serverVersion) {
-        newest = rec;
-      }
-    }
-    return newest;
+    return overlaySnapshots.get(`overlay:${gameId}:default`);
   }
   function upsertOverlaySnapshot(params) {
     const { gameId, state, hostSessionId, seq, stateHash, senderSocket } = params;
@@ -15026,7 +15402,7 @@ async function startServer() {
     res.setHeader("Surrogate-Control", "no-store");
     res.removeHeader("ETag");
   }
-  app2.post("/api/overlay/state", (req, res) => {
+  app.post("/api/overlay/state", (req, res) => {
     applyOverlayNoCacheHeaders(res);
     const body = req.body || {};
     const gameId = String(body.gameId || "").trim().toLowerCase();
@@ -15058,7 +15434,7 @@ async function startServer() {
       bootId: serverBootId
     });
   });
-  app2.get("/api/overlay/state", (req, res) => {
+  app.get("/api/overlay/state", (req, res) => {
     applyOverlayNoCacheHeaders(res);
     const gameId = String(req.query.gameId || "").trim().toLowerCase();
     const streamer = sanitizeOverlayStreamer(req.query.streamer);
@@ -15114,16 +15490,33 @@ async function startServer() {
   let lastWebhookProvider = "";
   function normalizeSessionKey(rawSessionId) {
     if (typeof rawSessionId === "string" && rawSessionId.trim()) {
-      return rawSessionId.trim();
+      return rawSessionId.trim().slice(0, 140);
     }
     return "default_isolated_session";
   }
-  function getOrCreateSession(rawSessionId) {
-    const sessionId = normalizeSessionKey(rawSessionId);
-    let state = sessions.get(sessionId);
+  function normalizeGameId(rawGameId) {
+    if (typeof rawGameId === "string" && rawGameId.trim()) {
+      return rawGameId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 48);
+    }
+    return "";
+  }
+  function resolveSessionKey(rawSessionId, rawGameId) {
+    const baseSessionId = normalizeSessionKey(rawSessionId);
+    const gameId = normalizeGameId(rawGameId);
+    const sessionKey = gameId ? `${baseSessionId}::${gameId}` : baseSessionId;
+    return { sessionKey, baseSessionId, gameId };
+  }
+  function getOrCreateSession(rawSessionId, rawGameId) {
+    const { sessionKey, baseSessionId, gameId } = resolveSessionKey(
+      rawSessionId,
+      rawGameId
+    );
+    let state = sessions.get(sessionKey);
     if (!state) {
       state = {
-        sessionId,
+        sessionId: sessionKey,
+        baseSessionId,
+        gameId,
         tiktokConn: null,
         connectingPromise: null,
         retryTimer: null,
@@ -15131,12 +15524,12 @@ async function startServer() {
         connectedRoomId: null,
         isTestMode: false,
         provider: "tikfinity",
-        connectedGames: /* @__PURE__ */ new Set(),
+        connectedGames: new Set(gameId ? [gameId] : []),
         eventSeq: 0,
         recentEvents: [],
         lastActiveAt: Date.now()
       };
-      sessions.set(sessionId, state);
+      sessions.set(sessionKey, state);
     }
     state.lastActiveAt = Date.now();
     return state;
@@ -15165,11 +15558,24 @@ async function startServer() {
     session.isTestMode = false;
     session.connectedGames.clear();
   }
+  const sessionCleanupTimer = setInterval(() => {
+    const cutoff = Date.now() - 2 * 60 * 60 * 1e3;
+    for (const [key, sess] of sessions.entries()) {
+      const room = io.sockets.adapter.rooms.get(`session:${sess.sessionId}`);
+      const hasSockets = Boolean(room && room.size > 0);
+      if (!hasSockets && sess.lastActiveAt < cutoff) {
+        disconnectSessionTikTok(sess);
+        sessions.delete(key);
+      }
+    }
+  }, 10 * 60 * 1e3);
+  sessionCleanupTimer.unref();
   function pushAndEmitToSession(session, type, payload) {
     session.eventSeq += 1;
     session.lastActiveAt = Date.now();
     const enriched = {
       ...payload,
+      ...session.gameId ? { gameId: payload?.gameId || session.gameId } : {},
       _seq: session.eventSeq,
       timestamp: Number(payload?.timestamp) || Date.now()
     };
@@ -15183,20 +15589,15 @@ async function startServer() {
       session.recentEvents.splice(0, session.recentEvents.length - 250);
     }
     io.to(`session:${session.sessionId}`).emit(type, enriched);
-    if (session.connectedUsername) {
-      io.to(`streamer:${session.connectedUsername.toLowerCase()}`).emit(
-        type,
-        enriched
-      );
-    }
   }
   function emitConnectedState(session, gameId) {
     const cleanUsername = session.connectedUsername || "streamer";
     const roomId = session.connectedRoomId || `LIVE_${cleanUsername}`;
+    const resolvedGameId = gameId || session.gameId || void 0;
     const connPayload = {
       username: cleanUsername,
       roomId,
-      gameId,
+      gameId: resolvedGameId,
       isTestMode: Boolean(session.isTestMode),
       provider: session.provider || "tikfinity"
     };
@@ -15204,24 +15605,12 @@ async function startServer() {
       connected: true,
       username: cleanUsername,
       roomId,
-      gameId,
+      gameId: resolvedGameId,
       isTestMode: Boolean(session.isTestMode),
       provider: session.provider || "tikfinity"
     };
     io.to(`session:${session.sessionId}`).emit("tiktok-connected", connPayload);
     io.to(`session:${session.sessionId}`).emit("tiktok-status", statusPayload);
-    if (cleanUsername) {
-      io.to(`streamer:${cleanUsername.toLowerCase()}`).emit(
-        "tiktok-connected",
-        connPayload
-      );
-      io.to(`streamer:${cleanUsername.toLowerCase()}`).emit(
-        "tiktok-status",
-        statusPayload
-      );
-    }
-    io.emit("tiktok-connected", connPayload);
-    io.emit("tiktok-status", statusPayload);
   }
   function attachTikTokConnListeners(session, activeConn, cleanUsername) {
     activeConn.on(WebcastEvent2.CHAT, (data) => {
@@ -15542,43 +15931,90 @@ async function startServer() {
     globalWebhookCount += 1;
     lastWebhookTime = Date.now();
     lastWebhookProvider = providerName;
-    const targetSessionId = payload.sessionId;
-    if (targetSessionId) {
-      const session = getOrCreateSession(targetSessionId);
-      pushAndEmitToSession(session, normType, normData);
-    } else {
-      if (sessions.size === 0) {
-        const def = getOrCreateSession("default_isolated_session");
-        pushAndEmitToSession(def, normType, normData);
-      } else {
-        for (const sess of sessions.values()) {
-          pushAndEmitToSession(sess, normType, normData);
-        }
+    const targetSessionId = typeof payload.sessionId === "string" && payload.sessionId.trim() ? normalizeSessionKey(payload.sessionId) : "";
+    const targetGameId = normalizeGameId(payload.gameId);
+    const targetChannel = typeof payload.channel === "string" ? payload.channel.trim() : "";
+    const targetRoomId = typeof payload.roomId === "string" ? payload.roomId.trim() : typeof payload.room === "string" ? payload.room.trim() : "";
+    const streamerHint = String(
+      payload.streamer || payload.streamerUsername || payload.host || payload.roomUsername || ""
+    ).trim().replace(/^@+/, "");
+    const cleanStreamerHint = streamerHint.toLowerCase();
+    let inkstreamForwarded = 0;
+    let mpwhForwarded = 0;
+    if (normType === "chat-message" && normData && "comment" in normData) {
+      if (!targetGameId || targetGameId === "inkstream") {
+        inkstreamForwarded = inkstream.gameManager.injectExternalWebhookChat(
+          {
+            streamerHint: cleanStreamerHint,
+            roomId: targetRoomId,
+            sessionId: targetSessionId
+          },
+          {
+            uniqueId: normData.uniqueId,
+            nickname: normData.nickname,
+            comment: normData.comment,
+            profilePictureUrl: normData.profilePictureUrl
+          }
+        );
+      }
+      if (!targetGameId || targetGameId === "mpwh") {
+        mpwhForwarded = mpwh.manager.injectExternalWebhookChat(
+          {
+            streamerHint: cleanStreamerHint,
+            channel: targetChannel || targetRoomId,
+            sessionId: targetSessionId
+          },
+          {
+            uniqueId: normData.uniqueId,
+            nickname: normData.nickname,
+            comment: normData.comment,
+            profilePictureUrl: normData.profilePictureUrl
+          }
+        );
       }
     }
-    if (normType === "chat-message" && normData && "comment" in normData) {
-      const streamerHint = String(
-        payload.streamer || payload.channel || payload.host || payload.roomUsername || ""
-      ).trim().replace(/^@+/, "");
-      inkstream.gameManager.injectExternalWebhookChat(streamerHint, {
-        uniqueId: normData.uniqueId,
-        nickname: normData.nickname,
-        comment: normData.comment,
-        profilePictureUrl: normData.profilePictureUrl
-      });
-      mpwh.manager.injectExternalWebhookChat(streamerHint, {
-        uniqueId: normData.uniqueId,
-        nickname: normData.nickname,
-        comment: normData.comment,
-        profilePictureUrl: normData.profilePictureUrl
-      });
+    const skipBridgeEcho = targetGameId === "inkstream" && inkstreamForwarded > 0 || targetGameId === "mpwh" && mpwhForwarded > 0;
+    if (!skipBridgeEcho) {
+      if (targetSessionId) {
+        if (targetGameId) {
+          const exactSess = getOrCreateSession(targetSessionId, targetGameId);
+          pushAndEmitToSession(exactSess, normType, normData);
+        } else {
+          let matchedAny = false;
+          for (const sess of sessions.values()) {
+            if (sess.baseSessionId === targetSessionId || sess.sessionId === targetSessionId) {
+              pushAndEmitToSession(sess, normType, normData);
+              matchedAny = true;
+            }
+          }
+          if (!matchedAny) {
+            const defSess = getOrCreateSession(targetSessionId);
+            pushAndEmitToSession(defSess, normType, normData);
+          }
+        }
+      } else if (cleanStreamerHint) {
+        for (const sess of sessions.values()) {
+          if (targetGameId && sess.gameId && sess.gameId !== targetGameId) {
+            continue;
+          }
+          if (sess.connectedUsername && sess.connectedUsername.toLowerCase() === cleanStreamerHint) {
+            pushAndEmitToSession(sess, normType, normData);
+          }
+        }
+      } else if (sessions.has("default_isolated_session")) {
+        pushAndEmitToSession(
+          sessions.get("default_isolated_session"),
+          normType,
+          normData
+        );
+      }
     }
     return { type: normType, payload: normData, provider: providerName };
   }
-  app2.get("/api/tiktok/status", (req, res) => {
-    const session = getOrCreateSession(req.query.sessionId);
-    const gameId = typeof req.query.gameId === "string" ? req.query.gameId.trim() : void 0;
-    const isGameConnected = gameId ? session.connectedGames.has(gameId) || Boolean(session.connectedUsername) : Boolean(session.connectedUsername);
+  app.get("/api/tiktok/status", (req, res) => {
+    const gameId = normalizeGameId(req.query.gameId) || void 0;
+    const session = getOrCreateSession(req.query.sessionId, gameId);
+    const isGameConnected = Boolean(session.connectedUsername);
     res.json({
       ok: true,
       connected: isGameConnected,
@@ -15592,8 +16028,9 @@ async function startServer() {
       totalWebhooksReceived: globalWebhookCount
     });
   });
-  app2.get("/api/tiktok/events", (req, res) => {
-    const session = getOrCreateSession(req.query.sessionId);
+  app.get("/api/tiktok/events", (req, res) => {
+    const gameId = normalizeGameId(req.query.gameId) || void 0;
+    const session = getOrCreateSession(req.query.sessionId, gameId);
     const since = Number(req.query.since) || 0;
     const events = session.recentEvents.filter((e) => e.seq > since);
     res.json({
@@ -15601,12 +16038,14 @@ async function startServer() {
       connected: Boolean(session.connectedUsername),
       username: session.connectedUsername || "",
       roomId: session.connectedRoomId || "",
+      gameId,
       seq: session.eventSeq,
       events
     });
   });
-  app2.get("/api/tiktok/diagnostic", (req, res) => {
-    const session = getOrCreateSession(req.query.sessionId);
+  app.get("/api/tiktok/diagnostic", (req, res) => {
+    const gameId = normalizeGameId(req.query.gameId) || void 0;
+    const session = getOrCreateSession(req.query.sessionId, gameId);
     res.json({
       ok: true,
       connected: Boolean(session.connectedUsername),
@@ -15621,7 +16060,7 @@ async function startServer() {
       serverTime: Date.now()
     });
   });
-  app2.get("/api/tiktok/sample-words", (_req, res) => {
+  app.get("/api/tiktok/sample-words", (_req, res) => {
     const words = [
       "planet",
       "galaxy",
@@ -15639,66 +16078,44 @@ async function startServer() {
       commonWords: ["nature", "system", "energy", "world", "time", "year"]
     });
   });
-  app2.post("/api/tiktok/connect", async (req, res) => {
+  app.post("/api/tiktok/connect", async (req, res) => {
+    const gameId = normalizeGameId(req.body?.gameId || req.query.gameId) || void 0;
     const session = getOrCreateSession(
-      req.body?.sessionId || req.query.sessionId
+      req.body?.sessionId || req.query.sessionId,
+      gameId
     );
     const result = await connectSessionTikTokStream(
       session,
       req.body?.username || "",
-      req.body?.gameId,
+      gameId,
       {
         isTestMode: Boolean(req.body?.isTestMode),
         provider: req.body?.provider,
         forceReconnect: Boolean(req.body?.forceReconnect)
       }
     );
-    res.json(result);
+    res.json({ ...result, gameId });
   });
-  app2.post("/api/tiktok/disconnect", (req, res) => {
+  app.post("/api/tiktok/disconnect", (req, res) => {
+    const gameId = normalizeGameId(req.body?.gameId || req.query.gameId) || void 0;
     const session = getOrCreateSession(
-      req.body?.sessionId || req.query.sessionId
+      req.body?.sessionId || req.query.sessionId,
+      gameId
     );
-    const gameId = typeof req.body?.gameId === "string" ? req.body.gameId.trim() : void 0;
-    if (gameId) {
-      session.connectedGames.delete(gameId);
-      io.to(`session:${session.sessionId}`).emit("tiktok-status", {
-        connected: false,
-        username: "",
-        roomId: "",
-        gameId
-      });
-      io.emit("tiktok-status", {
-        connected: false,
-        username: "",
-        roomId: "",
-        gameId
-      });
-      io.to(`session:${session.sessionId}`).emit("tiktok-disconnected", {
-        gameId
-      });
-      io.emit("tiktok-disconnected", { gameId });
-      if (session.connectedGames.size === 0) {
-        disconnectSessionTikTok(session);
-      }
-    } else {
-      disconnectSessionTikTok(session);
-      io.to(`session:${session.sessionId}`).emit("tiktok-status", {
-        connected: false,
-        username: "",
-        roomId: ""
-      });
-      io.emit("tiktok-status", {
-        connected: false,
-        username: "",
-        roomId: ""
-      });
-      io.to(`session:${session.sessionId}`).emit("tiktok-disconnected");
-      io.emit("tiktok-disconnected");
-    }
-    res.json({ ok: true, connected: false });
+    disconnectSessionTikTok(session);
+    io.to(`session:${session.sessionId}`).emit("tiktok-status", {
+      connected: false,
+      username: "",
+      roomId: "",
+      gameId
+    });
+    io.to(`session:${session.sessionId}`).emit(
+      "tiktok-disconnected",
+      gameId ? { gameId } : void 0
+    );
+    res.json({ ok: true, connected: false, gameId });
   });
-  app2.post("/api/tiktok/event", (req, res) => {
+  app.post("/api/tiktok/event", (req, res) => {
     const result = ingestWebhookPayload(
       { ...req.query, ...req.body },
       "tiktok"
@@ -15709,7 +16126,7 @@ async function startServer() {
     }
     res.json({ ok: true, status: "ready" });
   });
-  app2.post("/api/tikfinity/event", (req, res) => {
+  app.post("/api/tikfinity/event", (req, res) => {
     const result = ingestWebhookPayload(
       { ...req.query, ...req.body },
       "tikfinity"
@@ -15720,7 +16137,7 @@ async function startServer() {
     }
     res.json({ ok: true, status: "ready" });
   });
-  app2.post("/api/bettertok/event", (req, res) => {
+  app.post("/api/bettertok/event", (req, res) => {
     const result = ingestWebhookPayload(
       { ...req.query, ...req.body },
       "bettertok"
@@ -15731,9 +16148,13 @@ async function startServer() {
     }
     res.json({ ok: true, status: "ready" });
   });
-  app2.post("/api/tiktok/simulate", (req, res) => {
+  app.post("/api/tiktok/simulate", (req, res) => {
+    const gameId = normalizeGameId(
+      req.body?.gameId || req.body?.payload?.gameId || req.query.gameId
+    ) || void 0;
     const session = getOrCreateSession(
-      req.body?.sessionId || req.query.sessionId
+      req.body?.sessionId || req.query.sessionId,
+      gameId
     );
     const { type, payload } = req.body || {};
     if (type === "chat-message" || type === "like-event" || type === "gift-event") {
@@ -15768,21 +16189,40 @@ async function startServer() {
       res.status(400).json({ ok: false, error: "Invalid event type" });
     }
   });
-  app2.post("/api/auth/streamer-activity", (req, res) => {
-    const session = getOrCreateSession(
+  app.post("/api/auth/streamer-activity", (req, res) => {
+    const rawSid = normalizeSessionKey(
       req.body?.sessionId || req.query.sessionId
     );
-    session.lastActiveAt = Date.now();
+    const now = Date.now();
+    for (const sess of sessions.values()) {
+      if (sess.baseSessionId === rawSid || sess.sessionId === rawSid) {
+        sess.lastActiveAt = now;
+      }
+    }
     res.json({ ok: true });
   });
-  app2.post("/api/auth/streamer-logout", (req, res) => {
-    const session = getOrCreateSession(
+  app.post("/api/auth/streamer-logout", (req, res) => {
+    const rawSid = normalizeSessionKey(
       req.body?.sessionId || req.query.sessionId
     );
-    disconnectSessionTikTok(session);
+    for (const sess of sessions.values()) {
+      if (sess.baseSessionId === rawSid || sess.sessionId === rawSid) {
+        disconnectSessionTikTok(sess);
+        io.to(`session:${sess.sessionId}`).emit("tiktok-status", {
+          connected: false,
+          username: "",
+          roomId: "",
+          gameId: sess.gameId || void 0
+        });
+        io.to(`session:${sess.sessionId}`).emit(
+          "tiktok-disconnected",
+          sess.gameId ? { gameId: sess.gameId } : void 0
+        );
+      }
+    }
     res.json({ ok: true });
   });
-  app2.post("/api/auth/validate-streamer", (req, res) => {
+  app.post("/api/auth/validate-streamer", (req, res) => {
     const rawUser = String(req.body?.username || "").trim().replace(/^@+/, "").toLowerCase();
     const rawKey = String(req.body?.key || "").trim().toUpperCase();
     const streamers = loadServerStreamers();
@@ -15798,10 +16238,10 @@ async function startServer() {
     }
     res.json({ ok: true, user: matched });
   });
-  app2.get("/api/admin/authorized-users", (_req, res) => {
+  app.get("/api/admin/authorized-users", (_req, res) => {
     res.json({ ok: true, users: loadServerStreamers() });
   });
-  app2.post("/api/admin/authorized-users", (req, res) => {
+  app.post("/api/admin/authorized-users", (req, res) => {
     const current = loadServerStreamers();
     if (Array.isArray(req.body?.users)) {
       saveServerStreamers(req.body.users);
@@ -15832,7 +16272,7 @@ async function startServer() {
     saveServerStreamers(current);
     res.json({ ok: true, user: record, users: current });
   });
-  app2.post("/api/admin/login", (req, res) => {
+  app.post("/api/admin/login", (req, res) => {
     const username = String(req.body?.username || "").trim();
     const password = String(req.body?.password || "");
     if (username.toLowerCase() === "mpadmin" && password === "MPPassword1") {
@@ -15845,7 +16285,7 @@ async function startServer() {
     }
     res.status(401).json({ ok: false, error: "Invalid admin credentials" });
   });
-  app2.get("/api/admin/registered-users", (_req, res) => {
+  app.get("/api/admin/registered-users", (_req, res) => {
     const registered = loadServerRegisteredUsers();
     const streamers = loadServerStreamers();
     const byUid = /* @__PURE__ */ new Map();
@@ -15879,7 +16319,7 @@ async function startServer() {
     );
     res.json({ ok: true, users: combined });
   });
-  app2.post("/api/registered-users/sync", (req, res) => {
+  app.post("/api/registered-users/sync", (req, res) => {
     const candidates = [];
     if (Array.isArray(req.body?.users)) {
       for (const rawItem of req.body.users) {
@@ -15915,7 +16355,7 @@ async function startServer() {
     }
     res.json({ ok: true, count: merged.length, users: merged });
   });
-  app2.get("/api/tiktok/profile-avatar", async (req, res) => {
+  app.get("/api/tiktok/profile-avatar", async (req, res) => {
     const rawUsername = req.query.username || req.query.handle || "";
     const force = req.query.force === "1" || req.query.force === "true";
     const clean = String(rawUsername || "").trim().replace(/^@+/, "").toLowerCase().replace(/[^a-z0-9_.-]/g, "");
@@ -15940,7 +16380,7 @@ async function startServer() {
       endpointUrl: `/api/tiktok/avatar/${encodeURIComponent(clean)}`
     });
   });
-  app2.post("/api/tiktok/profile-avatar", async (req, res) => {
+  app.post("/api/tiktok/profile-avatar", async (req, res) => {
     const rawUsername = req.body?.username || req.body?.handle || "";
     const force = Boolean(req.body?.force);
     const clean = String(rawUsername || "").trim().replace(/^@+/, "").toLowerCase().replace(/[^a-z0-9_.-]/g, "");
@@ -15965,7 +16405,7 @@ async function startServer() {
       endpointUrl: `/api/tiktok/avatar/${encodeURIComponent(clean)}`
     });
   });
-  app2.get("/api/tiktok/avatar/:username", async (req, res) => {
+  app.get("/api/tiktok/avatar/:username", async (req, res) => {
     const clean = String(req.params.username || "").trim().replace(/^@+/, "").toLowerCase().replace(/[^a-z0-9_.-]/g, "");
     if (!clean) {
       res.status(404).end();
@@ -15987,16 +16427,10 @@ async function startServer() {
   });
   io.on("connection", (socket) => {
     const handshakeSessionId = typeof socket.handshake.query?.sessionId === "string" && socket.handshake.query.sessionId.trim() ? socket.handshake.query.sessionId.trim() : socket.id;
-    const socketGameId = typeof socket.handshake.query?.gameId === "string" ? socket.handshake.query.gameId.trim() : "";
-    let activeSession = getOrCreateSession(handshakeSessionId);
+    let socketGameId = normalizeGameId(socket.handshake.query?.gameId);
+    let activeSession = getOrCreateSession(handshakeSessionId, socketGameId);
     socket.join(`session:${activeSession.sessionId}`);
     if (activeSession.connectedUsername) {
-      socket.join(
-        `streamer:${activeSession.connectedUsername.toLowerCase()}`
-      );
-    }
-    const isThisGameConnected = socketGameId ? activeSession.connectedGames.has(socketGameId) || Boolean(activeSession.connectedUsername) : Boolean(activeSession.connectedUsername);
-    if (isThisGameConnected && activeSession.connectedUsername) {
       socket.emit("tiktok-status", {
         connected: true,
         username: activeSession.connectedUsername,
@@ -16004,19 +16438,45 @@ async function startServer() {
         gameId: socketGameId || void 0
       });
     }
-    socket.on("join-session", (rawSessionId) => {
-      if (typeof rawSessionId === "string" && rawSessionId.trim()) {
+    const switchSocketSession = (nextSessionId, nextGameId) => {
+      const targetSid = typeof nextSessionId === "string" && nextSessionId.trim() ? nextSessionId.trim() : activeSession.baseSessionId;
+      const targetGid = nextGameId !== void 0 ? normalizeGameId(nextGameId) : socketGameId;
+      socketGameId = targetGid;
+      const nextSession = getOrCreateSession(targetSid, targetGid);
+      if (nextSession.sessionId !== activeSession.sessionId) {
         socket.leave(`session:${activeSession.sessionId}`);
-        activeSession = getOrCreateSession(rawSessionId.trim());
+        activeSession = nextSession;
         socket.join(`session:${activeSession.sessionId}`);
-        if (activeSession.connectedUsername) {
-          socket.join(
-            `streamer:${activeSession.connectedUsername.toLowerCase()}`
-          );
+      } else {
+        activeSession = nextSession;
+      }
+      return activeSession;
+    };
+    socket.on("join-session", (payload) => {
+      let nextSid = void 0;
+      let nextGid = void 0;
+      if (typeof payload === "string" && payload.trim()) {
+        nextSid = payload.trim();
+      } else if (payload && typeof payload === "object") {
+        nextSid = payload.sessionId;
+        if ("gameId" in payload) {
+          nextGid = payload.gameId;
+        }
+      }
+      if (nextSid || nextGid !== void 0) {
+        const switched = switchSocketSession(nextSid, nextGid);
+        if (switched.connectedUsername) {
           socket.emit("tiktok-status", {
             connected: true,
-            username: activeSession.connectedUsername,
-            roomId: activeSession.connectedRoomId || "",
+            username: switched.connectedUsername,
+            roomId: switched.connectedRoomId || "",
+            gameId: socketGameId || void 0
+          });
+        } else {
+          socket.emit("tiktok-status", {
+            connected: false,
+            username: "",
+            roomId: "",
             gameId: socketGameId || void 0
           });
         }
@@ -16025,12 +16485,7 @@ async function startServer() {
     socket.on("register-streamer", (payload, ack) => {
       const uname = payload && typeof payload === "object" ? String(payload.username || "").trim().replace(/^@+/, "") : "";
       if (payload && typeof payload === "object" && payload.sessionId) {
-        socket.leave(`session:${activeSession.sessionId}`);
-        activeSession = getOrCreateSession(String(payload.sessionId));
-        socket.join(`session:${activeSession.sessionId}`);
-      }
-      if (uname) {
-        socket.join(`streamer:${uname.toLowerCase()}`);
+        switchSocketSession(payload.sessionId, payload.gameId ?? socketGameId);
       }
       if (typeof ack === "function") {
         ack({ ok: true, username: uname });
@@ -16039,9 +16494,6 @@ async function startServer() {
     });
     socket.on("streamer-auth-login", (payload, ack) => {
       const uname = payload && typeof payload === "object" ? String(payload.username || "").trim().replace(/^@+/, "") : "";
-      if (uname) {
-        socket.join(`streamer:${uname.toLowerCase()}`);
-      }
       if (typeof ack === "function") {
         ack({ ok: true, username: uname ? `@${uname}` : "@streamer" });
       }
@@ -16055,13 +16507,13 @@ async function startServer() {
       if (typeof payload === "string") {
         targetUser = payload;
       } else if (payload && typeof payload === "object") {
-        if (typeof payload.sessionId === "string" && payload.sessionId.trim()) {
-          socket.leave(`session:${activeSession.sessionId}`);
-          activeSession = getOrCreateSession(payload.sessionId.trim());
-          socket.join(`session:${activeSession.sessionId}`);
-        }
         if (typeof payload.gameId === "string" && payload.gameId.trim()) {
-          targetGameId = payload.gameId.trim();
+          targetGameId = normalizeGameId(payload.gameId);
+        }
+        if (typeof payload.sessionId === "string" && payload.sessionId.trim()) {
+          switchSocketSession(payload.sessionId, targetGameId);
+        } else if (targetGameId !== socketGameId) {
+          switchSocketSession(activeSession.baseSessionId, targetGameId);
         }
         if (typeof payload.username === "string") {
           targetUser = payload.username;
@@ -16077,13 +16529,10 @@ async function startServer() {
         }
       }
       const cleanUser = targetUser.trim().replace(/^@+/, "");
-      if (cleanUser) {
-        socket.join(`streamer:${cleanUser.toLowerCase()}`);
-      }
       const result = await connectSessionTikTokStream(
         activeSession,
         cleanUser || activeSession.connectedUsername || "streamer",
-        targetGameId,
+        targetGameId || void 0,
         { isTestMode, provider, forceReconnect }
       );
       if (typeof ack === "function") {
@@ -16094,37 +16543,25 @@ async function startServer() {
       let targetGameId = socketGameId;
       if (payload && typeof payload === "object") {
         if (typeof payload.gameId === "string" && payload.gameId.trim()) {
-          targetGameId = payload.gameId.trim();
+          targetGameId = normalizeGameId(payload.gameId);
         }
         if (typeof payload.sessionId === "string" && payload.sessionId.trim()) {
-          activeSession = getOrCreateSession(payload.sessionId.trim());
+          switchSocketSession(payload.sessionId, targetGameId);
+        } else if (targetGameId && targetGameId !== socketGameId) {
+          switchSocketSession(activeSession.baseSessionId, targetGameId);
         }
       }
-      if (targetGameId) {
-        activeSession.connectedGames.delete(targetGameId);
-        socket.emit("tiktok-status", {
-          connected: false,
-          username: "",
-          roomId: "",
-          gameId: targetGameId
-        });
-        socket.emit("tiktok-disconnected", { gameId: targetGameId });
-      }
-      if (activeSession.connectedGames.size === 0) {
-        disconnectSessionTikTok(activeSession);
-        io.to(`session:${activeSession.sessionId}`).emit("tiktok-status", {
-          connected: false,
-          username: "",
-          roomId: ""
-        });
-        io.emit("tiktok-status", {
-          connected: false,
-          username: "",
-          roomId: ""
-        });
-        io.to(`session:${activeSession.sessionId}`).emit("tiktok-disconnected");
-        io.emit("tiktok-disconnected");
-      }
+      disconnectSessionTikTok(activeSession);
+      io.to(`session:${activeSession.sessionId}`).emit("tiktok-status", {
+        connected: false,
+        username: "",
+        roomId: "",
+        gameId: targetGameId || void 0
+      });
+      io.to(`session:${activeSession.sessionId}`).emit(
+        "tiktok-disconnected",
+        targetGameId ? { gameId: targetGameId } : void 0
+      );
     });
     socket.on("chat-message", (chatPayload) => {
       if (chatPayload && typeof chatPayload === "object") {
@@ -16219,12 +16656,9 @@ async function startServer() {
       if (!gameId) return;
       if (channel) {
         socket.join(`overlay:${gameId}:ch:${channel}`);
-      }
-      if (streamer) {
+      } else if (streamer) {
         socket.join(`overlay:${gameId}:s:${streamer}`);
-        socket.join(`streamer:${streamer}`);
-      }
-      if (!channel && !streamer) {
+      } else {
         socket.join(`overlay:${gameId}:default`);
       }
       const snap = getNewestOverlaySnapshot(gameId, streamer, channel);
@@ -16270,54 +16704,73 @@ async function startServer() {
       });
     });
   });
-  app2.get("/favicon.ico", (_req, res) => {
-    const icoPath = path3.join(__dirname, "public", "favicon.ico");
-    if (fs3.existsSync(icoPath)) {
+  app.get("/favicon.ico", (_req, res) => {
+    const icoPath = path4.join(__dirname, "public", "favicon.ico");
+    if (fs4.existsSync(icoPath)) {
       res.setHeader("Content-Type", "image/x-icon");
       res.setHeader("Cache-Control", "no-cache, must-revalidate");
       res.sendFile(icoPath);
       return;
     }
-    const pngPath = path3.join(__dirname, "public", "favicon.png");
+    const pngPath = path4.join(__dirname, "public", "favicon.png");
     res.setHeader("Content-Type", "image/png");
     res.setHeader("Cache-Control", "no-cache, must-revalidate");
     res.sendFile(pngPath);
   });
   const candidateDistDirs = [
-    path3.join(__dirname, "dist"),
-    path3.resolve(process.cwd(), "dist")
+    path4.join(__dirname, "dist"),
+    path4.resolve(process.cwd(), "dist")
   ];
   const distPath = candidateDistDirs.find(
-    (dir) => fs3.existsSync(path3.join(dir, "index.html"))
+    (dir) => fs4.existsSync(path4.join(dir, "index.html"))
   ) || candidateDistDirs[0];
-  const hasBuiltDist = fs3.existsSync(path3.join(distPath, "index.html"));
+  const hasBuiltDist = fs4.existsSync(path4.join(distPath, "index.html"));
   const isDevLifecycle = process.env.npm_lifecycle_event === "dev" || __filename.endsWith(".ts") && process.env.npm_lifecycle_event !== "start" && process.env.NODE_ENV === "development";
   const useProdStatic = hasBuiltDist && (__filename.endsWith(".js") || process.env.npm_lifecycle_event === "start" || process.env.NODE_ENV === "production" || !isDevLifecycle);
-  app2.get("/api/health", (_req, res) => {
+  let viteReady = useProdStatic;
+  app.get("/api/health", (_req, res) => {
     res.json({
       ok: true,
       mode: useProdStatic ? "production" : "development",
       bootId: serverBootId,
       distReady: hasBuiltDist,
+      viteReady,
       uptimeSec: Math.round(process.uptime())
     });
   });
   if (!useProdStatic) {
-    const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
-      server: {
-        middlewareMode: true,
-        hmr: false,
-        ws: false
-      },
-      appType: "spa"
+    const viteReadyPromise = import("vite").then(
+      ({ createServer: createViteServer }) => createViteServer({
+        server: {
+          middlewareMode: true,
+          hmr: false,
+          ws: false,
+          watch: process.env.DISABLE_HMR === "true" ? null : {
+            ignored: [
+              "**/dist/**",
+              "**/.relay_data/**",
+              "**/data/**",
+              "**/public/the-missing-piece-hostinger.zip"
+            ]
+          }
+        },
+        appType: "spa"
+      })
+    ).then((vite) => {
+      viteReady = true;
+      return vite;
     });
-    app2.use(vite.middlewares);
+    viteReadyPromise.catch((err) => {
+      console.error("[Server] Failed to initialize Vite dev middleware:", err);
+    });
+    app.use((req, res, next) => {
+      viteReadyPromise.then((vite) => vite.middlewares(req, res, next)).catch(next);
+    });
   } else {
     let cachedIndexHtml = null;
     const readBuiltIndexHtml = () => {
       if (cachedIndexHtml) return cachedIndexHtml;
-      cachedIndexHtml = fs3.readFileSync(path3.join(distPath, "index.html"), "utf8");
+      cachedIndexHtml = fs4.readFileSync(path4.join(distPath, "index.html"), "utf8");
       return cachedIndexHtml;
     };
     const injectSeoIntoHtml = (template, rawPath, origin) => {
@@ -16332,7 +16785,7 @@ async function startServer() {
         () => noscriptBlock
       );
     };
-    app2.use(
+    app.use(
       express.static(distPath, {
         index: false,
         setHeaders: (res, filePath) => {
@@ -16341,16 +16794,16 @@ async function startServer() {
               "Cache-Control",
               "no-store, no-cache, must-revalidate, max-age=0"
             );
-          } else if (filePath.includes(`${path3.sep}assets${path3.sep}`) || /\.(webp|png|jpg|jpeg|svg|woff2?|mp4|webm|ico)$/i.test(filePath)) {
+          } else if (filePath.includes(`${path4.sep}assets${path4.sep}`) || /\.(webp|png|jpg|jpeg|svg|woff2?|mp4|webm|ico)$/i.test(filePath)) {
             res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
           }
         }
       })
     );
-    app2.use("/api", (_req, res) => {
+    app.use("/api", (_req, res) => {
       res.status(404).json({ ok: false, error: "API endpoint not found" });
     });
-    app2.use((req, res, next) => {
+    app.use((req, res, next) => {
       if (req.path.startsWith("/socket.io") || req.path.startsWith("/api/")) {
         next();
         return;
@@ -16365,18 +16818,40 @@ async function startServer() {
         const html = injectSeoIntoHtml(readBuiltIndexHtml(), req.path, origin);
         res.status(200).type("html").send(html);
       } catch {
-        res.sendFile(path3.join(distPath, "index.html"));
+        res.sendFile(path4.join(distPath, "index.html"));
       }
     });
   }
   const PORT = Number(process.env.PORT) || 3e3;
+  httpServer.on("error", (err) => {
+    console.error("[Server] HTTP server error:", err);
+  });
   httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(
       `Server running on port ${PORT} (${useProdStatic ? "production-static" : "vite-dev"})`
     );
   });
+  const shutdown = (signal) => {
+    console.log(`[Server] Received ${signal}, shutting down cleanly...`);
+    httpServer.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 2e3).unref();
+  };
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 }
-startServer();
+process.on("unhandledRejection", (reason) => {
+  console.error("[Server] Unhandled promise rejection (kept alive):", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[Server] Uncaught exception:", err);
+  if (err && (err.code === "EADDRINUSE" || err.code === "EACCES")) {
+    process.exit(1);
+  }
+});
+startServer().catch((err) => {
+  console.error("[Server] Fatal startup error:", err);
+  process.exit(1);
+});
 export {
   WebcastPushConnection
 };

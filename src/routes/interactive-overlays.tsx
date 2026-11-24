@@ -115,6 +115,24 @@ const INTERACTIVE_OVERLAY_SPECS: OverlayGameSpec[] = [
     virtualHeight: 900,
     sizeLabel: '620 × 900 · Ladder',
   },
+  {
+    id: 'wbr',
+    title: 'Word Bomb Royale',
+    hostPath: '/interactive-games/wbr',
+    overlaySlug: 'wbr',
+    virtualWidth: 540,
+    virtualHeight: 960,
+    sizeLabel: '540 × 960 · 9:16',
+  },
+  {
+    id: 'tow',
+    title: 'Tug of Words',
+    hostPath: '/interactive-games/tow',
+    overlaySlug: 'tow',
+    virtualWidth: 540,
+    virtualHeight: 960,
+    sizeLabel: '540 × 960 · 9:16',
+  },
 ];
 
 interface ScaledOverlayStageProps {

@@ -8,7 +8,7 @@ import {
   normalizeDictionaryLanguage,
   stripDiacritics,
   type DictionaryLanguageCode,
-} from '../../src/lib/dictionary-languages.ts';
+} from '../../src/lib/dictionary-language-core.ts';
 import type { LadderMode } from '../../src/mpwh/shared/types.ts';
 
 interface LanguageDictionary {
@@ -49,39 +49,44 @@ function loadFullEnglishWords(): string[] {
   return [];
 }
 
-// Possible secret words: 500 most common 4–8 letter English words
-const EN_TARGET_ARRAY = Array.from(
-  new Set(
-    RAW_TARGET_POOL.map((w) => w.toLowerCase().trim()).filter(
-      (w) => w.length >= 4 && w.length <= 8 && /^[a-z]+$/.test(w)
+const DICTIONARIES = new Map<DictionaryLanguageCode, LanguageDictionary>();
+
+function buildEnglishDictionary(): LanguageDictionary {
+  // Possible secret words: 500 most common 4–8 letter English words
+  const targetWords = Array.from(
+    new Set(
+      RAW_TARGET_POOL.map((w) => w.toLowerCase().trim()).filter(
+        (w) => w.length >= 4 && w.length <= 8 && /^[a-z]+$/.test(w)
+      )
     )
   )
-)
-  .slice(0, 500)
-  .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    .slice(0, 500)
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
-// Guess dictionary: full English dictionary (all word lengths >= 2) + target pool
-const EN_VALID_SET = new Set<string>(EN_TARGET_ARRAY);
-for (const raw of loadFullEnglishWords()) {
-  const clean = String(raw).toLowerCase().trim();
-  if (
-    clean.length >= MIN_GUESS_LENGTH &&
-    clean.length <= MAX_GUESS_LENGTH &&
-    /^[a-z]+$/.test(clean)
-  ) {
-    EN_VALID_SET.add(clean);
+  // Guess dictionary: full English dictionary (all word lengths >= 2) + target pool
+  const validSet = new Set<string>(targetWords);
+  for (const raw of loadFullEnglishWords()) {
+    const clean = String(raw).toLowerCase().trim();
+    if (
+      clean.length >= MIN_GUESS_LENGTH &&
+      clean.length <= MAX_GUESS_LENGTH &&
+      /^[a-z]+$/.test(clean)
+    ) {
+      validSet.add(clean);
+    }
   }
-}
-const EN_VALID_ARRAY = Array.from(EN_VALID_SET).sort((a, b) =>
-  a < b ? -1 : a > b ? 1 : 0
-);
+  const validArray = Array.from(validSet).sort((a, b) =>
+    a < b ? -1 : a > b ? 1 : 0
+  );
 
-const DICTIONARIES = new Map<DictionaryLanguageCode, LanguageDictionary>();
-DICTIONARIES.set('en', {
-  validArray: EN_VALID_ARRAY,
-  validSet: EN_VALID_SET,
-  targetWords: EN_TARGET_ARRAY,
-});
+  const dict: LanguageDictionary = {
+    validArray,
+    validSet,
+    targetWords,
+  };
+  DICTIONARIES.set('en', dict);
+  return dict;
+}
 
 function getLanguageDictionary(langInput?: string): LanguageDictionary {
   const lang = normalizeDictionaryLanguage(langInput);
@@ -89,7 +94,7 @@ function getLanguageDictionary(langInput?: string): LanguageDictionary {
   if (cached) return cached;
 
   if (lang === 'en') {
-    return DICTIONARIES.get('en')!;
+    return buildEnglishDictionary();
   }
 
   const pack = MULTILANG_WORD_PACKS[lang];

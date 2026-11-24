@@ -13,6 +13,7 @@ import {
   RefreshCw,
   FastForward,
   ShieldAlert,
+  ShieldCheck,
   Radio,
   Send,
   Zap,
@@ -78,6 +79,7 @@ const KEYBOARD_ROWS = [
 ];
 
 const MAX_GUESSES = 5;
+const REVEAL_LOCK_DELAY_SECONDS = 5;
 
 export type CrowdleStatus =
   | 'PLAYING'
@@ -106,6 +108,8 @@ export interface LiveVoteFeedItem {
   avatar: string;
   word: string;
   isValid: boolean;
+  isBlocked?: boolean;
+  blockedLetters?: string[];
   isExactMatch?: boolean;
   timestamp: number;
 }
@@ -125,8 +129,33 @@ interface CrowdleOverlaySnapshot {
   totalStreak: number;
   endlessStreak: number;
   isEndlessMode: boolean;
+  isEasyMode: boolean;
   revealedTargetWord?: string;
   targetWordGuesser: TargetWordGuesser | null;
+}
+
+function getEliminatedLetters(guesses: CrowdleGuess[]): Set<string> {
+  const statusMap: Record<string, LetterStatus> = {};
+  guesses.forEach((guess) => {
+    guess.evaluation.forEach(({ letter, status }) => {
+      const current = statusMap[letter];
+      if (status === 'correct') {
+        statusMap[letter] = 'correct';
+      } else if (status === 'present' && current !== 'correct') {
+        statusMap[letter] = 'present';
+      } else if (status === 'absent' && !current) {
+        statusMap[letter] = 'absent';
+      }
+    });
+  });
+
+  const eliminated = new Set<string>();
+  Object.entries(statusMap).forEach(([letter, status]) => {
+    if (status === 'absent') {
+      eliminated.add(letter);
+    }
+  });
+  return eliminated;
 }
 
 const DEMO_VIEWERS = [
@@ -185,7 +214,7 @@ export default function CrowdleApp() {
   const [status, setStatus] = useState<CrowdleStatus>('PLAYING');
   const [roundTimerDuration, setRoundTimerDuration] = useState<number>(30);
   const [timeLeft, setTimeLeft] = useState<number>(30);
-  const [delayLeft, setDelayLeft] = useState<number>(3);
+  const [delayLeft, setDelayLeft] = useState<number>(REVEAL_LOCK_DELAY_SECONDS);
   const [resetTimeLeft, setResetTimeLeft] = useState<number>(0);
 
   // Streaks & Modes
@@ -200,7 +229,22 @@ export default function CrowdleApp() {
     }
   });
   const [isEndlessMode, setIsEndlessMode] = useState<boolean>(false);
+  const [isEasyMode, setIsEasyMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('mp_crowdle_easy_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [lastWinningWord, setLastWinningWord] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('mp_crowdle_easy_mode', String(isEasyMode));
+    } catch {
+      // ignore
+    }
+  }, [isEasyMode]);
 
   // Crowd Votes & Solver Tracking
   const [currentVotes, setCurrentVotes] = useState<Record<string, number>>({});
@@ -249,6 +293,7 @@ export default function CrowdleApp() {
     endlessStreak,
     bestStreak,
     isEndlessMode,
+    isEasyMode,
     lastWinningWord,
     currentVotes,
     voteOrder,
@@ -275,6 +320,7 @@ export default function CrowdleApp() {
       endlessStreak,
       bestStreak,
       isEndlessMode,
+      isEasyMode,
       lastWinningWord,
       currentVotes,
       voteOrder,
@@ -357,7 +403,7 @@ export default function CrowdleApp() {
       setUserVotedWordMap({});
       setWordTopVoterMap({});
       setTimeLeft(st.roundTimerDuration);
-      setDelayLeft(3);
+      setDelayLeft(REVEAL_LOCK_DELAY_SECONDS);
       setResetTimeLeft(0);
       setTargetWordGuesser(null);
       setHostDraftWord('');
@@ -380,7 +426,7 @@ export default function CrowdleApp() {
     setUserVotedWordMap({});
     setWordTopVoterMap({});
     setTimeLeft(st.roundTimerDuration);
-    setDelayLeft(3);
+    setDelayLeft(REVEAL_LOCK_DELAY_SECONDS);
     setResetTimeLeft(0);
     setTargetWordGuesser(null);
     setLastWinningWord(null);
@@ -481,10 +527,10 @@ export default function CrowdleApp() {
         setResetTimeLeft(23); // 3s tile flip + 20s defeat screen before next round
         crowdleSounds.playDefeat();
       } else {
-        // Continue to next row
+        // Continue to next row with reveal cooldown so late answers don't leak into the next row
         crowdleSounds.playRowLock();
         setTimeLeft(st.roundTimerDuration);
-        setDelayLeft(3);
+        setDelayLeft(REVEAL_LOCK_DELAY_SECONDS);
       }
     },
     [todayDateStr]
@@ -494,7 +540,8 @@ export default function CrowdleApp() {
   const processIncomingVote = useCallback(
     (rawComment: string, uniqueId: string, nickname: string, avatar: string) => {
       const st = stateRef.current;
-      if (st.status !== 'PLAYING') return;
+      // Ignore late answers while a word is being revealed or between rounds
+      if (st.status !== 'PLAYING' || st.delayLeft > 0) return;
 
       // Extract first candidate token matching wordLength or exact trimmed word
       const cleanedMsg = stripDiacritics(rawComment).trim().toUpperCase();
@@ -511,19 +558,32 @@ export default function CrowdleApp() {
       if (st.guesses.some((g) => g.word === candidate)) return;
 
       const valid = isValidCrowdleWord(candidate, st.wordLength, st.dictionaryLanguage);
+
+      // Easy Mode: block valid words that contain already-eliminated (greyed-out) letters
+      let blockedLetters: string[] = [];
+      if (valid && st.isEasyMode) {
+        const eliminated = getEliminatedLetters(st.guesses);
+        blockedLetters = Array.from(
+          new Set(candidate.split('').filter((ch) => eliminated.has(ch)))
+        );
+      }
+      const isBlocked = blockedLetters.length > 0;
+
       const feedItem: LiveVoteFeedItem = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         uniqueId,
         nickname,
         avatar,
         word: candidate,
-        isValid: valid,
+        isValid: valid && !isBlocked,
+        isBlocked,
+        blockedLetters: isBlocked ? blockedLetters : undefined,
         isExactMatch: candidate === st.targetWord,
         timestamp: Date.now(),
       };
       setVoteFeed((prev) => [feedItem, ...prev.slice(0, 39)]);
 
-      if (!valid) return;
+      if (!valid || isBlocked) return;
 
       const voterKey = (uniqueId || nickname || 'anon').toLowerCase();
       const previousWord = st.userVotedWordMap[voterKey];
@@ -642,7 +702,10 @@ export default function CrowdleApp() {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1500,
+      reconnectionDelayMax: 10000,
+      timeout: 15000,
       query: {
         sessionId: getLiveConnectionSessionId('crowdle'),
         gameId: 'crowdle',
@@ -788,6 +851,7 @@ export default function CrowdleApp() {
       totalStreak,
       endlessStreak,
       isEndlessMode,
+      isEasyMode,
       revealedTargetWord: status !== 'PLAYING' ? targetWord : undefined,
       targetWordGuesser,
     }),
@@ -806,6 +870,7 @@ export default function CrowdleApp() {
       totalStreak,
       endlessStreak,
       isEndlessMode,
+      isEasyMode,
       targetWord,
       targetWordGuesser,
     ]
@@ -891,7 +956,7 @@ export default function CrowdleApp() {
   };
 
   const handleLockTopVoteNow = () => {
-    if (status !== 'PLAYING') return;
+    if (status !== 'PLAYING' || delayLeft > 0) return;
     if (topVotes.length > 0) {
       const [topWord, topCount] = topVotes[0];
       submitGuessWord(topWord, topCount);
@@ -899,6 +964,31 @@ export default function CrowdleApp() {
       hostDraftWord.length === wordLength &&
       isValidCrowdleWord(hostDraftWord, wordLength, dictionaryLanguage)
     ) {
+      if (isEasyMode) {
+        const eliminated = getEliminatedLetters(guesses);
+        const blocked = Array.from(
+          new Set(hostDraftWord.split('').filter((ch) => eliminated.has(ch)))
+        );
+        if (blocked.length > 0) {
+          const displayName = unifiedUser ? getCleanDisplayName(unifiedUser) : 'Stream Host';
+          setVoteFeed((prev) => [
+            {
+              id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              uniqueId: displayName,
+              nickname: displayName,
+              avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Host',
+              word: hostDraftWord,
+              isValid: false,
+              isBlocked: true,
+              blockedLetters: blocked,
+              timestamp: Date.now(),
+            },
+            ...prev.slice(0, 39),
+          ]);
+          setHostDraftWord('');
+          return;
+        }
+      }
       submitGuessWord(hostDraftWord, 1, 'Stream Host');
     }
   };
@@ -910,6 +1000,7 @@ export default function CrowdleApp() {
       if (key === 'BACKSPACE') {
         setHostDraftWord((prev) => prev.slice(0, -1));
       } else if (key === 'ENTER') {
+        if (delayLeft > 0) return;
         if (
           hostDraftWord.length === wordLength &&
           isValidCrowdleWord(hostDraftWord, wordLength, dictionaryLanguage)
@@ -928,6 +1019,7 @@ export default function CrowdleApp() {
       }
     },
     [
+      delayLeft,
       dictionaryLanguage,
       hostDraftWord,
       isOverlay,
@@ -1062,6 +1154,12 @@ export default function CrowdleApp() {
               <div className="bg-amber-400/15 text-amber-300 border border-amber-400/30 text-[9px] font-black px-1.5 py-0.5 rounded uppercase">
                 {activeState.wordLength} Letters
               </div>
+              {activeState.isEasyMode && (
+                <div className="flex items-center gap-1 bg-sky-500/15 text-sky-300 border border-sky-400/35 text-[9px] font-black px-1.5 py-0.5 rounded uppercase">
+                  <ShieldCheck className="w-2.5 h-2.5" />
+                  Easy Mode
+                </div>
+              )}
             </div>
           </div>
 
@@ -1104,11 +1202,15 @@ export default function CrowdleApp() {
         <div className="relative z-10 space-y-1">
           <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-purple-300/75 px-0.5">
             <span>
-              {activeState.delayLeft > 0 ? 'Initiating Sync' : 'Decision Sync — Type Word in Chat'}
+              {activeState.delayLeft > 0
+                ? activeState.guesses.length > 0
+                  ? 'Word Reveal — Voting Paused'
+                  : 'New Round — Voting Paused'
+                : 'Decision Sync — Type Word in Chat'}
             </span>
             <span>
               {activeState.delayLeft > 0
-                ? `Starting in ${activeState.delayLeft}s`
+                ? `Opens in ${activeState.delayLeft}s`
                 : `${activeState.timeLeft}s`}
             </span>
           </div>
@@ -1125,7 +1227,7 @@ export default function CrowdleApp() {
               animate={{
                 width: `${
                   activeState.delayLeft > 0
-                    ? (activeState.delayLeft / 3) * 100
+                    ? (activeState.delayLeft / REVEAL_LOCK_DELAY_SECONDS) * 100
                     : (activeState.timeLeft / Math.max(1, activeState.roundTimerDuration)) * 100
                 }%`,
               }}
@@ -1606,10 +1708,17 @@ export default function CrowdleApp() {
                 voteFeed.map((item) => (
                   <div
                     key={item.id}
+                    title={
+                      item.isBlocked && item.blockedLetters?.length
+                        ? `Blocked — uses eliminated letter(s): ${item.blockedLetters.join(', ')}`
+                        : undefined
+                    }
                     className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border text-xs ${
-                      item.isValid
-                        ? 'bg-emerald-500/10 border-emerald-500/25'
-                        : 'bg-rose-500/10 border-rose-500/20 opacity-65'
+                      item.isBlocked
+                        ? 'bg-amber-500/10 border-amber-500/35'
+                        : item.isValid
+                          ? 'bg-emerald-500/10 border-emerald-500/25'
+                          : 'bg-rose-500/10 border-rose-500/20 opacity-65'
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -1627,12 +1736,14 @@ export default function CrowdleApp() {
                       </span>
                       <span
                         className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
-                          item.isValid
-                            ? 'bg-emerald-500/20 text-emerald-300'
-                            : 'bg-rose-500/20 text-rose-300'
+                          item.isBlocked
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+                            : item.isValid
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-rose-500/20 text-rose-300'
                         }`}
                       >
-                        {item.isValid ? 'Counted' : 'Not in Dict'}
+                        {item.isBlocked ? 'Blocked' : item.isValid ? 'Counted' : 'Not in Dict'}
                       </span>
                     </div>
                   </div>
@@ -1786,7 +1897,11 @@ export default function CrowdleApp() {
               <button
                 type="button"
                 onClick={handleLockTopVoteNow}
-                disabled={status !== 'PLAYING' || (topVotes.length === 0 && hostDraftWord.length !== wordLength)}
+                disabled={
+                  status !== 'PLAYING' ||
+                  delayLeft > 0 ||
+                  (topVotes.length === 0 && hostDraftWord.length !== wordLength)
+                }
                 className="px-3 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all"
               >
                 <Lock className="w-3.5 h-3.5" />
@@ -1828,6 +1943,48 @@ export default function CrowdleApp() {
                 }`}
               >
                 {isEndlessMode ? 'ON' : 'OFF'}
+              </button>
+            </div>
+
+            {/* Easy Mode Toggle (Block Greyed-Out Letters) */}
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-purple-950/50 border border-purple-500/25">
+              <div className="pr-2">
+                <p className="text-xs font-black uppercase tracking-wider text-sky-300 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4" />
+                  Easy Mode
+                </p>
+                <p className="text-[10px] text-purple-300/70">
+                  Blocks guessed words with incorrect (greyed-out) letters in chat.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextEasy = !isEasyMode;
+                  setIsEasyMode(nextEasy);
+                  if (nextEasy) {
+                    const eliminated = getEliminatedLetters(stateRef.current.guesses);
+                    if (eliminated.size > 0) {
+                      const hasEliminated = (w: string) =>
+                        w.split('').some((ch) => eliminated.has(ch));
+                      setCurrentVotes((prev) => {
+                        const filtered: Record<string, number> = {};
+                        for (const [w, count] of Object.entries(prev)) {
+                          if (!hasEliminated(w)) filtered[w] = count;
+                        }
+                        return filtered;
+                      });
+                      setVoteOrder((prev) => prev.filter((w) => !hasEliminated(w)));
+                    }
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider border transition-all shrink-0 ${
+                  isEasyMode
+                    ? 'bg-sky-400 text-slate-950 border-sky-300'
+                    : 'bg-purple-900/60 text-purple-200 border-purple-500/30'
+                }`}
+              >
+                {isEasyMode ? 'ON' : 'OFF'}
               </button>
             </div>
 

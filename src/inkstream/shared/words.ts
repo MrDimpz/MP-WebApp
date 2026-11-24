@@ -2,7 +2,7 @@ import {
   normalizeDictionaryLanguage,
   stripDiacritics,
   type DictionaryLanguageCode,
-} from '../../lib/dictionary-languages.ts';
+} from '../../lib/dictionary-language-core.ts';
 import { getMultiLangPack } from '../../data/dictionaries/multilang-word-packs.ts';
 
 const RAW_DEFAULT_WORDS: string[] = [

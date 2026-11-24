@@ -35,6 +35,7 @@ import { CustomPuzzleModal } from './components/CustomPuzzleModal';
 import {
   useUnifiedAuth,
   getCleanDisplayName,
+  getLinkedTikTokHandle,
   saveUnifiedLeaderboardScore,
   getCurrentUserSessionPrefix,
 } from '@/lib/unified-game-auth';
@@ -124,6 +125,7 @@ export default function App() {
   // Modals state
   const [showHowToPlay, setShowHowToPlay] = useState<boolean>(false);
   const [showWinModal, setShowWinModal] = useState<boolean>(false);
+  const [forceTestSprayBanner, setForceTestSprayBanner] = useState<boolean>(false);
   const [showArchive, setShowArchive] = useState<boolean>(false);
   const [showStats, setShowStats] = useState<boolean>(false);
   const [showSettings, setShowSettings] = useState<boolean>(false);
@@ -132,6 +134,28 @@ export default function App() {
   const [authModalTab, setAuthModalTab] = useState<'account' | 'leaderboards'>('leaderboards');
   const { user: currentUser, authReady } = useUnifiedAuth();
   const [stats, setStats] = useState<GameStats>(() => loadStats());
+
+  const isGrumpyGorillaUser = useMemo(() => {
+    if (!currentUser) return false;
+    const linkedHandle =
+      currentUser.linkedTikTokHandle || getLinkedTikTokHandle(currentUser.uid);
+    const cleanDisplay = getCleanDisplayName(currentUser);
+    const emailLocal = currentUser.email ? currentUser.email.split('@')[0] : '';
+    const candidates = [
+      currentUser.displayName,
+      cleanDisplay,
+      currentUser.email,
+      emailLocal,
+      linkedHandle,
+    ];
+    return candidates.some((raw) => {
+      if (!raw) return false;
+      const cleaned = raw.trim().replace(/^@+/, '').toLowerCase();
+      if (cleaned === 'grumpygorilla' || cleaned === 'grumpy.gorilla') return true;
+      const collapsed = cleaned.replace(/[._\-\s]+/g, '');
+      return collapsed === 'grumpygorilla';
+    });
+  }, [currentUser]);
 
   const [cloudReloadTick, setCloudReloadTick] = useState(0);
 
@@ -1145,6 +1169,10 @@ export default function App() {
         onResetOrClose={handleReset}
         dailyStreak={dailyStreak.streak}
         solvedToday={dailyStreak.solvedToday}
+        onTestSprayBanner={() => {
+          setForceTestSprayBanner(true);
+          setShowWinModal(true);
+        }}
       />
 
       {/* Main Play Area - Centered on screen */}
@@ -1203,8 +1231,15 @@ export default function App() {
       <WinModal
         isOpen={showWinModal}
         puzzle={puzzle}
-        letterGuessesCount={letterGuessesCount}
-        onClose={() => setShowWinModal(false)}
+        letterGuessesCount={forceTestSprayBanner ? 0 : letterGuessesCount}
+        showGrumpySprayBanner={
+          forceTestSprayBanner ||
+          (isGrumpyGorillaUser && letterGuessesCount === 0 && !isGivenUp)
+        }
+        onClose={() => {
+          setShowWinModal(false);
+          setForceTestSprayBanner(false);
+        }}
         onSelectNext={() => {
           const idx = DAILY_PUZZLES.findIndex((p) => p.id === puzzle.id);
           if (idx < DAILY_PUZZLES.length - 1) {

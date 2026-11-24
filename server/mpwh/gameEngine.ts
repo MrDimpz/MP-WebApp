@@ -4,7 +4,7 @@ import {
   isValidDictionaryWord,
   normalizeGuessWord,
 } from './dictionary.ts';
-import type { DictionaryLanguageCode } from '../../src/lib/dictionary-languages.ts';
+import type { DictionaryLanguageCode } from '../../src/lib/dictionary-language-core.ts';
 import type {
   GameStatus,
   GuessEntry,

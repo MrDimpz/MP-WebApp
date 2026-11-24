@@ -2,7 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { LadderMode, LeaderboardEntry } from '../../src/mpwh/shared/types.ts';
 
-const DATA_DIR = path.resolve(process.cwd(), '.relay_data');
+const customMpwhDir = (process.env.MPWH_DATA_DIR || '').trim();
+const customPersistentDir = (process.env.PERSISTENT_DATA_DIR || '').trim();
+const DATA_DIR = path.resolve(
+  customMpwhDir ||
+    (customPersistentDir
+      ? path.join(customPersistentDir, 'mpwh')
+      : path.join(process.cwd(), '.relay_data'))
+);
 const DATA_FILE = path.join(DATA_DIR, 'mpwh_leaderboard.json');
 const MAX_STORED_ENTRIES = 500;
 
@@ -35,7 +42,9 @@ function saveToDisk(): void {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(entries, null, 2), 'utf8');
+    const tmp = `${DATA_FILE}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(entries, null, 2), 'utf8');
+    fs.renameSync(tmp, DATA_FILE);
   } catch (err) {
     console.warn('[MPWH] Could not persist leaderboard file:', err);
   }

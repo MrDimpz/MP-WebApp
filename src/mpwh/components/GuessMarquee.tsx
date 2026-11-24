@@ -187,44 +187,86 @@ export function GuessMarquee({ items, embedded = false }: GuessMarqueeProps) {
   }, [items]);
 
   // Measure any unpositioned chips synchronously before paint and spawn them off the right edge
+  // without shifting or jumping any existing guesses currently visible on screen.
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport || renderEntries.length === 0) return;
 
     const viewportWidth = viewport.clientWidth || 560;
-    let maxRight = isInitialSeedRef.current
-      ? Math.max(40, viewportWidth - 80)
-      : viewportWidth + 10;
-
-    for (const [id, pos] of positionsRef.current.entries()) {
-      const el = elMapRef.current.get(id);
-      if (el) {
-        pos.width = el.offsetWidth || pos.width;
-      }
-      const rightEdge = pos.x + pos.width + CHIP_GAP_PX;
-      if (rightEdge > maxRight) {
-        maxRight = rightEdge;
-      }
-    }
+    const unpositioned: Array<{ id: string; el: HTMLDivElement; width: number; y: number }> = [];
 
     for (const entry of renderEntries) {
       if (positionsRef.current.has(entry.id)) continue;
       const el = elMapRef.current.get(entry.id);
       if (!el) continue;
-
       const width = el.offsetWidth || 150;
-      const spawnX = maxRight;
       const y = getRandomTopOffset(entry.id);
-      positionsRef.current.set(entry.id, { x: spawnX, y, width });
-      el.style.transform = `translate3d(${spawnX.toFixed(2)}px, ${y}px, 0)`;
-      maxRight = spawnX + width + CHIP_GAP_PX;
+      unpositioned.push({ id: entry.id, el, width, y });
     }
+
+    if (unpositioned.length === 0) {
+      isInitialSeedRef.current = false;
+      return;
+    }
+
+    if (isInitialSeedRef.current && positionsRef.current.size === 0) {
+      let cursorX = Math.max(40, viewportWidth - 80);
+      for (const { id, el, width, y } of unpositioned) {
+        positionsRef.current.set(id, { x: cursorX, y, width });
+        el.style.transform = `translate3d(${cursorX.toFixed(2)}px, ${y}px, 0)`;
+        cursorX += width + CHIP_GAP_PX;
+      }
+      isInitialSeedRef.current = false;
+      return;
+    }
+
+    const BAND_CLEARANCE = CHIP_HEIGHT_PX + 6;
+    for (const { id, el, width, y } of unpositioned) {
+      // Only check vertical neighbors that could visually overlap this chip's height band
+      let insertX = viewportWidth + 10;
+      let minOffscreenX = Infinity;
+      const bandOffscreen: Array<{ id: string; pos: { x: number; y: number; width: number } }> = [];
+
+      for (const [otherId, pos] of positionsRef.current.entries()) {
+        if (Math.abs(pos.y - y) >= BAND_CLEARANCE) continue;
+        if (pos.x < viewportWidth) {
+          const rightEdge = pos.x + pos.width + CHIP_GAP_PX;
+          if (rightEdge > insertX) {
+            insertX = rightEdge;
+          }
+        } else {
+          bandOffscreen.push({ id: otherId, pos });
+          if (pos.x < minOffscreenX) {
+            minOffscreenX = pos.x;
+          }
+        }
+      }
+
+      positionsRef.current.set(id, { x: insertX, y, width });
+      el.style.transform = `translate3d(${insertX.toFixed(2)}px, ${y}px, 0)`;
+
+      // Shift only invisible off-screen chips in the same vertical band so nothing overlaps
+      const newEnd = insertX + width + CHIP_GAP_PX;
+      if (bandOffscreen.length > 0 && minOffscreenX < newEnd) {
+        const shift = newEnd - minOffscreenX;
+        for (const item of bandOffscreen) {
+          item.pos.x += shift;
+          const otherEl = elMapRef.current.get(item.id);
+          if (otherEl) {
+            otherEl.style.transform = `translate3d(${item.pos.x.toFixed(2)}px, ${item.pos.y}px, 0)`;
+          }
+        }
+      }
+    }
+
     isInitialSeedRef.current = false;
   }, [renderEntries]);
 
-  // Continuous 60fps GPU-transform marquee loop
+  const hasEntries = renderEntries.length > 0;
+
+  // Continuous 60fps GPU-transform marquee loop — never restarts when new guesses/players arrive!
   useEffect(() => {
-    if (renderEntries.length === 0) return;
+    if (!hasEntries) return;
 
     let rafId = 0;
     let lastTs = performance.now();
@@ -242,27 +284,27 @@ export function GuessMarquee({ items, embedded = false }: GuessMarqueeProps) {
 
         // First advance all active positions smoothly leftward
         for (const [id, pos] of positionsRef.current.entries()) {
-          const el = elMapRef.current.get(id);
-          if (el && pos.width === 0) {
-            pos.width = el.offsetWidth || 150;
+          if (pos.width === 0) {
+            const el = elMapRef.current.get(id);
+            if (el) pos.width = el.offsetWidth || 150;
           }
           pos.x -= dx;
         }
 
-        // Compute current rightmost edge once so wrapping chips queue cleanly off the right edge
-        let maxRight = viewportWidth + 10;
-        for (const pos of positionsRef.current.values()) {
-          const rightEdge = pos.x + pos.width + CHIP_GAP_PX;
-          if (rightEdge > maxRight) {
-            maxRight = rightEdge;
-          }
-        }
-
+        const BAND_CLEARANCE = CHIP_HEIGHT_PX + 6;
         for (const [id, pos] of positionsRef.current.entries()) {
           if (pos.x + pos.width < -24) {
             if (latestIdsRef.current.has(id)) {
-              pos.x = maxRight;
-              maxRight = pos.x + pos.width + CHIP_GAP_PX;
+              let bandRight = viewportWidth + 10;
+              for (const [otherId, other] of positionsRef.current.entries()) {
+                if (otherId === id) continue;
+                if (Math.abs(other.y - pos.y) >= BAND_CLEARANCE) continue;
+                const rightEdge = other.x + other.width + CHIP_GAP_PX;
+                if (rightEdge > bandRight) {
+                  bandRight = rightEdge;
+                }
+              }
+              pos.x = bandRight;
             } else {
               expiredIds.push(id);
               continue;
@@ -289,7 +331,7 @@ export function GuessMarquee({ items, embedded = false }: GuessMarqueeProps) {
 
     rafId = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(rafId);
-  }, [renderEntries.length]);
+  }, [hasEntries]);
 
   const handleWheelNudge = (delta: number) => {
     const viewport = viewportRef.current;
@@ -366,14 +408,17 @@ export function GuessMarquee({ items, embedded = false }: GuessMarqueeProps) {
               ref={(node) => {
                 if (node) {
                   elMapRef.current.set(item.id, node);
+                  const existing = positionsRef.current.get(item.id);
+                  if (existing) {
+                    node.style.transform = `translate3d(${existing.x.toFixed(2)}px, ${existing.y}px, 0)`;
+                  } else {
+                    node.style.transform = `translate3d(9999px, ${getRandomTopOffset(item.id)}px, 0)`;
+                  }
                 } else {
                   elMapRef.current.delete(item.id);
                 }
               }}
-              style={{
-                willChange: 'transform',
-                transform: `translate3d(9999px, ${getRandomTopOffset(item.id)}px, 0)`,
-              }}
+              style={{ willChange: 'transform' }}
               className="absolute top-0 left-0"
             >
               <GuessChipContent item={item} />

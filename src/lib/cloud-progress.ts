@@ -60,6 +60,7 @@ export const CLOUD_HYDRATED_EVENT = "mp-cloud-progress-hydrated";
 
 const ID_REGEX = /^[a-zA-Z0-9_-]+$/;
 const BROWSER_INSTANCE_ID_KEY = "mp_browser_instance_id_v1";
+const PERSISTENT_GUEST_ID_KEY = "mp_persistent_guest_id_v1";
 const SITE_DARK_MODE_KEY = "mp_site_dark_mode_v2";
 const INTERACTIVE_SCORES_STORAGE_KEY = "mp_interactive_account_scores_v1";
 
@@ -353,31 +354,636 @@ export async function saveUserProfilePreferences(params: {
 
 const pendingBucketTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const lastWrittenHashes = new Map<string, string>();
+const hydratedUids = new Set<string>();
+
+function mergePositiveMin(a: unknown, b: unknown): number | null {
+  const na = typeof a === "number" && Number.isFinite(a) && a > 0 ? a : null;
+  const nb = typeof b === "number" && Number.isFinite(b) && b > 0 ? b : null;
+  if (na === null) return nb;
+  if (nb === null) return na;
+  return Math.min(na, nb);
+}
+
+function mergeColossalScaleEntry(
+  existing: Record<string, any> | null,
+  incoming: Record<string, any> | null,
+): Record<string, any> | null {
+  if (!existing && !incoming) return null;
+  if (!existing) return incoming;
+  if (!incoming) return existing;
+
+  const mergedGrid: Record<string, string> = {};
+  if (isPlainObject(existing.userGrid)) {
+    for (const [cellKey, val] of Object.entries(existing.userGrid)) {
+      if (typeof val === "string" && val.trim() !== "") {
+        mergedGrid[cellKey] = val;
+      }
+    }
+  }
+  if (isPlainObject(incoming.userGrid)) {
+    for (const [cellKey, val] of Object.entries(incoming.userGrid)) {
+      if (typeof val === "string" && val.trim() !== "") {
+        mergedGrid[cellKey] = val;
+      }
+    }
+  }
+
+  const mergeCellCollection = (eVal: unknown, iVal: unknown): unknown => {
+    if (Array.isArray(eVal) || Array.isArray(iVal)) {
+      return Array.from(
+        new Set([
+          ...(Array.isArray(eVal) ? eVal : []),
+          ...(Array.isArray(iVal) ? iVal : []),
+        ]),
+      );
+    }
+    if (isPlainObject(eVal) || isPlainObject(iVal)) {
+      return {
+        ...(isPlainObject(eVal) ? eVal : {}),
+        ...(isPlainObject(iVal) ? iVal : {}),
+      };
+    }
+    return iVal !== undefined ? iVal : eVal;
+  };
+
+  const merged: Record<string, any> = {
+    ...existing,
+    ...incoming,
+    userGrid: mergedGrid,
+    elapsedSeconds: Math.max(
+      Number(existing.elapsedSeconds || 0),
+      Number(incoming.elapsedSeconds || 0),
+    ),
+    solved: Boolean(existing.solved || incoming.solved),
+  };
+
+  if (existing.revealedCells !== undefined || incoming.revealedCells !== undefined) {
+    merged.revealedCells = mergeCellCollection(existing.revealedCells, incoming.revealedCells);
+  }
+  if (existing.checkedCells !== undefined || incoming.checkedCells !== undefined) {
+    merged.checkedCells = mergeCellCollection(existing.checkedCells, incoming.checkedCells);
+  }
+  return merged;
+}
+
+function mergeCrosswordGrids(
+  existingRaw: unknown,
+  incomingRaw: unknown,
+): Record<string, string[]> | null {
+  const eGrid = decodeCrosswordGrid(existingRaw);
+  const iGrid = decodeCrosswordGrid(incomingRaw);
+  if (!eGrid && !iGrid) return null;
+  if (!eGrid && iGrid) return encodeCrosswordGrid(iGrid);
+  if (eGrid && !iGrid) return encodeCrosswordGrid(eGrid);
+
+  const rowCount = Math.max(eGrid!.length, iGrid!.length);
+  const merged: string[][] = [];
+  for (let r = 0; r < rowCount; r++) {
+    const eRow = eGrid![r] || [];
+    const iRow = iGrid![r] || [];
+    const colCount = Math.max(eRow.length, iRow.length);
+    const rowOut: string[] = [];
+    for (let c = 0; c < colCount; c++) {
+      const iv = String(iRow[c] || "");
+      const ev = String(eRow[c] || "");
+      rowOut.push(iv.trim() !== "" ? iv : ev);
+    }
+    merged.push(rowOut);
+  }
+  return encodeCrosswordGrid(merged);
+}
+
+/**
+ * Monotonically merges an existing Firestore bucket payload with a newly incoming
+ * client payload so stale tabs, fresh browsers, or new website deployments can
+ * NEVER overwrite or erase a player's saved progress on any game.
+ */
+export function mergeCloudBucketPayloads(
+  bucketId: ProgressBucketId,
+  existingPayload: Record<string, unknown>,
+  incomingPayload: Record<string, unknown>,
+): Record<string, unknown> {
+  const existing = isPlainObject(existingPayload) ? existingPayload : {};
+  const incoming = isPlainObject(incomingPayload) ? incomingPayload : {};
+
+  switch (bucketId) {
+    case "daily_streaks": {
+      const allGames = new Set([...Object.keys(existing), ...Object.keys(incoming)]);
+      const merged: Record<string, unknown> = {};
+      for (const gameId of allGames) {
+        const e = isPlainObject(existing[gameId]) ? (existing[gameId] as Record<string, any>) : {};
+        const i = isPlainObject(incoming[gameId]) ? (incoming[gameId] as Record<string, any>) : {};
+        const unionDates = Array.from(
+          new Set([
+            ...(Array.isArray(e.solvedDates) ? e.solvedDates : []),
+            ...(Array.isArray(i.solvedDates) ? i.solvedDates : []),
+          ]),
+        )
+          .filter((d): d is string => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d))
+          .sort()
+          .slice(-400);
+        const maxBase = Math.max(Number(e.baseStreak || 0), Number(i.baseStreak || 0));
+        const baseStreakDate =
+          Number(i.baseStreak || 0) >= Number(e.baseStreak || 0) && i.baseStreakDate
+            ? String(i.baseStreakDate)
+            : e.baseStreakDate
+              ? String(e.baseStreakDate)
+              : undefined;
+        merged[gameId] = {
+          solvedDates: unionDates,
+          ...(maxBase > 0 ? { baseStreak: maxBase } : {}),
+          ...(baseStreakDate ? { baseStreakDate } : {}),
+        };
+      }
+      return merged;
+    }
+
+    case "interactive_scores": {
+      const eGames = isPlainObject(existing.gamesPlayed)
+        ? (existing.gamesPlayed as Record<string, unknown>)
+        : {};
+      const iGames = isPlainObject(incoming.gamesPlayed)
+        ? (incoming.gamesPlayed as Record<string, unknown>)
+        : {};
+      const allGameKeys = new Set([...Object.keys(eGames), ...Object.keys(iGames)]);
+      const gamesPlayed: Record<string, number> = {};
+      for (const k of allGameKeys) {
+        gamesPlayed[k] = Math.max(Number(eGames[k] || 0), Number(iGames[k] || 0));
+      }
+      const eventMap = new Map<string, any>();
+      for (const ev of Array.isArray(existing.recentEvents) ? existing.recentEvents : []) {
+        if (ev && typeof ev === "object" && (ev as any).id) {
+          eventMap.set(String((ev as any).id), ev);
+        }
+      }
+      for (const ev of Array.isArray(incoming.recentEvents) ? incoming.recentEvents : []) {
+        if (ev && typeof ev === "object" && (ev as any).id) {
+          eventMap.set(String((ev as any).id), ev);
+        }
+      }
+      const recentEvents = Array.from(eventMap.values())
+        .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+        .slice(0, 30);
+      const summedPoints = Object.values(gamesPlayed).reduce((s, n) => s + n, 0);
+      const totalPoints = Math.max(
+        summedPoints,
+        Number(existing.totalPoints || 0),
+        Number(incoming.totalPoints || 0),
+      );
+      return {
+        ...existing,
+        ...incoming,
+        tiktokHandle: String(incoming.tiktokHandle || existing.tiktokHandle || ""),
+        totalPoints,
+        gamesPlayed,
+        recentEvents,
+        updatedAt: Math.max(
+          Number(existing.updatedAt || 0),
+          Number(incoming.updatedAt || 0),
+          Date.now(),
+        ),
+      };
+    }
+
+    case "crossword": {
+      const eProg = isPlainObject(existing.progress)
+        ? (existing.progress as Record<string, any>)
+        : {};
+      const iProg = isPlainObject(incoming.progress)
+        ? (incoming.progress as Record<string, any>)
+        : {};
+      const mergedProg: Record<string, any> = { ...eProg };
+      for (const [pid, iItem] of Object.entries(iProg)) {
+        const eItem = mergedProg[pid];
+        if (!eItem) {
+          mergedProg[pid] = iItem;
+        } else if (
+          (iItem?.solved && !eItem?.solved) ||
+          (Boolean(iItem?.solved) === Boolean(eItem?.solved) &&
+            Number(iItem?.score || 0) >= Number(eItem?.score || 0))
+        ) {
+          mergedProg[pid] = {
+            ...eItem,
+            ...iItem,
+            solved: Boolean(eItem?.solved || iItem?.solved),
+            score: Math.max(Number(eItem?.score || 0), Number(iItem?.score || 0)),
+          };
+        }
+      }
+
+      const eGrids = isPlainObject(existing.grids)
+        ? (existing.grids as Record<string, unknown>)
+        : {};
+      const iGrids = isPlainObject(incoming.grids)
+        ? (incoming.grids as Record<string, unknown>)
+        : {};
+      const mergedGrids: Record<string, unknown> = {};
+      const allGridIds = new Set([...Object.keys(eGrids), ...Object.keys(iGrids)]);
+      for (const pid of allGridIds) {
+        const mg = mergeCrosswordGrids(eGrids[pid], iGrids[pid]);
+        if (mg) mergedGrids[pid] = mg;
+      }
+
+      const lbMap = new Map<string, any>();
+      for (const item of Array.isArray(existing.leaderboard) ? existing.leaderboard : []) {
+        if (item && typeof item === "object" && (item as any).id) {
+          lbMap.set(String((item as any).id), item);
+        }
+      }
+      for (const item of Array.isArray(incoming.leaderboard) ? incoming.leaderboard : []) {
+        if (item && typeof item === "object" && (item as any).id) {
+          lbMap.set(String((item as any).id), item);
+        }
+      }
+      const leaderboard = Array.from(lbMap.values())
+        .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+        .slice(0, 50);
+
+      return { progress: mergedProg, grids: mergedGrids, leaderboard };
+    }
+
+    case "rebus": {
+      const eProg = isPlainObject(existing.progress)
+        ? (existing.progress as Record<string, any>)
+        : {};
+      const iProg = isPlainObject(incoming.progress)
+        ? (incoming.progress as Record<string, any>)
+        : {};
+      const mergedProgress = {
+        solvedIds: {
+          ...(isPlainObject(eProg.solvedIds) ? eProg.solvedIds : {}),
+          ...(isPlainObject(iProg.solvedIds) ? iProg.solvedIds : {}),
+        },
+        revealedIds: {
+          ...(isPlainObject(eProg.revealedIds) ? eProg.revealedIds : {}),
+          ...(isPlainObject(iProg.revealedIds) ? iProg.revealedIds : {}),
+        },
+        worksheetSolved: {
+          ...(isPlainObject(eProg.worksheetSolved) ? eProg.worksheetSolved : {}),
+          ...(isPlainObject(iProg.worksheetSolved) ? iProg.worksheetSolved : {}),
+        },
+        hintsUsedByPuzzle: {
+          ...(isPlainObject(eProg.hintsUsedByPuzzle) ? eProg.hintsUsedByPuzzle : {}),
+          ...(isPlainObject(iProg.hintsUsedByPuzzle) ? iProg.hintsUsedByPuzzle : {}),
+        },
+        score: Math.max(Number(eProg.score || 0), Number(iProg.score || 0)),
+        currentStreak: Math.max(
+          Number(eProg.currentStreak || 0),
+          Number(iProg.currentStreak || 0),
+        ),
+        bestStreak: Math.max(Number(eProg.bestStreak || 0), Number(iProg.bestStreak || 0)),
+        lastPlayedId: String(iProg.lastPlayedId || eProg.lastPlayedId || ""),
+      };
+      return {
+        progress: mergedProgress,
+        bestSprint: Math.max(Number(existing.bestSprint || 0), Number(incoming.bestSprint || 0)),
+      };
+    }
+
+    case "squared": {
+      const ePuzzles = isPlainObject(existing.puzzles)
+        ? (existing.puzzles as Record<string, any>)
+        : {};
+      const iPuzzles = isPlainObject(incoming.puzzles)
+        ? (incoming.puzzles as Record<string, any>)
+        : {};
+      const allIds = Array.from(new Set([...Object.keys(ePuzzles), ...Object.keys(iPuzzles)])).slice(
+        -80,
+      );
+      const mergedPuzzles: Record<string, unknown> = {};
+      for (const pid of allIds) {
+        const e = isPlainObject(ePuzzles[pid]) ? ePuzzles[pid] : {};
+        const i = isPlainObject(iPuzzles[pid]) ? iPuzzles[pid] : {};
+        const foundWords = Array.from(
+          new Set([
+            ...(Array.isArray(e.foundWords) ? e.foundWords : []),
+            ...(Array.isArray(i.foundWords) ? i.foundWords : []),
+          ]),
+        );
+        const bonusWords = Array.from(
+          new Set([
+            ...(Array.isArray(e.bonusWords) ? e.bonusWords : []),
+            ...(Array.isArray(i.bonusWords) ? i.bonusWords : []),
+          ]),
+        );
+        const prefMap: Record<string, number> = {};
+        if (isPlainObject(e.revealedPrefixesMap)) {
+          for (const [pk, pv] of Object.entries(e.revealedPrefixesMap)) {
+            prefMap[pk] = Number(pv || 0);
+          }
+        }
+        if (isPlainObject(i.revealedPrefixesMap)) {
+          for (const [pk, pv] of Object.entries(i.revealedPrefixesMap)) {
+            prefMap[pk] = Math.max(prefMap[pk] || 0, Number(pv || 0));
+          }
+        }
+        mergedPuzzles[pid] = {
+          foundWords,
+          bonusWords,
+          score: Math.max(Number(e.score || 0), Number(i.score || 0)),
+          revealedPrefixesMap: prefMap,
+        };
+      }
+      return { puzzles: mergedPuzzles };
+    }
+
+    case "thematix": {
+      const eStats = isPlainObject(existing.stats) ? (existing.stats as Record<string, any>) : {};
+      const iStats = isPlainObject(incoming.stats) ? (incoming.stats as Record<string, any>) : {};
+      const mergedStats = {
+        played: Math.max(Number(eStats.played || 0), Number(iStats.played || 0)),
+        won: Math.max(Number(eStats.won || 0), Number(iStats.won || 0)),
+        currentStreak: Math.max(
+          Number(eStats.currentStreak || 0),
+          Number(iStats.currentStreak || 0),
+        ),
+        maxStreak: Math.max(Number(eStats.maxStreak || 0), Number(iStats.maxStreak || 0)),
+        guessDistribution:
+          Number(iStats.won || 0) >= Number(eStats.won || 0) &&
+          isPlainObject(iStats.guessDistribution)
+            ? iStats.guessDistribution
+            : eStats.guessDistribution || {},
+        lastPlayedDate: String(iStats.lastPlayedDate || eStats.lastPlayedDate || ""),
+      };
+
+      const ePuzzles = isPlainObject(existing.puzzles)
+        ? (existing.puzzles as Record<string, any>)
+        : {};
+      const iPuzzles = isPlainObject(incoming.puzzles)
+        ? (incoming.puzzles as Record<string, any>)
+        : {};
+      const allPids = Array.from(new Set([...Object.keys(ePuzzles), ...Object.keys(iPuzzles)])).slice(
+        -100,
+      );
+      const mergedPuzzles: Record<string, unknown> = {};
+      for (const pid of allPids) {
+        const e = isPlainObject(ePuzzles[pid]) ? ePuzzles[pid] : null;
+        const i = isPlainObject(iPuzzles[pid]) ? iPuzzles[pid] : null;
+        if (!e && i) {
+          mergedPuzzles[pid] = i;
+        } else if (e && !i) {
+          mergedPuzzles[pid] = e;
+        } else if (e && i) {
+          const eGuesses = Array.isArray(e.guesses) ? e.guesses.length : 0;
+          const iGuesses = Array.isArray(i.guesses) ? i.guesses.length : 0;
+          mergedPuzzles[pid] =
+            (i.isSolved && !e.isSolved) ||
+            (Boolean(i.isSolved) === Boolean(e.isSolved) && iGuesses >= eGuesses)
+              ? i
+              : e;
+        }
+      }
+      return { stats: mergedStats, puzzles: mergedPuzzles };
+    }
+
+    case "destack": {
+      const eStats = isPlainObject(existing.stats) ? (existing.stats as Record<string, any>) : {};
+      const iStats = isPlainObject(incoming.stats) ? (incoming.stats as Record<string, any>) : {};
+      const bestTime = mergePositiveMin(eStats.bestTimeSeconds, iStats.bestTimeSeconds) ?? 9999;
+      return {
+        stats: {
+          gamesPlayed: Math.max(Number(eStats.gamesPlayed || 0), Number(iStats.gamesPlayed || 0)),
+          gamesWon: Math.max(Number(eStats.gamesWon || 0), Number(iStats.gamesWon || 0)),
+          currentStreak: Math.max(
+            Number(eStats.currentStreak || 0),
+            Number(iStats.currentStreak || 0),
+          ),
+          maxStreak: Math.max(Number(eStats.maxStreak || 0), Number(iStats.maxStreak || 0)),
+          bestTimeSeconds: bestTime,
+          totalHintsUsed: Math.max(
+            Number(eStats.totalHintsUsed || 0),
+            Number(iStats.totalHintsUsed || 0),
+          ),
+          completedDays: {
+            ...(isPlainObject(eStats.completedDays) ? eStats.completedDays : {}),
+            ...(isPlainObject(iStats.completedDays) ? iStats.completedDays : {}),
+          },
+          completedHardDays: {
+            ...(isPlainObject(eStats.completedHardDays) ? eStats.completedHardDays : {}),
+            ...(isPlainObject(iStats.completedHardDays) ? iStats.completedHardDays : {}),
+          },
+        },
+      };
+    }
+
+    case "unolingo": {
+      const eProg = isPlainObject(existing.progress)
+        ? (existing.progress as Record<string, any>)
+        : {};
+      const iProg = isPlainObject(incoming.progress)
+        ? (incoming.progress as Record<string, any>)
+        : {};
+      const mergedProg: Record<string, any> = { ...eProg };
+      for (const [k, iVal] of Object.entries(iProg)) {
+        const eVal = mergedProg[k];
+        if (!eVal) {
+          mergedProg[k] = iVal;
+        } else if (iVal?.status === "completed" || eVal?.status !== "completed") {
+          const eCells = isPlainObject(eVal?.cells) ? Object.keys(eVal.cells).length : 0;
+          const iCells = isPlainObject(iVal?.cells) ? Object.keys(iVal.cells).length : 0;
+          if (iVal?.status === "completed" || iCells >= eCells) {
+            mergedProg[k] = iVal;
+          }
+        }
+      }
+      const eStats = isPlainObject(existing.stats) ? (existing.stats as Record<string, any>) : {};
+      const iStats = isPlainObject(incoming.stats) ? (incoming.stats as Record<string, any>) : {};
+      const bestTimeSec = mergePositiveMin(eStats.bestTimeSec, iStats.bestTimeSec) ?? 0;
+      return {
+        progress: mergedProg,
+        stats: {
+          currentStreak: Math.max(
+            Number(eStats.currentStreak || 0),
+            Number(iStats.currentStreak || 0),
+          ),
+          longestStreak: Math.max(
+            Number(eStats.longestStreak || 0),
+            Number(iStats.longestStreak || 0),
+          ),
+          totalSolved: Math.max(Number(eStats.totalSolved || 0), Number(iStats.totalSolved || 0)),
+          bestTimeSec,
+          totalHintsUsed: Math.max(
+            Number(eStats.totalHintsUsed || 0),
+            Number(iStats.totalHintsUsed || 0),
+          ),
+          totalMistakes: Math.max(
+            Number(eStats.totalMistakes || 0),
+            Number(iStats.totalMistakes || 0),
+          ),
+          lastDailyStreakDate: String(
+            iStats.lastDailyStreakDate || eStats.lastDailyStreakDate || "",
+          ),
+        },
+        prefs: {
+          ...(isPlainObject(existing.prefs) ? existing.prefs : {}),
+          ...(isPlainObject(incoming.prefs) ? incoming.prefs : {}),
+        },
+      };
+    }
+
+    case "mpsearch": {
+      const eProg = isPlainObject(existing.progress)
+        ? (existing.progress as Record<string, any>)
+        : {};
+      const iProg = isPlainObject(incoming.progress)
+        ? (incoming.progress as Record<string, any>)
+        : {};
+      const merged: Record<string, any> = { ...eProg };
+      for (const [dk, iVal] of Object.entries(iProg)) {
+        const eVal = merged[dk];
+        if (!eVal) {
+          merged[dk] = iVal;
+        } else {
+          const foundWords = Array.from(
+            new Set([
+              ...(Array.isArray(eVal.foundWords) ? eVal.foundWords : []),
+              ...(Array.isArray(iVal?.foundWords) ? iVal.foundWords : []),
+            ]),
+          );
+          merged[dk] = {
+            ...eVal,
+            ...iVal,
+            foundWords,
+            highScore: Math.max(Number(eVal.highScore || 0), Number(iVal?.highScore || 0)),
+            solved: Boolean(eVal.solved || iVal?.solved),
+          };
+        }
+      }
+      return { progress: merged };
+    }
+
+    case "mpdifference": {
+      const eComp = isPlainObject(existing.completions)
+        ? (existing.completions as Record<string, any>)
+        : {};
+      const iComp = isPlainObject(incoming.completions)
+        ? (incoming.completions as Record<string, any>)
+        : {};
+      const merged: Record<string, any> = { ...eComp };
+      for (const [dk, iVal] of Object.entries(iComp)) {
+        const eVal = merged[dk];
+        if (!eVal || Number(iVal?.bestScore || 0) >= Number(eVal?.bestScore || 0)) {
+          merged[dk] = eVal
+            ? {
+                ...eVal,
+                ...iVal,
+                bestScore: Math.max(Number(eVal.bestScore || 0), Number(iVal?.bestScore || 0)),
+              }
+            : iVal;
+        }
+      }
+      return { completions: merged };
+    }
+
+    case "mpcolossal": {
+      const eScales = isPlainObject(existing.scales)
+        ? (existing.scales as Record<string, any>)
+        : {};
+      const iScales = isPlainObject(incoming.scales)
+        ? (incoming.scales as Record<string, any>)
+        : {};
+      const allScales = new Set([...Object.keys(eScales), ...Object.keys(iScales)]);
+      const mergedScales: Record<string, unknown> = {};
+      for (const s of allScales) {
+        const mergedEntry = mergeColossalScaleEntry(
+          isPlainObject(eScales[s]) ? eScales[s] : null,
+          isPlainObject(iScales[s]) ? iScales[s] : null,
+        );
+        if (mergedEntry) mergedScales[s] = mergedEntry;
+      }
+      return { scales: mergedScales };
+    }
+
+    case "tekscodle": {
+      const e = isPlainObject(existing.stats) ? (existing.stats as Record<string, any>) : {};
+      const i = isPlainObject(incoming.stats) ? (incoming.stats as Record<string, any>) : {};
+      const dailyCompletedDates = Array.from(
+        new Set([
+          ...(Array.isArray(e.dailyCompletedDates) ? e.dailyCompletedDates : []),
+          ...(Array.isArray(i.dailyCompletedDates) ? i.dailyCompletedDates : []),
+        ]),
+      ).sort();
+      const runMap = new Map<string, any>();
+      for (const run of Array.isArray(e.recentRuns) ? e.recentRuns : []) {
+        if (run?.id) runMap.set(String(run.id), run);
+      }
+      for (const run of Array.isArray(i.recentRuns) ? i.recentRuns : []) {
+        if (run?.id) runMap.set(String(run.id), run);
+      }
+      const recentRuns = Array.from(runMap.values())
+        .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+        .slice(0, 30);
+      return {
+        stats: {
+          bestScore: Math.max(Number(e.bestScore || 0), Number(i.bestScore || 0)),
+          gamesPlayed: Math.max(Number(e.gamesPlayed || 0), Number(i.gamesPlayed || 0)),
+          quickPlays: Math.max(Number(e.quickPlays || 0), Number(i.quickPlays || 0)),
+          dailyCompletedDates,
+          recentRuns,
+        },
+      };
+    }
+
+    case "wordhunt": {
+      const e = isPlainObject(existing.stats) ? (existing.stats as Record<string, any>) : {};
+      const i = isPlainObject(incoming.stats) ? (incoming.stats as Record<string, any>) : {};
+      const dailyCompletedDates = Array.from(
+        new Set([
+          ...(Array.isArray(e.dailyCompletedDates) ? e.dailyCompletedDates : []),
+          ...(Array.isArray(i.dailyCompletedDates) ? i.dailyCompletedDates : []),
+        ]),
+      ).sort();
+      return {
+        stats: {
+          gamesPlayed: Math.max(Number(e.gamesPlayed || 0), Number(i.gamesPlayed || 0)),
+          gamesWon: Math.max(Number(e.gamesWon || 0), Number(i.gamesWon || 0)),
+          currentStreak: Math.max(Number(e.currentStreak || 0), Number(i.currentStreak || 0)),
+          bestStreak: Math.max(Number(e.bestStreak || 0), Number(i.bestStreak || 0)),
+          bestScore: Math.max(Number(e.bestScore || 0), Number(i.bestScore || 0)),
+          fewestClassic: mergePositiveMin(e.fewestClassic, i.fewestClassic),
+          fewestDual: mergePositiveMin(e.fewestDual, i.fewestDual),
+          fewestQuad: mergePositiveMin(e.fewestQuad, i.fewestQuad),
+          dailyCompletedDates,
+        },
+      };
+    }
+
+    default:
+      return { ...existing, ...incoming };
+  }
+}
+
+function capPayloadKeys(payload: Record<string, unknown>): Record<string, unknown> {
+  const keys = Object.keys(payload);
+  if (keys.length <= 200) return payload;
+  const trimmed: Record<string, unknown> = {};
+  for (const k of keys.slice(0, 200)) {
+    trimmed[k] = payload[k];
+  }
+  return trimmed;
+}
 
 async function writeProgressBucketNow(
   uid: string,
   bucketId: ProgressBucketId,
   rawPayload: Record<string, unknown>,
+  options?: { skipHydrationWait?: boolean },
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
   if (!auth.currentUser || auth.currentUser.uid !== uid) return false;
   if (!ID_REGEX.test(uid) || !VALID_PROGRESS_BUCKETS.has(bucketId)) return false;
   if (isFirestoreWritePaused()) return false;
 
-  const cleanPayload = sanitizeForFirestore(rawPayload) as Record<string, unknown>;
-  if (!isPlainObject(cleanPayload)) return false;
-
-  // Enforce Firestore rule key limit (<= 200 keys on payload map)
-  const payloadKeys = Object.keys(cleanPayload);
-  if (payloadKeys.length > 200) {
-    const trimmed: Record<string, unknown> = {};
-    for (const k of payloadKeys.slice(0, 200)) {
-      trimmed[k] = cleanPayload[k];
-    }
-    Object.keys(cleanPayload).forEach((k) => {
-      if (!(k in trimmed)) delete cleanPayload[k];
-    });
+  // Never allow a freshly mounted game (e.g. right after a deployment reload) to
+  // push to Firestore before the player's existing cloud progress has hydrated.
+  if (!options?.skipHydrationWait && !hydratedUids.has(uid)) {
+    await hydrateAllUserProgressFromCloud(auth.currentUser);
+    if (!auth.currentUser || auth.currentUser.uid !== uid) return false;
   }
+
+  const sanitizedIncoming = sanitizeForFirestore(rawPayload) as Record<string, unknown>;
+  if (!isPlainObject(sanitizedIncoming)) return false;
+  const cleanPayload = capPayloadKeys(sanitizedIncoming);
 
   let signature = "";
   try {
@@ -401,6 +1007,7 @@ async function writeProgressBucketNow(
 
   try {
     const snap = await getDoc(docRef);
+    let finalSignature = signature;
     if (!snap.exists()) {
       await setDoc(docRef, {
         userId: uid,
@@ -411,15 +1018,33 @@ async function writeProgressBucketNow(
       });
     } else {
       const existingData = snap.data();
-      await updateDoc(docRef, {
-        userId: existingData.userId,
-        bucketId: existingData.bucketId,
-        payload: cleanPayload,
-        createdAt: existingData.createdAt,
-        updatedAt: serverTimestamp(),
-      });
+      const existingPayload = isPlainObject(existingData?.payload)
+        ? (existingData.payload as Record<string, unknown>)
+        : {};
+      const mergedRaw = mergeCloudBucketPayloads(bucketId, existingPayload, cleanPayload);
+      const safeMerged = capPayloadKeys(
+        sanitizeForFirestore(mergedRaw) as Record<string, unknown>,
+      );
+
+      let existingSig = "";
+      try {
+        existingSig = JSON.stringify(existingPayload);
+        finalSignature = JSON.stringify(safeMerged);
+      } catch {
+        finalSignature = signature;
+      }
+
+      if (finalSignature !== existingSig) {
+        await updateDoc(docRef, {
+          userId: existingData.userId,
+          bucketId: existingData.bucketId,
+          payload: safeMerged,
+          createdAt: existingData.createdAt,
+          updatedAt: serverTimestamp(),
+        });
+      }
     }
-    lastWrittenHashes.set(cacheKey, signature);
+    lastWrittenHashes.set(cacheKey, finalSignature);
     updateSyncStatus({
       status: "synced",
       lastSyncedAt: Date.now(),
@@ -498,8 +1123,24 @@ function getGuestPrefixes(): string[] {
   if (typeof window === "undefined") return [];
   const prefixes = new Set<string>();
   try {
+    const persistentGuest = window.localStorage.getItem(PERSISTENT_GUEST_ID_KEY);
+    if (persistentGuest && persistentGuest.trim()) {
+      prefixes.add(persistentGuest.trim());
+    }
+  } catch {}
+  try {
     const tabInst = window.sessionStorage.getItem(BROWSER_INSTANCE_ID_KEY);
-    if (tabInst) prefixes.add(tabInst);
+    if (tabInst && tabInst.trim()) prefixes.add(tabInst.trim());
+  } catch {}
+  try {
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (!k) continue;
+      const match = k.match(/_((?:inst|guest)_[a-z0-9]+_[a-z0-9]+)(?:_|$)/i);
+      if (match?.[1]) {
+        prefixes.add(match[1]);
+      }
+    }
   } catch {}
   prefixes.add("guest_default");
   return Array.from(prefixes);
@@ -585,6 +1226,8 @@ function mergeBucketWithLocal(
         mpsearchint: 0,
         inkstream: 0,
         mpwh: 0,
+        wbr: 0,
+        tow: 0,
       };
       const localGames = isPlainObject(localSummary?.gamesPlayed)
         ? (localSummary!.gamesPlayed as Record<string, unknown>)
@@ -1182,20 +1825,27 @@ function mergeBucketWithLocal(
 
       for (const s of scales) {
         const k = `mpcolossal_save_v2_${userPrefix}_${s}`;
-        const l = readJsonLocal<Record<string, any>>(k);
+        let l = readJsonLocal<Record<string, any>>(k);
+        for (const gp of guestPrefixes) {
+          const gpData = readJsonLocal<Record<string, any>>(`mpcolossal_save_v2_${gp}_${s}`);
+          if (gpData) {
+            l = mergeColossalScaleEntry(gpData, l);
+          }
+        }
         const r = isPlainObject(remoteScales[s]) ? remoteScales[s] : null;
         if (l || r) {
           hasAny = true;
-          const lCount = isPlainObject(l?.userGrid) ? Object.keys(l!.userGrid).length : 0;
-          const rCount = isPlainObject(r?.userGrid) ? Object.keys(r!.userGrid).length : 0;
-          if (l && lCount >= rCount) {
-            mergedScales[s] = l;
-            if (lCount > rCount) localHadExtra = true;
-          } else if (r) {
-            mergedScales[s] = r;
-          }
-          if (mergedScales[s]) {
-            writeJsonLocal(k, mergedScales[s]);
+          const mergedEntry = mergeColossalScaleEntry(r, l);
+          if (mergedEntry) {
+            mergedScales[s] = mergedEntry;
+            const rCount = isPlainObject(r?.userGrid) ? Object.keys(r!.userGrid).length : 0;
+            const mCount = isPlainObject(mergedEntry.userGrid)
+              ? Object.keys(mergedEntry.userGrid).length
+              : 0;
+            if (mCount > rCount || (!r && l)) {
+              localHadExtra = true;
+            }
+            writeJsonLocal(k, mergedEntry);
           }
         }
       }
@@ -1371,10 +2021,14 @@ export async function hydrateAllUserProgressFromCloud(
         }
       }
 
+      hydratedUids.add(uid);
+
       if (bucketsToPush.length > 0 && !isFirestoreWritePaused()) {
         await Promise.allSettled(
           bucketsToPush.map((item) =>
-            writeProgressBucketNow(uid, item.bucketId, item.payload),
+            writeProgressBucketNow(uid, item.bucketId, item.payload, {
+              skipHydrationWait: true,
+            }),
           ),
         );
       }

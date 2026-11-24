@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   AuthorizedUser,
   GameMode,
@@ -116,10 +116,6 @@ interface MarqueeDanmakuItem {
   badge: string;
   result: string;
   cells: number[];
-  topPx: number;
-  durationMs: number;
-  delayMs: number;
-  travelPx: number;
 }
 
 export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
@@ -200,8 +196,11 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
   const marqueeCardRef = useRef<HTMLDivElement | null>(null);
   const seenMarqueeTagIdsRef = useRef<Set<string>>(new Set());
   const marqueeRoundIdRef = useRef<string | null>(null);
-  const laneFreeAtRef = useRef<number[]>([0, 0, 0]);
-  const marqueeHoverStartRef = useRef<number | null>(null);
+  const marqueePausedRef = useRef<boolean>(false);
+  const marqueePositionsRef = useRef<
+    Map<string, { x: number; y: number; width: number; lane: number }>
+  >(new Map());
+  const marqueeElMapRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const [marqueeItems, setMarqueeItems] = useState<MarqueeDanmakuItem[]>([]);
   const [wordAnnounce, setWordAnnounce] = useState<{
     word: string;
@@ -581,14 +580,14 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
   useEffect(() => {
     if (!authorizedStreamer) return;
 
-    const INACTIVITY_MS = 15 * 60 * 1000;
+    const INACTIVITY_MS = 4 * 60 * 60 * 1000;
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - lastActivityRef.current;
       if (elapsed >= INACTIVITY_MS) {
         handleStreamerLogout('inactivity');
       }
-    }, 5000);
+    }, 30000);
 
     const heartbeat = setInterval(() => {
       const tabSessionId = getLiveConnectionSessionId('wikirec');
@@ -643,8 +642,11 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
     const socket = io({
       path: '/socket.io',
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
-      timeout: 5000,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1500,
+      reconnectionDelayMax: 10000,
+      timeout: 15000,
       query: {
         sessionId: getLiveConnectionSessionId('wikirec'),
         gameId: 'wikirec',
@@ -1145,7 +1147,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
     if (roundId !== marqueeRoundIdRef.current) {
       marqueeRoundIdRef.current = roundId;
       seenMarqueeTagIdsRef.current.clear();
-      laneFreeAtRef.current = [0, 0, 0];
+      marqueePositionsRef.current.clear();
       setMarqueeItems([]);
     }
 
@@ -1157,22 +1159,16 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
       foundCellLookup.set(fw.word.toLowerCase(), fw.cells || []);
     }
 
-    const LANE_TOPS = [7, 48, 89];
-    const SPEED_PX_PER_MS = 0.088;
-    const MIN_HORIZONTAL_GAP_PX = 28;
-    const stageW = marqueeCardRef.current?.clientWidth || 490;
-    const now = performance.now();
     const newItems: MarqueeDanmakuItem[] = [];
 
     for (let idx = 0; idx < tags.length; idx++) {
       const tag = tags[idx];
-      const tagKey = tag.id || `${tag.word}-${tag.ts}-${tag.displayName}-${idx}`;
+      const tagKey = tag.id || `${tag.word}-${tag.ts}-${tag.displayName}`;
       if (seenMarqueeTagIdsRef.current.has(tagKey)) continue;
       seenMarqueeTagIdsRef.current.add(tagKey);
 
       const wordUpper = tag.word.toUpperCase();
       const rawFinder = tag.displayName || displayName || 'You';
-      const cleanFinder = rawFinder.replace(/^@/, '');
       const badge =
         tag.points && tag.points > 0
           ? `+${tag.points.toLocaleString()}`
@@ -1184,45 +1180,6 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
           ? 'WIKI'
           : '';
 
-      const estWidthPx = Math.ceil(
-        64 +
-          wordUpper.length * 11.5 +
-          Math.min(110, cleanFinder.length * 8.5) +
-          (badge ? badge.length * 8.5 + 10 : 0)
-      );
-
-      const freeLanes: number[] = [];
-      let earliestFreeAt = Infinity;
-      for (let l = 0; l < LANE_TOPS.length; l++) {
-        const freeAt = laneFreeAtRef.current[l];
-        if (freeAt <= now) {
-          freeLanes.push(l);
-        }
-        if (freeAt < earliestFreeAt) {
-          earliestFreeAt = freeAt;
-        }
-      }
-
-      let chosenLane: number;
-      if (freeLanes.length > 0) {
-        chosenLane = freeLanes[Math.floor(Math.random() * freeLanes.length)];
-      } else {
-        const nearEarliest = LANE_TOPS.map((_, l) => l).filter(
-          (l) => laneFreeAtRef.current[l] <= earliestFreeAt + 180
-        );
-        chosenLane = nearEarliest[Math.floor(Math.random() * nearEarliest.length)];
-      }
-
-      const launchAt = Math.max(now, laneFreeAtRef.current[chosenLane]);
-      const delayMs = Math.max(0, Math.round(launchAt - now));
-      const clearRightEdgeMs = (estWidthPx + MIN_HORIZONTAL_GAP_PX) / SPEED_PX_PER_MS;
-      laneFreeAtRef.current[chosenLane] = launchAt + clearRightEdgeMs;
-
-      const jitter = Math.round((Math.random() - 0.5) * 4);
-      const topPx = LANE_TOPS[chosenLane] + jitter;
-      const travelPx = stageW + estWidthPx + 40;
-      const durationMs = Math.round(travelPx / SPEED_PX_PER_MS);
-
       newItems.push({
         uid: `${tagKey}-${Math.random().toString(36).slice(2, 6)}`,
         word: wordUpper,
@@ -1231,16 +1188,12 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
         badge,
         result: tag.result,
         cells: foundCellLookup.get(tag.word.toLowerCase()) || [],
-        topPx,
-        durationMs,
-        delayMs,
-        travelPx,
       });
     }
 
     if (seenMarqueeTagIdsRef.current.size > 400) {
       const activeIds = new Set(
-        tags.map((t, idx) => t.id || `${t.word}-${t.ts}-${t.displayName}-${idx}`)
+        tags.map((t) => t.id || `${t.word}-${t.ts}-${t.displayName}`)
       );
       seenMarqueeTagIdsRef.current = activeIds;
     }
@@ -1249,6 +1202,103 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
       setMarqueeItems((prev) => [...prev, ...newItems]);
     }
   }, [gameState?.roundId, gameState?.recentTags, gameState?.foundWords, displayName]);
+
+  // Measure newly arrived player/answer chips synchronously and spawn them in the clearest lane
+  // off the right edge without moving or jumping any chips currently gliding across the stage.
+  useLayoutEffect(() => {
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+    const stageW = marqueeCardRef.current?.clientWidth || 490;
+    const LANE_TOPS = [7, 48, 89];
+    const MIN_GAP_PX = 24;
+
+    for (const item of marqueeItems) {
+      if (marqueePositionsRef.current.has(item.uid)) continue;
+      const el = marqueeElMapRef.current.get(item.uid);
+      if (!el) continue;
+
+      const width = el.offsetWidth || 150;
+      const laneRight = [stageW + 12, stageW + 12, stageW + 12];
+      for (const pos of marqueePositionsRef.current.values()) {
+        const rightEdge = pos.x + pos.width + MIN_GAP_PX;
+        if (rightEdge > laneRight[pos.lane]) {
+          laneRight[pos.lane] = rightEdge;
+        }
+      }
+
+      let bestLane = 0;
+      for (let l = 1; l < LANE_TOPS.length; l++) {
+        if (laneRight[l] < laneRight[bestLane]) {
+          bestLane = l;
+        }
+      }
+
+      const jitter = Math.round((Math.random() - 0.5) * 4);
+      const y = LANE_TOPS[bestLane] + jitter;
+      const x = laneRight[bestLane];
+      marqueePositionsRef.current.set(item.uid, { x, y, width, lane: bestLane });
+      el.style.transform = `translate3d(${x.toFixed(2)}px, ${y}px, 0)`;
+    }
+  }, [marqueeItems]);
+
+  const hasMarqueeItems = marqueeItems.length > 0;
+
+  // Continuous 60fps GPU-transform conveyor — never restarts when new guesses/players appear!
+  useEffect(() => {
+    if (!hasMarqueeItems) return;
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+
+    const SPEED_PX_PER_SEC = 86;
+    let rafId = 0;
+    let lastTs = performance.now();
+
+    const tick = (ts: number) => {
+      const dt = Math.min(0.08, Math.max(0, (ts - lastTs) / 1000));
+      lastTs = ts;
+      const finishedUids: string[] = [];
+
+      if (!marqueePausedRef.current) {
+        const dx = dt * SPEED_PX_PER_SEC;
+        for (const [uid, pos] of marqueePositionsRef.current.entries()) {
+          if (pos.width === 0) {
+            const el = marqueeElMapRef.current.get(uid);
+            if (el) pos.width = el.offsetWidth || 150;
+          }
+          pos.x -= dx;
+          if (pos.x + pos.width < -32) {
+            finishedUids.push(uid);
+            continue;
+          }
+          const el = marqueeElMapRef.current.get(uid);
+          if (el) {
+            el.style.transform = `translate3d(${pos.x.toFixed(2)}px, ${pos.y}px, 0)`;
+          }
+        }
+      }
+
+      if (finishedUids.length > 0) {
+        const finishedSet = new Set(finishedUids);
+        for (const uid of finishedUids) {
+          marqueePositionsRef.current.delete(uid);
+        }
+        setMarqueeItems((prev) => prev.filter((x) => !finishedSet.has(x.uid)));
+      }
+
+      rafId = window.requestAnimationFrame(tick);
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [hasMarqueeItems]);
 
   const searchWordGroups = useMemo(() => {
     const all = gameState?.searchWords || [];
@@ -2305,17 +2355,17 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
         id="found-words-card"
         aria-live="polite"
         onMouseEnter={() => {
-          marqueeHoverStartRef.current = performance.now();
+          marqueePausedRef.current = true;
         }}
         onMouseLeave={() => {
-          if (marqueeHoverStartRef.current !== null) {
-            const pausedMs = performance.now() - marqueeHoverStartRef.current;
-            marqueeHoverStartRef.current = null;
-            laneFreeAtRef.current = laneFreeAtRef.current.map((t) =>
-              t > 0 ? t + pausedMs : 0
-            );
-          }
+          marqueePausedRef.current = false;
           setFlashedCells([]);
+        }}
+        onTouchStart={() => {
+          marqueePausedRef.current = true;
+        }}
+        onTouchEnd={() => {
+          marqueePausedRef.current = false;
         }}
       >
         {marqueeItems.length === 0 ? (
@@ -2329,22 +2379,25 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
             {marqueeItems.map((item) => {
               const cleanFinder = (item.displayName || 'You').replace(/^@/, '');
               const fallbackUrl = `https://i.pravatar.cc/150?u=${encodeURIComponent(cleanFinder)}`;
-              const itemVars = {
-                '--wk-top': `${item.topPx}px`,
-                '--wk-dur': `${item.durationMs}ms`,
-                '--wk-delay': `${item.delayMs}ms`,
-                '--wk-travel': `${item.travelPx}px`,
-              } as React.CSSProperties;
               return (
                 <div
                   key={item.uid}
-                  style={itemVars}
+                  ref={(node) => {
+                    if (node) {
+                      marqueeElMapRef.current.set(item.uid, node);
+                      const existing = marqueePositionsRef.current.get(item.uid);
+                      if (existing) {
+                        node.style.transform = `translate3d(${existing.x.toFixed(2)}px, ${existing.y}px, 0)`;
+                      } else {
+                        node.style.transform = 'translate3d(9999px, 48px, 0)';
+                      }
+                    } else {
+                      marqueeElMapRef.current.delete(item.uid);
+                    }
+                  }}
                   className={`found-word-item wk-danmaku-item ${
                     item.cells.length > 0 ? 'is-flashable' : ''
                   }`}
-                  onAnimationEnd={() => {
-                    setMarqueeItems((prev) => prev.filter((x) => x.uid !== item.uid));
-                  }}
                   onMouseEnter={() => {
                     if (item.cells.length > 0) {
                       setFlashedCells(item.cells);

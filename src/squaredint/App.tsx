@@ -747,7 +747,11 @@ export default function App() {
     const newSocket = io({
       path: '/socket.io',
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1500,
+      reconnectionDelayMax: 10000,
+      timeout: 15000,
       query: {
         sessionId: getLiveConnectionSessionId('squaredint'),
         gameId: 'squaredint',

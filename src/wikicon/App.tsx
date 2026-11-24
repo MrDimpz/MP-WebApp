@@ -48,6 +48,7 @@ import {
 } from '@/lib/daily-streak';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { triggerVictoryConfetti } from '@/lib/confetti';
+import { SmoothMarquee } from '@/components/smooth-marquee';
 import './index.css';
 import {
   GameMode,
@@ -88,9 +89,10 @@ import {
   Trophy,
   Pause,
   Play,
+  RefreshCw,
 } from 'lucide-react';
 
-const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes of combined user + chat inactivity
+const INACTIVITY_TIMEOUT_MS = 4 * 60 * 60 * 1000; // 4 hours so live broadcasts never randomly disconnect
 
 const INITIAL_PROFILE: UserEconomyProfile = {
   username: 'wiki_explorer',
@@ -208,7 +210,12 @@ const INITIAL_PROFILE: UserEconomyProfile = {
 };
 
 export function App({ soloOnly = false }: { soloOnly?: boolean }) {
-  const { isOverlay: rawIsOverlay, bg: overlayBg, streamer: overlayStreamer } = useOverlayConfig();
+  const {
+    isOverlay: rawIsOverlay,
+    bg: overlayBg,
+    streamer: overlayStreamer,
+    channel: overlayChannel,
+  } = useOverlayConfig();
   const isSoloRoute =
     soloOnly ||
     (typeof window !== 'undefined' && window.location.pathname.startsWith('/solo-games'));
@@ -287,10 +294,18 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
   const prevSolvedRef = useRef<boolean>(false);
   const lastActivityRef = useRef<number>(Date.now());
   const processChatEventRef = useRef<((data: any) => void) | null>(null);
+  const lastConnectedUsernameRef = useRef<string | null>(null);
+  const tiktokConnStateRef = useRef<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+  const explicitlyDisconnectedRef = useRef<boolean>(false);
   const manuscriptScrollRef = useRef<HTMLDivElement | null>(null);
   const manuscriptHoverPausedRef = useRef<boolean>(false);
   const manuscriptManualPauseUntilRef = useRef<number>(0);
   const manuscriptScrollPosRef = useRef<number>(0);
+
+  tiktokConnStateRef.current = tiktokConnState;
+  if (connectedUsername) {
+    lastConnectedUsernameRef.current = connectedUsername;
+  }
 
   const showToast = useCallback((text: string, tone: 'cyan' | 'gold' | 'green' | 'muted' = 'cyan') => {
     setFeedbackToast({ text, tone });
@@ -349,10 +364,16 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     const timer = setInterval(() => {
-      if (Date.now() - lastActivityRef.current >= INACTIVITY_TIMEOUT_MS) {
-        performStreamerLogout('Logged out due to 20 minutes of user and chat inactivity.');
+      // Never auto-logout/disconnect while an active TikTok LIVE stream is connected
+      if (tiktokConnStateRef.current === 'connected' || tiktokConnStateRef.current === 'connecting') {
+        lastActivityRef.current = Date.now();
+        touchActiveInteractiveStreamerSession();
+        return;
       }
-    }, 10000);
+      if (Date.now() - lastActivityRef.current >= INACTIVITY_TIMEOUT_MS) {
+        performStreamerLogout('Logged out due to extended inactivity.');
+      }
+    }, 30000);
 
     return () => {
       events.forEach((ev) => window.removeEventListener(ev, onUserActivity));
@@ -408,8 +429,12 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
     const socket = io({
       path: '/socket.io',
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
-      timeout: 5000,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1500,
+      reconnectionDelayMax: 10000,
+      randomizationFactor: 0.4,
+      timeout: 15000,
       query: {
         sessionId: getLiveConnectionSessionId('wikicon'),
         gameId: 'wikicon',
@@ -417,11 +442,51 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
     });
     socketRef.current = socket;
     const deduplicator = createEventDeduplicator();
+    let hasConnectedSocketOnce = false;
+
+    socket.on('connect', () => {
+      const wasReconnect = hasConnectedSocketOnce;
+      hasConnectedSocketOnce = true;
+      const liveSid = getLiveConnectionSessionId('wikicon');
+      socket.emit('join-session', { sessionId: liveSid, gameId: 'wikicon' });
+      // Auto-heal active TikTok LIVE stream after any network drop or server restart
+      if (wasReconnect && !explicitlyDisconnectedRef.current && lastConnectedUsernameRef.current) {
+        const cleanUser = lastConnectedUsernameRef.current.replace(/^@+/, '');
+        setTiktokConnState('connecting');
+        triggerResilientConnect(
+          socket,
+          {
+            username: cleanUser,
+            gameId: 'wikicon',
+            sessionId: liveSid,
+            forceReconnect: false,
+          },
+          ({ username: uname, roomId }) => {
+            setTiktokConnState('connected');
+            setConnectedUsername(uname || cleanUser);
+            if (roomId) setConnectedRoomId(roomId);
+            setTiktokError(null);
+          }
+        );
+      }
+    });
+
+    socket.on('disconnect', (reason) => {
+      if (
+        !explicitlyDisconnectedRef.current &&
+        lastConnectedUsernameRef.current &&
+        reason !== 'io client disconnect'
+      ) {
+        setTiktokConnState('connecting');
+        setTiktokError('Connection hiccup — auto-reconnecting…');
+      }
+    });
 
     // Exact Socket.IO listeners specified in prompt
     socket.on('tiktok-connected', (data: { username: string; roomId: string; gameId?: string }) => {
       if (!data.gameId || data.gameId === 'wikicon') {
         recordActivity();
+        explicitlyDisconnectedRef.current = false;
         setTiktokConnState('connected');
         setConnectedUsername(data.username);
         setConnectedRoomId(data.roomId || 'LIVE_RELAY');
@@ -431,15 +496,28 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
     socket.on(
       'tiktok-status',
-      (data: { connected: boolean; username?: string | null; isTestMode?: boolean; roomId?: string; gameId?: string }) => {
+      (data: {
+        connected: boolean;
+        reconnecting?: boolean;
+        username?: string | null;
+        isTestMode?: boolean;
+        roomId?: string;
+        gameId?: string;
+        notice?: string;
+      }) => {
         if (!data.gameId || data.gameId === 'wikicon') {
           recordActivity();
-          if (data.connected) {
+          if (data.reconnecting) {
+            setTiktokConnState('connecting');
+            if (data.username) setConnectedUsername(data.username);
+            setTiktokError(data.notice || 'Stream hiccup — auto-reconnecting…');
+          } else if (data.connected) {
+            explicitlyDisconnectedRef.current = false;
             setTiktokConnState('connected');
             if (data.username) setConnectedUsername(data.username);
             setConnectedRoomId((prev) => data.roomId || prev || (data.isTestMode ? 'TEST_MODE' : 'LIVE'));
             setTiktokError(null);
-          } else {
+          } else if (explicitlyDisconnectedRef.current) {
             setTiktokConnState('disconnected');
             setConnectedUsername(null);
             setConnectedRoomId(null);
@@ -454,9 +532,14 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
     socket.on('tiktok-disconnected', (payload?: { gameId?: string }) => {
       if (!payload?.gameId || payload.gameId === 'wikicon') {
-        setTiktokConnState('disconnected');
-        setConnectedUsername(null);
-        setConnectedRoomId(null);
+        if (explicitlyDisconnectedRef.current) {
+          setTiktokConnState('disconnected');
+          setConnectedUsername(null);
+          setConnectedRoomId(null);
+        } else if (lastConnectedUsernameRef.current) {
+          setTiktokConnState('connecting');
+          setTiktokError('Stream disconnected — auto-reconnecting…');
+        }
       }
     });
 
@@ -660,6 +743,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
   }, [round?.roundId]);
 
   // Automatically scroll through the Wikipedia Redacted Manuscript
+  // Pauses 3 seconds at the start of scrolling and 3 seconds every time it resets to the top.
   useEffect(() => {
     if (!isManuscriptAutoScroll) return;
     if (typeof window === 'undefined') return;
@@ -667,7 +751,9 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
     let rafId = 0;
     let lastTs = performance.now();
-    let holdUntil = performance.now() + 1200;
+    let phase: 'top_hold' | 'scrolling' | 'bottom_hold' = 'top_hold';
+    let holdUntil = performance.now() + 3000;
+    let hasScrollableContent = false;
 
     const step = (now: number) => {
       const dt = Math.min(0.1, Math.max(0, (now - lastTs) / 1000));
@@ -675,25 +761,46 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
       const el = manuscriptScrollRef.current;
       if (el) {
         const maxScroll = el.scrollHeight - el.clientHeight;
-        const isPaused =
-          manuscriptHoverPausedRef.current ||
-          now < manuscriptManualPauseUntilRef.current ||
-          now < holdUntil ||
-          maxScroll <= 4;
-
-        if (!isPaused) {
-          manuscriptScrollPosRef.current += dt * 18;
-          if (manuscriptScrollPosRef.current >= maxScroll) {
-            el.scrollTop = maxScroll;
-            manuscriptScrollPosRef.current = -1; // flag reset on next tick after pause
-            holdUntil = now + 2000;
-          } else {
-            el.scrollTop = manuscriptScrollPosRef.current;
+        if (maxScroll <= 4) {
+          // Wait until manuscript content is actually scrollable before starting the 3s countdown
+          hasScrollableContent = false;
+          phase = 'top_hold';
+          holdUntil = now + 3000;
+        } else {
+          if (!hasScrollableContent) {
+            hasScrollableContent = true;
+            phase = 'top_hold';
+            holdUntil = now + 3000;
           }
-        } else if (manuscriptScrollPosRef.current < 0 && now >= holdUntil) {
-          manuscriptScrollPosRef.current = 0;
-          el.scrollTop = 0;
-          holdUntil = now + 1200;
+
+          const userPaused =
+            manuscriptHoverPausedRef.current ||
+            now < manuscriptManualPauseUntilRef.current;
+
+          if (!userPaused) {
+            if (phase === 'top_hold') {
+              if (now >= holdUntil) {
+                phase = 'scrolling';
+              }
+            } else if (phase === 'scrolling') {
+              manuscriptScrollPosRef.current += dt * 18;
+              if (manuscriptScrollPosRef.current >= maxScroll) {
+                manuscriptScrollPosRef.current = maxScroll;
+                el.scrollTop = maxScroll;
+                phase = 'bottom_hold';
+                holdUntil = now + 2000;
+              } else {
+                el.scrollTop = manuscriptScrollPosRef.current;
+              }
+            } else if (phase === 'bottom_hold') {
+              if (now >= holdUntil) {
+                manuscriptScrollPosRef.current = 0;
+                el.scrollTop = 0;
+                phase = 'top_hold';
+                holdUntil = now + 3000;
+              }
+            }
+          }
         }
       }
       rafId = requestAnimationFrame(step);
@@ -745,7 +852,9 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
   // Emit connect-tiktok / disconnect-tiktok
   const handleConnectTikTok = (username: string, isTestMode = false) => {
     recordActivity();
+    explicitlyDisconnectedRef.current = false;
     const cleaned = username.trim().replace(/^@+/, '') || 'streamer';
+    lastConnectedUsernameRef.current = cleaned;
     let savedProvider: 'tikfinity' | 'bettertok' = 'tikfinity';
     try {
       const p = localStorage.getItem('chat_integration_provider');
@@ -757,9 +866,10 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
     setConnectedRoomId(isTestMode ? 'TEST_SIMULATION_ROOM' : 'LIVE_RELAY');
     setTiktokError(null);
     setActiveNav((prev) => (prev === 'HOME' || prev === 'DAILY' ? 'ONLINE' : prev));
-    if (!internalRoundRef.current || internalRoundRef.current.isDaily) {
+    // Only initialize a round if none exists yet — NEVER overwrite an active round on reconnect!
+    if (!internalRoundRef.current) {
       createNewWikiconRound({
-        mode: internalRoundRef.current?.mode || 'WIKICONTEXTO',
+        mode: 'WIKICONTEXTO',
         isDaily: false,
       })
         .then((fresh) => {
@@ -770,6 +880,9 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
     }
     showToast(`Connected to TikTok Live @${cleaned}`, 'green');
 
+    if (socketRef.current && socketRef.current.disconnected) {
+      socketRef.current.connect();
+    }
     triggerResilientConnect(
       socketRef.current,
       {
@@ -789,23 +902,29 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
   const handleReconnectTikTok = (username: string, isTestMode = false) => {
     recordActivity();
+    explicitlyDisconnectedRef.current = false;
     const cleaned =
       username.trim().replace(/^@+/, '') ||
       connectedUsername?.replace(/^@+/, '') ||
+      lastConnectedUsernameRef.current?.replace(/^@+/, '') ||
       authenticatedStreamer?.replace(/^@+/, '') ||
       'streamer';
+    lastConnectedUsernameRef.current = cleaned;
     let savedProvider: 'tikfinity' | 'bettertok' = 'tikfinity';
     try {
       const p = localStorage.getItem('chat_integration_provider');
       if (p === 'bettertok' || p === 'tikfinity') savedProvider = p;
     } catch {}
 
-    setTiktokConnState('connected');
+    setTiktokConnState('connecting');
     setConnectedUsername(cleaned);
     setConnectedRoomId(isTestMode ? 'TEST_SIMULATION_ROOM' : 'LIVE_RELAY');
     setTiktokError(null);
-    showToast(`Reconnected @${cleaned} · Bridge & Socket refreshed!`, 'green');
+    showToast(`Reconnecting @${cleaned} · Refreshing live bridge…`, 'gold');
 
+    if (socketRef.current && socketRef.current.disconnected) {
+      socketRef.current.connect();
+    }
     forceReconnectBridge(
       socketRef.current,
       {
@@ -819,16 +938,20 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
         setTiktokConnState('connected');
         setConnectedUsername(uname || cleaned);
         if (roomId) setConnectedRoomId(roomId);
+        setTiktokError(null);
+        showToast(`Reconnected @${uname || cleaned} · Live chat restored!`, 'green');
       }
     );
   };
 
   const handleDisconnectTikTok = () => {
     recordActivity();
+    explicitlyDisconnectedRef.current = true;
     const liveSessionId = getLiveConnectionSessionId('wikicon');
     setTiktokConnState('disconnected');
     setConnectedUsername(null);
     setConnectedRoomId(null);
+    setTiktokError(null);
     fetch('/api/tiktok/disconnect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1201,7 +1324,8 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
     gameId: 'wikicon',
     streamer: isOverlay
       ? overlayStreamer || undefined
-      : connectedUsername || authenticatedStreamer || undefined,
+      : connectedUsername || authenticatedStreamer || lastConnectedUsernameRef.current || undefined,
+    channel: isOverlay ? overlayChannel || undefined : undefined,
     isOverlay,
     localState: syncedSnapshot,
     onSyncedState: useCallback((remote) => {
@@ -1418,18 +1542,46 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                     className={`px-2.5 py-1.5 text-[11px] font-bold rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5 ${
                       tiktokConnState === 'connected'
                         ? 'bg-[#4ade80] text-[#2d0938] shadow-[0_0_16px_rgba(74,222,128,0.35)]'
+                        : tiktokConnState === 'connecting'
+                        ? 'bg-amber-400 text-[#2d0938] animate-pulse'
                         : authenticatedStreamer
                         ? 'bg-[#fde047] text-[#2d0938]'
                         : 'bg-[#facc15] hover:bg-[#fde047] text-[#2d0938] shadow-[0_0_14px_rgba(250,204,21,0.28)]'
                     }`}
                   >
                     <Radio className="w-3.5 h-3.5" />
-                    {tiktokConnState === 'connected' && connectedUsername
+                    {tiktokConnState === 'connecting'
+                      ? 'Reconnecting…'
+                      : tiktokConnState === 'connected' && connectedUsername
                       ? `@${connectedUsername}`
                       : authenticatedStreamer
                       ? authenticatedStreamer
                       : 'TikTok Live'}
                   </button>
+                  {(tiktokConnState === 'connected' ||
+                    tiktokConnState === 'connecting' ||
+                    tiktokConnState === 'error' ||
+                    lastConnectedUsernameRef.current) && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleReconnectTikTok(
+                          connectedUsername ||
+                            lastConnectedUsernameRef.current ||
+                            authenticatedStreamer ||
+                            ''
+                        )
+                      }
+                      title="One-click Reconnect / Fix TikTok LIVE connection without resetting the round"
+                      className="p-1.5 rounded-xl bg-[#2c0938] hover:bg-[#4a1259] border border-[#facc15]/60 text-[#facc15] transition-colors cursor-pointer shrink-0"
+                    >
+                      <RefreshCw
+                        className={`w-3.5 h-3.5 ${
+                          tiktokConnState === 'connecting' ? 'animate-spin' : ''
+                        }`}
+                      />
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -2311,7 +2463,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                 {/* ── Scrolling Marquee for Guessed Words ── */}
                 {round.recentTicker.length > 0 && (
                   <div
-                    className={`wk-marquee-wrap relative flex items-center overflow-hidden py-1.5 px-2.5 rounded-xl border opacity-100 ${
+                    className={`relative flex items-center overflow-hidden py-1 px-2.5 rounded-xl border opacity-100 ${
                       isLightMode
                         ? 'bg-white border-[#c084fc] text-[#2d0938]'
                         : 'bg-[#240630] border-[#6b21a8] text-[#f3e8ff]'
@@ -2327,37 +2479,27 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                       Recent
                     </span>
                     <div className="flex-1 min-w-0 overflow-hidden">
-                      <div
-                        className="wk-marquee-track"
-                        style={
-                          {
-                            '--wk-marquee-duration': `${Math.max(10, round.recentTicker.length * 3)}s`,
-                          } as React.CSSProperties
-                        }
-                      >
-                        {[0, 1].map((dupIdx) => (
-                          <div
-                            key={dupIdx}
-                            aria-hidden={dupIdx === 1}
-                            className="flex items-center gap-3 pr-3 min-w-full shrink-0"
-                          >
-                            {round.recentTicker.map((item) => (
-                              <span
-                                key={`${dupIdx}-${item.norm}-${item.timestamp}`}
-                                className="text-[11px] font-mono tabular-nums whitespace-nowrap shrink-0"
-                              >
-                                <strong className={isLightMode ? 'text-[#2d0938]' : 'text-white'}>
-                                  {item.word}
-                                </strong>{' '}
-                                <span className={isLightMode ? 'text-[#7e22ce]' : 'text-[#facc15]'}>
-                                  #{item.rank}
-                                </span>
-                                <span className="ml-2 text-[#6b21a8]">·</span>
-                              </span>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
+                      <SmoothMarquee
+                        key={`wk-recent-${round.roundId}`}
+                        items={round.recentTicker}
+                        getItemKey={(item) => item.norm}
+                        speedPxPerSec={46}
+                        gapPx={12}
+                        heightClassName="h-5"
+                        order="newest-first"
+                        ariaLabel="Recent guessed words marquee"
+                        renderItem={(item) => (
+                          <span className="text-[11px] font-mono tabular-nums whitespace-nowrap shrink-0 inline-flex items-center gap-1">
+                            <strong className={isLightMode ? 'text-[#2d0938]' : 'text-white'}>
+                              {item.word}
+                            </strong>
+                            <span className={isLightMode ? 'text-[#7e22ce]' : 'text-[#facc15]'}>
+                              #{item.rank}
+                            </span>
+                            <span className="ml-1.5 text-[#6b21a8]">·</span>
+                          </span>
+                        )}
+                      />
                     </div>
                   </div>
                 )}

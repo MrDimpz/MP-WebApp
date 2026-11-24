@@ -28,7 +28,7 @@ import {
 import {
   normalizeDictionaryLanguage,
   stripDiacritics,
-} from '../../src/lib/dictionary-languages.ts';
+} from '../../src/lib/dictionary-language-core.ts';
 import { store } from './store.ts';
 import { TikTokRoomBridge, type IncomingTikTokChat } from './tiktokManager.ts';
 

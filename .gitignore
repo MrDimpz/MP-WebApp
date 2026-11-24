@@ -7,4 +7,5 @@ coverage/
 .env*
 !.env.example
 .relay_data/
+/data/inkstream-store.json
 *.tmp

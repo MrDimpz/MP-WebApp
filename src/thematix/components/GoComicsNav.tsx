@@ -18,6 +18,7 @@ interface GoComicsNavProps {
   onResetOrClose?: () => void;
   dailyStreak?: number;
   solvedToday?: boolean;
+  onTestSprayBanner?: () => void;
 }
 
 export const GoComicsNav: React.FC<GoComicsNavProps> = ({
@@ -33,6 +34,7 @@ export const GoComicsNav: React.FC<GoComicsNavProps> = ({
   userDisplayName,
   dailyStreak = 0,
   solvedToday = false,
+  onTestSprayBanner,
 }) => {
   return (
     <nav className="w-full bg-[#180424] text-white select-none border-b border-[#f5b82e]/25 text-xs sm:text-sm shadow-md">
@@ -50,6 +52,14 @@ export const GoComicsNav: React.FC<GoComicsNavProps> = ({
             >
               ← Back
             </Link>
+            {onTestSprayBanner && (
+              <button
+                type="button"
+                aria-label="Test spray paint win banner"
+                onClick={onTestSprayBanner}
+                className="block w-[5px] h-[5px] min-w-0 min-h-0 p-0 m-0 border-0 rounded-full bg-[#f5b82e] hover:brightness-125 cursor-pointer appearance-none focus:outline-none shrink-0"
+              />
+            )}
             <Link
               to="/"
               className="flex items-center gap-2 sm:gap-3 shrink-0 group"

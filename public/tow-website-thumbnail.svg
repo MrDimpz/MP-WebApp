@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#160524" />
+      <stop offset="50%" stop-color="#280942" />
+      <stop offset="100%" stop-color="#140421" />
+    </linearGradient>
+    <linearGradient id="redZone" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3E0829" />
+      <stop offset="100%" stop-color="#5A0E38" />
+    </linearGradient>
+    <linearGradient id="blueZone" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#10254F" />
+      <stop offset="100%" stop-color="#0D163A" />
+    </linearGradient>
+    <linearGradient id="laserGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF2A5F" stop-opacity="0" />
+      <stop offset="50%" stop-color="#F6C915" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <rect width="640" height="360" fill="url(#bg)" />
+  <g opacity="0.1" stroke="#F6C915" stroke-width="1">
+    <path d="M0 60 H640 M0 120 H640 M0 180 H640 M0 240 H640 M0 300 H640" />
+    <path d="M80 0 V360 M160 0 V360 M240 0 V360 M320 0 V360 M400 0 V360 M480 0 V360 M560 0 V360" />
+  </g>
+
+  <!-- Central 9:16 Broadcast Studio Card -->
+  <rect x="190" y="16" width="260" height="328" rx="22" fill="#180424" stroke="#F6C915" stroke-width="2.5" />
+
+  <!-- Top Broadcast HUD -->
+  <rect x="202" y="26" width="236" height="44" rx="10" fill="#24073A" stroke="#D4A437" stroke-opacity="0.45" />
+  <text x="214" y="45" fill="#FF2A5F" font-family="system-ui, sans-serif" font-weight="900" font-size="14">58%</text>
+  <text x="214" y="59" fill="#FF7AA0" font-family="system-ui, sans-serif" font-weight="800" font-size="8.5">TEAM RED</text>
+
+  <rect x="284" y="32" width="72" height="30" rx="7" fill="#160424" stroke="#F6C915" stroke-opacity="0.7" />
+  <text x="320" y="47" text-anchor="middle" fill="#FFFFFF" font-family="monospace" font-weight="900" font-size="12">0:24</text>
+  <text x="320" y="58" text-anchor="middle" fill="#F6C915" font-family="system-ui, sans-serif" font-weight="800" font-size="7.2">OVERDRIVE 2X</text>
+
+  <text x="426" y="45" text-anchor="end" fill="#00E5FF" font-family="system-ui, sans-serif" font-weight="900" font-size="14">42%</text>
+  <text x="426" y="59" text-anchor="end" fill="#67E8F9" font-family="system-ui, sans-serif" font-weight="800" font-size="8.5">TEAM BLUE</text>
+
+  <!-- Split Battlefield Area -->
+  <clipPath id="fieldClip">
+    <rect x="202" y="76" width="236" height="222" rx="12" />
+  </clipPath>
+  <g clip-path="url(#fieldClip)">
+    <!-- Red Territory (Top 58%) -->
+    <rect x="202" y="76" width="236" height="126" fill="url(#redZone)" />
+    <!-- Blue Territory (Bottom 42%) -->
+    <rect x="202" y="202" width="236" height="96" fill="url(#blueZone)" />
+
+    <!-- Red & Blue Base Cores -->
+    <rect x="202" y="76" width="236" height="14" fill="#FF2A5F" opacity="0.85" />
+    <text x="320" y="86" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-weight="800" font-size="7.5" letter-spacing="0.8">RED BASE CORE</text>
+    <rect x="202" y="284" width="236" height="14" fill="#00E5FF" opacity="0.85" />
+    <text x="320" y="294" text-anchor="middle" fill="#0D163A" font-family="system-ui, sans-serif" font-weight="800" font-size="7.5" letter-spacing="0.8">BLUE BASE CORE</text>
+
+    <!-- Energy Beams firing toward Horizon -->
+    <line x1="252" y1="122" x2="296" y2="202" stroke="#FF2A5F" stroke-width="4" stroke-linecap="round" opacity="0.85" />
+    <line x1="252" y1="122" x2="296" y2="202" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" />
+    <line x1="382" y1="254" x2="348" y2="202" stroke="#00E5FF" stroke-width="4" stroke-linecap="round" opacity="0.85" />
+    <line x1="382" y1="254" x2="348" y2="202" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" />
+
+    <!-- Red Avatars -->
+    <circle cx="252" cy="122" r="14" fill="#FF2A5F" stroke="#F6C915" stroke-width="2.2" />
+    <text x="252" y="126" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-weight="900" font-size="10">MY</text>
+    <circle cx="318" cy="116" r="13" fill="#FB7185" stroke="#FFFFFF" stroke-width="1.8" />
+    <text x="318" y="120" text-anchor="middle" fill="#180424" font-family="system-ui, sans-serif" font-weight="900" font-size="9.5">TY</text>
+    <circle cx="384" cy="126" r="13" fill="#E11D48" stroke="#4ADE80" stroke-width="2" />
+    <text x="384" y="130" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-weight="900" font-size="9.5">VX</text>
+
+    <!-- Blue Avatars -->
+    <circle cx="258" cy="254" r="13" fill="#0EA5E9" stroke="#FFFFFF" stroke-width="1.8" />
+    <text x="258" y="258" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-weight="900" font-size="9.5">LN</text>
+    <circle cx="322" cy="260" r="13" fill="#06B6D4" stroke="#FFFFFF" stroke-width="1.8" />
+    <text x="322" y="264" text-anchor="middle" fill="#0D163A" font-family="system-ui, sans-serif" font-weight="900" font-size="9.5">KR</text>
+    <circle cx="382" cy="254" r="14" fill="#00E5FF" stroke="#F6C915" stroke-width="2.2" />
+    <text x="382" y="258" text-anchor="middle" fill="#0D163A" font-family="system-ui, sans-serif" font-weight="900" font-size="10">AR</text>
+
+    <!-- Power-Up Orb -->
+    <circle cx="412" cy="176" r="12" fill="#180424" stroke="#F6C915" stroke-width="2" />
+    <path d="M413 169 L408 176 L412 176 L411 183 L416 175 L412 175 Z" fill="#F6C915" />
+
+    <!-- Horizon Laser Border -->
+    <rect x="202" y="190" width="236" height="24" fill="url(#laserGlow)" />
+    <line x1="202" y1="202" x2="438" y2="202" stroke="#F6C915" stroke-width="3" />
+
+    <!-- Floating Horizon Command Deck -->
+    <rect x="224" y="168" width="192" height="58" rx="12" fill="#1D0530" fill-opacity="0.95" stroke="#F6C915" stroke-width="1.8" />
+    <text x="320" y="182" text-anchor="middle" fill="#F6C915" font-family="system-ui, sans-serif" font-weight="800" font-size="8" letter-spacing="1.2">2X POWER · BONUS SHIELD: R</text>
+    <text x="320" y="201" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-weight="900" font-size="15">STARTS WITH "S"</text>
+    <text x="320" y="216" text-anchor="middle" fill="#FF7AA0" font-family="system-ui, sans-serif" font-weight="800" font-size="8.5">+ NO LETTER "E"</text>
+  </g>
+  <rect x="202" y="76" width="236" height="222" rx="12" fill="none" stroke="#D4A437" stroke-opacity="0.45" />
+
+  <!-- Burned Words Ticker -->
+  <rect x="202" y="304" width="236" height="28" rx="8" fill="#24073A" stroke="#D4A437" stroke-opacity="0.35" />
+  <text x="320" y="322" text-anchor="middle" fill="#F6C915" font-family="monospace" font-weight="800" font-size="9.5">STORM +7% · SPARK +3% · SHARD +7%</text>
+
+  <!-- Side Feature Callouts -->
+  <g font-family="system-ui, sans-serif">
+    <rect x="24" y="68" width="144" height="58" rx="12" fill="#25073B" stroke="#D4A437" stroke-opacity="0.55" />
+    <text x="40" y="91" fill="#FF4D79" font-weight="800" font-size="11">RED VS BLUE WAR</text>
+    <text x="40" y="109" fill="#E9D5FF" font-size="10">Auto-balanced teams</text>
+
+    <rect x="24" y="224" width="144" height="58" rx="12" fill="#25073B" stroke="#D4A437" stroke-opacity="0.55" />
+    <text x="40" y="247" fill="#F6C915" font-weight="800" font-size="11">ORBS &amp; SHIELDS</text>
+    <text x="40" y="265" fill="#E9D5FF" font-size="10">2X Push, Break &amp; Invert</text>
+
+    <rect x="472" y="68" width="144" height="58" rx="12" fill="#25073B" stroke="#D4A437" stroke-opacity="0.55" />
+    <text x="488" y="91" fill="#00E5FF" font-weight="800" font-size="11">60S OVERDRIVE</text>
+    <text x="488" y="109" fill="#E9D5FF" font-size="10">3 phases + Sudden Death</text>
+
+    <rect x="472" y="224" width="144" height="58" rx="12" fill="#25073B" stroke="#D4A437" stroke-opacity="0.55" />
+    <text x="488" y="247" fill="#F6C915" font-weight="800" font-size="11">9:16 LIVE OVERLAY</text>
+    <text x="488" y="265" fill="#E9D5FF" font-size="10">Built for TikTok Studio</text>
+  </g>
+</svg>

@@ -44,6 +44,7 @@ export interface LiveGiftEvent {
 
 export interface LiveStatusEvent {
   connected: boolean;
+  reconnecting?: boolean;
   username?: string;
   roomId?: string;
   gameId?: string;
@@ -322,6 +323,12 @@ class LiveChatBridge {
   private initialized = false;
   private sessionId = "isolated_default";
   private activeGameId: string | undefined = undefined;
+  private activeUsername = "";
+  private activeIsTestMode = false;
+  private activeProvider: string | undefined = undefined;
+  private explicitlyDisconnected = false;
+  private hasConnectedOnce = false;
+  private lastKeepaliveAt = 0;
 
   private isOverlayRoute(): boolean {
     if (typeof window === "undefined") return false;
@@ -362,6 +369,21 @@ class LiveChatBridge {
     }
   }
 
+  private sendKeepaliveAndRecover(): void {
+    if (this.explicitlyDisconnected || !this.activeUsername) return;
+    touchActiveInteractiveStreamerSession();
+    this.lastKeepaliveAt = Date.now();
+    if (this.socket && this.socket.connected) {
+      this.socket.emit("tiktok-keepalive", {
+        sessionId: this.getSessionId(),
+        gameId: this.activeGameId,
+        username: this.activeUsername,
+        isTestMode: this.activeIsTestMode,
+        provider: this.activeProvider,
+      });
+    }
+  }
+
   public init() {
     if (this.initialized || typeof window === "undefined") return;
     if (this.isOverlayRoute()) return;
@@ -372,10 +394,12 @@ class LiveChatBridge {
       this.socket = io(window.location.origin, {
         path: "/socket.io",
         transports: ["websocket", "polling"],
-        reconnectionAttempts: 10,
-        reconnectionDelay: 2000,
-        reconnectionDelayMax: 15000,
-        randomizationFactor: 0.5,
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1500,
+        reconnectionDelayMax: 10000,
+        randomizationFactor: 0.4,
+        timeout: 15000,
         query: {
           sessionId: this.sessionId,
           ...(this.activeGameId ? { gameId: this.activeGameId } : {}),
@@ -383,13 +407,42 @@ class LiveChatBridge {
       });
 
       this.socket.on("connect", () => {
+        const wasReconnect = this.hasConnectedOnce;
+        this.hasConnectedOnce = true;
         this.getSessionId();
         this.syncSocketMembership();
+        // Auto-recover active TikTok LIVE stream transparently after any network drop or server restart
+        if (wasReconnect && !this.explicitlyDisconnected && this.activeUsername) {
+          this.sendKeepaliveAndRecover();
+          void this.connectStream(this.activeUsername, this.activeGameId, {
+            sessionId: this.getSessionId(),
+            isTestMode: this.activeIsTestMode,
+            provider: this.activeProvider,
+            forceReconnect: false,
+          });
+        }
+      });
+
+      this.socket.on("disconnect", (reason) => {
+        if (!this.explicitlyDisconnected && this.activeUsername && reason !== "io client disconnect") {
+          this.updateStatus({
+            ...this.currentStatus,
+            connected: true,
+            reconnecting: true,
+            username: this.activeUsername,
+            gameId: this.activeGameId,
+            notice: "Connection dropped — auto-reconnecting…",
+          });
+        }
       });
 
       this.socket.on("tiktok-status", (status: LiveStatusEvent) => {
         if (this.activeGameId && status?.gameId && status.gameId !== this.activeGameId) {
           return;
+        }
+        if (status.connected && status.username) {
+          this.activeUsername = status.username;
+          this.explicitlyDisconnected = false;
         }
         this.updateStatus(status);
       });
@@ -412,14 +465,34 @@ class LiveChatBridge {
           this.giftListeners.forEach((cb) => cb(data));
         }
       });
+
+      // Automatically wake socket & recover stream when network returns or tab comes back into focus
+      const handleNetworkOrWake = () => {
+        if (this.socket && this.socket.disconnected && !this.socket.active) {
+          this.socket.connect();
+        }
+        if (!this.explicitlyDisconnected && this.activeUsername) {
+          this.sendKeepaliveAndRecover();
+        }
+      };
+      window.addEventListener("online", handleNetworkOrWake);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) handleNetworkOrWake();
+      });
     } catch {
       // Fallback to HTTP polling
     }
 
-    // Gentle fallback poll: 12s when idle/socket connected, 4s only when actively connected & socket disconnected
+    // Gentle fallback poll + 45s keepalive heartbeat to prevent idle drops
     this.pollTimer = setInterval(() => {
       const now = Date.now();
       const socketUp = Boolean(this.socket?.connected);
+      if (this.socket && this.socket.disconnected && !this.socket.active) {
+        this.socket.connect();
+      }
+      if (!this.explicitlyDisconnected && this.activeUsername && now - this.lastKeepaliveAt >= 45_000) {
+        this.sendKeepaliveAndRecover();
+      }
       const minInterval = socketUp
         ? 12000
         : this.currentStatus.connected
@@ -558,7 +631,16 @@ class LiveChatBridge {
       return errStatus;
     }
 
+    this.explicitlyDisconnected = false;
+    this.activeUsername = clean;
+    this.activeIsTestMode = Boolean(extraOptions?.isTestMode);
+    this.activeProvider = extraOptions?.provider;
+    this.lastKeepaliveAt = Date.now();
+
     const sessionId = extraOptions?.sessionId || this.getSessionId();
+    if (this.socket && this.socket.disconnected && !this.socket.active) {
+      this.socket.connect();
+    }
     if (this.socket && this.socket.connected) {
       this.socket.emit("join-session", {
         sessionId,
@@ -601,6 +683,8 @@ class LiveChatBridge {
 
   public async disconnectStream(gameId?: string, explicitSessionId?: string): Promise<void> {
     this.init();
+    this.explicitlyDisconnected = true;
+    this.activeUsername = "";
     const sessionId = explicitSessionId || this.getSessionId();
     try {
       await fetch("/api/tiktok/disconnect", {
@@ -615,6 +699,19 @@ class LiveChatBridge {
       });
     }
     this.updateStatus({ connected: false, gameId: gameId || this.activeGameId });
+  }
+
+  public async reconnectNow(gameId?: string): Promise<LiveStatusEvent | null> {
+    if (!this.activeUsername) return null;
+    if (this.socket && this.socket.disconnected) {
+      this.socket.connect();
+    }
+    return this.connectStream(this.activeUsername, gameId || this.activeGameId, {
+      sessionId: this.getSessionId(),
+      isTestMode: this.activeIsTestMode,
+      provider: this.activeProvider,
+      forceReconnect: true,
+    });
   }
 
   public onStatus(cb: Listener<LiveStatusEvent>): () => void {

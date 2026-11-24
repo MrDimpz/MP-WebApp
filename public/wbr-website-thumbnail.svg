@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#160524" />
+      <stop offset="50%" stop-color="#280942" />
+      <stop offset="100%" stop-color="#140421" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F6C915" />
+      <stop offset="50%" stop-color="#FFE47A" />
+      <stop offset="100%" stop-color="#D4A437" />
+    </linearGradient>
+    <radialGradient id="arenaGlow" cx="50%" cy="55%" r="52%">
+      <stop offset="0%" stop-color="#4A1172" stop-opacity="0.7" />
+      <stop offset="65%" stop-color="#24073A" stop-opacity="0.88" />
+      <stop offset="100%" stop-color="#160524" stop-opacity="0.98" />
+    </radialGradient>
+    <linearGradient id="fuse" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="60%" stop-color="#F6C915" />
+      <stop offset="100%" stop-color="#FF2A6D" />
+    </linearGradient>
+  </defs>
+
+  <rect width="640" height="360" fill="url(#bg)" />
+  <g opacity="0.1" stroke="#F6C915" stroke-width="1">
+    <path d="M0 60 H640 M0 120 H640 M0 180 H640 M0 240 H640 M0 300 H640" />
+    <path d="M80 0 V360 M160 0 V360 M240 0 V360 M320 0 V360 M400 0 V360 M480 0 V360 M560 0 V360" />
+  </g>
+
+  <!-- Central 9:16 Broadcast Studio Card -->
+  <rect x="190" y="16" width="260" height="328" rx="22" fill="#1C0630" stroke="#F6C915" stroke-width="2.5" />
+
+  <!-- Top Header Strip -->
+  <rect x="202" y="28" width="236" height="40" rx="10" fill="#2A0944" stroke="#D4A437" stroke-opacity="0.45" />
+  <circle cx="222" cy="48" r="11" fill="#FF2A6D" />
+  <circle cx="222" cy="49" r="6" fill="#160524" />
+  <path d="M225 42 Q229 37 232 39" fill="none" stroke="#F6C915" stroke-width="2" stroke-linecap="round" />
+  <text x="240" y="46" fill="#FFFFFF" font-family="system-ui, sans-serif" font-weight="900" font-size="13" letter-spacing="0.6">WORD BOMB</text>
+  <text x="240" y="59" fill="#F6C915" font-family="system-ui, sans-serif" font-weight="800" font-size="10" letter-spacing="1.2">ROYALE · WAVE 3</text>
+  <rect x="378" y="37" width="50" height="22" rx="6" fill="#160524" stroke="#F6C915" stroke-opacity="0.5" />
+  <text x="403" y="52" text-anchor="middle" fill="#34D399" font-family="monospace" font-weight="800" font-size="11">18/35</text>
+
+  <!-- Command Prompt Banner -->
+  <rect x="202" y="76" width="236" height="58" rx="12" fill="#2E0B4A" stroke="#F6C915" stroke-width="1.5" />
+  <text x="320" y="93" text-anchor="middle" fill="#D8B4FE" font-family="system-ui, sans-serif" font-weight="700" font-size="9" letter-spacing="1.4">TIER 2 · ESCALATION</text>
+  <text x="320" y="114" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-weight="900" font-size="18">CONTAINS "QU"</text>
+  <!-- Fuse Bar -->
+  <rect x="216" y="122" width="208" height="6" rx="3" fill="#140421" />
+  <rect x="216" y="122" width="144" height="6" rx="3" fill="url(#fuse)" />
+  <circle cx="360" cy="125" r="5" fill="#FFFFFF" />
+
+  <!-- 2D Physics Arena Ring -->
+  <circle cx="320" cy="218" r="74" fill="url(#arenaGlow)" stroke="#F6C915" stroke-width="2.5" stroke-opacity="0.85" />
+  <circle cx="320" cy="218" r="58" fill="none" stroke="#A855F7" stroke-width="1.2" stroke-dasharray="5 5" opacity="0.55" />
+
+  <!-- Physics Avatars -->
+  <!-- Safe Player 1 -->
+  <circle cx="282" cy="202" r="16" fill="#34D399" stroke="#160524" stroke-width="2.5" />
+  <text x="282" y="206" text-anchor="middle" fill="#160524" font-family="system-ui, sans-serif" font-weight="900" font-size="11">LP</text>
+  <rect x="255" y="172" width="54" height="16" rx="8" fill="#F6C915" />
+  <text x="282" y="183" text-anchor="middle" fill="#160524" font-family="monospace" font-weight="900" font-size="9">QUARTZ</text>
+
+  <!-- Safe Player 2 (Crowned) -->
+  <circle cx="352" cy="196" r="17" fill="#F6C915" stroke="#FFFFFF" stroke-width="2" />
+  <path d="M342 178 L340 169 L347 174 L352 167 L357 174 L364 169 L362 178 Z" fill="#F6C915" stroke="#220536" stroke-width="1.2" />
+  <text x="352" y="200" text-anchor="middle" fill="#160524" font-family="system-ui, sans-serif" font-weight="900" font-size="11">KZ</text>
+  <rect x="326" y="216" width="52" height="15" rx="7.5" fill="#34D399" />
+  <text x="352" y="227" text-anchor="middle" fill="#160524" font-family="monospace" font-weight="900" font-size="9">QUEEN</text>
+
+  <!-- Unsafe Player 3 -->
+  <circle cx="308" cy="252" r="15" fill="#FF2A6D" stroke="#FFFFFF" stroke-width="2" />
+  <text x="308" y="256" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-weight="900" font-size="10">DR</text>
+
+  <!-- Safe Player 4 -->
+  <circle cx="364" cy="250" r="14" fill="#A855F7" stroke="#34D399" stroke-width="2.5" />
+  <text x="364" y="254" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-weight="900" font-size="10">MJ</text>
+
+  <!-- Burned Words Ticker -->
+  <rect x="202" y="302" width="236" height="30" rx="8" fill="#140421" stroke="#D4A437" stroke-opacity="0.35" />
+  <text x="320" y="321" text-anchor="middle" fill="#F6C915" font-family="monospace" font-weight="800" font-size="10.5">QUARTZ · QUEEN · QUEST · QUAKE · QUIET</text>
+
+  <!-- Side Feature Callouts -->
+  <g font-family="system-ui, sans-serif">
+    <rect x="24" y="68" width="144" height="58" rx="12" fill="#25073B" stroke="#D4A437" stroke-opacity="0.55" />
+    <text x="40" y="91" fill="#F6C915" font-weight="800" font-size="11">TIKTOK LIVE CHAT</text>
+    <text x="40" y="109" fill="#E9D5FF" font-size="10">Drop avatars &amp; race</text>
+
+    <rect x="24" y="224" width="144" height="58" rx="12" fill="#25073B" stroke="#D4A437" stroke-opacity="0.55" />
+    <text x="40" y="247" fill="#34D399" font-weight="800" font-size="11">2D PHYSICS ARENA</text>
+    <text x="40" y="265" fill="#E9D5FF" font-size="10">Hats, trails &amp; KO FX</text>
+
+    <rect x="472" y="68" width="144" height="58" rx="12" fill="#25073B" stroke="#D4A437" stroke-opacity="0.55" />
+    <text x="488" y="91" fill="#FF6B9D" font-weight="800" font-size="11">ESCALATING WAVES</text>
+    <text x="488" y="109" fill="#E9D5FF" font-size="10">Zero repeated words</text>
+
+    <rect x="472" y="224" width="144" height="58" rx="12" fill="#25073B" stroke="#D4A437" stroke-opacity="0.55" />
+    <text x="488" y="247" fill="#F6C915" font-weight="800" font-size="11">9:16 LIVE OVERLAY</text>
+    <text x="488" y="265" fill="#E9D5FF" font-size="10">Built for TikTok Studio</text>
+  </g>
+</svg>

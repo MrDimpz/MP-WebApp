@@ -1,12 +1,3 @@
-/**
- * Complete Rebus Puzzle Dataset extracted from:
- * 1. https://puzzleaday.wordpress.com/category/rebus/ (429 Standalone Cards + 16 Worksheet Grids)
- * 2. https://justfamilyfun.com/100-printable-rebus-puzzles-with-answers-2025/ (9 Example Cards + 488 PDF Rebuses separated into individual puzzles + 36 Printable PDFs)
- *
- * Total Individual Main-Game Puzzles: 926 (Named sequentially Rebus Puzzle #1 to Rebus Puzzle #926)
- * Total Multi-Puzzle Worksheet & PDF Sets: 53 (792 sub-puzzles)
- */
-
 export interface RebusCropBox {
   x: number;
   y: number;
@@ -21,19 +12,19 @@ export interface RebusChallenge {
   postDate: string;
   postUrl: string;
   category: string;
-  difficulty: 'Standard' | 'Medium' | 'Challenging';
+  difficulty: string;
   imageUrl: string | null;
-  cropBox?: RebusCropBox;
-  pdfUrl?: string;
   textRebus: string | null;
   prompt: string;
   wordPattern: number[];
   firstLetters: string;
-  blogClue: string;
+  cropBox?: RebusCropBox | null;
   answer: string;
   acceptedAnswers: string[];
+  blogClue: string;
   explanation: string;
-  source?: 'Puzzle a Day' | 'Just Family Fun';
+  pdfUrl?: string;
+  source?: string;
 }
 
 export interface WorksheetGridItem {
@@ -46,33 +37,34 @@ export interface WorksheetGridItem {
   explanation: string;
 }
 
-export interface WorksheetPdfLink {
-  label: string;
-  url: string;
-}
-
 export interface WorksheetGrid {
   id: string;
   postId: number;
   title: string;
   postDate: string;
   postUrl: string;
-  source?: 'Puzzle a Day' | 'Just Family Fun';
-  collection?: string;
-  pdfUrls?: WorksheetPdfLink[];
   imageUrls: string[];
   totalCount: number;
   items: WorksheetGridItem[];
+  source: string;
+  collection: string;
+  pdfUrl?: string;
+  pdfUrls?: { label: string; url: string }[];
+  answerPdfUrl?: string;
+}
+
+export interface PdfLibraryItem {
+  title: string;
+  url: string;
+  count: string;
+  sheetId?: string;
+  worksheetId?: string;
+  answerUrl?: string;
 }
 
 export interface PdfLibraryGroup {
   group: string;
-  items: {
-    title: string;
-    url: string;
-    count: string;
-    worksheetId?: string;
-  }[];
+  items: PdfLibraryItem[];
 }
 
 export const PDF_LIBRARY: PdfLibraryGroup[] = [

@@ -22,7 +22,9 @@ export type DailyStreakGameId =
   | 'tekscodle'
   | 'wordhunt'
   | 'inkstream'
-  | 'mpwh';
+  | 'mpwh'
+  | 'wbr'
+  | 'tow';
 
 export interface StoredGameStreak {
   solvedDates: string[];

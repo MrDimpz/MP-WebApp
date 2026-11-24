@@ -121,7 +121,7 @@ export function InteractiveGamesPage() {
                       Streamer {activeStreamer.displayHandle}
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                      Unlimited rounds unlocked across all 8 interactive games. Scores for linked
+                      Unlimited rounds unlocked across all 10 interactive games. Scores for linked
                       TikTok @ accounts sync automatically to their website profile.
                     </p>
                   </>
@@ -134,7 +134,7 @@ export function InteractiveGamesPage() {
                       Play up to {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} rounds per game each day — or unlock unlimited with a Stream Key
                     </div>
                     <p className="text-xs sm:text-sm text-[#D6CBE2] mt-1 leading-relaxed">
-                      Anyone can jump straight into all 8 interactive games with{' '}
+                      Anyone can jump straight into all 10 interactive games with{' '}
                       <strong className="text-white">
                         {MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} free rounds per game per day
                       </strong>{' '}
@@ -623,6 +623,96 @@ export function InteractiveGamesPage() {
                 gameSlug="mpwh"
                 streamerHandle={activeStreamer?.username}
                 recommendedSize="620 × 900 or 1080 × 1920"
+                label="LIVE Overlay"
+              />
+            </div>
+          </article>
+
+          <article className="game-card">
+            <div className="card-top">
+              <span className="category-label">
+                <span className="status-dot" /> NOW PLAYING
+              </span>
+              <div className="flex items-center gap-2">
+                {renderLimitBadge('wbr')}
+                <span className="card-number">09 /</span>
+              </div>
+            </div>
+            <Link
+              to="/interactive-games/wbr"
+              className="game-art game-art-thumb"
+              aria-label="Play Word Bomb Royale interactive physics word elimination game"
+            >
+              <img
+                className="game-thumbnail"
+                src="/wbr-website-thumbnail.svg"
+                alt="Preview of Word Bomb Royale 9:16 vertical physics arena, escalating bomb fuse rules, and live TikTok chat elimination show"
+              />
+            </Link>
+            <h3>Word Bomb Royale</h3>
+            <p>
+              9:16 vertical TikTok LIVE word elimination game show with real-time 2D physics
+              avatars. Viewers drop into the arena and race to type unique words matching escalating
+              wave rules before the bomb fuse detonates—complete with cosmetics, Hall of Fame, bot
+              simulator, and custom rules.
+            </p>
+            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
+              <Link className="game-link" to="/interactive-games/wbr">
+                Play Word Bomb Royale{' '}
+                <span>
+                  <ArrowUpRight size={22} />
+                </span>
+              </Link>
+              <LiveOverlayButton
+                gameTitle="Word Bomb Royale"
+                gameSlug="wbr"
+                streamerHandle={activeStreamer?.username}
+                recommendedSize="540 × 960 or 1080 × 1920 (9:16)"
+                label="LIVE Overlay"
+              />
+            </div>
+          </article>
+
+          <article className="game-card">
+            <div className="card-top">
+              <span className="category-label">
+                <span className="status-dot" /> NOW PLAYING
+              </span>
+              <div className="flex items-center gap-2">
+                {renderLimitBadge('tow')}
+                <span className="card-number">10 /</span>
+              </div>
+            </div>
+            <Link
+              to="/interactive-games/tow"
+              className="game-art game-art-thumb"
+              aria-label="Play Tug of Words interactive Red vs Blue territory word war"
+            >
+              <img
+                className="game-thumbnail"
+                src="/tow-website-thumbnail.svg"
+                alt="Preview of Tug of Words 9:16 vertical Team Red vs Team Blue territory battlefield, horizon laser border, power-up orbs, and live TikTok chat show"
+              />
+            </Link>
+            <h3>Tug of Words</h3>
+            <p>
+              9:16 vertical TikTok LIVE Team Red vs Team Blue territory tug-of-war. Viewers
+              auto-balance onto squads and fire validated words to push the laser horizon border,
+              claim 2X Push, Shield Break, and Invert Control orbs, trigger Golden Bounties, and
+              dominate 60-second Overdrive matches.
+            </p>
+            <div className="mt-auto pt-2 flex items-center justify-between gap-2 flex-wrap">
+              <Link className="game-link" to="/interactive-games/tow">
+                Play Tug of Words{' '}
+                <span>
+                  <ArrowUpRight size={22} />
+                </span>
+              </Link>
+              <LiveOverlayButton
+                gameTitle="Tug of Words"
+                gameSlug="tow"
+                streamerHandle={activeStreamer?.username}
+                recommendedSize="540 × 960 or 1080 × 1920 (9:16)"
                 label="LIVE Overlay"
               />
             </div>
