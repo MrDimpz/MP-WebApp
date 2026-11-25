@@ -136,6 +136,12 @@ const SOLO_GAME_META: Record<
     shortTitle: 'Word Hunt',
     subtitle: 'Daily & Endless Classic, Dual, and Quad Ladder High Scores',
   },
+  goingdeep: {
+    number: '14',
+    title: 'Going Deep — 4-in-1 Layered Puzzle',
+    shortTitle: 'Going Deep',
+    subtitle: 'Daily Standard, Hard & Expert 4-in-1 Layer Key Scores',
+  },
 };
 
 const ALLOWED_GAMES: SoloGameId[] = [
@@ -152,6 +158,7 @@ const ALLOWED_GAMES: SoloGameId[] = [
   'mpcolossal',
   'tekscodle',
   'wordhunt',
+  'goingdeep',
 ];
 
 export function UnifiedLeaderboardPanel({
@@ -183,6 +190,7 @@ export function UnifiedLeaderboardPanel({
     mpcolossal: [],
     tekscodle: [],
     wordhunt: [],
+    goingdeep: [],
     cruciverbalist: [],
     crossword: [],
   });

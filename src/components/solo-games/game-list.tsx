@@ -46,8 +46,8 @@ export function SoloGameList() {
           tactile daily word grids, daily word association puzzles, 3D layered word unstacking
           towers, the colossal 200×200 crossword atlas, 26-letter zero-clue crosswords, 8-connected
           Wikipedia word grids, redacted Wikipedia article discovery, daily 10×10 word searches,
-          twin-plate spot-the-difference challenges, and UK supermarket basket price-guessing in
-          TEKSCOdle.
+          twin-plate spot-the-difference challenges, UK supermarket basket price-guessing in
+          TEKSCOdle, and 4-in-1 layered word puzzles in Going Deep.
         </p>
         <div className="mt-4">
           <a
@@ -88,7 +88,7 @@ export function SoloGameList() {
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
                   Your Google / Email login is synced across Crossword, Missing Rebus, Squared,
                   Thematix, DeStack, MP Colossal, Unolingo, WiKirecTangled, WikiContexto, MP Search,
-                  MP Difference, TEKSCOdle &amp; Word Hunt.
+                  MP Difference, TEKSCOdle, Word Hunt &amp; Going Deep.
                 </p>
               </>
             ) : (
@@ -100,7 +100,7 @@ export function SoloGameList() {
                   Sign in with Google or Email &amp; Password
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                  Use a single account across all 13 solo games to record your high scores and
+                  Use a single account across all 14 solo games to record your high scores and
                   compete on the visitor leaderboards.
                 </p>
               </>
@@ -731,6 +731,49 @@ export function SoloGameList() {
             <button
               type="button"
               onClick={() => openModal('wordhunt', 'leaderboards')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
+            >
+              <Trophy size={13} />
+              <span>Leaderboard</span>
+            </button>
+          </div>
+        </article>
+
+        <article className="game-card">
+          <div className="card-top">
+            <span className="category-label">
+              <span className="status-dot" /> NOW PLAYING
+            </span>
+            <span className="card-number">14 /</span>
+          </div>
+          <Link
+            to="/solo-games/goingdeep"
+            className="game-art game-art-thumb"
+            aria-label="Open Going Deep 4-in-1 Layered Daily Puzzle"
+          >
+            <img
+              className="game-thumbnail"
+              src="/goingdeep-website-thumbnail.svg"
+              alt="Going Deep — 4-in-1 Layered Daily Puzzle website thumbnail"
+              referrerPolicy="no-referrer"
+            />
+          </Link>
+          <h3>Going Deep — 4-in-1 Layered Puzzle</h3>
+          <p>
+            Unlock hidden words via LetterLock, Anagram, Mini Crossword, and Word Search keys to
+            sort a 16-word Connections board into four thematic layers. Play Standard (4 keys), Hard
+            (8 keys), or Expert (12 keys) with a 14-day daily archive.
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-2">
+            <Link className="game-link flex-1" to="/solo-games/goingdeep">
+              Play Going Deep{' '}
+              <span>
+                <ArrowUpRight size={22} />
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => openModal('goingdeep', 'leaderboards')}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
             >
               <Trophy size={13} />

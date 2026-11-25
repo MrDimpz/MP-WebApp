@@ -46,7 +46,8 @@ export type ProgressBucketId =
   | "mpdifference"
   | "mpcolossal"
   | "tekscodle"
-  | "wordhunt";
+  | "wordhunt"
+  | "goingdeep";
 
 export const VALID_PROGRESS_BUCKETS: ReadonlySet<ProgressBucketId> = new Set([
   "daily_streaks",
@@ -62,6 +63,7 @@ export const VALID_PROGRESS_BUCKETS: ReadonlySet<ProgressBucketId> = new Set([
   "mpcolossal",
   "tekscodle",
   "wordhunt",
+  "goingdeep",
 ]);
 
 export const CLOUD_HYDRATED_EVENT = "mp-cloud-progress-hydrated";
@@ -1010,6 +1012,60 @@ export function mergeCloudBucketPayloads(
           fewestDual: mergePositiveMin(e.fewestDual, i.fewestDual),
           fewestQuad: mergePositiveMin(e.fewestQuad, i.fewestQuad),
           dailyCompletedDates,
+        },
+      };
+    }
+
+    case "goingdeep": {
+      const eProg = isPlainObject(existing.progress) ? (existing.progress as Record<string, any>) : {};
+      const iProg = isPlainObject(incoming.progress) ? (incoming.progress as Record<string, any>) : {};
+      const mergedProgress: Record<string, any> = { ...eProg };
+      const statusRank = (s: unknown) => (s === "won" ? 3 : s === "lost" ? 2 : 1);
+      for (const key of Object.keys(iProg)) {
+        const prev = eProg[key];
+        const next = iProg[key];
+        if (!prev) {
+          mergedProgress[key] = next;
+        } else {
+          const prevRank = statusRank(prev.status);
+          const nextRank = statusRank(next?.status);
+          const prevSolved = Array.isArray(prev.solvedTiers) ? prev.solvedTiers.length : 0;
+          const nextSolved = Array.isArray(next?.solvedTiers) ? next.solvedTiers.length : 0;
+          if (nextRank > prevRank || (nextRank === prevRank && nextSolved >= prevSolved)) {
+            mergedProgress[key] = next;
+          }
+        }
+      }
+      const eStats = isPlainObject(existing.stats) ? (existing.stats as Record<string, any>) : {};
+      const iStats = isPlainObject(incoming.stats) ? (incoming.stats as Record<string, any>) : {};
+      const eDist = Array.isArray(eStats.mistakeDistribution) ? eStats.mistakeDistribution : [0, 0, 0, 0, 0];
+      const iDist = Array.isArray(iStats.mistakeDistribution) ? iStats.mistakeDistribution : [0, 0, 0, 0, 0];
+      const eMini = isPlainObject(eStats.miniGamesSolved) ? eStats.miniGamesSolved : {};
+      const iMini = isPlainObject(iStats.miniGamesSolved) ? iStats.miniGamesSolved : {};
+      const eWins = isPlainObject(eStats.winsByDifficulty) ? eStats.winsByDifficulty : {};
+      const iWins = isPlainObject(iStats.winsByDifficulty) ? iStats.winsByDifficulty : {};
+      return {
+        progress: mergedProgress,
+        stats: {
+          played: Math.max(Number(eStats.played || 0), Number(iStats.played || 0)),
+          won: Math.max(Number(eStats.won || 0), Number(iStats.won || 0)),
+          currentStreak: Math.max(Number(eStats.currentStreak || 0), Number(iStats.currentStreak || 0)),
+          maxStreak: Math.max(Number(eStats.maxStreak || 0), Number(iStats.maxStreak || 0)),
+          perfectGames: Math.max(Number(eStats.perfectGames || 0), Number(iStats.perfectGames || 0)),
+          mistakeDistribution: [0, 1, 2, 3, 4].map((idx) =>
+            Math.max(Number(eDist[idx] || 0), Number(iDist[idx] || 0))
+          ),
+          miniGamesSolved: {
+            letterlock: Math.max(Number(eMini.letterlock || 0), Number(iMini.letterlock || 0)),
+            anagram: Math.max(Number(eMini.anagram || 0), Number(iMini.anagram || 0)),
+            crossword: Math.max(Number(eMini.crossword || 0), Number(iMini.crossword || 0)),
+            wordsearch: Math.max(Number(eMini.wordsearch || 0), Number(iMini.wordsearch || 0)),
+          },
+          winsByDifficulty: {
+            standard: Math.max(Number(eWins.standard || 0), Number(iWins.standard || 0)),
+            hard: Math.max(Number(eWins.hard || 0), Number(iWins.hard || 0)),
+            expert: Math.max(Number(eWins.expert || 0), Number(iWins.expert || 0)),
+          },
         },
       };
     }
@@ -2057,6 +2113,38 @@ function mergeBucketWithLocal(
         Number(l?.bestScore || 0) > Number(r?.bestScore || 0) ||
         dailyDates.length > (Array.isArray(r?.dailyCompletedDates) ? r!.dailyCompletedDates.length : 0);
       return { merged: { stats: merged }, shouldPushToCloud: localHadExtra };
+    }
+
+    case "goingdeep": {
+      const progressKey = `goingdeep_progress_v1_${userPrefix}`;
+      const statsKey = `goingdeep_stats_v1_${userPrefix}`;
+      const lProg = readJsonLocal<Record<string, any>>(progressKey);
+      const lStats = readJsonLocal<Record<string, any>>(statsKey);
+      const rProg = isPlainObject(cloudPayload?.progress)
+        ? (cloudPayload!.progress as Record<string, any>)
+        : null;
+      const rStats = isPlainObject(cloudPayload?.stats)
+        ? (cloudPayload!.stats as Record<string, any>)
+        : null;
+      if (!lProg && !lStats && !rProg && !rStats) {
+        return { merged: null, shouldPushToCloud: false };
+      }
+      const mergedPayload = mergeCloudBucketPayloads(
+        "goingdeep",
+        { progress: rProg || {}, stats: rStats || {} },
+        { progress: lProg || {}, stats: lStats || {} },
+      );
+      if (isPlainObject(mergedPayload.progress)) {
+        writeJsonLocal(progressKey, mergedPayload.progress);
+      }
+      if (isPlainObject(mergedPayload.stats)) {
+        writeJsonLocal(statsKey, mergedPayload.stats);
+      }
+      const localHadExtra =
+        !cloudPayload ||
+        Number(lStats?.played || 0) > Number(rStats?.played || 0) ||
+        Object.keys(lProg || {}).length > Object.keys(rProg || {}).length;
+      return { merged: mergedPayload, shouldPushToCloud: localHadExtra };
     }
 
     default:

@@ -663,6 +663,28 @@ export const SEO_ROUTES: Record<string, RouteSeoMeta> = {
       { name: "Word Hunt", path: "/solo-games/wordhunt" },
     ],
   },
+  "/solo-games/goingdeep": {
+    canonicalPath: "/solo-games/goingdeep",
+    title: "Going Deep — Free 4-in-1 Layered Daily Word Puzzle",
+    description:
+      "Unlock hidden board words via LetterLock, Anagram, Mini Crossword, and Word Search mini-games to solve four thematic layers in Going Deep across Standard, Hard, and Expert modes.",
+    keywords:
+      "going deep puzzle, layered connections game, 4-in-1 daily word game, letterlock anagram crossword wordsearch, free browser word puzzle",
+    ogImagePath: DEFAULT_OG_IMAGE_PATH,
+    ogImageAlt: "Going Deep 4-in-1 layered daily word puzzle game",
+    robots: DEFAULT_ROBOTS,
+    heading: "Going Deep — 4-in-1 Layered Word Puzzle",
+    summary:
+      "Solve LetterLock, Anagram, Mini Crossword, and Word Search key puzzles to uncover hidden tiles and sort a 16-word board into four thematic layers.",
+    gameGenre: "Word & Puzzle Game",
+    isSolo: true,
+    inLanguages: ["en"],
+    breadcrumbs: [
+      { name: "Home", path: "/" },
+      { name: "Solo Word Games", path: "/solo-games" },
+      { name: "Going Deep", path: "/solo-games/goingdeep" },
+    ],
+  },
 };
 
 const ALIAS_TO_CANONICAL: Record<string, string> = {
@@ -818,6 +840,7 @@ export function buildStructuredData(meta: RouteSeoMeta, origin = SITE_ORIGIN): R
           { "@type": "ListItem", position: 10, name: "MP Difference", url: `${origin}/solo-games/mpdifference` },
           { "@type": "ListItem", position: 11, name: "TEKSCOdle", url: `${origin}/solo-games/tekscodle` },
           { "@type": "ListItem", position: 12, name: "Word Hunt", url: `${origin}/solo-games/wordhunt` },
+          { "@type": "ListItem", position: 13, name: "Going Deep", url: `${origin}/solo-games/goingdeep` },
         ],
       },
     });

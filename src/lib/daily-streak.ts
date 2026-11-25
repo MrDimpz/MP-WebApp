@@ -21,6 +21,7 @@ export type DailyStreakGameId =
   | 'crowdle'
   | 'tekscodle'
   | 'wordhunt'
+  | 'goingdeep'
   | 'inkstream'
   | 'mpwh'
   | 'wbr'

@@ -31,6 +31,7 @@ const ALLOWED_LEADERBOARD_GAMES = new Set([
   "mpcolossal",
   "tekscodle",
   "wordhunt",
+  "goingdeep",
 ]);
 const ALLOWED_PROGRESS_BUCKETS = new Set([
   "daily_streaks",
@@ -46,6 +47,7 @@ const ALLOWED_PROGRESS_BUCKETS = new Set([
   "mpcolossal",
   "tekscodle",
   "wordhunt",
+  "goingdeep",
 ]);
 
 function isValidId(val: unknown, maxLen = 128): val is string {
