@@ -100,22 +100,22 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b border-purple-200/80 dark:border-purple-900/60 bg-white/90 dark:bg-[#1a0624]/90 backdrop-blur-md sticky top-0 z-40 transition-colors">
+    <header className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 sm:gap-3 px-3 sm:px-6 py-2 sm:py-3 border-b border-purple-200/80 dark:border-purple-900/60 bg-white/90 dark:bg-[#1a0624]/90 backdrop-blur-md sticky top-0 z-40 transition-colors">
       {/* Zone 1: Brand Wordmark with 3D Logo */}
       <button
         onClick={() => setCurrentView('TITLE')}
-        className="flex items-center gap-3 text-left group shrink-0 focus:outline-none cursor-pointer"
+        className="flex items-center gap-2 sm:gap-3 text-left group shrink-0 focus:outline-none cursor-pointer"
       >
         <img
           src="/assets/aistudio/3d_logo_944e5372.png"
           alt="DeStack Interactive - The Missing Piece Logo"
-          className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+          className="w-8 h-8 sm:w-11 sm:h-11 rounded-full object-contain drop-shadow-md group-hover:scale-105 transition-transform"
         />
         <div>
-          <span className="text-xl font-extrabold tracking-tight text-[#3b0d47] dark:text-white block leading-none">
+          <span className="text-base sm:text-xl font-extrabold tracking-tight text-[#3b0d47] dark:text-white block leading-none">
             De<span className="text-amber-500 dark:text-amber-400">Stack</span>
           </span>
-          <span className="text-[10px] uppercase font-bold text-[#581c6b] dark:text-amber-300/80 tracking-wider">
+          <span className="hidden sm:block text-[10px] uppercase font-bold text-[#581c6b] dark:text-amber-300/80 tracking-wider">
             Interactive LIVE
           </span>
         </div>
@@ -183,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({
       </nav>
 
       {/* Zone 3: Actions (Daily Streak, TikTok LIVE Overlay, Connect, Unified Account, Leaderboards, Archive, Sound, Theme, Play CTA) */}
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+      <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-2">
         <LanguageMenu variant="compact" />
         <DailyStreakBadge
           streak={dailyStreak.streak}

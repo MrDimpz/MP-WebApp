@@ -378,7 +378,7 @@ function TekscodleGameContent() {
 
   return (
     <div className="relative min-h-screen w-full flex flex-col bg-gradient-to-b from-[#FBF8F1] via-[#F4EFE4] to-[#EDE4D3] text-[#2B0938] dark:from-[#160524] dark:via-[#1E0633] dark:to-[#11031A] dark:text-[#F5F3F7] transition-colors overflow-x-hidden">
-      {/* 20% Opacity Missing Piece Background Watermark */}
+      {/* 25% Opacity Missing Piece Background Watermark */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
@@ -386,13 +386,13 @@ function TekscodleGameContent() {
         <img
           src="/brand-logo.png"
           alt=""
-          className="w-[340px] h-[340px] sm:w-[680px] sm:h-[680px] object-contain opacity-20 select-none"
+          className="w-[340px] h-[340px] sm:w-[680px] sm:h-[680px] object-contain opacity-25 select-none"
         />
       </div>
 
       {/* UNIFIED MISSING PIECE TOP NAVIGATION HEADER */}
       <header className="sticky top-0 z-40 border-b border-purple-200/80 dark:border-purple-900/60 bg-white/90 dark:bg-[#1a0624]/90 backdrop-blur-md transition-colors">
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 min-h-14 sm:min-h-16 py-2 flex flex-wrap items-center justify-between gap-2 sm:gap-4">
           {/* Zone 1: Back to Solo Games & Brand Wordmark */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <Link
@@ -484,7 +484,7 @@ function TekscodleGameContent() {
           </nav>
 
           {/* Zone 3: Streaks, Unified Account, Leaderboards, Audio & Theme */}
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-2">
             <DailyStreakBadge
               streak={dailyStreak.streak}
               solvedToday={dailyStreak.solvedToday}

@@ -610,10 +610,22 @@ export default function WordHuntSoloApp() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F7F2FC] dark:bg-[#160524] text-[#2B0938] dark:text-[#F5F0FF] flex flex-col transition-colors">
+    <div className="relative min-h-screen bg-[#F7F2FC] dark:bg-[#160524] text-[#2B0938] dark:text-[#F5F0FF] flex flex-col transition-colors overflow-x-hidden">
+      {/* 25% Opacity Missing Piece Background Watermark */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
+      >
+        <img
+          src="/assets/aistudio/3d_logo_944e5372.png"
+          alt=""
+          className="w-[340px] h-[340px] sm:w-[640px] sm:h-[640px] object-contain opacity-25 select-none"
+        />
+      </div>
+
       {/* Clean 3-Zone Top Bar */}
       <header className="sticky top-0 z-30 border-b border-[#E3D4F4] dark:border-[#D4A437]/25 bg-white/95 dark:bg-[#160524]/95 backdrop-blur-md">
-        <div className="mx-auto max-w-6xl px-3 sm:px-5 h-16 flex items-center justify-between gap-4 sm:gap-8">
+        <div className="mx-auto max-w-6xl px-3 sm:px-5 min-h-14 sm:min-h-16 py-2 flex flex-wrap items-center justify-between gap-2 sm:gap-8">
           {/* Zone 1: Back link + Wordmark */}
           <div className="flex items-center gap-3 min-w-0 shrink-0">
             <Link
@@ -663,7 +675,7 @@ export default function WordHuntSoloApp() {
           </nav>
 
           {/* Zone 3: Language, Streak, Theme, Audio & Account */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
             <LanguageMenu variant="compact" />
             <DailyStreakBadge
               streak={dailyStreak.streak}
@@ -742,7 +754,7 @@ export default function WordHuntSoloApp() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 mx-auto w-full max-w-6xl px-3 sm:px-5 py-5 sm:py-6">
+      <main className="relative z-10 flex-1 mx-auto w-full max-w-6xl px-2.5 sm:px-5 py-3.5 sm:py-6">
         {activeTab === 'rules' ? (
           <section className="mx-auto max-w-3xl rounded-2xl border border-[#D7C4EC] dark:border-[#D4A437]/30 bg-white/95 dark:bg-[#210736]/95 p-6 sm:p-8 space-y-6 shadow-sm">
             <div className="space-y-1.5">

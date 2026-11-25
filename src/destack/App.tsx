@@ -210,7 +210,7 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen bg-[#faf7fc] dark:bg-[#15041c] text-[#2d0938] dark:text-purple-50 flex flex-col font-sans transition-colors overflow-x-hidden">
-      {/* Tiled Icon across background with 20% opacity */}
+      {/* Tiled Icon across background with 25% opacity */}
       <div
         aria-hidden="true"
         style={{
@@ -218,7 +218,7 @@ export default function App() {
           backgroundRepeat: 'repeat',
           backgroundSize: '88px 88px',
         }}
-        className="fixed inset-0 opacity-20 pointer-events-none z-0"
+        className="fixed inset-0 opacity-25 pointer-events-none z-0"
       />
 
       <Header

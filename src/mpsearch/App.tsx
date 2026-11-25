@@ -569,7 +569,7 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen w-full flex flex-col bg-gradient-to-b from-[#FBF8F1] via-[#F4EFE4] to-[#EDE4D3] text-[#2B0938] dark:from-[#160524] dark:via-[#1E0633] dark:to-[#11031A] dark:text-[#F5F3F7] transition-colors overflow-x-hidden">
-      {/* 20% Opacity Missing Piece Background Watermark */}
+      {/* 25% Opacity Missing Piece Background Watermark */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
@@ -577,19 +577,19 @@ export default function App() {
         <img
           src="/brand-logo.png"
           alt=""
-          className="w-[520px] h-[520px] sm:w-[680px] sm:h-[680px] object-contain opacity-20 select-none"
+          className="w-[340px] h-[340px] sm:w-[680px] sm:h-[680px] object-contain opacity-25 select-none"
         />
       </div>
 
       {/* =====================================================================
           UNIFIED MISSING PIECE TOP NAVIGATION HEADER
       ===================================================================== */}
-      <header className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b border-purple-200/80 dark:border-purple-900/60 bg-white/90 dark:bg-[#1a0624]/90 backdrop-blur-md sticky top-0 z-40 transition-colors">
+      <header className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 sm:gap-3 px-3 sm:px-6 py-2 sm:py-3 border-b border-purple-200/80 dark:border-purple-900/60 bg-white/90 dark:bg-[#1a0624]/90 backdrop-blur-md sticky top-0 z-40 transition-colors">
         {/* Zone 1: Back to Solo Games & Brand Wordmark */}
-        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Link
             to="/solo-games"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-[#4a1259] dark:text-amber-300 bg-purple-100/80 dark:bg-purple-900/50 hover:bg-purple-200/80 dark:hover:bg-purple-800/60 border border-purple-200/80 dark:border-purple-700/60 transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold text-[#4a1259] dark:text-amber-300 bg-purple-100/80 dark:bg-purple-900/50 hover:bg-purple-200/80 dark:hover:bg-purple-800/60 border border-purple-200/80 dark:border-purple-700/60 transition-colors whitespace-nowrap"
             title="Back to Solo Games"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -599,18 +599,18 @@ export default function App() {
           <button
             type="button"
             onClick={() => setGameState('TITLE_MENU')}
-            className="flex items-center gap-2.5 text-left group shrink-0 focus:outline-none cursor-pointer"
+            className="flex items-center gap-2 sm:gap-2.5 text-left group shrink-0 focus:outline-none cursor-pointer"
           >
             <img
               src="/assets/aistudio/3d_logo_944e5372.png"
               alt="MP Search - The Missing Piece Logo"
-              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+              className="w-8 h-8 sm:w-11 sm:h-11 rounded-full object-contain drop-shadow-md group-hover:scale-105 transition-transform"
             />
             <div>
-              <span className="text-lg sm:text-xl font-extrabold tracking-tight text-[#3b0d47] dark:text-white block leading-none">
+              <span className="text-base sm:text-xl font-extrabold tracking-tight text-[#3b0d47] dark:text-white block leading-none">
                 MP <span className="text-amber-500 dark:text-amber-400">Search</span>
               </span>
-              <span className="text-[10px] uppercase font-bold text-[#581c6b] dark:text-amber-300/80 tracking-wider">
+              <span className="hidden sm:block text-[10px] uppercase font-bold text-[#581c6b] dark:text-amber-300/80 tracking-wider">
                 The Missing Piece
               </span>
             </div>
@@ -679,7 +679,7 @@ export default function App() {
         )}
 
         {/* Zone 3: Right Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-2">
           <LanguageMenu variant="compact" />
           <DailyStreakBadge
             streak={dailyStreak.streak}
@@ -732,10 +732,10 @@ export default function App() {
               type="button"
               onClick={openSignInModal}
               title="Sign in with Google or Email & Password"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2d0938] dark:bg-purple-900/70 hover:bg-[#3b0d47] text-amber-300 border border-amber-400/40 text-xs font-bold transition-colors cursor-pointer shadow-xs whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#2d0938] dark:bg-purple-900/70 hover:bg-[#3b0d47] text-amber-300 border border-amber-400/40 text-xs font-bold transition-colors cursor-pointer shadow-xs whitespace-nowrap"
             >
               <LogIn className="w-3.5 h-3.5 shrink-0" />
-              <span>Sign In</span>
+              <span className="hidden sm:inline">Sign In</span>
             </button>
           )}
 

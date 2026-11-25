@@ -995,7 +995,7 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen bg-[#faf7fc] dark:bg-[#15041c] text-[#2d0938] dark:text-purple-50 flex flex-col font-sans transition-colors overflow-x-hidden">
-      {/* Tiled Missing Piece 3D Emblem Backdrop (20% opacity matching DeStack) */}
+      {/* Tiled Missing Piece 3D Emblem Backdrop (25% opacity) */}
       <div
         aria-hidden="true"
         style={{
@@ -1003,7 +1003,7 @@ export default function App() {
           backgroundRepeat: 'repeat',
           backgroundSize: '88px 88px',
         }}
-        className="fixed inset-0 opacity-20 pointer-events-none z-0"
+        className="fixed inset-0 opacity-25 pointer-events-none z-0"
       />
 
       <Header
@@ -1049,7 +1049,7 @@ export default function App() {
         )}
 
         {currentView === 'PLAYING' && (
-          <div className="max-w-5xl mx-auto w-full px-4 py-5 sm:py-7 flex flex-col items-center">
+          <div className="max-w-5xl mx-auto w-full px-2.5 sm:px-4 py-3 sm:py-7 flex flex-col items-center">
             {/* London Midnight New Puzzle Alert */}
             {newDayNotice && (
               <div className="w-full max-w-4xl mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-amber-400/20 border border-amber-400/60 text-xs sm:text-sm text-[#3b0d47] dark:text-amber-200 font-bold">

@@ -921,7 +921,18 @@ export default function MPColossalApp() {
   }
 
   return (
-    <div className="w-screen h-[100dvh] overflow-hidden flex flex-col bg-[#FBF8F1] dark:bg-[#11031A] text-[#2B0938] dark:text-[#F5F3F7] select-none transition-colors">
+    <div className="relative w-full h-[100dvh] overflow-hidden flex flex-col bg-[#FBF8F1] dark:bg-[#11031A] text-[#2B0938] dark:text-[#F5F3F7] select-none transition-colors">
+      {/* 25% Opacity Missing Piece Background Watermark */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
+      >
+        <img
+          src="/assets/aistudio/3d_logo_944e5372.png"
+          alt=""
+          className="w-[340px] h-[340px] sm:w-[640px] sm:h-[640px] object-contain opacity-25 select-none"
+        />
+      </div>
       {/* Hidden touch-friendly input so mobile OS soft keyboards can type into the grid */}
       <input
         ref={mobileInputRef}
@@ -948,9 +959,9 @@ export default function MPColossalApp() {
       <header
         className={`${
           streamLayout
-            ? 'h-10 px-2 gap-1.5'
-            : 'h-12 sm:h-14 px-2 sm:px-4 gap-1.5 sm:gap-3'
-        } bg-white/95 dark:bg-[#1a0624]/95 border-b border-purple-200 dark:border-purple-900/60 flex items-center justify-between shrink-0 z-30 backdrop-blur-md`}
+            ? 'min-h-10 py-1 px-2 gap-1.5'
+            : 'min-h-12 sm:min-h-14 py-1.5 px-2 sm:px-4 gap-1.5 sm:gap-3'
+        } bg-white/95 dark:bg-[#1a0624]/95 border-b border-purple-200 dark:border-purple-900/60 flex flex-wrap items-center justify-between shrink-0 z-30 backdrop-blur-md`}
       >
         {/* Left: Solo Games Back + 3D Logo + Title */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">

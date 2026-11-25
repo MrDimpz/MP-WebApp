@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-[#FFFFFF]/95 dark:bg-[#1B052D]/95 backdrop-blur-md border-b border-[#D9C7EE] dark:border-[#D4A437]/30 shadow-xs">
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 min-h-16 py-2 flex flex-wrap items-center justify-between gap-3">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 min-h-14 sm:min-h-16 py-2 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         {/* Zone 1: Back link + Missing Piece Brand Wordmark */}
         <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
           <Link
@@ -98,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Zone 2: Navigation & Site Controls */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
           <nav
             aria-label="Primary"
             className="flex items-center gap-1 p-1 rounded-xl bg-[#EFE5FA] dark:bg-[#25083B] border border-[#DAC6F0] dark:border-[#D4A437]/25"

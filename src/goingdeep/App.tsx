@@ -14,6 +14,7 @@ import { HowToPlayModal } from './components/HowToPlayModal';
 import { StatsModal } from './components/StatsModal';
 import { ResultsModal } from './components/ResultsModal';
 import {
+  ARCHIVE_DAYS_COUNT,
   DIFFICULTIES,
   DIFFICULTY_ORDER,
   formatCountdown,
@@ -55,7 +56,7 @@ import { CLOUD_HYDRATED_EVENT } from '@/lib/cloud-progress';
 import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 
-const ARCHIVE_DAY_COUNT = 14;
+const ARCHIVE_DAY_COUNT = ARCHIVE_DAYS_COUNT;
 
 export default function GoingDeepApp() {
   const { user } = useUnifiedAuth();
@@ -118,7 +119,7 @@ export default function GoingDeepApp() {
   const isInitialMountRef = useRef(true);
 
   const recentDateKeys = useMemo(
-    () => getRecentDateKeys(ARCHIVE_DAY_COUNT),
+    () => getRecentDateKeys(ARCHIVE_DAY_COUNT, todayDateKey),
     [todayDateKey]
   );
 
@@ -660,7 +661,19 @@ export default function GoingDeepApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F2FC] dark:bg-[#140321] text-[#2B0938] dark:text-[#FAF7FF] transition-colors duration-200 relative z-10">
+    <div className="min-h-screen flex flex-col bg-[#F7F2FC] dark:bg-[#140321] text-[#2B0938] dark:text-[#FAF7FF] transition-colors duration-200 relative z-10 overflow-x-hidden">
+      {/* 25% Opacity Missing Piece Background Watermark */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
+      >
+        <img
+          src="/assets/aistudio/3d_logo_944e5372.png"
+          alt=""
+          className="w-[340px] h-[340px] sm:w-[640px] sm:h-[640px] object-contain opacity-25 select-none"
+        />
+      </div>
+
       <Header
         activeTab={activeTab}
         darkMode={darkMode}
@@ -679,7 +692,7 @@ export default function GoingDeepApp() {
         onToggleSound={() => setSoundEnabled((prev) => !prev)}
       />
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-7 sm:py-10">
+      <main className="relative z-10 flex-1 w-full max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-10">
         {activeTab === 'archive' ? (
           <ArchiveView
             dateKeys={recentDateKeys}
@@ -689,6 +702,7 @@ export default function GoingDeepApp() {
             progressMap={progressMap}
             onSelectDifficulty={handleSelectDifficulty}
             onSelectDaily={handleSelectDaily}
+            onBackToPlay={() => setActiveTab('play')}
           />
         ) : activeMiniGameInstance?.type === 'letterlock' &&
           activeMiniGameInstance.letterlock ? (
@@ -861,7 +875,7 @@ export default function GoingDeepApp() {
               onClick={() => setActiveTab('archive')}
               className="hover:text-[#2B0938] dark:hover:text-[#F6C915] transition-colors cursor-pointer"
             >
-              Daily Archive ({ARCHIVE_DAY_COUNT} days)
+              6-Month Archive ({ARCHIVE_DAY_COUNT} days)
             </button>
             <button
               type="button"

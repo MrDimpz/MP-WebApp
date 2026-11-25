@@ -454,9 +454,23 @@ export default function App() {
         />
       )}
 
+      {/* 25% Opacity Missing Piece Background Watermark (hidden in transparent overlay) */}
+      {!isTransparentOverlay && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center z-0 overflow-hidden"
+        >
+          <img
+            src="/assets/aistudio/3d_logo_944e5372.png"
+            alt=""
+            className="w-[340px] h-[340px] sm:w-[600px] sm:h-[600px] object-contain opacity-25 select-none"
+          />
+        </div>
+      )}
+
       {/* Host Studio Top Navigation Bar (Hidden in LIVE Studio Overlay Mode) */}
       {!isOverlay && (
-        <header className="relative z-40 shrink-0 w-full bg-white/95 dark:bg-[#160524]/95 backdrop-blur-md border-b border-[#E3D4F4] dark:border-[#F6C915]/20 px-3 py-1.5 flex items-center justify-between gap-2">
+        <header className="relative z-40 shrink-0 w-full bg-white/95 dark:bg-[#160524]/95 backdrop-blur-md border-b border-[#E3D4F4] dark:border-[#F6C915]/20 px-2.5 sm:px-3 py-1.5 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Link
               to="/interactive-games"
@@ -484,7 +498,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}

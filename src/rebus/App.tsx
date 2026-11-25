@@ -669,12 +669,24 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-canvas)] text-stone-900 dark:text-stone-100 selection:bg-amber-400/30 transition-colors duration-200 overflow-x-hidden">
+    <div className="relative min-h-screen flex flex-col bg-[var(--bg-canvas)] text-stone-900 dark:text-stone-100 selection:bg-amber-400/30 transition-colors duration-200 overflow-x-hidden">
+      {/* 25% Opacity Missing Piece Background Watermark */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
+      >
+        <img
+          src="/assets/aistudio/3d_logo_944e5372.png"
+          alt=""
+          className="w-[340px] h-[340px] sm:w-[640px] sm:h-[640px] object-contain opacity-25 select-none"
+        />
+      </div>
+
       {/* Top Editorial Navigation Bar */}
       <header className="sticky top-0 z-30 bg-[var(--bg-canvas)]/95 backdrop-blur-md border-b border-[var(--border-card)] transition-colors duration-200">
         <div className="max-w-6xl mx-auto px-3 sm:px-6">
           {/* Primary Row: Brand + Theme Controls + Sprint */}
-          <div className="h-14 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-4">
+          <div className="min-h-14 sm:min-h-16 py-1.5 flex flex-wrap items-center justify-between gap-1.5 sm:gap-4">
             {/* Zone 1: Back Button + Brand Wordmark & Logo linking back to Home Screen (/) */}
             <div className="flex items-center gap-2 min-w-0 shrink">
               <Link
@@ -757,7 +769,7 @@ export default function App() {
             </nav>
 
             {/* Zone 3: Daily Streak + Logo Theme Toggle + Dark Mode Selection Slider + Sprint CTA */}
-            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2.5">
               <DailyStreakBadge
                 streak={dailyStreak.streak}
                 solvedToday={dailyStreak.solvedToday}

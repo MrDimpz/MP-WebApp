@@ -942,10 +942,22 @@ function InkStreamApp() {
       : null;
 
   return (
-    <div className="inkstream-root min-h-screen studio-desk-bg flex flex-col">
+    <div className="inkstream-root relative min-h-screen studio-desk-bg flex flex-col overflow-x-hidden">
+      {/* 25% Opacity Missing Piece Background Watermark */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
+      >
+        <img
+          src="/assets/aistudio/3d_logo_944e5372.png"
+          alt=""
+          className="w-[340px] h-[340px] sm:w-[640px] sm:h-[640px] object-contain opacity-25 select-none"
+        />
+      </div>
+
       {/* Compact Game HUD Header */}
-      <header className="bg-white border-b border-slate-200 px-4 py-2.5 sticky top-0 z-30">
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-3">
+      <header className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2 sm:py-2.5 sticky top-0 z-30">
+        <div className="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-2 sm:gap-3">
           {/* Left: Back + Brand + Room Code + Round */}
           <div className="flex items-center gap-3 min-w-0">
             <Link
@@ -1048,7 +1060,7 @@ function InkStreamApp() {
           </div>
 
           {/* Right: Utility Controls (LIVE Overlay, Streamer Word Popup, TikTok LIVE, Sound, Gallery, Analytics, Leave) */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
             <LanguageMenu variant="compact" />
             <LiveOverlayButton
               gameTitle="InkStream"
@@ -1144,9 +1156,9 @@ function InkStreamApp() {
       </header>
 
       {/* Main 3-Column InkStream Arena */}
-      <main className="flex-1 max-w-[1440px] w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      <main className="relative z-10 flex-1 max-w-[1440px] w-full mx-auto p-2.5 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
         {/* Left Column: Room Scoreboard + Separate TikTok Chat Scoreboard */}
-        <div className="lg:col-span-3 lg:h-[calc(100vh-88px)] lg:sticky lg:top-[72px] flex flex-col gap-3">
+        <div className="order-2 lg:order-1 lg:col-span-3 lg:h-[calc(100vh-88px)] lg:sticky lg:top-[72px] flex flex-col gap-3">
           <div className="flex-1 min-h-[240px]">
             <Scoreboard
               players={room.players}
@@ -1167,7 +1179,7 @@ function InkStreamApp() {
         </div>
 
         {/* Center Column: Interactive Drawing Canvas / Lobby Settings / Match Complete Top 3 Podium */}
-        <div className="lg:col-span-6 min-w-0">
+        <div className="order-1 lg:order-2 lg:col-span-6 min-w-0">
           {room.phase === 'GAME_OVER' ? (
             <GameOverPodium
               room={room}
@@ -1209,7 +1221,7 @@ function InkStreamApp() {
         </div>
 
         {/* Right Column: Real-Time Guessing & Chat Feed */}
-        <div className="lg:col-span-3 lg:h-[calc(100vh-88px)] lg:sticky lg:top-[72px]">
+        <div className="order-3 lg:col-span-3 lg:h-[calc(100vh-88px)] lg:sticky lg:top-[72px]">
           <ChatPanel
             messages={room.messages}
             phase={room.phase}

@@ -1424,6 +1424,34 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
         isOverlay && overlayBg === 'transparent' ? 'wikirec-overlay-transparent' : ''
       }`}
     >
+      {/* 25% Opacity Missing Piece Background Watermark (hidden in LIVE Studio overlay) */}
+      {!isOverlay && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            zIndex: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <img
+            src="/assets/aistudio/3d_logo_944e5372.png"
+            alt=""
+            style={{
+              width: 'min(85vw, 620px)',
+              height: 'min(85vw, 620px)',
+              objectFit: 'contain',
+              opacity: 0.25,
+              userSelect: 'none',
+            }}
+          />
+        </div>
+      )}
       {logoutNotice && (
         <div
           style={{
@@ -1469,6 +1497,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
           width: '100%',
           maxWidth: '1220px',
           display: 'flex',
+          flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '2px 8px 4px',
@@ -1506,7 +1535,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
             <span>WiKirecTangled</span>
           </Link>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
           {!isSoloRoute && (
             <LiveOverlayButton
               gameTitle="WiKirecTangled"

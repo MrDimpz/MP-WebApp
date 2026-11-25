@@ -78,7 +78,10 @@
     transition: background-color 150ms ease, color 150ms ease;
     position: relative;
     min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: clip;
+    overscroll-behavior-y: contain;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   /* Tiled Logo Background Pattern at 25% opacity */
   body::before {
@@ -118,9 +121,16 @@
     background: linear-gradient(180deg, #160524 0%, #1E0633 50%, #11031A 100%);
     color: #F5F3F7;
   }
-  button, a { -webkit-tap-highlight-color: transparent; }
+  button, a, [role="button"] { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   button { font: inherit; cursor: pointer; }
   a { text-decoration: none; color: inherit; }
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.sr-only),
+    textarea,
+    select {
+      font-size: max(16px, 1em);
+    }
+  }
   .mp-site button, .mp-site a { transition: transform 180ms ease-out, background-color 180ms ease-out, color 180ms ease-out; }
   .mp-site button:active, .mp-site .button:active { transform: translateY(2px); }
   .mp-site a:focus-visible, .mp-site button:focus-visible, .mp-site input:focus-visible { outline: 3px solid var(--ink); outline-offset: 5px; }

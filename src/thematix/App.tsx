@@ -1133,12 +1133,23 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col transition-colors duration-300 font-sans ${
+      className={`relative min-h-screen flex flex-col transition-colors duration-300 font-sans overflow-x-hidden ${
         isGuessMode
           ? 'bg-[#f4eefc] dark:bg-[#230638]'
           : 'bg-[#ece3fa] dark:bg-[#1b032e]'
       }`}
     >
+      {/* 25% Opacity Missing Piece Background Watermark */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
+      >
+        <img
+          src="/assets/aistudio/3d_logo_944e5372.png"
+          alt=""
+          className="w-[340px] h-[340px] sm:w-[640px] sm:h-[640px] object-contain opacity-25 select-none"
+        />
+      </div>
       {/* Hidden input to trigger native pop-up keyboard on mobile & tablet devices */}
       <input
         ref={mobileInputRef}
@@ -1182,7 +1193,7 @@ export default function App() {
       />
 
       {/* Main Play Area - Centered on screen */}
-      <main className="flex-1 w-full flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <main className="relative z-10 flex-1 w-full flex items-center justify-center p-2.5 sm:p-6 overflow-y-auto">
         <div
           ref={contentRef}
           className="flex flex-col md:flex-row items-center md:items-start justify-center gap-6 md:gap-8 lg:gap-12 my-auto"

@@ -86,8 +86,8 @@ export function saveAllProgress(
 ): void {
   if (typeof window === 'undefined') return;
   try {
-    // Cap stored daily progress entries to the 45 most recent keys to keep storage lean
-    const keys = Object.keys(map).sort().reverse().slice(0, 45);
+    // Cap stored daily progress entries to cover the full 6-month archive across all 3 difficulties
+    const keys = Object.keys(map).sort().reverse().slice(0, 560);
     const trimmed: Record<string, PuzzleProgress> = {};
     for (const k of keys) {
       trimmed[k] = map[k];

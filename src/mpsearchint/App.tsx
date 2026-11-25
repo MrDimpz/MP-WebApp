@@ -1183,7 +1183,7 @@ export default function MPSearchInteractiveApp() {
   return (
     <div className={darkMode ? 'dark' : ''}>
       <div className="relative min-h-screen flex flex-col bg-[#F7F1E5] dark:bg-[#140421] text-[#2B0938] dark:text-[#F8F3FF] transition-colors duration-200 overflow-x-hidden">
-        {/* Global 20% Opacity Missing Piece Logo Background Watermark */}
+        {/* Global 25% Opacity Missing Piece Logo Background Watermark */}
         <div
           aria-hidden="true"
           className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
@@ -1191,13 +1191,13 @@ export default function MPSearchInteractiveApp() {
           <img
             src="/brand-logo.png"
             alt=""
-            className="w-[500px] h-[500px] object-contain opacity-20 select-none"
+            className="w-[340px] h-[340px] sm:w-[640px] sm:h-[640px] object-contain opacity-25 select-none"
           />
         </div>
 
         {/* Top Navigation Header */}
         <header className="sticky top-0 z-30 w-full bg-[#240736] dark:bg-[#180428] text-white border-b border-purple-800/80 shadow-md">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 min-h-14 sm:min-h-16 py-2 flex flex-wrap items-center justify-between gap-2">
             {/* Left: Back to Interactive Games + Brand Identity */}
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <Link
@@ -1233,23 +1233,24 @@ export default function MPSearchInteractiveApp() {
                 </div>
               </button>
 
-              {/* TikTok Live Status Pill (Moved 20px right for breathing room) */}
+              {/* TikTok Live Status Pill (Moved 20px right on desktop for breathing room) */}
               <button
                 type="button"
                 onClick={() => setShowConnectModal(true)}
-                className={`ml-[20px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer shrink-0 ${
+                className={`ml-0 sm:ml-[20px] inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer shrink-0 ${
                   isConnected
                     ? 'bg-emerald-500/20 border-emerald-400/60 text-emerald-300'
                     : 'bg-purple-900/70 hover:bg-purple-800 border-amber-400/40 text-amber-200'
                 }`}
               >
                 <Radio className={`w-3.5 h-3.5 ${isConnected ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
-                <span>{isConnected ? `@${tiktokUsername}` : 'Connect TikTok LIVE'}</span>
+                <span className="hidden sm:inline">{isConnected ? `@${tiktokUsername}` : 'Connect TikTok LIVE'}</span>
+                <span className="sm:hidden">{isConnected ? 'LIVE' : 'TikTok'}</span>
               </button>
             </div>
 
             {/* Right: Language Menu, Overlay URL Button, Random Round, Archive, Streak, Theme & Auth */}
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
               <LanguageMenu variant="compact" />
               <LiveOverlayButton
                 gameTitle="MP Search Interactive"

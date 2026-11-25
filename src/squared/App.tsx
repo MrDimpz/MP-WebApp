@@ -614,7 +614,18 @@ export default function App() {
   const foundFeatured = foundWords.has(basePuzzle.featuredWord);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden border-[5px] border-[#D4A437] bg-[radial-gradient(circle_at_50%_15%,#44106B_0%,#210536_58%,#11021D_100%)] text-[#F5F3F7] font-sans flex flex-col select-none">
+    <div className="relative w-full min-h-[100dvh] lg:h-[100dvh] lg:overflow-hidden overflow-x-hidden border-[4px] sm:border-[5px] border-[#D4A437] bg-[radial-gradient(circle_at_50%_15%,#44106B_0%,#210536_58%,#11021D_100%)] text-[#F5F3F7] font-sans flex flex-col select-none">
+      {/* 25% Opacity Missing Piece Background Watermark */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
+      >
+        <img
+          src="/assets/aistudio/3d_logo_944e5372.png"
+          alt=""
+          className="w-[340px] h-[340px] sm:w-[640px] sm:h-[640px] object-contain opacity-25 select-none"
+        />
+      </div>
       {/* Title Screen Overlay */}
       {gameState === 'TITLE_MENU' && (
         <TitleScreen
@@ -663,8 +674,8 @@ export default function App() {
       />
 
       {/* Perimeter Game HUD Header */}
-      <header className="shrink-0 flex flex-col px-3 sm:px-6 py-2 bg-[#170428]/90 border-b border-[#E6BE5A]/20">
-        <div className="flex items-center justify-between gap-2 sm:gap-3">
+      <header className="relative z-20 shrink-0 flex flex-col px-2.5 sm:px-6 py-2 bg-[#170428]/90 border-b border-[#E6BE5A]/20">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
           {/* Left: Back Button + Emblem (Links back to Home Screen /) + Title + Calendar Date Dropdown */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
@@ -733,7 +744,7 @@ export default function App() {
           </div>
 
           {/* Right: Language, Daily Streak, Mode Switcher, LoggedInIndicator, High Scores/Auth, Board Dark Mode Toggle, Audio Mute & Menu */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-1.5">
             <LanguageMenu variant="compact" />
             <DailyStreakBadge
               streak={dailyStreak.streak}
@@ -857,7 +868,7 @@ export default function App() {
       </header>
 
       {/* Mobile Segmented Switcher (Board vs Lexicon) */}
-      <div className="flex lg:hidden items-center justify-between px-4 py-2 bg-[#1D0631] border-b border-white/10 shrink-0">
+      <div className="relative z-10 flex lg:hidden flex-wrap items-center justify-between gap-2 px-3 py-2 bg-[#1D0631] border-b border-white/10 shrink-0">
         <div className="flex items-center gap-1 p-1 bg-black/30 rounded-lg border border-white/10">
           <button
             type="button"
@@ -911,7 +922,7 @@ export default function App() {
       </div>
 
       {/* Main Playfield Split Layout */}
-      <main className="flex-1 min-h-0 max-w-6xl w-full mx-auto px-4 sm:px-6 py-3 sm:py-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      <main className="relative z-10 flex-1 min-h-0 max-w-6xl w-full mx-auto px-3 sm:px-6 py-2.5 sm:py-5 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
         {/* Left/Center Column: Active Word Readout + Tactile Grid + Action Bar */}
         <section
           className={`lg:col-span-6 xl:col-span-6 flex flex-col items-center justify-between min-h-0 ${

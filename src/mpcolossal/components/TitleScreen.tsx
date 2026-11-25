@@ -79,7 +79,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-gradient-to-b from-[#FBF8F1] via-[#F4EFE4] to-[#EDE4D3] text-[#2B0938] dark:from-[#160524] dark:via-[#1E0633] dark:to-[#11031A] dark:text-[#F5F3F7] flex flex-col">
-      {/* 20% Opacity Missing Piece Background Watermark */}
+      {/* 25% Opacity Missing Piece Background Watermark */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
@@ -87,12 +87,12 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         <img
           src="/brand-logo.png"
           alt=""
-          className="w-[340px] h-[340px] sm:w-[680px] sm:h-[680px] object-contain opacity-20 select-none"
+          className="w-[340px] h-[340px] sm:w-[680px] sm:h-[680px] object-contain opacity-25 select-none"
         />
       </div>
 
       {/* Unified Missing Piece Top Navigation Header */}
-      <header className="relative z-30 flex items-center justify-between gap-2 px-3 sm:px-6 py-2.5 sm:py-3 border-b border-purple-200/80 dark:border-purple-900/60 bg-white/90 dark:bg-[#1a0624]/90 backdrop-blur-md sticky top-0">
+      <header className="relative z-30 flex flex-wrap items-center justify-between gap-2 px-3 sm:px-6 py-2.5 sm:py-3 border-b border-purple-200/80 dark:border-purple-900/60 bg-white/90 dark:bg-[#1a0624]/90 backdrop-blur-md sticky top-0">
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Link
             to="/solo-games"
@@ -120,7 +120,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
           <DailyStreakBadge
             streak={streak}
             solvedToday={solvedToday}

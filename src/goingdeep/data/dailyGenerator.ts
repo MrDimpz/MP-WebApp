@@ -146,7 +146,9 @@ export const DIFFICULTIES: Record<DifficultyLevel, DifficultyConfig> = {
 
 // ==================== DATE HELPERS ====================
 
-const EPOCH_DATE_UTC = Date.UTC(2026, 7, 14); // 2026-08-14 -> 2026-11-25 is #104
+export const ARCHIVE_DAYS_COUNT = 183;
+
+const EPOCH_DATE_UTC = Date.UTC(2025, 0, 1);
 
 export function formatDateKey(date: Date): string {
   const y = date.getFullYear();
@@ -162,6 +164,35 @@ export function getTodayDateKey(): string {
 export function parseDateKeyUTC(dateKey: string): number {
   const [y, m, d] = dateKey.split('-').map(Number);
   return Date.UTC(y, m - 1, d);
+}
+
+export function shiftDateKey(baseDateKey: string, deltaDays: number): string {
+  const [y, m, d] = baseDateKey.split('-').map(Number);
+  const utc = Date.UTC(y, m - 1, d + deltaDays, 12, 0, 0);
+  const dt = new Date(utc);
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
+export function getArchiveBounds(todayDateKey: string = getTodayDateKey()): {
+  minDateKey: string;
+  maxDateKey: string;
+} {
+  return {
+    minDateKey: shiftDateKey(todayDateKey, -(ARCHIVE_DAYS_COUNT - 1)),
+    maxDateKey: todayDateKey,
+  };
+}
+
+export function isDateInArchive(
+  dateKey: string,
+  todayDateKey: string = getTodayDateKey()
+): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return false;
+  const { minDateKey, maxDateKey } = getArchiveBounds(todayDateKey);
+  return dateKey >= minDateKey && dateKey <= maxDateKey;
 }
 
 export function getDailyNumber(dateKey: string): number {
@@ -180,12 +211,13 @@ export function formatHumanDate(dateKey: string): string {
   });
 }
 
-export function getRecentDateKeys(count = 14): string[] {
-  const today = new Date();
+export function getRecentDateKeys(
+  count = ARCHIVE_DAYS_COUNT,
+  todayDateKey: string = getTodayDateKey()
+): string[] {
   const keys: string[] = [];
   for (let i = 0; i < count; i++) {
-    const dt = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
-    keys.push(formatDateKey(dt));
+    keys.push(shiftDateKey(todayDateKey, -i));
   }
   return keys;
 }

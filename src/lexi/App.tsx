@@ -431,15 +431,29 @@ export default function App() {
 
   return (
     <div
-      className={`lexi-root min-h-screen flex flex-col transition-colors ${
+      className={`lexi-root relative min-h-screen flex flex-col transition-colors overflow-x-hidden ${
         isCleanObsCapture && route === 'overlay'
           ? 'lexi-overlay dark bg-transparent text-slate-100'
           : 'bg-slate-950 text-slate-100'
       }`}
     >
+      {/* 25% Opacity Missing Piece Background Watermark (hidden in clean OBS overlay capture) */}
+      {!isCleanObsCapture && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
+        >
+          <img
+            src="/assets/aistudio/3d_logo_944e5372.png"
+            alt=""
+            className="w-[340px] h-[340px] sm:w-[640px] sm:h-[640px] object-contain opacity-25 select-none"
+          />
+        </div>
+      )}
+
       {/* Strict 3-Zone Top Bar Contract (hidden in clean OBS capture mode) */}
       {!isCleanObsCapture && (
-        <header className="flex items-center justify-between gap-8 px-6 py-3.5 border-b border-slate-800 bg-slate-950 sticky top-0 z-30">
+        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:gap-6 px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-slate-800 bg-slate-950 sticky top-0 z-30">
           {/* Zone 1: Back Link + Brand Medallion & Wordmark */}
           <div className="flex items-center gap-3 shrink-0">
             <Link
@@ -524,7 +538,7 @@ export default function App() {
           </nav>
 
           {/* Zone 3: Language + Theme + Daily Streak + LIVE Overlay + Connect TikTok + New Round actions */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2.5">
             <LanguageMenu variant="compact" />
             <button
               type="button"
@@ -578,7 +592,7 @@ export default function App() {
 
       {/* Mobile Route Switcher when viewport < md */}
       {!isCleanObsCapture && (
-        <div className="flex md:hidden items-center justify-around gap-1 px-3 py-2 bg-slate-900 border-b border-slate-800 text-xs overflow-x-auto">
+        <div className="relative z-20 flex md:hidden items-center justify-around gap-1 px-3 py-2 bg-slate-900 border-b border-slate-800 text-xs overflow-x-auto">
           <button
             type="button"
             onClick={() => navigate('game', '/game')}
@@ -631,7 +645,7 @@ export default function App() {
 
       {/* ROUTE 1: MAIN GAME ARENA (/ or /game) */}
       {route === 'game' && (
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col justify-between gap-6">
+        <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col justify-between gap-4 sm:gap-6">
           {/* TOP SECTION: 3D Medallion Showcase, Round Number, Status, Mode & Difficulty Switcher, and Countdown Timer */}
           <section className="rounded-2xl bg-slate-900 border border-slate-800 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-xl">
             <div className="flex items-center gap-4">
@@ -1121,7 +1135,7 @@ export default function App() {
 
       {/* ROUTE 2: VERTICAL 9:16 TIKTOK LIVE LAYOUT (/vertical) */}
       {route === 'vertical' && (
-        <main className="flex-1 flex items-center justify-center">
+        <main className="relative z-10 flex-1 flex items-center justify-center">
           <VerticalTikTokView
             gameState={activeGameState}
             highlightedIndices={activeHighlights}
@@ -1137,7 +1151,7 @@ export default function App() {
 
       {/* ROUTE 3 & 4: OBS OVERLAY & FULL-SCREEN DISPLAY (/overlay and /display) */}
       {(route === 'overlay' || route === 'display') && (
-        <main className="flex-1">
+        <main className="relative z-10 flex-1">
           <ObsOverlayView
             gameState={activeGameState}
             initialPreset={route === 'display' ? 'fullscreen' : 'transparent'}
@@ -1154,14 +1168,14 @@ export default function App() {
 
       {/* ROUTE 5: STANDALONE LEADERBOARD (/leaderboard) */}
       {route === 'leaderboard' && (
-        <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8">
+        <main className="relative z-10 flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-5 sm:py-8">
           <LiveLeaderboardPanel leaderboards={activeGameState.leaderboards} fullPage={true} />
         </main>
       )}
 
       {/* ROUTE 6: HOST ADMIN CONTROL PANEL (/admin) */}
       {route === 'admin' && (
-        <main className="flex-1">
+        <main className="relative z-10 flex-1">
           <AdminDashboard
             gameState={gameState}
             onControlAction={sendControlAction}

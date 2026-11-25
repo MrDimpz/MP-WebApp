@@ -499,14 +499,14 @@ export default function MPDifferenceApp() {
         <img
           src="/brand-logo.png"
           alt=""
-          className="w-[340px] h-[340px] sm:w-[680px] sm:h-[680px] object-contain opacity-20 select-none"
+          className="w-[340px] h-[340px] sm:w-[680px] sm:h-[680px] object-contain opacity-25 select-none"
         />
       </div>
 
       {/* =====================================================================
           UNIFIED MISSING PIECE TOP NAVIGATION HEADER
       ===================================================================== */}
-      <header className="flex items-center justify-between gap-1.5 sm:gap-3 px-2.5 sm:px-6 py-2 sm:py-3 border-b border-purple-200/80 dark:border-purple-900/60 bg-white/90 dark:bg-[#1a0624]/90 backdrop-blur-md sticky top-0 z-40 transition-colors">
+      <header className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-2 sm:gap-3 px-2.5 sm:px-6 py-2 sm:py-3 border-b border-purple-200/80 dark:border-purple-900/60 bg-white/90 dark:bg-[#1a0624]/90 backdrop-blur-md sticky top-0 z-40 transition-colors">
         {/* Zone 1: Back to Solo Games & Brand Wordmark */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <Link
@@ -622,7 +622,7 @@ export default function MPDifferenceApp() {
         )}
 
         {/* Zone 3: Right Actions */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-2">
           <DailyStreakBadge
             streak={dailyStreak.streak}
             solvedToday={dailyStreak.solvedToday}
@@ -913,7 +913,7 @@ export default function MPDifferenceApp() {
       {screen === 'PLAYING' && (
         <main className="relative z-10 flex-1 flex flex-col min-h-0 max-w-[1440px] w-full mx-auto px-1.5 sm:px-6 py-1 sm:py-3">
           {/* Compact Inspection Action Bar */}
-          <div className="shrink-0 flex items-center justify-between gap-1.5 sm:gap-2 pb-1 sm:pb-2.5">
+          <div className="shrink-0 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 pb-1.5 sm:pb-2.5">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <button
                 type="button"

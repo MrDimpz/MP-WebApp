@@ -1384,11 +1384,25 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
           : 'wk-canvas-dark text-[#faf5ff]'
       }`}
     >
+      {/* 25% Opacity Missing Piece Background Watermark (hidden in LIVE Studio overlay) */}
+      {!isOverlay && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
+        >
+          <img
+            src="/assets/aistudio/3d_logo_944e5372.png"
+            alt=""
+            className="w-[340px] h-[340px] sm:w-[640px] sm:h-[640px] object-contain opacity-25 select-none"
+          />
+        </div>
+      )}
+
       {/* ── Horizontal Flex Wrapper: Live Chat Box on Left (Only when Authorised User Logged In) + 50px Gap + 490px Game Shell ── */}
-      <div className="w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-[50px] px-2 sm:px-4">
+      <div className="relative z-10 w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-4 lg:gap-[50px] px-2 sm:px-4">
         {/* Live Chat Stream Box to the left of the game with 50px gap — hidden in LIVE Studio overlay & Solo Games mode */}
         {!isOverlay && !isSoloRoute && (authenticatedStreamer || connectedUsername) && (
-          <div className="pt-4">
+          <div className="order-2 lg:order-1 pt-2 lg:pt-4 w-full max-w-[490px] lg:w-auto flex justify-center">
             <LiveChatBox
               messages={chatMessages}
               connectedUsername={connectedUsername || authenticatedStreamer || ''}
@@ -1398,7 +1412,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
         )}
 
         {/* ── Centered 490px (or 520px 20:9 overlay) App Shell ── */}
-        <div className={`w-full ${isOverlay ? 'max-w-[520px]' : 'max-w-[490px] min-h-screen'} flex flex-col shrink-0`}>
+        <div className={`order-1 lg:order-2 w-full ${isOverlay ? 'max-w-[520px]' : 'max-w-[490px] min-h-screen'} flex flex-col shrink-0`}>
           {/* ── Top Navigation Bar (hidden in LIVE Studio overlay) ── */}
           {!isOverlay && (
           <header

@@ -1550,21 +1550,21 @@ export default function CrowdleApp() {
           : 'bg-gradient-to-b from-[#F9F6FF] via-[#F3ECFF] to-[#EAE0FF] text-slate-900'
       }`}
     >
-      {/* 20% Opacity Background Logo Watermark on Main Page */}
+      {/* 25% Opacity Background Logo Watermark on Main Page */}
       <div
         aria-hidden="true"
-        className="pointer-events-none select-none fixed inset-0 flex items-center justify-center z-0"
+        className="pointer-events-none select-none fixed inset-0 flex items-center justify-center z-0 overflow-hidden"
       >
         <img
           src="/assets/aistudio/3d_logo_944e5372.png"
           alt=""
-          className="w-[460px] h-[460px] object-contain opacity-20"
+          className="w-[340px] h-[340px] sm:w-[600px] sm:h-[600px] object-contain opacity-25"
         />
       </div>
 
       {/* Top Missing Piece Branded Navigation Header */}
       <header
-        className={`w-full border-b px-4 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 backdrop-blur-md sticky top-0 z-30 ${
+        className={`w-full border-b px-3 sm:px-4 lg:px-8 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 backdrop-blur-md sticky top-0 z-30 ${
           isDark
             ? 'bg-[#170428]/90 border-purple-500/25'
             : 'bg-white/90 border-purple-200 shadow-sm'
@@ -1676,7 +1676,7 @@ export default function CrowdleApp() {
       </header>
 
       {/* Main 3-Column Interactive Studio Layout */}
-      <main className="relative z-10 flex-1 max-w-[1440px] w-full mx-auto px-4 lg:px-8 py-5 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <main className="relative z-10 flex-1 max-w-[1440px] w-full mx-auto px-2.5 sm:px-4 lg:px-8 py-3.5 sm:py-5 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
         {/* LEFT COLUMN: Live Vote Stream */}
         <section className="lg:col-span-4 flex flex-col gap-4 order-2 lg:order-1">
           {/* Live Chat Vote Feed */}
