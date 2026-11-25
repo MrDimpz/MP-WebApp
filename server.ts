@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -11,6 +12,11 @@ import {
 } from "tiktok-live-connector";
 import { mountInkStream } from "./server/inkstream/mountInkStream.ts";
 import { mountMpwh } from "./server/mpwh/mountMpwh.ts";
+import { getMysqlStatus } from "./server/mysql-db.ts";
+import {
+  getMysqlRegisteredUsersForAdmin,
+  registerMysqlRoutes,
+} from "./server/mysql-routes.ts";
 import {
   renderSeoHeadHtml,
   renderSeoNoscriptHtml,
@@ -421,8 +427,27 @@ async function startServer() {
   });
 
   app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    const isDbApi = req.path.startsWith("/api/db/");
+    if (isDbApi) {
+      // Never emit wildcard CORS on authenticated database routes; allow same-origin requests only.
+      const origin = String(req.headers.origin || "").trim();
+      const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").trim();
+      if (origin && host) {
+        try {
+          const parsedOrigin = new URL(origin);
+          if (parsedOrigin.host === host) {
+            res.setHeader("Access-Control-Allow-Origin", origin);
+            res.setHeader("Vary", "Origin");
+          }
+        } catch {
+          // Ignore malformed Origin header
+        }
+      }
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
+    } else {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    }
     res.setHeader(
       "Access-Control-Allow-Headers",
       "Content-Type, Authorization, X-Requested-With",
@@ -434,8 +459,11 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json({ limit: "8mb" }));
+  app.use(express.json({ limit: "12mb" }));
   app.use(express.urlencoded({ extended: true }));
+
+  // Mount Hostinger MySQL database API (/api/db/*) — uses Firebase Auth Bearer tokens
+  registerMysqlRoutes(app);
 
   // Mount InkStream multiplayer drawing & TikTok LIVE studio backend (/api/inkstream/* & /inkstream namespace)
   const inkstream = mountInkStream(app, io);
@@ -1934,16 +1962,35 @@ async function startServer() {
     res.status(401).json({ ok: false, error: "Invalid admin credentials" });
   });
 
-  app.get("/api/admin/registered-users", (_req, res) => {
+  app.get("/api/admin/registered-users", async (_req, res) => {
     const registered = loadServerRegisteredUsers();
+    const mysqlUsers = (await getMysqlRegisteredUsersForAdmin()) || [];
     const streamers = loadServerStreamers();
     const byUid = new Map<string, ServerRegisteredUser>();
     const handlesPresent = new Set<string>();
 
-    for (const u of registered) {
-      byUid.set(u.uid, u);
-      if (u.linkedTikTokHandle) {
-        handlesPresent.add(normalizeServerTikTokHandle(u.linkedTikTokHandle));
+    for (const u of [...registered, ...mysqlUsers]) {
+      const prev = byUid.get(u.uid);
+      const handle = normalizeServerTikTokHandle(
+        u.linkedTikTokHandle || prev?.linkedTikTokHandle || "",
+      );
+      byUid.set(u.uid, {
+        uid: u.uid,
+        displayName:
+          u.displayName && u.displayName !== "Player"
+            ? u.displayName
+            : prev?.displayName || u.displayName || "Player",
+        tiktokConnected: Boolean(handle),
+        linkedTikTokHandle: handle,
+        authProvider:
+          u.authProvider !== "site"
+            ? u.authProvider
+            : prev?.authProvider || u.authProvider,
+        createdAt: Math.min(prev?.createdAt || u.createdAt, u.createdAt),
+        updatedAt: Math.max(prev?.updatedAt || 0, u.updatedAt),
+      });
+      if (handle) {
+        handlesPresent.add(handle);
       }
     }
 
@@ -2529,7 +2576,8 @@ async function startServer() {
 
   let viteReady = useProdStatic;
 
-  app.get("/api/health", (_req, res) => {
+  app.get("/api/health", async (_req, res) => {
+    const dbStatus = await getMysqlStatus(false);
     res.json({
       ok: true,
       mode: useProdStatic ? "production" : "development",
@@ -2537,6 +2585,11 @@ async function startServer() {
       distReady: hasBuiltDist,
       viteReady,
       uptimeSec: Math.round(process.uptime()),
+      database: {
+        mode: dbStatus.mode,
+        configured: dbStatus.configured,
+        connected: dbStatus.connected,
+      },
     });
   });
 

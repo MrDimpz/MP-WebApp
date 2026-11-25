@@ -6,13 +6,13 @@
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
-  private muted: boolean = false;
+  private muted: boolean = true;
 
   constructor() {
     try {
       const saved = localStorage.getItem('colossal_crossword_muted');
-      if (saved === 'true') {
-        this.muted = true;
+      if (saved === 'false') {
+        this.muted = false;
       }
     } catch {
       // Ignore storage errors

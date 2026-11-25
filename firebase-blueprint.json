@@ -21,7 +21,7 @@
         "gameId": {
           "type": "string",
           "description": "Identifier of the solo game.",
-          "enum": ["crossword", "rebus", "squared", "thematix", "destack", "unolingo", "wikirec", "wikicon", "mpsearch", "mpdifference", "mpcolossal", "tekscodle"]
+          "enum": ["crossword", "rebus", "squared", "thematix", "destack", "unolingo", "wikirec", "wikicon", "mpsearch", "mpdifference", "mpcolossal", "tekscodle", "wordhunt"]
         },
         "puzzleId": {
           "type": "string",
@@ -213,7 +213,7 @@
         "gameId": {
           "type": "string",
           "description": "Interactive game identifier.",
-          "enum": ["crowdle", "destackint", "mpsearchint", "squaredint", "wikicon", "wikirec", "lexi", "inkstream", "mpwh"]
+          "enum": ["crowdle", "destackint", "mpsearchint", "squaredint", "wikicon", "wikirec", "lexi", "inkstream", "mpwh", "wbr", "tow"]
         },
         "channel": {
           "type": "string",
@@ -352,7 +352,8 @@
             "mpsearch",
             "mpdifference",
             "mpcolossal",
-            "tekscodle"
+            "tekscodle",
+            "wordhunt"
           ]
         },
         "payload": {

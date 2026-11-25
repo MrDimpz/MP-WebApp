@@ -3,7 +3,7 @@
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
-  public muted: boolean = false;
+  public muted: boolean = true;
 
   private getContext(): AudioContext | null {
     if (this.muted || typeof window === 'undefined') return null;

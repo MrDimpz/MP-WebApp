@@ -14,6 +14,7 @@ import {
   isFirestoreWritePaused,
   markFirestoreQuotaExhausted,
 } from './firestore-quota';
+import { isMysqlBackendActiveSync } from './mysql-client';
 
 export type OverlayBackgroundMode = 'transparent' | 'dark';
 
@@ -631,6 +632,7 @@ export function useOverlaySync<T>({
         !isMountedRef.current ||
         isOverlay ||
         pktToSend.state === undefined ||
+        isMysqlBackendActiveSync() ||
         isFirestoreWritePaused() ||
         Date.now() < fsCooldownUntilRef.current
       ) {
@@ -1382,7 +1384,10 @@ export function useOverlaySync<T>({
         cleanStreamer,
         resolvedChannel
       );
-      const fsDocIds = allFsDocIds.length > 0 ? [allFsDocIds[0]] : [];
+      const fsDocIds =
+        !isMysqlBackendActiveSync() && !isFirestoreWritePaused() && allFsDocIds.length > 0
+          ? [allFsDocIds[0]]
+          : [];
       for (const fsDocId of fsDocIds) {
         const fsDocPath = `${OVERLAY_FIRESTORE_COLLECTION}/${fsDocId}`;
         try {
@@ -1425,6 +1430,10 @@ export function useOverlaySync<T>({
               );
             },
             (err) => {
+              if (isFirestoreQuotaError(err)) {
+                markFirestoreQuotaExhausted(err);
+                return;
+              }
               if (isFirestorePermissionError(err)) {
                 handleFirestoreError(err, OperationType.GET, fsDocPath);
               }
@@ -1432,7 +1441,9 @@ export function useOverlaySync<T>({
           );
           firestoreUnsubs.push(unsub);
         } catch (err) {
-          if (isFirestorePermissionError(err)) {
+          if (isFirestoreQuotaError(err)) {
+            markFirestoreQuotaExhausted(err);
+          } else if (isFirestorePermissionError(err)) {
             handleFirestoreError(err, OperationType.GET, fsDocPath);
           }
         }

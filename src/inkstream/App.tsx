@@ -160,7 +160,7 @@ function InkStreamApp() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [showTikTokModal, setShowTikTokModal] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [copiedRoomCode, setCopiedRoomCode] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);

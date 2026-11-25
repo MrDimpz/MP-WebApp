@@ -250,7 +250,7 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
   // UI Preferences
   const [isLightMode, setIsLightMode] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [showLengthsOnBlocks, setShowLengthsOnBlocks] = useState(false);
   const [guessInput, setGuessInput] = useState('');
   const [feedbackToast, setFeedbackToast] = useState<{

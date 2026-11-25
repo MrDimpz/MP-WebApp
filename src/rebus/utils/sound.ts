@@ -4,7 +4,7 @@
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
-  public enabled: boolean = true;
+  public enabled: boolean = false;
 
   private getContext(): AudioContext | null {
     if (!this.enabled || typeof window === 'undefined') return null;

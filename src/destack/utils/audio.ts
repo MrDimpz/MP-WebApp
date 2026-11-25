@@ -2,7 +2,7 @@
 
 class SoundManager {
   private ctx: AudioContext | null = null;
-  private muted: boolean = false;
+  private muted: boolean = true;
 
   constructor() {
     // AudioContext will be initialized on first user interaction

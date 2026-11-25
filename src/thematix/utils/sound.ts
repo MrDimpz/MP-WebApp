@@ -1,12 +1,16 @@
 class SoundManager {
   private ctx: AudioContext | null = null;
-  private isMuted: boolean = false;
+  private isMuted: boolean = true;
 
   constructor() {
     // Loaded lazily on first user interaction
-    const saved = localStorage.getItem('thematik_sound_muted');
-    if (saved !== null) {
-      this.isMuted = saved === 'true';
+    try {
+      const saved = localStorage.getItem('thematik_sound_muted');
+      if (saved !== null) {
+        this.isMuted = saved === 'true';
+      }
+    } catch {
+      // ignore storage errors
     }
   }
 

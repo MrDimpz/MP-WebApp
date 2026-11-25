@@ -39,6 +39,11 @@ import {
   isFirestoreWritePaused,
   markFirestoreQuotaExhausted,
 } from '@/lib/firestore-quota';
+import {
+  mysqlGetHighScores,
+  mysqlUpsertHighScore,
+  shouldUseMysqlBackend,
+} from '@/lib/mysql-client';
 import { GameModeId } from './puzzleGenerator';
 
 export {
@@ -212,7 +217,25 @@ export async function saveHighScoreToFirestore(params: {
     subMetricLabel: `Words ${safeWordsFound}/${safeTotalWords}${foundFeatured ? ' · ★ Missing Piece' : ''}`,
   });
 
-  if (!auth.currentUser || auth.currentUser.uid !== user.uid || isFirestoreWritePaused()) {
+  if (!auth.currentUser || auth.currentUser.uid !== user.uid) {
+    return;
+  }
+
+  if (await shouldUseMysqlBackend()) {
+    await mysqlUpsertHighScore({
+      puzzleId: safePuzzleId,
+      mode,
+      score: safeScore,
+      wordsFound: safeWordsFound,
+      totalWords: safeTotalWords,
+      bonusWordsCount: safeBonusCount,
+      foundFeatured: Boolean(foundFeatured),
+      displayName: safeDisplayName,
+    });
+    return;
+  }
+
+  if (isFirestoreWritePaused()) {
     return;
   }
 
@@ -299,34 +322,74 @@ export function subscribeToUserHighScores(
 
   emitMerged();
 
-  const unsubFirestore = onSnapshot(
-    q,
-    (snapshot) => {
-      const items: HighScoreRecord[] = [];
-      snapshot.forEach((docSnap) => {
-        const d = docSnap.data();
-        items.push({
-          id: docSnap.id,
-          userId: d.userId,
-          displayName: sanitizeLeaderboardDisplayName(d.displayName),
-          puzzleId: d.puzzleId,
-          mode: d.mode as GameModeId,
-          score: d.score,
-          wordsFound: d.wordsFound,
-          totalWords: d.totalWords,
-          bonusWordsCount: d.bonusWordsCount,
-          foundFeatured: Boolean(d.foundFeatured),
-          createdAt: d.createdAt,
-          updatedAt: d.updatedAt,
-        });
-      });
-      cloudItems = items;
-      emitMerged();
-    },
-    (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'highscores');
+  let unsubFirestore = () => {};
+  let disposed = false;
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+  const loadMysqlUserScores = async () => {
+    const rows = await mysqlGetHighScores(userId);
+    if (disposed || !rows) return;
+    cloudItems = rows.map((d) => ({
+      id: d.id,
+      userId: d.userId,
+      displayName: sanitizeLeaderboardDisplayName(d.displayName),
+      puzzleId: d.puzzleId,
+      mode: d.mode as GameModeId,
+      score: d.score,
+      wordsFound: d.wordsFound,
+      totalWords: d.totalWords,
+      bonusWordsCount: d.bonusWordsCount,
+      foundFeatured: Boolean(d.foundFeatured),
+      createdAt: null,
+      updatedAt: null,
+    }));
+    emitMerged();
+  };
+
+  void shouldUseMysqlBackend().then((useMysql) => {
+    if (disposed) return;
+    if (useMysql) {
+      void loadMysqlUserScores();
+      pollTimer = setInterval(() => {
+        if (!document.hidden) void loadMysqlUserScores();
+      }, 30_000);
+      return;
     }
-  );
+    if (!isFirestoreWritePaused()) {
+      unsubFirestore = onSnapshot(
+        q,
+        (snapshot) => {
+          const items: HighScoreRecord[] = [];
+          snapshot.forEach((docSnap) => {
+            const d = docSnap.data();
+            items.push({
+              id: docSnap.id,
+              userId: d.userId,
+              displayName: sanitizeLeaderboardDisplayName(d.displayName),
+              puzzleId: d.puzzleId,
+              mode: d.mode as GameModeId,
+              score: d.score,
+              wordsFound: d.wordsFound,
+              totalWords: d.totalWords,
+              bonusWordsCount: d.bonusWordsCount,
+              foundFeatured: Boolean(d.foundFeatured),
+              createdAt: d.createdAt,
+              updatedAt: d.updatedAt,
+            });
+          });
+          cloudItems = items;
+          emitMerged();
+        },
+        (error) => {
+          if (isFirestoreQuotaError(error)) {
+            markFirestoreQuotaExhausted(error);
+            return;
+          }
+          handleFirestoreError(error, OperationType.LIST, 'highscores');
+        }
+      );
+    }
+  });
 
   const onLocalUpdate = () => emitMerged();
   if (typeof window !== 'undefined') {
@@ -334,6 +397,8 @@ export function subscribeToUserHighScores(
   }
 
   return () => {
+    disposed = true;
+    if (pollTimer) clearInterval(pollTimer);
     unsubFirestore();
     if (typeof window !== 'undefined') {
       window.removeEventListener(LOCAL_SQUARED_EVENT, onLocalUpdate);
@@ -365,34 +430,74 @@ export function subscribeToGlobalHighScores(
 
   emitMerged();
 
-  const unsubFirestore = onSnapshot(
-    colRef,
-    (snapshot) => {
-      const items: HighScoreRecord[] = [];
-      snapshot.forEach((docSnap) => {
-        const d = docSnap.data();
-        items.push({
-          id: docSnap.id,
-          userId: d.userId,
-          displayName: sanitizeLeaderboardDisplayName(d.displayName),
-          puzzleId: d.puzzleId,
-          mode: d.mode as GameModeId,
-          score: d.score,
-          wordsFound: d.wordsFound,
-          totalWords: d.totalWords,
-          bonusWordsCount: d.bonusWordsCount,
-          foundFeatured: Boolean(d.foundFeatured),
-          createdAt: d.createdAt,
-          updatedAt: d.updatedAt,
-        });
-      });
-      cloudItems = items;
-      emitMerged();
-    },
-    (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'highscores');
+  let unsubFirestore = () => {};
+  let disposed = false;
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+  const loadMysqlGlobalScores = async () => {
+    const rows = await mysqlGetHighScores();
+    if (disposed || !rows) return;
+    cloudItems = rows.map((d) => ({
+      id: d.id,
+      userId: d.userId,
+      displayName: sanitizeLeaderboardDisplayName(d.displayName),
+      puzzleId: d.puzzleId,
+      mode: d.mode as GameModeId,
+      score: d.score,
+      wordsFound: d.wordsFound,
+      totalWords: d.totalWords,
+      bonusWordsCount: d.bonusWordsCount,
+      foundFeatured: Boolean(d.foundFeatured),
+      createdAt: null,
+      updatedAt: null,
+    }));
+    emitMerged();
+  };
+
+  void shouldUseMysqlBackend().then((useMysql) => {
+    if (disposed) return;
+    if (useMysql) {
+      void loadMysqlGlobalScores();
+      pollTimer = setInterval(() => {
+        if (!document.hidden) void loadMysqlGlobalScores();
+      }, 30_000);
+      return;
     }
-  );
+    if (!isFirestoreWritePaused()) {
+      unsubFirestore = onSnapshot(
+        colRef,
+        (snapshot) => {
+          const items: HighScoreRecord[] = [];
+          snapshot.forEach((docSnap) => {
+            const d = docSnap.data();
+            items.push({
+              id: docSnap.id,
+              userId: d.userId,
+              displayName: sanitizeLeaderboardDisplayName(d.displayName),
+              puzzleId: d.puzzleId,
+              mode: d.mode as GameModeId,
+              score: d.score,
+              wordsFound: d.wordsFound,
+              totalWords: d.totalWords,
+              bonusWordsCount: d.bonusWordsCount,
+              foundFeatured: Boolean(d.foundFeatured),
+              createdAt: d.createdAt,
+              updatedAt: d.updatedAt,
+            });
+          });
+          cloudItems = items;
+          emitMerged();
+        },
+        (error) => {
+          if (isFirestoreQuotaError(error)) {
+            markFirestoreQuotaExhausted(error);
+            return;
+          }
+          handleFirestoreError(error, OperationType.LIST, 'highscores');
+        }
+      );
+    }
+  });
 
   const onLocalUpdate = () => emitMerged();
   if (typeof window !== 'undefined') {
@@ -400,6 +505,8 @@ export function subscribeToGlobalHighScores(
   }
 
   return () => {
+    disposed = true;
+    if (pollTimer) clearInterval(pollTimer);
     unsubFirestore();
     if (typeof window !== 'undefined') {
       window.removeEventListener(LOCAL_SQUARED_EVENT, onLocalUpdate);

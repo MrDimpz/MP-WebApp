@@ -183,7 +183,7 @@ export default function CrowdleApp() {
       return 'dark';
     }
   });
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Unified Account State

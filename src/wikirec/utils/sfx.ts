@@ -2,12 +2,14 @@ import { TierName } from '../shared/types';
 
 class SfxEngine {
   private ctx: AudioContext | null = null;
-  public muted = false;
+  public muted = true;
 
   constructor() {
     try {
-      this.muted = localStorage.getItem('wkt_muted') === '1';
-    } catch {}
+      this.muted = localStorage.getItem('wkt_muted') !== '0';
+    } catch {
+      this.muted = true;
+    }
   }
 
   private getContext(): AudioContext | null {

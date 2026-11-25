@@ -24,6 +24,14 @@ import {
   isFirestoreWritePaused,
   markFirestoreQuotaExhausted,
 } from "./firestore-quota";
+import {
+  isMysqlBackendActiveSync,
+  mysqlGetAllProgress,
+  mysqlGetProfile,
+  mysqlUpsertProfile,
+  mysqlUpsertProgressBucket,
+  shouldUseMysqlBackend,
+} from "./mysql-client";
 
 export type ProgressBucketId =
   | "daily_streaks"
@@ -248,17 +256,74 @@ export async function ensureUserProfileDoc(
   }
 
   const task = (async (): Promise<Record<string, unknown> | null> => {
+    const fallbackName = sanitizeDisplayName(
+      overrides?.displayName || fbUser.displayName || fbUser.email?.split("@")[0],
+    );
+    const fallbackHandle = normalizeHandle(overrides?.linkedTikTokHandle || "");
+    const localLang = overrides?.preferredLanguage || getDictionaryLanguage();
+    const localDark =
+      typeof overrides?.darkMode === "boolean" ? overrides.darkMode : getSafeDarkMode();
+
+    // Hostinger MySQL mode: keep Firebase Auth, store profiles in MySQL
+    if (await shouldUseMysqlBackend()) {
+      try {
+        const existing = await mysqlGetProfile();
+        if (!existing) {
+          const created = await mysqlUpsertProfile({
+            displayName: fallbackName,
+            linkedTikTokHandle: fallbackHandle,
+            preferredLanguage: localLang,
+            darkMode: localDark,
+          });
+          if (created) ensuredProfiles.add(uid);
+          return created;
+        }
+        ensuredProfiles.add(uid);
+        if (overrides) {
+          const nextName =
+            overrides.displayName !== undefined
+              ? sanitizeDisplayName(overrides.displayName)
+              : sanitizeDisplayName(existing.displayName);
+          const nextHandle =
+            overrides.linkedTikTokHandle !== undefined
+              ? normalizeHandle(overrides.linkedTikTokHandle)
+              : normalizeHandle(existing.linkedTikTokHandle);
+          const nextLang =
+            overrides.preferredLanguage !== undefined
+              ? normalizeDictionaryLanguage(overrides.preferredLanguage)
+              : normalizeDictionaryLanguage(existing.preferredLanguage);
+          const nextDark =
+            overrides.darkMode !== undefined
+              ? overrides.darkMode
+              : typeof existing.darkMode === "boolean"
+                ? existing.darkMode
+                : localDark;
+          if (
+            nextName !== existing.displayName ||
+            nextHandle !== (existing.linkedTikTokHandle || "") ||
+            nextLang !== existing.preferredLanguage ||
+            nextDark !== existing.darkMode
+          ) {
+            return (
+              (await mysqlUpsertProfile({
+                displayName: nextName,
+                linkedTikTokHandle: nextHandle,
+                preferredLanguage: nextLang,
+                darkMode: nextDark,
+              })) || existing
+            );
+          }
+        }
+        return existing;
+      } finally {
+        profileEnsureInFlight.delete(uid);
+      }
+    }
+
     const docPath = `users/${uid}`;
     const ref = doc(db, "users", uid);
     try {
       const snap = await getDoc(ref);
-      const fallbackName = sanitizeDisplayName(
-        overrides?.displayName || fbUser.displayName || fbUser.email?.split("@")[0],
-      );
-      const fallbackHandle = normalizeHandle(overrides?.linkedTikTokHandle || "");
-      const localLang = overrides?.preferredLanguage || getDictionaryLanguage();
-      const localDark =
-        typeof overrides?.darkMode === "boolean" ? overrides.darkMode : getSafeDarkMode();
 
       if (!snap.exists()) {
         if (isFirestoreWritePaused()) return null;
@@ -348,7 +413,8 @@ export async function saveUserProfilePreferences(params: {
 }): Promise<void> {
   if (typeof window === "undefined") return;
   const fbUser = auth.currentUser;
-  if (!fbUser?.uid || isFirestoreWritePaused()) return;
+  if (!fbUser?.uid) return;
+  if (!isMysqlBackendActiveSync() && isFirestoreWritePaused()) return;
   await ensureUserProfileDoc(fbUser, params);
 }
 
@@ -972,10 +1038,12 @@ async function writeProgressBucketNow(
   if (typeof window === "undefined") return false;
   if (!auth.currentUser || auth.currentUser.uid !== uid) return false;
   if (!ID_REGEX.test(uid) || !VALID_PROGRESS_BUCKETS.has(bucketId)) return false;
-  if (isFirestoreWritePaused()) return false;
+
+  const useMysql = await shouldUseMysqlBackend();
+  if (!useMysql && isFirestoreWritePaused()) return false;
 
   // Never allow a freshly mounted game (e.g. right after a deployment reload) to
-  // push to Firestore before the player's existing cloud progress has hydrated.
+  // push to cloud before the player's existing cloud progress has hydrated.
   if (!options?.skipHydrationWait && !hydratedUids.has(uid)) {
     await hydrateAllUserProgressFromCloud(auth.currentUser);
     if (!auth.currentUser || auth.currentUser.uid !== uid) return false;
@@ -999,6 +1067,60 @@ async function writeProgressBucketNow(
   if (!ensuredProfiles.has(uid)) {
     const profile = await ensureUserProfileDoc(auth.currentUser);
     if (!profile) return false;
+  }
+
+  // Hostinger MySQL write path (with monotonic merge against current MySQL bucket)
+  if (useMysql) {
+    updateSyncStatus({ status: "syncing", lastError: null });
+    try {
+      const existingAll = await mysqlGetAllProgress();
+      const existingPayload =
+        existingAll && isPlainObject(existingAll[bucketId])
+          ? existingAll[bucketId]
+          : null;
+      const payloadToSave = existingPayload
+        ? capPayloadKeys(
+            sanitizeForFirestore(
+              mergeCloudBucketPayloads(bucketId, existingPayload, cleanPayload),
+            ) as Record<string, unknown>,
+          )
+        : cleanPayload;
+
+      let finalSignature = signature;
+      let existingSig = "";
+      try {
+        existingSig = existingPayload ? JSON.stringify(existingPayload) : "";
+        finalSignature = JSON.stringify(payloadToSave);
+      } catch {
+        finalSignature = signature;
+      }
+
+      if (!existingPayload || finalSignature !== existingSig) {
+        const ok = await mysqlUpsertProgressBucket(bucketId, payloadToSave);
+        if (!ok) {
+          updateSyncStatus({
+            status: "error",
+            lastError: "Could not save progress to Hostinger MySQL.",
+          });
+          return false;
+        }
+      }
+
+      lastWrittenHashes.set(cacheKey, finalSignature);
+      updateSyncStatus({
+        status: "synced",
+        lastSyncedAt: Date.now(),
+        syncedBuckets: lastWrittenHashes.size,
+        lastError: null,
+      });
+      return true;
+    } catch (err) {
+      updateSyncStatus({
+        status: "error",
+        lastError: err instanceof Error ? err.message : "Could not sync progress.",
+      });
+      return false;
+    }
   }
 
   const docPath = `users/${uid}/progress/${bucketId}`;
@@ -1077,7 +1199,8 @@ export function scheduleCloudProgressSync(
 ): void {
   if (typeof window === "undefined") return;
   const fbUser = auth.currentUser;
-  if (!fbUser?.uid || isFirestoreWritePaused()) return;
+  if (!fbUser?.uid) return;
+  if (!isMysqlBackendActiveSync() && isFirestoreWritePaused()) return;
   const uid = fbUser.uid;
   const timerKey = `${uid}:${bucketId}`;
 
@@ -1991,22 +2114,61 @@ export async function hydrateAllUserProgressFromCloud(
         }
       }
 
-      const q = query(
-        collection(db, "users", uid, "progress"),
-        where("userId", "==", uid),
-      );
-      const snap = await getDocs(q);
+      const useMysql = await shouldUseMysqlBackend();
       const remoteBuckets = new Map<ProgressBucketId, Record<string, unknown>>();
-      snap.forEach((docSnap) => {
-        const d = docSnap.data();
-        const bId = String(d?.bucketId || docSnap.id) as ProgressBucketId;
-        if (VALID_PROGRESS_BUCKETS.has(bId) && isPlainObject(d?.payload)) {
-          remoteBuckets.set(bId, d.payload as Record<string, unknown>);
-          try {
-            lastWrittenHashes.set(`${uid}:${bId}`, JSON.stringify(d.payload));
-          } catch {}
+      let backfilledFromFirestore = false;
+
+      if (useMysql) {
+        const mysqlBuckets = await mysqlGetAllProgress();
+        if (mysqlBuckets) {
+          for (const [bKey, bPayload] of Object.entries(mysqlBuckets)) {
+            const bId = bKey as ProgressBucketId;
+            if (VALID_PROGRESS_BUCKETS.has(bId) && isPlainObject(bPayload)) {
+              remoteBuckets.set(bId, bPayload);
+              try {
+                lastWrittenHashes.set(`${uid}:${bId}`, JSON.stringify(bPayload));
+              } catch {}
+            }
+          }
         }
-      });
+        // Zero-loss lazy migration: if MySQL has no buckets for this user yet,
+        // silently check Firestore once and carry their saved progress forward into MySQL.
+        if (remoteBuckets.size === 0 && !isFirestoreWritePaused()) {
+          try {
+            const qLegacy = query(
+              collection(db, "users", uid, "progress"),
+              where("userId", "==", uid),
+            );
+            const legacySnap = await getDocs(qLegacy);
+            legacySnap.forEach((docSnap) => {
+              const d = docSnap.data();
+              const bId = String(d?.bucketId || docSnap.id) as ProgressBucketId;
+              if (VALID_PROGRESS_BUCKETS.has(bId) && isPlainObject(d?.payload)) {
+                remoteBuckets.set(bId, d.payload as Record<string, unknown>);
+                backfilledFromFirestore = true;
+              }
+            });
+          } catch {
+            // Firestore unavailable or empty — continue cleanly with MySQL + local storage
+          }
+        }
+      } else {
+        const q = query(
+          collection(db, "users", uid, "progress"),
+          where("userId", "==", uid),
+        );
+        const snap = await getDocs(q);
+        snap.forEach((docSnap) => {
+          const d = docSnap.data();
+          const bId = String(d?.bucketId || docSnap.id) as ProgressBucketId;
+          if (VALID_PROGRESS_BUCKETS.has(bId) && isPlainObject(d?.payload)) {
+            remoteBuckets.set(bId, d.payload as Record<string, unknown>);
+            try {
+              lastWrittenHashes.set(`${uid}:${bId}`, JSON.stringify(d.payload));
+            } catch {}
+          }
+        });
+      }
 
       const bucketsToPush: Array<{ bucketId: ProgressBucketId; payload: Record<string, unknown> }> = [];
       for (const bucketId of VALID_PROGRESS_BUCKETS) {
@@ -2016,14 +2178,14 @@ export async function hydrateAllUserProgressFromCloud(
           bucketId,
           remotePayload,
         );
-        if (merged && shouldPushToCloud) {
+        if (merged && (shouldPushToCloud || backfilledFromFirestore)) {
           bucketsToPush.push({ bucketId, payload: merged });
         }
       }
 
       hydratedUids.add(uid);
 
-      if (bucketsToPush.length > 0 && !isFirestoreWritePaused()) {
+      if (bucketsToPush.length > 0 && (useMysql || !isFirestoreWritePaused())) {
         await Promise.allSettled(
           bucketsToPush.map((item) =>
             writeProgressBucketNow(uid, item.bucketId, item.payload, {

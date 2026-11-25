@@ -14521,6 +14521,44 @@ var SEO_ROUTES = {
       { name: "Word Hunt Extreme", path: "/interactive-games/mpwh" }
     ]
   },
+  "/interactive-games/wbr": {
+    canonicalPath: "/interactive-games/wbr",
+    title: "Word Bomb Royale \u2014 TikTok LIVE Physics Word Elimination Game",
+    description: "Host Word Bomb Royale live on TikTok! Viewers drop physics avatars into the arena and race to type unique words matching escalating wave rules before the bomb fuse detonates.",
+    keywords: "word bomb royale, tiktok live word game, interactive word elimination, tiktok chat game, physics avatar word battle",
+    ogImagePath: DEFAULT_OG_IMAGE_PATH,
+    ogImageAlt: "Word Bomb Royale 9:16 TikTok LIVE physics word elimination game show",
+    robots: DEFAULT_ROBOTS,
+    heading: "Word Bomb Royale \u2014 TikTok LIVE Word Elimination Arena",
+    summary: "9:16 vertical interactive TikTok LIVE word elimination game show with real-time 2D physics avatars, escalating wave rules, cosmetics, bot simulator, and live chat bridge.",
+    gameGenre: "Word Game",
+    isInteractive: true,
+    inLanguages: ["en"],
+    breadcrumbs: [
+      { name: "Home", path: "/" },
+      { name: "TikTok Interactive Games", path: "/interactive-games" },
+      { name: "Word Bomb Royale", path: "/interactive-games/wbr" }
+    ]
+  },
+  "/interactive-games/tow": {
+    canonicalPath: "/interactive-games/tow",
+    title: "Tug of Words \u2014 TikTok LIVE Red vs Blue Territory Word War",
+    description: "Host Tug of Words live on TikTok! Viewers auto-balance into Team Red vs Team Blue and fire validated words to push the laser horizon border, claim power-up orbs, activate shields, and win 60-second territory wars.",
+    keywords: "tug of words, tiktok live word game, red vs blue chat game, territory word war, tiktok interactive stream game",
+    ogImagePath: DEFAULT_OG_IMAGE_PATH,
+    ogImageAlt: "Tug of Words 9:16 TikTok LIVE Team Red vs Team Blue territory word battle",
+    robots: DEFAULT_ROBOTS,
+    heading: "Tug of Words \u2014 TikTok LIVE Territory Word War",
+    summary: "9:16 vertical TikTok LIVE team tug-of-war word battle with 10,000+ validated words, 60-second 3-phase Overdrive matches, shields, Golden Bounties, battlefield power-up orbs, and Top 3 MVPs.",
+    gameGenre: "Word Game",
+    isInteractive: true,
+    inLanguages: ["en"],
+    breadcrumbs: [
+      { name: "Home", path: "/" },
+      { name: "TikTok Interactive Games", path: "/interactive-games" },
+      { name: "Tug of Words", path: "/interactive-games/tow" }
+    ]
+  },
   "/solo-games/mpcolossal": {
     canonicalPath: "/solo-games/mpcolossal",
     title: "MP Colossal \u2014 200\xD7200 Giant Crossword Word Game",
@@ -14866,7 +14904,9 @@ function buildStructuredData(meta, origin = SITE_ORIGIN) {
           { "@type": "ListItem", position: 6, name: "Crowdle", url: `${origin}/interactive-games/crowdle` },
           { "@type": "ListItem", position: 7, name: "MP Search Interactive", url: `${origin}/interactive-games/mpsearch` },
           { "@type": "ListItem", position: 8, name: "InkStream", url: `${origin}/interactive-games/inkstream` },
-          { "@type": "ListItem", position: 9, name: "Word Hunt Extreme", url: `${origin}/interactive-games/mpwh` }
+          { "@type": "ListItem", position: 9, name: "Word Hunt Extreme", url: `${origin}/interactive-games/mpwh` },
+          { "@type": "ListItem", position: 10, name: "Word Bomb Royale", url: `${origin}/interactive-games/wbr` },
+          { "@type": "ListItem", position: 11, name: "Tug of Words", url: `${origin}/interactive-games/tow` }
         ]
       }
     });
@@ -15290,8 +15330,12 @@ async function startServer() {
     perMessageDeflate: false,
     httpCompression: false,
     maxHttpBufferSize: 5e6,
-    pingTimeout: 25e3,
-    pingInterval: 15e3
+    pingTimeout: 6e4,
+    pingInterval: 2e4,
+    connectionStateRecovery: {
+      maxDisconnectionDuration: 2 * 60 * 1e3,
+      skipMiddlewares: true
+    }
   });
   app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -15314,6 +15358,14 @@ async function startServer() {
   let overlayVersionCounter = 0;
   const serverBootId = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
   const overlaySnapshots = /* @__PURE__ */ new Map();
+  function parseOverlayHostCreatedAt(hostSessionId) {
+    if (!hostSessionId || typeof hostSessionId !== "string") return 0;
+    const match = /^host_([0-9a-z]+)_/i.exec(hostSessionId.trim());
+    if (!match) return 0;
+    const parsed = parseInt(match[1], 36);
+    if (!Number.isFinite(parsed) || parsed < 15e11) return 0;
+    return parsed;
+  }
   function sanitizeOverlayChannel(raw) {
     return String(raw || "").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 64);
   }
@@ -15337,23 +15389,41 @@ async function startServer() {
     const { gameId, state, hostSessionId, seq, stateHash, senderSocket } = params;
     const streamer = sanitizeOverlayStreamer(params.streamer);
     const channel = sanitizeOverlayChannel(params.channel);
+    const incomingHostCreatedAt = parseOverlayHostCreatedAt(hostSessionId);
+    const now = Date.now();
     const primaryKey = channel ? `overlay:${gameId}:ch:${channel}` : streamer ? `overlay:${gameId}:s:${streamer}` : `overlay:${gameId}:default`;
     const currentExisting = overlaySnapshots.get(primaryKey);
-    if (currentExisting && hostSessionId && currentExisting.hostSessionId === hostSessionId && typeof seq === "number" && typeof currentExisting.seq === "number" && seq <= currentExisting.seq) {
-      return {
-        gameId,
-        streamer: currentExisting.streamer,
-        channel: currentExisting.channel,
-        state: currentExisting.state,
-        stateHash: currentExisting.stateHash,
-        updatedAt: currentExisting.updatedAt,
-        hostSessionId: currentExisting.hostSessionId,
-        seq: currentExisting.seq,
-        serverVersion: currentExisting.serverVersion,
-        bootId: serverBootId
-      };
+    if (currentExisting) {
+      if (hostSessionId && currentExisting.hostSessionId === hostSessionId && typeof seq === "number" && typeof currentExisting.seq === "number" && seq <= currentExisting.seq) {
+        return {
+          gameId,
+          streamer: currentExisting.streamer,
+          channel: currentExisting.channel,
+          state: currentExisting.state,
+          stateHash: currentExisting.stateHash,
+          updatedAt: currentExisting.updatedAt,
+          hostSessionId: currentExisting.hostSessionId,
+          seq: currentExisting.seq,
+          serverVersion: currentExisting.serverVersion,
+          bootId: serverBootId
+        };
+      }
+      if (hostSessionId && currentExisting.hostSessionId && currentExisting.hostSessionId !== hostSessionId && incomingHostCreatedAt > 0 && (currentExisting.hostCreatedAt || 0) > incomingHostCreatedAt && now - currentExisting.updatedAt < 2e4) {
+        return {
+          gameId,
+          streamer: currentExisting.streamer,
+          channel: currentExisting.channel,
+          state: currentExisting.state,
+          stateHash: currentExisting.stateHash,
+          updatedAt: currentExisting.updatedAt,
+          hostSessionId: currentExisting.hostSessionId,
+          seq: currentExisting.seq,
+          serverVersion: currentExisting.serverVersion,
+          bootId: serverBootId
+        };
+      }
     }
-    const updatedAt = Date.now();
+    const updatedAt = now;
     const serverVersion = ++overlayVersionCounter;
     const record = {
       state,
@@ -15361,6 +15431,7 @@ async function startServer() {
       streamer,
       channel,
       hostSessionId,
+      hostCreatedAt: incomingHostCreatedAt,
       seq,
       stateHash,
       serverVersion
@@ -15369,8 +15440,12 @@ async function startServer() {
     overlaySnapshots.set(primaryKey, record);
     if (channel && streamer) {
       const streamerKey = `overlay:${gameId}:s:${streamer}`;
-      overlaySnapshots.set(streamerKey, record);
-      targetRooms.add(streamerKey);
+      const existingAlias = overlaySnapshots.get(streamerKey);
+      const aliasOwnedByNewerHost = existingAlias && existingAlias.hostSessionId && hostSessionId && existingAlias.hostSessionId !== hostSessionId && (existingAlias.hostCreatedAt || 0) > incomingHostCreatedAt && now - existingAlias.updatedAt < 2e4;
+      if (!aliasOwnedByNewerHost) {
+        overlaySnapshots.set(streamerKey, record);
+        targetRooms.add(streamerKey);
+      }
     }
     const packet = {
       gameId,
@@ -15520,6 +15595,8 @@ async function startServer() {
         tiktokConn: null,
         connectingPromise: null,
         retryTimer: null,
+        retryCount: 0,
+        explicitlyDisconnected: false,
         connectedUsername: null,
         connectedRoomId: null,
         isTestMode: false,
@@ -15551,6 +15628,8 @@ async function startServer() {
     }
   }
   function disconnectSessionTikTok(session) {
+    session.explicitlyDisconnected = true;
+    session.retryCount = 0;
     closeSessionTikTokConnOnly(session);
     session.connectingPromise = null;
     session.connectedUsername = null;
@@ -15559,7 +15638,7 @@ async function startServer() {
     session.connectedGames.clear();
   }
   const sessionCleanupTimer = setInterval(() => {
-    const cutoff = Date.now() - 2 * 60 * 60 * 1e3;
+    const cutoff = Date.now() - 4 * 60 * 60 * 1e3;
     for (const [key, sess] of sessions.entries()) {
       const room = io.sockets.adapter.rooms.get(`session:${sess.sessionId}`);
       const hasSockets = Boolean(room && room.size > 0);
@@ -15570,6 +15649,35 @@ async function startServer() {
     }
   }, 10 * 60 * 1e3);
   sessionCleanupTimer.unref();
+  const tiktokLivenessWatchdog = setInterval(() => {
+    const now = Date.now();
+    for (const sess of sessions.values()) {
+      if (!sess.connectedUsername || sess.isTestMode || sess.explicitlyDisconnected || sess.connectingPromise || sess.retryTimer) {
+        continue;
+      }
+      const room = io.sockets.adapter.rooms.get(`session:${sess.sessionId}`);
+      const hasSockets = Boolean(room && room.size > 0);
+      if (!hasSockets && now - sess.lastActiveAt > 4 * 60 * 60 * 1e3) {
+        continue;
+      }
+      const conn = sess.tiktokConn;
+      const isAlive = Boolean(
+        conn && (typeof conn.isConnected !== "boolean" || conn.isConnected === true)
+      );
+      if (!isAlive) {
+        if (conn) {
+          try {
+            conn.disconnect();
+          } catch {
+          }
+          sess.tiktokConn = null;
+        }
+        sess.connectedRoomId = "LIVE_RELAY";
+        scheduleBackgroundTikTokRetry(sess, sess.connectedUsername);
+      }
+    }
+  }, 3e4);
+  tiktokLivenessWatchdog.unref();
   function pushAndEmitToSession(session, type, payload) {
     session.eventSeq += 1;
     session.lastActiveAt = Date.now();
@@ -15693,8 +15801,16 @@ async function startServer() {
     activeConn.on(ControlEvent2.DISCONNECTED, () => {
       if (session.tiktokConn === activeConn) {
         session.tiktokConn = null;
-        if (session.connectedUsername === cleanUsername && !session.isTestMode) {
+        if (!session.explicitlyDisconnected && session.connectedUsername === cleanUsername && !session.isTestMode) {
           session.connectedRoomId = "LIVE_RELAY";
+          io.to(`session:${session.sessionId}`).emit("tiktok-status", {
+            connected: true,
+            reconnecting: true,
+            username: cleanUsername,
+            roomId: "LIVE_RELAY",
+            gameId: session.gameId || void 0,
+            notice: "TikTok stream hiccup \u2014 auto-reconnecting\u2026"
+          });
           scheduleBackgroundTikTokRetry(session, cleanUsername);
         }
       }
@@ -15705,12 +15821,19 @@ async function startServer() {
   }
   function scheduleBackgroundTikTokRetry(session, cleanUsername) {
     clearSessionRetryTimer(session);
-    if (session.isTestMode || !session.connectedUsername || session.connectedUsername !== cleanUsername) {
+    if (session.explicitlyDisconnected || session.isTestMode || !session.connectedUsername || session.connectedUsername !== cleanUsername) {
       return;
     }
+    const backoffScheduleMs = [3e3, 5e3, 8e3, 12e3, 15e3];
+    const attemptIdx = Math.min(
+      Math.max(0, Number(session.retryCount) || 0),
+      backoffScheduleMs.length - 1
+    );
+    const delayMs = backoffScheduleMs[attemptIdx];
+    session.retryCount = (Number(session.retryCount) || 0) + 1;
     session.retryTimer = setTimeout(async () => {
       session.retryTimer = null;
-      if (!session.connectedUsername || session.connectedUsername !== cleanUsername || session.tiktokConn || session.isTestMode) {
+      if (session.explicitlyDisconnected || !session.connectedUsername || session.connectedUsername !== cleanUsername || session.tiktokConn || session.isTestMode) {
         return;
       }
       try {
@@ -15719,7 +15842,7 @@ async function startServer() {
           enableExtendedGiftInfo: false
         });
         const state = await conn.connect();
-        if (session.connectedUsername !== cleanUsername) {
+        if (session.explicitlyDisconnected || session.connectedUsername !== cleanUsername) {
           try {
             conn.disconnect();
           } catch {
@@ -15727,15 +15850,19 @@ async function startServer() {
           return;
         }
         session.tiktokConn = conn;
+        session.retryCount = 0;
         session.connectedRoomId = state?.roomId || `LIVE_${cleanUsername}`;
+        session.lastActiveAt = Date.now();
         attachTikTokConnListeners(session, conn, cleanUsername);
         emitConnectedState(session, void 0);
       } catch {
-        if (session.connectedUsername === cleanUsername && Date.now() - session.lastActiveAt < 20 * 60 * 1e3) {
+        const room = io.sockets.adapter.rooms.get(`session:${session.sessionId}`);
+        const hasSockets = Boolean(room && room.size > 0);
+        if (!session.explicitlyDisconnected && session.connectedUsername === cleanUsername && (hasSockets || Date.now() - session.lastActiveAt < 4 * 60 * 60 * 1e3)) {
           scheduleBackgroundTikTokRetry(session, cleanUsername);
         }
       }
-    }, 15e3);
+    }, delayMs);
   }
   async function connectSessionTikTokStream(session, rawUsername, gameId, options = {}) {
     const cleanUsername = String(rawUsername || "").trim().replace(/^@+/, "");
@@ -15764,7 +15891,12 @@ async function startServer() {
         provider
       };
     }
-    if (!forceReconnect && session.connectedUsername && session.connectedUsername.toLowerCase() === cleanUsername.toLowerCase() && !session.isTestMode) {
+    const hasHealthyLiveConn = Boolean(
+      session.tiktokConn && (typeof session.tiktokConn.isConnected !== "boolean" || session.tiktokConn.isConnected === true)
+    );
+    if (!forceReconnect && hasHealthyLiveConn && session.connectedUsername && session.connectedUsername.toLowerCase() === cleanUsername.toLowerCase() && !session.isTestMode) {
+      session.explicitlyDisconnected = false;
+      session.lastActiveAt = Date.now();
       emitConnectedState(session, gameId);
       return {
         ok: true,
@@ -15775,13 +15907,17 @@ async function startServer() {
       };
     }
     if (!forceReconnect && session.connectingPromise && session.connectedUsername && session.connectedUsername.toLowerCase() === cleanUsername.toLowerCase()) {
+      session.explicitlyDisconnected = false;
       emitConnectedState(session, gameId);
       return session.connectingPromise;
     }
     closeSessionTikTokConnOnly(session);
+    session.explicitlyDisconnected = false;
+    session.retryCount = 0;
     session.isTestMode = false;
     session.connectedUsername = cleanUsername;
     session.connectedRoomId = `LIVE_${cleanUsername}`;
+    session.lastActiveAt = Date.now();
     emitConnectedState(session, gameId);
     const connectTask = (async () => {
       try {
@@ -15791,14 +15927,19 @@ async function startServer() {
         });
         session.tiktokConn = conn;
         const state = await conn.connect();
-        if (session.tiktokConn !== conn) {
+        if (session.tiktokConn !== conn || session.explicitlyDisconnected) {
+          try {
+            conn.disconnect();
+          } catch {
+          }
           return {
             ok: true,
-            connected: true,
+            connected: Boolean(session.connectedUsername),
             username: session.connectedUsername || cleanUsername,
             roomId: session.connectedRoomId || `LIVE_${cleanUsername}`
           };
         }
+        session.retryCount = 0;
         session.connectedUsername = cleanUsername;
         session.connectedRoomId = state?.roomId || `LIVE_${cleanUsername}`;
         if (gameId) {
@@ -16562,6 +16703,21 @@ async function startServer() {
         "tiktok-disconnected",
         targetGameId ? { gameId: targetGameId } : void 0
       );
+    });
+    socket.on("tiktok-keepalive", (payload) => {
+      activeSession.lastActiveAt = Date.now();
+      if (payload && typeof payload === "object" && typeof payload.username === "string" && payload.username.trim() && !activeSession.connectedUsername && !activeSession.explicitlyDisconnected) {
+        const cleanUser = payload.username.trim().replace(/^@+/, "");
+        void connectSessionTikTokStream(
+          activeSession,
+          cleanUser,
+          normalizeGameId(payload.gameId) || socketGameId || void 0,
+          {
+            isTestMode: Boolean(payload.isTestMode),
+            provider: payload.provider
+          }
+        );
+      }
     });
     socket.on("chat-message", (chatPayload) => {
       if (chatPayload && typeof chatPayload === "object") {

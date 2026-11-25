@@ -22,7 +22,7 @@ export const DEFAULT_STATS: UnolingoStats = {
 };
 
 export const DEFAULT_PREFS: UnolingoPrefs = {
-  soundEnabled: true,
+  soundEnabled: false,
   autoCheck: false,
 };
 

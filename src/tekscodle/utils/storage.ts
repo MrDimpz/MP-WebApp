@@ -49,11 +49,11 @@ export function saveDarkModePreference(darkMode: boolean): void {
 }
 
 export function loadLocalMuted(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined') return true;
   try {
-    return window.localStorage.getItem(MUTED_STORAGE_KEY) === 'true';
+    return window.localStorage.getItem(MUTED_STORAGE_KEY) !== 'false';
   } catch {
-    return false;
+    return true;
   }
 }
 

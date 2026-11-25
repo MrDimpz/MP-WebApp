@@ -1,6 +1,6 @@
 class SoundEngine {
   private ctx: AudioContext | null = null;
-  private muted = false;
+  private muted = true;
 
   private ensureContext(): AudioContext | null {
     if (this.muted || typeof window === 'undefined') return null;

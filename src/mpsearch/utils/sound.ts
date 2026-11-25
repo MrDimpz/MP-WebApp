@@ -2,12 +2,12 @@
 
 class SoundController {
   private ctx: AudioContext | null = null;
-  private muted: boolean = false;
+  private muted: boolean = true;
 
   constructor() {
     try {
       const saved = localStorage.getItem('lexicon10_muted');
-      if (saved === 'true') this.muted = true;
+      if (saved === 'false') this.muted = false;
     } catch {
       // Ignore storage access errors
     }

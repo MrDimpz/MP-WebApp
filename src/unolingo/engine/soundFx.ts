@@ -1,6 +1,6 @@
 class SoundFxEngine {
   private ctx: AudioContext | null = null;
-  private muted: boolean = false;
+  private muted: boolean = true;
 
   setMuted(muted: boolean) {
     this.muted = muted;

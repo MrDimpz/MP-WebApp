@@ -16,7 +16,7 @@
   },
   "audio": {
     "masterVolume": 0.7,
-    "muted": false,
+    "muted": true,
     "sounds": {
       "gameStart": true,
       "countdown": true,

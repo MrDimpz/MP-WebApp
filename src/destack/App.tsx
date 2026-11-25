@@ -57,7 +57,7 @@ export default function App() {
   const [dictionaryLanguage] = useDictionaryLanguage();
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(true);
   const [showHowToPlay, setShowHowToPlay] = useState<boolean>(false);
 
   // Unified Solo Games Auth & Leaderboard Modal State

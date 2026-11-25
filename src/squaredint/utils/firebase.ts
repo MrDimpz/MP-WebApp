@@ -29,6 +29,11 @@ import {
   isFirestoreWritePaused,
   markFirestoreQuotaExhausted,
 } from '@/lib/firestore-quota';
+import {
+  mysqlGetHighScores,
+  mysqlUpsertHighScore,
+  shouldUseMysqlBackend,
+} from '@/lib/mysql-client';
 import { recordRegisteredUser } from '@/lib/unified-game-auth';
 import { GameModeId } from './puzzleGenerator';
 
@@ -36,6 +41,9 @@ export { db, auth };
 
 // Validate connection to Firestore on boot as required
 async function testConnection() {
+  if (isFirestoreWritePaused()) {
+    return;
+  }
   if (typeof window !== 'undefined') {
     const cleanPath = window.location.pathname.toLowerCase().replace(/\/+$/, '');
     const params = new URLSearchParams(window.location.search);
@@ -50,6 +58,10 @@ async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
+    if (isFirestoreQuotaError(error)) {
+      markFirestoreQuotaExhausted(error);
+      return;
+    }
     if (error instanceof Error && error.message.includes('the client is offline')) {
       console.error('Please check your Firebase configuration.');
     }
@@ -226,6 +238,20 @@ export async function saveHighScoreToFirestore(params: {
   const safeWordsFound = Math.max(0, Math.min(safeTotalWords, Math.floor(wordsFound)));
   const safeBonusCount = Math.max(0, Math.min(500, Math.floor(bonusWordsCount)));
 
+  if (await shouldUseMysqlBackend()) {
+    await mysqlUpsertHighScore({
+      puzzleId: safePuzzleId,
+      mode,
+      score: safeScore,
+      wordsFound: safeWordsFound,
+      totalWords: safeTotalWords,
+      bonusWordsCount: safeBonusCount,
+      foundFeatured: Boolean(foundFeatured),
+      displayName: safeDisplayName,
+    });
+    return;
+  }
+
   if (isFirestoreWritePaused()) {
     return;
   }
@@ -291,34 +317,76 @@ export function subscribeToUserHighScores(
   const colRef = collection(db, 'highscores');
   const q = query(colRef, where('userId', '==', userId));
 
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const items: HighScoreRecord[] = [];
-      snapshot.forEach((docSnap) => {
-        const d = docSnap.data();
-        items.push({
-          id: docSnap.id,
-          userId: d.userId,
-          displayName: d.displayName,
-          puzzleId: d.puzzleId,
-          mode: d.mode as GameModeId,
-          score: d.score,
-          wordsFound: d.wordsFound,
-          totalWords: d.totalWords,
-          bonusWordsCount: d.bonusWordsCount,
-          foundFeatured: Boolean(d.foundFeatured),
-          createdAt: d.createdAt,
-          updatedAt: d.updatedAt,
-        });
-      });
+  let unsubFirestore = () => {};
+  let disposed = false;
+
+  void shouldUseMysqlBackend().then(async (useMysql) => {
+    if (disposed) return;
+    if (useMysql) {
+      const rows = await mysqlGetHighScores(userId);
+      if (disposed || !rows) return;
+      const items: HighScoreRecord[] = rows.map((d) => ({
+        id: d.id,
+        userId: d.userId,
+        displayName: d.displayName,
+        puzzleId: d.puzzleId,
+        mode: d.mode as GameModeId,
+        score: d.score,
+        wordsFound: d.wordsFound,
+        totalWords: d.totalWords,
+        bonusWordsCount: d.bonusWordsCount,
+        foundFeatured: Boolean(d.foundFeatured),
+        createdAt: null,
+        updatedAt: null,
+      }));
       items.sort((a, b) => b.score - a.score);
       onData(items);
-    },
-    (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'highscores');
+      return;
     }
-  );
+
+    if (isFirestoreWritePaused()) {
+      onData([]);
+      return;
+    }
+
+    unsubFirestore = onSnapshot(
+      q,
+      (snapshot) => {
+        const items: HighScoreRecord[] = [];
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          items.push({
+            id: docSnap.id,
+            userId: d.userId,
+            displayName: d.displayName,
+            puzzleId: d.puzzleId,
+            mode: d.mode as GameModeId,
+            score: d.score,
+            wordsFound: d.wordsFound,
+            totalWords: d.totalWords,
+            bonusWordsCount: d.bonusWordsCount,
+            foundFeatured: Boolean(d.foundFeatured),
+            createdAt: d.createdAt,
+            updatedAt: d.updatedAt,
+          });
+        });
+        items.sort((a, b) => b.score - a.score);
+        onData(items);
+      },
+      (error) => {
+        if (isFirestoreQuotaError(error)) {
+          markFirestoreQuotaExhausted(error);
+          return;
+        }
+        handleFirestoreError(error, OperationType.LIST, 'highscores');
+      }
+    );
+  });
+
+  return () => {
+    disposed = true;
+    unsubFirestore();
+  };
 }
 
 export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;

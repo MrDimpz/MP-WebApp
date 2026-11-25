@@ -1,12 +1,12 @@
 class SoundController {
   private ctx: AudioContext | null = null;
-  private muted = false;
+  private muted = true;
 
   constructor() {
     try {
-      this.muted = localStorage.getItem('mpwh_muted') === '1';
+      this.muted = localStorage.getItem('mpwh_muted') !== '0';
     } catch {
-      this.muted = false;
+      this.muted = true;
     }
   }
 

@@ -43,6 +43,13 @@ import {
   isFirestoreWritePaused,
   markFirestoreQuotaExhausted,
 } from "./firestore-quota";
+import {
+  mysqlGetLeaderboard,
+  mysqlGetRegisteredUsers,
+  mysqlUpsertLeaderboard,
+  mysqlUpsertRegisteredUser,
+  shouldUseMysqlBackend,
+} from "./mysql-client";
 
 export { auth, db, onAuthStateChanged };
 export type { User };
@@ -741,7 +748,6 @@ export async function syncFirebaseRegisteredUser(
   const nextTask = previousTask
     .catch(() => {})
     .then(async () => {
-      if (isFirestoreWritePaused()) return;
       const fbUser = auth.currentUser;
       if (!fbUser || fbUser.uid !== uid) return;
       const safeName = sanitizePublicIdentity(record.displayName, "Player").slice(
@@ -761,6 +767,18 @@ export async function syncFirebaseRegisteredUser(
             ? "google"
             : "email";
 
+      if (await shouldUseMysqlBackend()) {
+        const ok = await mysqlUpsertRegisteredUser({
+          displayName: safeName,
+          linkedTikTokHandle: safeHandle,
+          authProvider: safeProvider,
+          explicitTikTokUpdate,
+        });
+        if (ok) syncedRegisteredUserSignatures.add(syncSignature);
+        return;
+      }
+
+      if (isFirestoreWritePaused()) return;
       const docPath = `registeredUsers/${uid}`;
       const docRef = doc(db, "registeredUsers", uid);
 
@@ -1229,7 +1247,8 @@ export async function fetchRegisteredUsersDirectory(): Promise<
   if (typeof window === "undefined") return localList;
 
   try {
-    const [serverRes, firestoreUsers] = await Promise.all([
+    const useMysql = await shouldUseMysqlBackend();
+    const [serverRes, cloudUsers] = await Promise.all([
       fetch("/api/admin/registered-users", { cache: "no-store" })
         .then(async (res) => {
           const ct = res.headers.get("content-type") || "";
@@ -1238,8 +1257,11 @@ export async function fetchRegisteredUsersDirectory(): Promise<
           return Array.isArray(data?.users) ? data.users : [];
         })
         .catch(() => []),
-      fetchRegisteredUsersFromFirestore().catch(() => []),
+      useMysql
+        ? mysqlGetRegisteredUsers().then((list) => list || []).catch(() => [])
+        : fetchRegisteredUsersFromFirestore().catch(() => []),
     ]);
+    const firestoreUsers = cloudUsers;
 
     const merged = new Map<string, RegisteredUserRecord>();
     for (const item of localList) {
@@ -2322,6 +2344,33 @@ export async function saveUnifiedLeaderboardScore(params: {
     .slice(0, 64);
   const safeDocId = `${normalizedGameId}_${safeUid}`.slice(0, MAX_ID_LENGTH);
 
+  const safeTitle = String(params.puzzleTitle || meta.title).slice(0, 100);
+  const safeMetric = String(metricLabel || meta.metric).slice(0, 60);
+  const safeSubMetric = String(params.subMetricLabel || meta.metric).slice(0, 80);
+  const safeScore = Math.max(0, Math.min(1000000, Math.round(score)));
+  const safeDisplayName = displayName.slice(0, 60) || "Player";
+  const firestoreGameId =
+    normalizedGameId === "cruciverbalist" ? "crossword" : normalizedGameId;
+
+  if (
+    ID_REGEX.test(safeUid) &&
+    ID_REGEX.test(safePuzzleId) &&
+    ID_REGEX.test(safeDocId) &&
+    (await shouldUseMysqlBackend())
+  ) {
+    await mysqlUpsertLeaderboard({
+      entryId: safeDocId,
+      gameId: firestoreGameId,
+      puzzleId: safePuzzleId,
+      puzzleTitle: safeTitle,
+      score: safeScore,
+      metricLabel: safeMetric,
+      subMetricLabel: safeSubMetric,
+      displayName: safeDisplayName,
+    });
+    return result;
+  }
+
   if (
     !isFirestoreWritePaused() &&
     ID_REGEX.test(safeUid) &&
@@ -2332,13 +2381,6 @@ export async function saveUnifiedLeaderboardScore(params: {
     const docRef = doc(db, "leaderboard", safeDocId);
     try {
       const snap = await getDoc(docRef);
-      const safeTitle = String(params.puzzleTitle || meta.title).slice(0, 100);
-      const safeMetric = String(metricLabel || meta.metric).slice(0, 60);
-      const safeSubMetric = String(params.subMetricLabel || meta.metric).slice(0, 80);
-      const safeScore = Math.max(0, Math.min(1000000, Math.round(score)));
-      const safeDisplayName = displayName.slice(0, 60) || "Player";
-      const firestoreGameId =
-        normalizedGameId === "cruciverbalist" ? "crossword" : normalizedGameId;
 
       if (!snap.exists()) {
         await setDoc(docRef, {
@@ -2458,51 +2500,99 @@ export function subscribeToAllLeaderboards(
   window.addEventListener("mp-tiktok-link-updated", onLocalUpdate);
 
   let unsubFirestore = () => {};
-  try {
-    const q = query(
-      collection(db, "leaderboard"),
-      orderBy("score", "desc"),
-      limit(60),
-    );
-    unsubFirestore = onSnapshot(
-      q,
-      (snap) => {
-        const remote: UnifiedLeaderboardEntry[] = [];
-        snap.forEach((docSnap) => {
-          const data = docSnap.data();
-          if (data && data.gameId && typeof data.score === "number") {
-            const gid =
-              data.gameId === "crossword"
-                ? "cruciverbalist"
-                : (data.gameId as SoloGameId);
-            const entryUid = String(data.userId || data.uid || "");
-            remote.push({
-              id: docSnap.id,
-              uid: entryUid,
-              displayName: sanitizePublicIdentity(data.displayName, "Player"),
-              photoURL: getUserProfileAvatarUrl({ uid: entryUid }),
-              gameId: gid,
-              gameTitle:
-                SOLO_GAME_LABELS[gid]?.title || String(data.puzzleTitle || ""),
-              score: data.score,
-              metricLabel: String(data.metricLabel || `${data.score} pts`),
-              updatedAt: toMillisSafe(data.updatedAt),
+  let disposed = false;
+  let mysqlPollTimer: ReturnType<typeof setInterval> | null = null;
+
+  const loadMysqlLeaderboard = async () => {
+    const rows = await mysqlGetLeaderboard();
+    if (disposed || !rows) return;
+    const remote: UnifiedLeaderboardEntry[] = rows.map((data) => {
+      const gid =
+        data.gameId === "crossword"
+          ? "cruciverbalist"
+          : (data.gameId as SoloGameId);
+      const entryUid = String(data.userId || "");
+      return {
+        id: data.id,
+        uid: entryUid,
+        displayName: sanitizePublicIdentity(data.displayName, "Player"),
+        photoURL: getUserProfileAvatarUrl({ uid: entryUid }),
+        gameId: gid,
+        gameTitle: SOLO_GAME_LABELS[gid]?.title || String(data.puzzleTitle || ""),
+        score: data.score,
+        metricLabel: String(data.metricLabel || `${data.score} pts`),
+        updatedAt: Number(data.updatedAt) || Date.now(),
+      };
+    });
+    latestRemote = remote;
+    callback(groupEntries(remote));
+  };
+
+  void shouldUseMysqlBackend().then((useMysql) => {
+    if (disposed) return;
+    if (useMysql) {
+      void loadMysqlLeaderboard();
+      mysqlPollTimer = setInterval(() => {
+        if (!document.hidden) void loadMysqlLeaderboard();
+      }, 30_000);
+      return;
+    }
+
+    if (!isFirestoreWritePaused()) {
+      try {
+        const q = query(
+          collection(db, "leaderboard"),
+          orderBy("score", "desc"),
+          limit(60),
+        );
+        unsubFirestore = onSnapshot(
+          q,
+          (snap) => {
+            const remote: UnifiedLeaderboardEntry[] = [];
+            snap.forEach((docSnap) => {
+              const data = docSnap.data();
+              if (data && data.gameId && typeof data.score === "number") {
+                const gid =
+                  data.gameId === "crossword"
+                    ? "cruciverbalist"
+                    : (data.gameId as SoloGameId);
+                const entryUid = String(data.userId || data.uid || "");
+                remote.push({
+                  id: docSnap.id,
+                  uid: entryUid,
+                  displayName: sanitizePublicIdentity(data.displayName, "Player"),
+                  photoURL: getUserProfileAvatarUrl({ uid: entryUid }),
+                  gameId: gid,
+                  gameTitle:
+                    SOLO_GAME_LABELS[gid]?.title || String(data.puzzleTitle || ""),
+                  score: data.score,
+                  metricLabel: String(data.metricLabel || `${data.score} pts`),
+                  updatedAt: toMillisSafe(data.updatedAt),
+                });
+              }
             });
-          }
-        });
-        latestRemote = remote;
-        callback(groupEntries(remote));
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.LIST, "leaderboard");
+            latestRemote = remote;
+            callback(groupEntries(remote));
+          },
+          (error) => {
+            if (isFirestoreQuotaError(error)) {
+              markFirestoreQuotaExhausted(error);
+              callback(groupEntries(latestRemote));
+              return;
+            }
+            handleFirestoreError(error, OperationType.LIST, "leaderboard");
+            callback(groupEntries(latestRemote));
+          },
+        );
+      } catch {
         callback(groupEntries(latestRemote));
-      },
-    );
-  } catch {
-    callback(groupEntries(latestRemote));
-  }
+      }
+    }
+  });
 
   return () => {
+    disposed = true;
+    if (mysqlPollTimer) clearInterval(mysqlPollTimer);
     window.removeEventListener("mp-unified-leaderboard-updated", onLocalUpdate);
     window.removeEventListener("mp-tiktok-avatar-updated", onLocalUpdate);
     window.removeEventListener("mp-tiktok-link-updated", onLocalUpdate);

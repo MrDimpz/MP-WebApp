@@ -2,12 +2,16 @@
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
-  public muted: boolean = false;
+  public muted: boolean = true;
 
   constructor() {
-    const savedMute = localStorage.getItem('missing_piece_muted');
-    if (savedMute === 'true') {
-      this.muted = true;
+    try {
+      const savedMute = localStorage.getItem('missing_piece_muted');
+      if (savedMute === 'false') {
+        this.muted = false;
+      }
+    } catch {
+      // ignore storage errors
     }
   }
 

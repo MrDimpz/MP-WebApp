@@ -13,7 +13,7 @@ export type SoundKey =
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private masterVolume = 0.7;
-  private muted = false;
+  private muted = true;
   private enabledSounds: Record<string, boolean> = {
     gameStart: true,
     countdown: true,

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
+  Database,
   Eye,
   EyeOff,
   KeyRound,
@@ -13,6 +14,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import { AdminMysqlMigrationPanel } from '@/components/admin-mysql-migration-panel';
 import {
   logoutInteractiveAdmin,
   useInteractiveAuthStore,
@@ -530,6 +532,7 @@ export function AdminPanelModal({ open, isOpen, onClose }: AdminPanelModalProps)
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [activeAdminTab, setActiveAdminTab] = useState<'users' | 'mysql'>('users');
 
   useEffect(() => {
     if (isModalOpen) {
@@ -878,16 +881,66 @@ export function AdminPanelModal({ open, isOpen, onClose }: AdminPanelModalProps)
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '0.75rem 1.4rem',
+                padding: '0.7rem 1.4rem',
                 borderBottom: '1px solid rgba(255,255,255,0.08)',
                 backgroundColor: '#0e1017',
                 gap: '0.6rem',
                 flexWrap: 'wrap',
               }}
             >
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', color: '#f3b340', fontSize: '0.8rem', fontWeight: 800 }}>
-                <ShieldCheck size={15} />
-                Registered Website Users &amp; TikTok Connections
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveAdminTab('users')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.42rem 0.78rem',
+                    borderRadius: '8px',
+                    border:
+                      activeAdminTab === 'users'
+                        ? '1px solid rgba(243, 179, 64, 0.55)'
+                        : '1px solid rgba(255,255,255,0.12)',
+                    backgroundColor:
+                      activeAdminTab === 'users'
+                        ? 'rgba(243, 179, 64, 0.16)'
+                        : 'rgba(255,255,255,0.03)',
+                    color: activeAdminTab === 'users' ? '#f3b340' : '#cbd5e1',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <ShieldCheck size={14} />
+                  Registered Users
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveAdminTab('mysql')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.42rem 0.78rem',
+                    borderRadius: '8px',
+                    border:
+                      activeAdminTab === 'mysql'
+                        ? '1px solid rgba(52, 211, 153, 0.55)'
+                        : '1px solid rgba(255,255,255,0.12)',
+                    backgroundColor:
+                      activeAdminTab === 'mysql'
+                        ? 'rgba(16, 185, 129, 0.16)'
+                        : 'rgba(255,255,255,0.03)',
+                    color: activeAdminTab === 'mysql' ? '#6ee7b7' : '#cbd5e1',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Database size={14} />
+                  Hostinger MySQL &amp; SQL Export
+                </button>
               </div>
               <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                 Signed in as{' '}
@@ -896,7 +949,11 @@ export function AdminPanelModal({ open, isOpen, onClose }: AdminPanelModalProps)
             </div>
 
             <div style={{ padding: '1.25rem 1.4rem', overflowY: 'auto' }}>
-              <RegisteredUsersDirectoryView enabled={isModalOpen && Boolean(authenticatedAdmin)} />
+              {activeAdminTab === 'users' ? (
+                <RegisteredUsersDirectoryView enabled={isModalOpen && Boolean(authenticatedAdmin)} />
+              ) : (
+                <AdminMysqlMigrationPanel enabled={isModalOpen && Boolean(authenticatedAdmin)} />
+              )}
             </div>
           </div>
         )}

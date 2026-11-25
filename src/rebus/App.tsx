@@ -233,7 +233,7 @@ export default function App() {
   const [guessInput, setGuessInput] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'correct' | 'wrong' | 'almost' | 'revealed'>('idle');
   const [feedbackMessage, setFeedbackMessage] = useState<string>('');
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const [confirmReveal, setConfirmReveal] = useState<boolean>(false);
 
   // Sync soundEngine enabled flag
