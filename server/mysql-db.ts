@@ -1,10 +1,32 @@
+import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
+
+// Ensure .env is loaded even when Hostinger launches Node from a parent working directory
+try {
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+  const candidateEnvPaths = [
+    path.resolve(process.cwd(), ".env"),
+    path.resolve(currentDir, ".env"),
+    path.resolve(currentDir, "..", ".env"),
+  ];
+  for (const envPath of candidateEnvPaths) {
+    if (fs.existsSync(envPath)) {
+      dotenv.config({ path: envPath, override: false });
+    }
+  }
+} catch {
+  // Ignore filesystem lookup issues on restricted runtimes
+}
 
 export interface MysqlDatabaseStatus {
   configured: boolean;
   connected: boolean;
   mode: "mysql" | "firestore-fallback";
   error: string | null;
+  missingEnvVars?: string[];
   tables: {
     users: number;
     user_progress: number;
@@ -117,6 +139,45 @@ function readEnvTrimmed(key: string): string {
   return raw;
 }
 
+function readFirstEnv(keys: string[]): string {
+  for (const key of keys) {
+    const val = readEnvTrimmed(key);
+    if (val) return val;
+  }
+  return "";
+}
+
+function readFirstRawEnv(keys: string[]): string {
+  for (const key of keys) {
+    const raw = process.env[key];
+    if (typeof raw === "string" && raw.length > 0) {
+      return raw;
+    }
+  }
+  return "";
+}
+
+function getMissingMysqlEnvVars(): string[] {
+  const mysqlUrl = readFirstEnv(["MYSQL_URL", "DATABASE_URL"]);
+  if (mysqlUrl && /^mysql2?:\/\//i.test(mysqlUrl)) {
+    return [];
+  }
+  const missing: string[] = [];
+  if (!readFirstEnv(["MYSQL_HOST", "DB_HOST", "HOSTINGER_MYSQL_HOST"])) {
+    missing.push("MYSQL_HOST");
+  }
+  if (!readFirstEnv(["MYSQL_USER", "MYSQL_USERNAME", "DB_USER", "DB_USERNAME"])) {
+    missing.push("MYSQL_USER");
+  }
+  if (!readFirstEnv(["MYSQL_DATABASE", "MYSQL_DB", "MYSQL_NAME", "DB_DATABASE", "DB_NAME"])) {
+    missing.push("MYSQL_DATABASE");
+  }
+  if (!readFirstRawEnv(["MYSQL_PASSWORD", "MYSQL_PASS", "DB_PASSWORD", "DB_PASS"])) {
+    missing.push("MYSQL_PASSWORD");
+  }
+  return missing;
+}
+
 function isLoopbackHost(host: string): boolean {
   const normalized = host.trim().toLowerCase();
   return (
@@ -158,8 +219,8 @@ function formatSafeMysqlError(
 }
 
 function buildPoolConfig(): ResolvedPoolConfig | null {
-  const mysqlUrl = readEnvTrimmed("MYSQL_URL");
-  const useSsl = readEnvTrimmed("MYSQL_SSL").toLowerCase() === "true";
+  const mysqlUrl = readFirstEnv(["MYSQL_URL", "DATABASE_URL"]);
+  const useSsl = readFirstEnv(["MYSQL_SSL", "DB_SSL"]).toLowerCase() === "true";
 
   if (mysqlUrl && /^mysql2?:\/\//i.test(mysqlUrl)) {
     let targetHost = "mysql";
@@ -186,11 +247,23 @@ function buildPoolConfig(): ResolvedPoolConfig | null {
     };
   }
 
-  let host = readEnvTrimmed("MYSQL_HOST");
-  const user = readEnvTrimmed("MYSQL_USER");
-  const database = readEnvTrimmed("MYSQL_DATABASE");
-  const password = String(process.env.MYSQL_PASSWORD || "");
-  let port = Number(readEnvTrimmed("MYSQL_PORT") || 3306);
+  let host = readFirstEnv(["MYSQL_HOST", "DB_HOST", "HOSTINGER_MYSQL_HOST"]);
+  const user = readFirstEnv(["MYSQL_USER", "MYSQL_USERNAME", "DB_USER", "DB_USERNAME"]);
+  const database = readFirstEnv([
+    "MYSQL_DATABASE",
+    "MYSQL_DB",
+    "MYSQL_NAME",
+    "DB_DATABASE",
+    "DB_NAME",
+  ]);
+  const password = readFirstRawEnv(["MYSQL_PASSWORD", "MYSQL_PASS", "DB_PASSWORD", "DB_PASS"]);
+  const portEnv = readFirstEnv(["MYSQL_PORT", "DB_PORT"]);
+  let port = Number(portEnv || 3306);
+
+  // If user and database are explicitly configured on Hostinger but MYSQL_HOST was left blank, default to localhost
+  if (!host && user && database) {
+    host = "localhost";
+  }
 
   // Support accidental host:port format in MYSQL_HOST (non-IPv6)
   if (host && host.includes(":") && !host.startsWith("[")) {
@@ -198,7 +271,7 @@ function buildPoolConfig(): ResolvedPoolConfig | null {
     const maybePort = Number(host.slice(colonIdx + 1));
     if (Number.isFinite(maybePort) && maybePort > 0 && maybePort <= 65535) {
       host = host.slice(0, colonIdx).trim();
-      if (!readEnvTrimmed("MYSQL_PORT")) {
+      if (!portEnv) {
         port = maybePort;
       }
     }
@@ -311,6 +384,7 @@ export async function getMysqlStatus(includeCounts = false): Promise<MysqlDataba
       connected: false,
       mode: "firestore-fallback",
       error: null,
+      missingEnvVars: getMissingMysqlEnvVars(),
       tables: null,
     };
   }

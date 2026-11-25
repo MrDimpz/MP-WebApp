@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { CheckCircle2, Clock, RotateCcw } from 'lucide-react';
+import { CheckCircle2, RotateCcw } from 'lucide-react';
 import type { GuessFeedItem } from '../shared/types';
 
 interface GuessMarqueeProps {
@@ -81,57 +81,46 @@ function PlayerAvatar({ item }: { item: GuessFeedItem }) {
 
 function GuessChipContent({ item }: { item: GuessFeedItem }) {
   const isDuplicate = item.alreadyGuessed || item.status === 'duplicate';
-  const isSolved = item.status === 'solved';
-  const isBuffer = item.status === 'buffer';
+  const isSolved = item.status === 'solved' || item.status === 'buffer';
 
   return (
     <div
       className={`h-7 px-2.5 rounded-lg border inline-flex items-center gap-1.5 shrink-0 select-none ${
         isDuplicate
-          ? 'border-amber-400/50 bg-amber-950/40'
+          ? 'border-amber-400/60 bg-amber-50 dark:bg-amber-950/40'
           : isSolved
-          ? 'border-emerald-400/60 bg-emerald-950/50'
-          : isBuffer
-          ? 'border-[#F6C915]/70 bg-[#361156]'
-          : 'border-[#D4A437]/25 bg-[#150424]'
+          ? 'border-emerald-400/60 bg-emerald-50 dark:bg-emerald-950/50'
+          : 'border-[#D7C4EC] dark:border-[#D4A437]/25 bg-white dark:bg-[#150424]'
       }`}
     >
       <PlayerAvatar item={item} />
 
-      <span className="text-[11px] font-bold text-white max-w-[110px] truncate leading-none">
+      <span className="text-[11px] font-bold text-[#2B0938] dark:text-white max-w-[110px] truncate leading-none">
         {item.playerName}
       </span>
 
       <span
         className={`font-mono text-[11px] font-black tracking-[0.08em] uppercase px-1.5 py-[1px] rounded border leading-tight whitespace-nowrap shrink-0 ${
           isDuplicate
-            ? 'border-amber-400/35 bg-[#12031E] text-amber-200/90 line-through decoration-amber-400/75'
+            ? 'border-amber-400/50 bg-amber-100/80 dark:bg-[#12031E] text-amber-800 dark:text-amber-200/90 line-through decoration-amber-600 dark:decoration-amber-400/75'
             : isSolved
-            ? 'border-emerald-400/50 bg-emerald-500/20 text-emerald-100'
-            : isBuffer
-            ? 'border-[#F6C915]/60 bg-[#F6C915]/20 text-[#FFE46B]'
-            : 'border-[#D4A437]/30 bg-[#24083C] text-[#FFE46B]'
+            ? 'border-emerald-400/50 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-100'
+            : 'border-[#D7C4EC] dark:border-[#D4A437]/30 bg-[#F3ECFB] dark:bg-[#24083C] text-[#5B21B6] dark:text-[#FFE46B]'
         }`}
       >
         {item.word}
       </span>
 
       {isDuplicate && (
-        <span className="inline-flex items-center gap-0.5 rounded border border-amber-400/60 bg-amber-500/20 px-1.5 py-[1px] text-[9px] font-extrabold uppercase tracking-wider text-amber-200 leading-none whitespace-nowrap shrink-0">
+        <span className="inline-flex items-center gap-0.5 rounded border border-amber-400/60 bg-amber-100 dark:bg-amber-500/20 px-1.5 py-[1px] text-[9px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-200 leading-none whitespace-nowrap shrink-0">
           <RotateCcw className="h-2.5 w-2.5" aria-hidden="true" />
           Already guessed
         </span>
       )}
       {isSolved && (
-        <span className="inline-flex items-center gap-0.5 rounded border border-emerald-400/60 bg-emerald-500/20 px-1.5 py-[1px] text-[9px] font-extrabold uppercase tracking-wider text-emerald-200 leading-none whitespace-nowrap shrink-0">
+        <span className="inline-flex items-center gap-0.5 rounded border border-emerald-400/60 bg-emerald-100 dark:bg-emerald-500/20 px-1.5 py-[1px] text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-200 leading-none whitespace-nowrap shrink-0">
           <CheckCircle2 className="h-2.5 w-2.5" aria-hidden="true" />
           Found
-        </span>
-      )}
-      {isBuffer && (
-        <span className="inline-flex items-center gap-0.5 rounded border border-[#F6C915]/70 bg-[#F6C915]/20 px-1.5 py-[1px] text-[9px] font-extrabold uppercase tracking-wider text-[#FFE46B] leading-none whitespace-nowrap shrink-0">
-          <Clock className="h-2.5 w-2.5" aria-hidden="true" />
-          4s Buffer
         </span>
       )}
     </div>
@@ -367,8 +356,8 @@ export function GuessMarquee({ items, embedded = false }: GuessMarqueeProps) {
       aria-label="Recent player guesses marquee"
       className={
         embedded
-          ? 'border-t border-white/10 bg-[#180528]/85 px-3.5 sm:px-4 py-2 shrink-0'
-          : 'rounded-2xl border border-[#D4A437]/35 bg-[#210736]/95 px-3 py-2 shadow-xl shrink-0'
+          ? 'border-t border-[#E6D9F5] dark:border-white/10 bg-[#F8F3FD]/90 dark:bg-[#180528]/85 px-3.5 sm:px-4 py-2 shrink-0'
+          : 'rounded-2xl border border-[#D7C4EC] dark:border-[#D4A437]/35 bg-white/95 dark:bg-[#210736]/95 px-3 py-2 shadow-xl shrink-0'
       }
     >
       <div
@@ -396,8 +385,8 @@ export function GuessMarquee({ items, embedded = false }: GuessMarqueeProps) {
         }`}
       >
         {renderEntries.length === 0 ? (
-          <div className="h-full w-full flex items-center justify-center text-center px-3 rounded-lg border border-dashed border-[#D4A437]/25 bg-[#12031E]/70">
-            <p className="text-[11px] font-medium text-[#B8A0D6] truncate">
+          <div className="h-full w-full flex items-center justify-center text-center px-3 rounded-lg border border-dashed border-[#D7C4EC] dark:border-[#D4A437]/25 bg-white/80 dark:bg-[#12031E]/70">
+            <p className="text-[11px] font-medium text-[#6B4A8A] dark:text-[#B8A0D6] truncate">
               Player pictures, names, guesses &amp; duplicate alerts scroll here live.
             </p>
           </div>

@@ -29,9 +29,9 @@ export const LiveLeaderboardPanel: React.FC<LiveLeaderboardPanelProps> = ({
     const rank = index + 1;
     const rankBadgeClasses =
       rank === 1
-        ? 'bg-gradient-to-b from-amber-300 to-amber-500 text-slate-950 border-white shadow-[0_2px_0_0_#78350f]'
+        ? 'bg-gradient-to-b from-amber-300 to-amber-500 text-[#1D0830] border-white shadow-[0_2px_0_0_#78350f]'
         : rank === 2
-        ? 'bg-gradient-to-b from-slate-100 to-slate-300 text-slate-950 border-white shadow-[0_2px_0_0_#475569]'
+        ? 'bg-gradient-to-b from-slate-100 to-slate-300 text-[#1D0830] border-white shadow-[0_2px_0_0_#475569]'
         : rank === 3
         ? 'bg-gradient-to-b from-amber-500 to-amber-700 text-white border-amber-300 shadow-[0_2px_0_0_#451a03]'
         : 'bg-slate-950 text-slate-300 border-slate-700';
@@ -75,7 +75,7 @@ export const LiveLeaderboardPanel: React.FC<LiveLeaderboardPanelProps> = ({
             )}
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-bold text-white truncate">
+            <div className="text-sm font-bold text-[#2B0938] dark:text-white truncate">
               {player.nickname}
             </div>
             <div className="text-xs text-slate-300 flex items-center gap-1.5">
@@ -83,13 +83,13 @@ export const LiveLeaderboardPanel: React.FC<LiveLeaderboardPanelProps> = ({
               {player.longestWord && activeTab !== 'highScorers' && (
                 <>
                   <span aria-hidden="true">·</span>
-                  <span className="font-mono text-amber-200 font-semibold">{player.longestWord}</span>
+                  <span className="font-mono text-[#8F6500] dark:text-amber-200 font-semibold">{player.longestWord}</span>
                 </>
               )}
             </div>
           </div>
         </div>
-        <div className="text-right font-mono font-extrabold text-sm text-amber-300 tabular-nums shrink-0 ml-2">
+        <div className="text-right font-mono font-extrabold text-sm text-[#8F6500] dark:text-amber-300 tabular-nums shrink-0 ml-2">
           {primaryMetric}
         </div>
       </div>
@@ -117,12 +117,12 @@ export const LiveLeaderboardPanel: React.FC<LiveLeaderboardPanelProps> = ({
         <div className="flex items-center gap-2.5">
           {fullPage ? <BrandLogo size="sm" /> : <Trophy className="w-4 h-4 text-amber-400" />}
           <div>
-            <h2 className="text-sm font-display font-bold text-white">
+            <h2 className="text-sm font-display font-bold text-[#2B0938] dark:text-white">
               {fullPage ? `${BRAND_NAME} — 3D Podium Leaderboard` : 'Live Podium Leaderboard'}
             </h2>
           </div>
         </div>
-        <span className="text-xs text-amber-300 font-mono font-semibold tabular-nums">
+        <span className="text-xs text-[#8F6500] dark:text-amber-300 font-mono font-semibold tabular-nums">
           {leaderboards.participatingViewersCount} active
         </span>
       </div>
@@ -136,8 +136,8 @@ export const LiveLeaderboardPanel: React.FC<LiveLeaderboardPanelProps> = ({
             onClick={() => setActiveTab(tab.id)}
             className={`px-1.5 py-1.5 text-[11px] font-bold rounded-lg transition-all text-center whitespace-nowrap shrink-0 cursor-pointer ${
               activeTab === tab.id
-                ? 'bg-gradient-to-b from-amber-300 to-amber-500 text-slate-950 shadow-[0_2px_0_0_#78350f]'
-                : 'text-slate-300 hover:text-white'
+                ? 'bg-gradient-to-b from-amber-300 to-amber-500 text-[#1D0830] shadow-[0_2px_0_0_#78350f]'
+                : 'text-slate-300 hover:text-[#2B0938] dark:hover:text-white'
             }`}
           >
             {tab.label}
@@ -164,7 +164,7 @@ export const LiveLeaderboardPanel: React.FC<LiveLeaderboardPanelProps> = ({
                   </span>
                   <Gift className="w-4 h-4 text-rose-400 shrink-0" />
                   <div className="min-w-0">
-                    <div className="text-sm font-bold text-white truncate">
+                    <div className="text-sm font-bold text-[#2B0938] dark:text-white truncate">
                       {gifter.nickname}
                     </div>
                     <div className="text-xs text-slate-300">
@@ -172,7 +172,7 @@ export const LiveLeaderboardPanel: React.FC<LiveLeaderboardPanelProps> = ({
                     </div>
                   </div>
                 </div>
-                <div className="text-right font-mono text-xs font-extrabold text-amber-300 tabular-nums shrink-0">
+                <div className="text-right font-mono text-xs font-extrabold text-[#8F6500] dark:text-amber-300 tabular-nums shrink-0">
                   {gifter.giftDiamondsTotal} diamonds · +{gifter.giftPointsContributed} pts
                 </div>
               </div>
@@ -192,25 +192,25 @@ export const LiveLeaderboardPanel: React.FC<LiveLeaderboardPanelProps> = ({
         <div className="mt-6 pt-4 border-t border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-slate-300">
           <div>
             <div className="text-slate-400">Total Rounds Played</div>
-            <div className="text-lg font-mono font-bold text-white tabular-nums mt-0.5">
+            <div className="text-lg font-mono font-bold text-[#2B0938] dark:text-white tabular-nums mt-0.5">
               {leaderboards.statistics.totalRoundsPlayed}
             </div>
           </div>
           <div>
             <div className="text-slate-400">Total Words Discovered</div>
-            <div className="text-lg font-mono font-bold text-emerald-400 tabular-nums mt-0.5">
+            <div className="text-lg font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums mt-0.5">
               {leaderboards.statistics.totalWordsDiscovered}
             </div>
           </div>
           <div>
             <div className="text-slate-400">Highest Round Score</div>
-            <div className="text-lg font-mono font-bold text-amber-300 tabular-nums mt-0.5">
+            <div className="text-lg font-mono font-bold text-[#8F6500] dark:text-amber-300 tabular-nums mt-0.5">
               {leaderboards.statistics.highestRoundScore} pts
             </div>
           </div>
           <div>
             <div className="text-slate-400">Longest Word Found</div>
-            <div className="text-lg font-mono font-bold text-white mt-0.5">
+            <div className="text-lg font-mono font-bold text-[#2B0938] dark:text-white mt-0.5">
               {leaderboards.statistics.longestWordFound || '—'}
             </div>
           </div>

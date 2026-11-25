@@ -15,6 +15,7 @@ import {
 } from './utils/storage';
 import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
 import { CLOUD_HYDRATED_EVENT } from '@/lib/cloud-progress';
+import { useSiteTheme } from '@/lib/site-theme';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { sound } from './utils/sound';
 import {
@@ -82,8 +83,9 @@ export default function App() {
     formatTimeRemaining(getMsUntilNextLondonMidnight())
   );
 
+  const { darkMode, toggleDarkMode } = useSiteTheme();
+
   useEffect(() => {
-    document.documentElement.classList.add('dark');
     const interval = setInterval(() => {
       const msLeft = getMsUntilNextLondonMidnight();
       setCountdownText(formatTimeRemaining(msLeft));
@@ -1132,7 +1134,9 @@ export default function App() {
   return (
     <div
       className={`min-h-screen flex flex-col transition-colors duration-300 font-sans ${
-        isGuessMode ? 'bg-[#230638]' : 'bg-[#1b032e]'
+        isGuessMode
+          ? 'bg-[#f4eefc] dark:bg-[#230638]'
+          : 'bg-[#ece3fa] dark:bg-[#1b032e]'
       }`}
     >
       {/* Hidden input to trigger native pop-up keyboard on mobile & tablet devices */}
@@ -1158,6 +1162,8 @@ export default function App() {
         containerWidth={contentWidth}
         isHardMode={isHardMode}
         onToggleHardMode={handleToggleHardMode}
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
         onOpenArchive={() => setShowArchive(true)}
         onOpenHowToPlay={() => setShowHowToPlay(true)}
         onOpenLeaderboardPopup={() => {

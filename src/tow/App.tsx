@@ -1,11 +1,12 @@
 import './index.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, Radio, User } from 'lucide-react';
+import { ArrowLeft, Moon, Radio, Sun, User } from 'lucide-react';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import { triggerVictoryConfetti } from '@/lib/confetti';
+import { useSiteTheme } from '@/lib/site-theme';
 import {
   getLocalTodayDateStr,
   recordDailyPuzzleSolved,
@@ -116,6 +117,7 @@ export default function App() {
       return '';
     }
   });
+  const { darkMode, toggleDarkMode } = useSiteTheme();
   const [isLiveConnected, setIsLiveConnected] = useState(false);
   const [isLiveConnecting, setIsLiveConnecting] = useState(false);
   const [liveError, setLiveError] = useState<string | null>(null);
@@ -434,8 +436,10 @@ export default function App() {
     <main
       className={`tow-root w-full ${
         isOverlay ? 'h-dvh' : 'h-[calc(100dvh-46px)]'
-      } flex flex-col overflow-hidden relative select-none ${
-        isTransparentOverlay ? 'bg-transparent' : 'bg-[#12031E]'
+      } flex flex-col overflow-hidden relative select-none transition-colors ${
+        isTransparentOverlay
+          ? 'bg-transparent'
+          : 'bg-[#F3ECFB] dark:bg-[#12031E]'
       }`}
     >
       {/* Ambient Royal Purple & Starlight Gold Studio Backdrop */}
@@ -443,19 +447,20 @@ export default function App() {
         <div
           className="hidden sm:block absolute inset-0 pointer-events-none"
           style={{
-            background:
-              'radial-gradient(circle at 50% 45%, rgba(246, 201, 21, 0.10) 0%, rgba(43, 9, 56, 0.58) 46%, #12031E 100%)',
+            background: darkMode
+              ? 'radial-gradient(circle at 50% 45%, rgba(246, 201, 21, 0.10) 0%, rgba(43, 9, 56, 0.58) 46%, #12031E 100%)'
+              : 'radial-gradient(circle at 50% 45%, rgba(246, 201, 21, 0.16) 0%, rgba(232, 218, 250, 0.72) 48%, #F3ECFB 100%)',
           }}
         />
       )}
 
       {/* Host Studio Top Navigation Bar (Hidden in LIVE Studio Overlay Mode) */}
       {!isOverlay && (
-        <header className="relative z-40 shrink-0 w-full bg-[#160524]/95 backdrop-blur-md border-b border-[#F6C915]/20 px-3 py-1.5 flex items-center justify-between gap-2">
+        <header className="relative z-40 shrink-0 w-full bg-white/95 dark:bg-[#160524]/95 backdrop-blur-md border-b border-[#E3D4F4] dark:border-[#F6C915]/20 px-3 py-1.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Link
               to="/interactive-games"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#2B0938] hover:bg-[#3A0F4D] border border-[#F6C915]/30 text-[#F6C915] text-xs font-bold transition-colors shrink-0"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#F4ECFC] dark:bg-[#2B0938] hover:bg-[#EADBF9] dark:hover:bg-[#3A0F4D] border border-[#D7C4EC] dark:border-[#F6C915]/30 text-[#4C266D] dark:text-[#F6C915] text-xs font-bold transition-colors shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Interactive Games</span>
@@ -469,10 +474,10 @@ export default function App() {
                 className="w-6 h-6 rounded-md object-contain bg-[#2B0938] p-0.5 border border-[#F6C915]/35 shrink-0"
               />
               <div className="leading-tight min-w-0">
-                <p className="text-xs font-black tracking-tight text-white truncate">
-                  TUG OF <span className="text-[#F6C915]">WORDS</span>
+                <p className="text-xs font-black tracking-tight text-[#2B0938] dark:text-white truncate">
+                  TUG OF <span className="text-[#9A6E00] dark:text-[#F6C915]">WORDS</span>
                 </p>
-                <p className="text-[9px] font-bold tracking-widest uppercase text-[#E2C9F2]/60 truncate">
+                <p className="text-[9px] font-bold tracking-widest uppercase text-[#6B4A8A] dark:text-[#E2C9F2]/60 truncate">
                   The Missing Piece · Live Arena
                 </p>
               </div>
@@ -485,8 +490,8 @@ export default function App() {
               onClick={() => setDrawerOpen(true)}
               className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
                 isLiveConnected
-                  ? 'bg-[#00F59B]/15 border-[#00F59B]/55 text-[#00F59B] hover:bg-[#00F59B]/25'
-                  : 'bg-[#2B0938] border-[#F6C915]/35 text-[#F6C915] hover:bg-[#3A0F4D]'
+                  ? 'bg-emerald-50 dark:bg-[#00F59B]/15 border-emerald-500/60 dark:border-[#00F59B]/55 text-emerald-700 dark:text-[#00F59B] hover:bg-emerald-100 dark:hover:bg-[#00F59B]/25'
+                  : 'bg-[#F4ECFC] dark:bg-[#2B0938] border-[#D7C4EC] dark:border-[#F6C915]/35 text-[#4C266D] dark:text-[#F6C915] hover:bg-[#EADBF9] dark:hover:bg-[#3A0F4D]'
               }`}
               title="Connect your TikTok LIVE chat"
             >
@@ -508,17 +513,27 @@ export default function App() {
             <DailyStreakBadge
               streak={dailyStreak.streak}
               solvedToday={dailyStreak.solvedToday}
-              variant="amber-dark"
+              variant={darkMode ? 'amber-dark' : 'amber-light'}
               compact
             />
 
             <button
               type="button"
+              onClick={toggleDarkMode}
+              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4ECFC] dark:bg-[#2B0938] hover:bg-[#EADBF9] dark:hover:bg-[#3A0F4D] border border-[#D7C4EC] dark:border-[#F6C915]/30 text-[#4C266D] dark:text-[#F6C915] transition-colors cursor-pointer shrink-0"
+            >
+              {darkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShowAuthModal(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#2B0938] hover:bg-[#3A0F4D] border border-[#F6C915]/30 text-white text-xs font-bold transition-colors cursor-pointer max-w-[140px]"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#F4ECFC] dark:bg-[#2B0938] hover:bg-[#EADBF9] dark:hover:bg-[#3A0F4D] border border-[#D7C4EC] dark:border-[#F6C915]/30 text-[#2B0938] dark:text-white text-xs font-bold transition-colors cursor-pointer max-w-[140px]"
               title="Account & Interactive Scores"
             >
-              <User className="w-3.5 h-3.5 text-[#F6C915] shrink-0" />
+              <User className="w-3.5 h-3.5 text-[#9A6E00] dark:text-[#F6C915] shrink-0" />
               <span className="truncate hidden sm:inline">{memberLabel}</span>
             </button>
           </div>
@@ -537,7 +552,7 @@ export default function App() {
           } ${
             isOverlay
               ? ''
-              : 'sm:rounded-[24px] sm:border sm:border-[#F6C915]/25 sm:shadow-[0_0_60px_rgba(0,0,0,0.85),0_0_28px_rgba(246,201,21,0.14)]'
+              : 'sm:rounded-[24px] sm:border sm:border-[#C5A8E8] dark:sm:border-[#F6C915]/25 sm:shadow-[0_18px_48px_rgba(43,9,56,0.25)] dark:sm:shadow-[0_0_60px_rgba(0,0,0,0.85),0_0_28px_rgba(246,201,21,0.14)]'
           }`}
         >
           {/* Subtle CRT Scanline Overlay */}

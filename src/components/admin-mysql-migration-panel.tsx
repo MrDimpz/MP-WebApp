@@ -214,6 +214,29 @@ export function AdminMysqlMigrationPanel({ enabled = true }: { enabled?: boolean
           </div>
         )}
 
+        {dbStatus && !dbStatus.configured && (
+          <div className="mt-3 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-amber-100">
+            <strong>Why Sync Directly is disabled:</strong> This server does not see your MySQL
+            environment variables yet
+            {dbStatus.missingEnvVars && dbStatus.missingEnvVars.length > 0 ? (
+              <>
+                {' '}
+                (missing:{' '}
+                <code className="font-mono text-amber-200">
+                  {dbStatus.missingEnvVars.join(', ')}
+                </code>
+                ).
+              </>
+            ) : (
+              '.'
+            )}{' '}
+            In Hostinger hPanel, add them under{' '}
+            <strong>Websites → Manage → Node.js → Environment variables</strong> (or a{' '}
+            <code className="font-mono text-amber-200">.env</code> file in your app root) and
+            restart/redeploy the Node.js app.
+          </div>
+        )}
+
         {isMysqlConnected && dbStatus?.tables && (
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
             {[

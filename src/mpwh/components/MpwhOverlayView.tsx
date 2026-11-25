@@ -1,4 +1,4 @@
-import { Clock, Radio, Trophy } from 'lucide-react';
+import { Radio, Trophy } from 'lucide-react';
 import type { OverlayBackgroundMode } from '../../lib/live-overlay';
 import type { MpwhOverlayState } from '../shared/types';
 import { formatModeLabel } from '../utils/format';
@@ -24,13 +24,10 @@ export function MpwhOverlayView({
   const isWon = Boolean(state && state.status === 'won');
   const isGaveUp = state?.status === 'gave_up';
   const hasWinners = Boolean(state && state.roundWinners.length > 0);
-  const hasActiveBuffer = Boolean(
-    state?.boards.some((b) => b.targets.some((t) => t.bufferActive))
-  );
 
   return (
     <div
-      className={`w-full max-w-[620px] h-[900px] max-h-screen mx-auto ${bgClass} text-white p-2.5 flex flex-col overflow-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden`}
+      className={`dark w-full max-w-[620px] h-[900px] max-h-screen mx-auto ${bgClass} text-white p-2.5 flex flex-col overflow-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden`}
     >
       <div className="w-full flex-1 min-h-0 rounded-2xl border border-[#F6C915]/55 bg-[#1B052E]/95 shadow-2xl overflow-hidden flex flex-col">
         {/* Fixed-Height Overlay Brand Bar */}
@@ -86,8 +83,6 @@ export function MpwhOverlayView({
               className={`h-10 shrink-0 rounded-xl border px-3.5 flex items-center justify-between gap-2 ${
                 isWon
                   ? 'border-[#F6C915]/60 bg-[#F6C915]/15'
-                  : hasActiveBuffer
-                  ? 'border-[#F6C915]/65 bg-[#361156]/80'
                   : isGaveUp
                   ? 'border-rose-400/45 bg-rose-950/35'
                   : 'border-[#D4A437]/25 bg-[#140321]/80'
@@ -118,18 +113,6 @@ export function MpwhOverlayView({
                   </div>
                   <span className="font-mono text-[11px] font-bold text-[#F5EEFF] tabular-nums shrink-0">
                     {state.totalGuesses} guesses
-                  </span>
-                </>
-              ) : hasActiveBuffer ? (
-                <>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Clock className="w-4 h-4 text-[#F6C915] shrink-0" />
-                    <span className="text-xs font-extrabold text-[#F6C915] truncate">
-                      4s Lag Window Open — Delayed chat can still solve!
-                    </span>
-                  </div>
-                  <span className="font-mono text-[11px] font-bold text-[#F5EEFF] tabular-nums shrink-0">
-                    {state?.totalGuesses ?? 0} guesses
                   </span>
                 </>
               ) : isGaveUp && state ? (

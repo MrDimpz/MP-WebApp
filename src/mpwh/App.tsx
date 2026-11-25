@@ -6,10 +6,12 @@ import {
   BookOpen,
   Clock,
   Eye,
+  Moon,
   Play,
   Radio,
   RotateCcw,
   Sparkles,
+  Sun,
   Trophy,
   User,
   Users,
@@ -18,6 +20,7 @@ import {
 } from 'lucide-react';
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
 import { LanguageMenu } from '@/components/language-menu';
+import { useSiteTheme } from '@/lib/site-theme';
 import {
   getDictionaryLanguageMeta,
   useDictionaryLanguage,
@@ -147,6 +150,7 @@ function MpwhHostApp() {
     };
   }, []);
   const { user: siteUser } = useUnifiedAuth();
+  const { darkMode, toggleDarkMode } = useSiteTheme();
   const activeStreamer = getActiveInteractiveStreamerSession();
   const [dictionaryLanguage] = useDictionaryLanguage();
   const dailyLimit = useInteractiveDailyLimit('mpwh');
@@ -224,6 +228,7 @@ function MpwhHostApp() {
   const feedbackTimerRef = useRef<number | null>(null);
   const prevStatusRef = useRef<string | null>(null);
   const prevRoundIdRef = useRef<string | null>(null);
+  const prevSolvedCountRef = useRef<number>(0);
   const creditedRoundsRef = useRef<Set<string>>(new Set());
   const chatDedupRef = useRef(createEventDeduplicator());
 
@@ -245,21 +250,6 @@ function MpwhHostApp() {
       if (!res.accepted) {
         soundFX.playInvalid();
         if (res.reason) showFeedback(res.reason, 'error');
-        return;
-      }
-      if (res.matchedWords && res.matchedWords.length > 0) {
-        soundFX.playWordSolved();
-        if (res.wasLagBufferHit) {
-          showFeedback(
-            `Caught inside the 4-second lag window! Winner credit earned!`,
-            'success'
-          );
-        } else {
-          showFeedback(
-            `Word found! 4-second stream-lag window is open for delayed viewers.`,
-            'success'
-          );
-        }
         return;
       }
       soundFX.playPlace();
@@ -329,10 +319,27 @@ function MpwhHostApp() {
     if (!game) return;
     if (prevRoundIdRef.current !== game.roundId) {
       prevRoundIdRef.current = game.roundId;
+      prevSolvedCountRef.current = 0;
       setSelectedBoardIndex(null);
       setWinnerModalOpen(false);
     }
   }, [game?.roundId]);
+
+  // Play word-solved chime when a target reveals after its silent lag window in Dual/Quad modes
+  useEffect(() => {
+    if (!game) return;
+    const solvedCount = game.boards.reduce(
+      (sum, b) => sum + b.targets.filter((t) => t.solved).length,
+      0
+    );
+    if (
+      game.status === 'playing' &&
+      solvedCount > prevSolvedCountRef.current
+    ) {
+      soundFX.playWordSolved();
+    }
+    prevSolvedCountRef.current = solvedCount;
+  }, [game]);
 
   // Trigger celebratory confetti, sound, daily round completion, and Missing Piece profile score crediting on win
   useEffect(() => {
@@ -565,15 +572,15 @@ function MpwhHostApp() {
   ];
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-[#1D0630] via-[#140321] to-[#0E0218] text-white flex flex-col">
+    <div className="min-h-screen w-full bg-[#F7F2FC] dark:bg-gradient-to-b dark:from-[#1D0630] dark:via-[#140321] dark:to-[#0E0218] text-[#2B0938] dark:text-white flex flex-col transition-colors">
       {/* Top Studio Header */}
-      <header className="sticky top-0 z-30 border-b border-[#D4A437]/30 bg-[#160426]/95 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-[#E3D4F4] dark:border-[#D4A437]/30 bg-white/95 dark:bg-[#160426]/95 backdrop-blur-md">
         <div className="mx-auto max-w-6xl px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
           {/* Left: Back + Brand */}
           <div className="flex items-center gap-2.5 min-w-0">
             <Link
               to="/interactive-games"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-[#24083B] px-2.5 py-1.5 text-xs font-bold text-[#E5D7F7] hover:border-[#F6C915]/60 hover:text-white transition-colors whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#D7C4EC] dark:border-white/15 bg-[#F4ECFC] dark:bg-[#24083B] px-2.5 py-1.5 text-xs font-bold text-[#4C266D] dark:text-[#E5D7F7] hover:border-[#B58100] dark:hover:border-[#F6C915]/60 hover:text-[#2B0938] dark:hover:text-white transition-colors whitespace-nowrap shrink-0"
             >
               <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
               <span className="hidden sm:inline">Interactive Games</span>
@@ -586,10 +593,10 @@ function MpwhHostApp() {
                 className="h-8 w-8 rounded-full object-contain shrink-0"
               />
               <div className="min-w-0">
-                <h1 className="text-base sm:text-lg font-black tracking-tight text-white leading-none">
+                <h1 className="text-base sm:text-lg font-black tracking-tight text-[#2B0938] dark:text-white leading-none">
                   Word Hunt Extreme
                 </h1>
-                <p className="text-[11px] font-medium text-[#C8B2E4] truncate mt-0.5">
+                <p className="text-[11px] font-medium text-[#6B4A8A] dark:text-[#C8B2E4] truncate mt-0.5">
                   The Missing Piece · {langMeta.flag} {langMeta.label}
                 </p>
               </div>
@@ -599,7 +606,7 @@ function MpwhHostApp() {
           {/* Center: Navigation Tabs */}
           <nav
             aria-label="Word Hunt Extreme views"
-            className="flex items-center gap-1 rounded-xl border border-[#D4A437]/25 bg-[#12031E] p-1"
+            className="flex items-center gap-1 rounded-xl border border-[#D7C4EC] dark:border-[#D4A437]/25 bg-[#F4ECFC] dark:bg-[#12031E] p-1"
           >
             <button
               type="button"
@@ -607,7 +614,7 @@ function MpwhHostApp() {
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'play'
                   ? 'bg-[#F6C915] text-[#1D0830]'
-                  : 'text-[#D4C0EC] hover:text-white'
+                  : 'text-[#5C3A78] dark:text-[#D4C0EC] hover:text-[#2B0938] dark:hover:text-white'
               }`}
             >
               <Play className="h-3.5 w-3.5" aria-hidden="true" />
@@ -619,7 +626,7 @@ function MpwhHostApp() {
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'leaderboard'
                   ? 'bg-[#F6C915] text-[#1D0830]'
-                  : 'text-[#D4C0EC] hover:text-white'
+                  : 'text-[#5C3A78] dark:text-[#D4C0EC] hover:text-[#2B0938] dark:hover:text-white'
               }`}
             >
               <Trophy className="h-3.5 w-3.5" aria-hidden="true" />
@@ -631,7 +638,7 @@ function MpwhHostApp() {
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'rules'
                   ? 'bg-[#F6C915] text-[#1D0830]'
-                  : 'text-[#D4C0EC] hover:text-white'
+                  : 'text-[#5C3A78] dark:text-[#D4C0EC] hover:text-[#2B0938] dark:hover:text-white'
               }`}
             >
               <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
@@ -639,7 +646,7 @@ function MpwhHostApp() {
             </button>
           </nav>
 
-          {/* Right: Language, Overlay, TikTok LIVE, Sound */}
+          {/* Right: Language, Overlay, TikTok LIVE, Theme, Sound */}
           <div className="flex items-center gap-2 shrink-0">
             <LanguageMenu variant="compact" />
 
@@ -656,7 +663,7 @@ function MpwhHostApp() {
               onClick={() => setShowTikTokModal(true)}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap shrink-0 border ${
                 tiktokStatus.connected
-                  ? 'bg-emerald-500/20 border-emerald-400/60 text-emerald-200 hover:bg-emerald-500/30'
+                  ? 'bg-emerald-100 dark:bg-emerald-500/20 border-emerald-500/60 dark:border-emerald-400/60 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-200 dark:hover:bg-emerald-500/30'
                   : 'bg-[#F6C915] border-[#F6C915] text-[#1D0830] hover:bg-[#FFE047]'
               }`}
             >
@@ -670,9 +677,23 @@ function MpwhHostApp() {
 
             <button
               type="button"
+              onClick={toggleDarkMode}
+              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#D7C4EC] dark:border-white/15 bg-[#F4ECFC] dark:bg-[#24083B] text-[#4C266D] dark:text-[#E5D7F7] hover:border-[#B58100] dark:hover:border-[#F6C915]/60 hover:text-[#8F6500] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+            >
+              {darkMode ? (
+                <Sun className="h-4 w-4 text-[#F6C915]" aria-hidden="true" />
+              ) : (
+                <Moon className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
+
+            <button
+              type="button"
               onClick={handleToggleMute}
               aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-[#24083B] text-[#E5D7F7] hover:border-[#F6C915]/60 hover:text-white transition-colors cursor-pointer shrink-0"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#D7C4EC] dark:border-white/15 bg-[#F4ECFC] dark:bg-[#24083B] text-[#4C266D] dark:text-[#E5D7F7] hover:border-[#B58100] dark:hover:border-[#F6C915]/60 hover:text-[#8F6500] dark:hover:text-white transition-colors cursor-pointer shrink-0"
             >
               {muted ? (
                 <VolumeX className="h-4 w-4" aria-hidden="true" />
@@ -693,7 +714,7 @@ function MpwhHostApp() {
         ) : (
           <div className="space-y-5">
             {/* Control Strip: Mode Selector, Player Name, Metadata, Start/Reveal */}
-            <div className="rounded-2xl border border-[#D4A437]/30 bg-[#210736]/90 p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="rounded-2xl border border-[#D7C4EC] dark:border-[#D4A437]/30 bg-white/95 dark:bg-[#210736]/90 p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-sm">
               {/* Mode Switcher */}
               <div className="flex flex-wrap items-center gap-1.5">
                 {modeOptions.map((opt) => (
@@ -704,7 +725,7 @@ function MpwhHostApp() {
                     className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                       currentMode === opt.id
                         ? 'bg-[#F6C915] text-[#1D0830]'
-                        : 'bg-[#140321] border border-[#D4A437]/25 text-[#D9C7EE] hover:border-[#F6C915]/50 hover:text-white'
+                        : 'bg-[#F8F3FD] dark:bg-[#140321] border border-[#D7C4EC] dark:border-[#D4A437]/25 text-[#5C3A78] dark:text-[#D9C7EE] hover:border-[#B58100] dark:hover:border-[#F6C915]/50 hover:text-[#2B0938] dark:hover:text-white'
                     }`}
                   >
                     <span>{opt.label}</span>
@@ -712,7 +733,7 @@ function MpwhHostApp() {
                       className={`text-[10px] font-semibold ${
                         currentMode === opt.id
                           ? 'text-[#3A1658]'
-                          : 'text-[#A78BC9]'
+                          : 'text-[#7C5B9E] dark:text-[#A78BC9]'
                       }`}
                     >
                       {opt.detail}
@@ -724,31 +745,31 @@ function MpwhHostApp() {
               {/* Unboxed Round Metadata + Name + Action */}
               <div className="flex flex-wrap items-center gap-3 justify-between lg:justify-end">
                 {/* Inline Player Name */}
-                <label className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-[#140321] px-2.5 py-1.5 text-xs">
-                  <User className="h-3.5 w-3.5 text-[#F6C915]" aria-hidden="true" />
+                <label className="inline-flex items-center gap-1.5 rounded-xl border border-[#D7C4EC] dark:border-white/15 bg-[#F8F3FD] dark:bg-[#140321] px-2.5 py-1.5 text-xs">
+                  <User className="h-3.5 w-3.5 text-[#9A6E00] dark:text-[#F6C915]" aria-hidden="true" />
                   <input
                     type="text"
                     value={playerName}
                     onChange={(e) => handlePlayerNameChange(e.target.value)}
                     aria-label="Your display name"
-                    className="w-24 sm:w-28 bg-transparent text-xs font-bold leading-normal py-0.5 text-white focus:outline-none"
+                    className="w-24 sm:w-28 bg-transparent text-xs font-bold leading-normal py-0.5 text-[#2B0938] dark:text-white focus:outline-none"
                   />
                 </label>
 
                 {/* Tabular Live Stats */}
-                <div className="flex items-center gap-2 text-xs font-mono tabular-nums text-[#D4C0EC]">
+                <div className="flex items-center gap-2 text-xs font-mono tabular-nums text-[#5C3A78] dark:text-[#D4C0EC]">
                   <span className="inline-flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5 text-[#F6C915]" aria-hidden="true" />
+                    <Users className="h-3.5 w-3.5 text-[#9A6E00] dark:text-[#F6C915]" aria-hidden="true" />
                     {onlineCount}
                   </span>
                   <span aria-hidden="true">·</span>
                   <span className="inline-flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5 text-[#F6C915]" aria-hidden="true" />
+                    <Clock className="h-3.5 w-3.5 text-[#9A6E00] dark:text-[#F6C915]" aria-hidden="true" />
                     {formatDuration(elapsedMs)}
                   </span>
                   <span aria-hidden="true">·</span>
                   <span className="inline-flex items-center gap-1">
-                    <Sparkles className="h-3.5 w-3.5 text-[#F6C915]" aria-hidden="true" />
+                    <Sparkles className="h-3.5 w-3.5 text-[#9A6E00] dark:text-[#F6C915]" aria-hidden="true" />
                     {game?.hintsRemaining ?? 3} hints
                   </span>
                 </div>
@@ -759,7 +780,7 @@ function MpwhHostApp() {
                     <button
                       type="button"
                       onClick={revealGame}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/18 bg-[#2B0B46] px-3 py-2 text-xs font-bold text-[#E5D7F7] hover:bg-[#3A105E] transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#D7C4EC] dark:border-white/18 bg-[#F4ECFC] dark:bg-[#2B0B46] px-3 py-2 text-xs font-bold text-[#4C266D] dark:text-[#E5D7F7] hover:bg-[#EADBF9] dark:hover:bg-[#3A105E] transition-colors cursor-pointer whitespace-nowrap shrink-0"
                     >
                       <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                       <span>Reveal</span>
@@ -793,16 +814,10 @@ function MpwhHostApp() {
               {/* Left / Primary Stage — Fixed-height unified panel across all round states */}
               <div className="lg:col-span-8 space-y-4">
                 <div
-                  className={`relative rounded-2xl border bg-[#210736]/95 shadow-xl overflow-hidden transition-colors ${
+                  className={`relative rounded-2xl border bg-white/95 dark:bg-[#210736]/95 shadow-xl overflow-hidden transition-colors ${
                     !isIdle && game && game.boards.every((b) => b.lockedSolved)
-                      ? 'border-emerald-400/50'
-                      : !isIdle &&
-                        game &&
-                        game.boards.some((b) =>
-                          b.targets.some((t) => t.bufferActive)
-                        )
-                      ? 'border-[#F6C915] shadow-[0_0_0_1px_rgba(246,201,21,0.3)]'
-                      : 'border-[#D4A437]/35'
+                      ? 'border-emerald-500/60 dark:border-emerald-400/50'
+                      : 'border-[#D7C4EC] dark:border-[#D4A437]/35'
                   }`}
                 >
                   {/* Missing Piece Emblem Watermark (25% opacity, 90% size of main board section) */}
@@ -813,7 +828,7 @@ function MpwhHostApp() {
                     <img
                       src="/assets/aistudio/3d_logo_944e5372.png"
                       alt=""
-                      className="w-[90%] h-[90%] object-contain opacity-25"
+                      className="w-[90%] h-[90%] object-contain opacity-[0.06] dark:opacity-25"
                     />
                   </div>
 
@@ -834,18 +849,18 @@ function MpwhHostApp() {
                             className="mx-auto h-16 w-16 rounded-full object-contain drop-shadow-lg"
                           />
                           <div className="space-y-2 max-w-md mx-auto">
-                            <p className="text-xs font-extrabold uppercase tracking-widest text-[#F6C915]">
+                            <p className="text-xs font-extrabold uppercase tracking-widest text-[#8F6500] dark:text-[#F6C915]">
                               {formatModeLabel(currentMode)} · {langMeta.flag}{' '}
                               {langMeta.label}
                             </p>
-                            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[#2B0938] dark:text-white">
                               Ready for Word Hunt Extreme?
                             </h2>
-                            <p className="text-sm text-[#D9C7EE] leading-relaxed">
+                            <p className="text-sm text-[#5C3A78] dark:text-[#D9C7EE] leading-relaxed">
                               Press Start Game to generate a secret 4–8 letter word.
                               Every guess narrows the alphabetical ladder above and
-                              below—with a 4-second TikTok LIVE stream-lag window on
-                              every win.
+                              below—with built-in TikTok LIVE stream-lag protection
+                              for delayed viewers.
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
@@ -860,7 +875,7 @@ function MpwhHostApp() {
                             <button
                               type="button"
                               onClick={() => setShowTikTokModal(true)}
-                              className="inline-flex items-center gap-2 rounded-xl border border-[#D4A437]/45 bg-[#140321] px-5 py-3 text-sm font-bold text-[#F6C915] hover:bg-[#2C0C47] transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                              className="inline-flex items-center gap-2 rounded-xl border border-[#C99A14]/60 dark:border-[#D4A437]/45 bg-[#FDF7E2] dark:bg-[#140321] px-5 py-3 text-sm font-bold text-[#8F6500] dark:text-[#F6C915] hover:bg-[#FAF0C8] dark:hover:bg-[#2C0C47] transition-colors cursor-pointer whitespace-nowrap shrink-0"
                             >
                               <Radio className="h-4 w-4" aria-hidden="true" />
                               <span>
@@ -930,7 +945,7 @@ function MpwhHostApp() {
                 </div>
 
                 {/* Guess Input Bar (Always Mounted) */}
-                <div className="rounded-2xl border border-[#D4A437]/30 bg-[#210736]/95 p-4 shadow-xl">
+                <div className="rounded-2xl border border-[#D7C4EC] dark:border-[#D4A437]/30 bg-white/95 dark:bg-[#210736]/95 p-4 shadow-xl">
                   <GuessInputBar
                     mode={game?.mode ?? currentMode}
                     disabled={!isPlaying}
@@ -963,24 +978,24 @@ function MpwhHostApp() {
               {/* Right Sidebar: Live Activity Feed & Stream Status */}
               <aside className="lg:col-span-4 space-y-4">
                 {/* TikTok LIVE Quick Panel */}
-                <div className="rounded-2xl border border-[#D4A437]/30 bg-[#210736]/95 p-4 space-y-3 shadow-xl">
+                <div className="rounded-2xl border border-[#D7C4EC] dark:border-[#D4A437]/30 bg-white/95 dark:bg-[#210736]/95 p-4 space-y-3 shadow-xl">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-[#F6C915]">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-[#8F6500] dark:text-[#F6C915]">
                       TikTok LIVE Feed
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowTikTokModal(true)}
-                      className="text-xs font-bold text-[#E5D7F7] hover:text-[#F6C915] underline underline-offset-2 cursor-pointer"
+                      className="text-xs font-bold text-[#5C3A78] dark:text-[#E5D7F7] hover:text-[#8F6500] dark:hover:text-[#F6C915] underline underline-offset-2 cursor-pointer"
                     >
                       Configure
                     </button>
                   </div>
-                  <p className="text-xs text-[#D4C0EC] leading-relaxed">
+                  <p className="text-xs text-[#5C3A78] dark:text-[#D4C0EC] leading-relaxed">
                     {tiktokStatus.connected && tiktokStatus.username ? (
                       <>
                         Connected to{' '}
-                        <strong className="text-emerald-300">
+                        <strong className="text-emerald-700 dark:text-emerald-300">
                           @{tiktokStatus.username}
                         </strong>
                         . Viewers type any dictionary word in chat to climb the
@@ -997,18 +1012,18 @@ function MpwhHostApp() {
                 </div>
 
                 {/* Live Activity Log */}
-                <div className="rounded-2xl border border-[#D4A437]/30 bg-[#210736]/95 p-4 shadow-xl">
-                  <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-white/10">
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#F6C915]">
+                <div className="rounded-2xl border border-[#D7C4EC] dark:border-[#D4A437]/30 bg-white/95 dark:bg-[#210736]/95 p-4 shadow-xl">
+                  <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-[#E6D9F5] dark:border-white/10">
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#8F6500] dark:text-[#F6C915]">
                       Live Activity
                     </h3>
-                    <span className="font-mono text-[11px] tabular-nums text-[#C8B2E4]">
+                    <span className="font-mono text-[11px] tabular-nums text-[#6B4A8A] dark:text-[#C8B2E4]">
                       {game?.totalGuesses ?? 0} guesses
                     </span>
                   </div>
 
                   {!game || game.recentActivity.length === 0 ? (
-                    <p className="text-xs text-[#B8A0D6] py-6 text-center">
+                    <p className="text-xs text-[#6B4A8A] dark:text-[#B8A0D6] py-6 text-center">
                       Guesses, hints, and winners will appear here live.
                     </p>
                   ) : (
@@ -1018,14 +1033,14 @@ function MpwhHostApp() {
                           key={item.id}
                           className={`rounded-lg px-3 py-2 text-xs font-medium border ${
                             item.tone === 'solve'
-                              ? 'border-emerald-400/40 bg-emerald-950/45 text-emerald-100'
+                              ? 'border-emerald-400/55 dark:border-emerald-400/40 bg-emerald-50 dark:bg-emerald-950/45 text-emerald-900 dark:text-emerald-100'
                               : item.tone === 'buffer'
-                              ? 'border-[#F6C915]/55 bg-[#F6C915]/15 text-[#FFF3B0]'
+                              ? 'border-[#C99A14]/60 dark:border-[#F6C915]/55 bg-amber-50 dark:bg-[#F6C915]/15 text-[#7A5200] dark:text-[#FFF3B0]'
                               : item.tone === 'hint'
-                              ? 'border-purple-400/40 bg-purple-950/60 text-purple-100'
+                              ? 'border-purple-300 dark:border-purple-400/40 bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-100'
                               : item.tone === 'system'
-                              ? 'border-white/12 bg-[#140321] text-[#D9C7EE]'
-                              : 'border-white/8 bg-[#180528] text-[#F2EAFF]'
+                              ? 'border-[#E6D9F5] dark:border-white/12 bg-[#F8F3FD] dark:bg-[#140321] text-[#5C3A78] dark:text-[#D9C7EE]'
+                              : 'border-[#E6D9F5] dark:border-white/8 bg-[#F8F3FD] dark:bg-[#180528] text-[#2B0938] dark:text-[#F2EAFF]'
                           }`}
                         >
                           {item.text}

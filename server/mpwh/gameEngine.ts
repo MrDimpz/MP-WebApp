@@ -178,6 +178,7 @@ export interface ApplyGuessResult {
   word: string;
   firstSolvedWords: string[];
   bufferMatchedWords: string[];
+  duplicateBufferWinner?: boolean;
   newBufferEndsAt: number | null;
 }
 
@@ -225,8 +226,9 @@ export function applyGuess(
 
   const now = Date.now();
 
-  // First check if this exact word matches any target currently inside its 4-second stream-lag buffer
+  // First check if this exact word matches any target currently inside its silent 4-second stream-lag buffer
   const bufferMatchedWords: string[] = [];
+  let addedNewBufferWinner = false;
   for (const board of set.boards) {
     for (const target of board.targets) {
       if (isTargetBufferActive(target, now) && target.word === word) {
@@ -242,6 +244,7 @@ export function applyGuess(
             isFirst: false,
             word: target.word,
           });
+          addedNewBufferWinner = true;
         }
         bufferMatchedWords.push(target.word);
       }
@@ -254,24 +257,25 @@ export function applyGuess(
       word,
       firstSolvedWords: [],
       bufferMatchedWords,
+      duplicateBufferWinner: !addedNewBufferWinner,
       newBufferEndsAt: null,
     };
   }
 
-  // Apply guess to unsolved boards
+  // Apply guess to boards that are not yet publicly locked solved (so play stays natural during silent lag buffers)
   const candidateBoards =
     set.mode === 'quad' &&
     typeof targetBoardIndex === 'number' &&
     targetBoardIndex >= 0 &&
     targetBoardIndex < 4
       ? [set.boards[targetBoardIndex]]
-      : set.boards.filter((b) => !isBoardAllFound(b));
+      : set.boards.filter((b) => !isBoardLockedSolved(b, now));
 
-  const activeUnsolvedBoards = candidateBoards.filter((b) => !isBoardAllFound(b));
+  const activeUnsolvedBoards = candidateBoards.filter((b) => !isBoardLockedSolved(b, now));
   if (activeUnsolvedBoards.length === 0) {
     return {
       accepted: false,
-      reason: 'All words found — finishing 4-second lag window...',
+      reason: 'Round is complete.',
       word,
       firstSolvedWords: [],
       bufferMatchedWords: [],
@@ -298,7 +302,6 @@ export function applyGuess(
 
   for (const board of boardsNeedingWord) {
     board.guessWordSet.add(word);
-    board.lastGuessWord = word;
     let matchedTarget = false;
 
     for (const target of board.targets) {
@@ -322,6 +325,7 @@ export function applyGuess(
     }
 
     if (!matchedTarget) {
+      board.lastGuessWord = word;
       board.guesses.push({
         word,
         order: set.totalGuesses,
@@ -376,7 +380,13 @@ export function applyHint(
     return { accepted: false, reason: 'Invalid board.' };
   }
   const target = board.targets[targetIndex];
-  if (!target || target.solved) {
+  if (!target) {
+    return { accepted: false, reason: 'Invalid target.' };
+  }
+  if (target.solved) {
+    if (isTargetBufferActive(target, Date.now())) {
+      return { accepted: false, reason: 'Checking latest guesses...' };
+    }
     return { accepted: false, reason: 'That word is already found.' };
   }
 
@@ -517,8 +527,9 @@ export function toBoardView(
 ): LadderInstanceView {
   const targets: LadderTargetView[] = board.targets.map((t, idx) => {
     const { closestBefore, closestAfter } = getClosestBoundsForTarget(board, idx, now);
-    const bufferActive = isTargetBufferActive(t, now);
-    const revealed = revealAll || t.solved;
+    // Keep solved state, word, and winners hidden while the silent 4s lag timer is still running
+    const publiclySolved = isTargetLockedSolved(t, now);
+    const revealed = revealAll || publiclySolved;
     const sharedPrefix = getLongestCommonPrefix(
       closestBefore?.word ?? null,
       closestAfter?.word ?? null
@@ -526,9 +537,9 @@ export function toBoardView(
 
     return {
       index: t.index,
-      solved: t.solved,
-      bufferActive,
-      bufferEndsAt: bufferActive ? t.bufferEndsAt : null,
+      solved: publiclySolved,
+      bufferActive: false,
+      bufferEndsAt: null,
       word: revealed ? t.word : null,
       revealedLength: t.word.length,
       revealedPrefix: revealed
@@ -537,30 +548,35 @@ export function toBoardView(
         ? t.word.slice(0, t.clueLevel)
         : null,
       sharedPrefix,
-      solvedAtGuess: t.solvedAtGuess,
-      winners: t.winners.map((w) => ({
-        ...w,
-        word: revealed ? w.word : '',
-      })),
+      solvedAtGuess: publiclySolved ? t.solvedAtGuess : null,
+      winners: revealed
+        ? t.winners.map((w) => ({
+            ...w,
+            word: w.word,
+          }))
+        : [],
       closestBefore,
       closestAfter,
       proximityPct: computeProximityPct(
         t.word,
         closestBefore?.word ?? null,
         closestAfter?.word ?? null,
-        t.solved,
+        publiclySolved,
         language
       ),
     };
   });
 
+  const lockedSolved = isBoardLockedSolved(board, now);
+
   return {
     boardIndex: board.boardIndex,
     label: board.label,
     targets,
-    solved: isBoardAllFound(board),
-    lockedSolved: isBoardLockedSolved(board, now),
-    guessCount: board.guesses.length + board.targets.filter((t) => t.solved).length,
+    solved: lockedSolved,
+    lockedSolved,
+    guessCount:
+      board.guesses.length + board.targets.filter((t) => isTargetLockedSolved(t, now)).length,
     lastGuessWord: board.lastGuessWord,
   };
 }

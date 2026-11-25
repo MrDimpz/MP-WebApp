@@ -44,11 +44,11 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
       {showText && (
         <div className="flex flex-col leading-tight">
-          <span className="font-display font-extrabold tracking-tight text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+          <span className="font-display font-extrabold tracking-tight text-[#8F6500] dark:text-amber-300 dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
             {BRAND_NAME}
           </span>
           {showTagline && (
-            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-purple-200/90">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6B4A8A] dark:text-purple-200/90">
               {BRAND_TAGLINE}
             </span>
           )}

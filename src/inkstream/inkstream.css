@@ -1,5 +1,26 @@
 /* Scoped InkStream studio styles branded for The Missing Piece (Royal Purple & Gold) */
 .inkstream-root {
+  --ink-bg: #f6f2fb;
+  --ink-surface: #ffffff;
+  --ink-surface-elevated: #f1eaf9;
+  --ink-border: rgba(74, 18, 89, 0.18);
+  --ink-gold: #b45309;
+  --ink-gold-soft: #d97706;
+  --ink-text: #2b0938;
+  --ink-muted: #5b4b6e;
+  color: var(--ink-text);
+}
+
+.inkstream-root .studio-desk-bg {
+  background-color: #f6f2fb;
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(147, 51, 234, 0.08), transparent 45%),
+    radial-gradient(circle at 84% 18%, rgba(234, 179, 8, 0.09), transparent 40%),
+    radial-gradient(rgba(74, 18, 89, 0.08) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 22px 22px;
+}
+
+html.dark .inkstream-root {
   --ink-bg: #150424;
   --ink-surface: #220738;
   --ink-surface-elevated: #2d0b4a;
@@ -11,7 +32,7 @@
   color: var(--ink-text);
 }
 
-.inkstream-root .studio-desk-bg {
+html.dark .inkstream-root .studio-desk-bg {
   background-color: #150424;
   background-image:
     radial-gradient(circle at 18% 12%, rgba(147, 51, 234, 0.22), transparent 45%),
@@ -39,128 +60,147 @@
 }
 
 .inkstream-root .thin-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(212, 164, 55, 0.38);
+  background: rgba(74, 18, 89, 0.28);
   border-radius: 9999px;
+}
+
+html.dark .inkstream-root .thin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(212, 164, 55, 0.38);
 }
 
 .inkstream-root .thin-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(246, 201, 21, 0.65);
 }
 
-/* Royal Purple & Gold themed overrides inside InkStream studio cards */
-.inkstream-root .bg-white:not(.inkstream-keep-white) {
-  background-color: #210736 !important;
+/* Missing Piece Royal Purple & Gold branding in Dark Mode */
+html.dark .inkstream-root .bg-white:not(.inkstream-keep-white) {
+  background-color: #210736;
   color: #f5f3f7;
 }
 
-.inkstream-root .bg-slate-50:not(.inkstream-keep-white),
-.inkstream-root .bg-slate-100:not(.inkstream-keep-white) {
-  background-color: #19042a !important;
+html.dark .inkstream-root .bg-slate-50:not(.inkstream-keep-white),
+html.dark .inkstream-root .bg-slate-100:not(.inkstream-keep-white) {
+  background-color: #19042a;
   color: #f5f3f7;
 }
 
-.inkstream-root .bg-slate-200:not(.inkstream-keep-white) {
-  background-color: #2d0b4a !important;
+html.dark .inkstream-root .bg-slate-200:not(.inkstream-keep-white) {
+  background-color: #2d0b4a;
 }
 
-.inkstream-root .bg-slate-900:not(.inkstream-keep-white) {
-  background-color: #2c0947 !important;
+html.dark .inkstream-root .bg-slate-900:not(.inkstream-keep-white) {
+  background-color: #2c0947;
 }
 
-.inkstream-root .border-slate-200:not(.inkstream-keep-white),
-.inkstream-root .border-slate-300:not(.inkstream-keep-white),
-.inkstream-root .border-slate-100:not(.inkstream-keep-white) {
-  border-color: rgba(212, 164, 55, 0.3) !important;
+html.dark .inkstream-root .border-slate-200:not(.inkstream-keep-white),
+html.dark .inkstream-root .border-slate-300:not(.inkstream-keep-white),
+html.dark .inkstream-root .border-slate-100:not(.inkstream-keep-white) {
+  border-color: rgba(212, 164, 55, 0.3);
 }
 
-.inkstream-root .text-slate-900:not(.inkstream-keep-dark),
-.inkstream-root .text-slate-800:not(.inkstream-keep-dark) {
-  color: #f5f3f7 !important;
+html.dark .inkstream-root .text-slate-900:not(.inkstream-keep-dark),
+html.dark .inkstream-root .text-slate-800:not(.inkstream-keep-dark) {
+  color: #f5f3f7;
 }
 
-.inkstream-root .text-slate-700:not(.inkstream-keep-dark) {
-  color: #e6dcf2 !important;
+html.dark .inkstream-root .text-slate-700:not(.inkstream-keep-dark) {
+  color: #e6dcf2;
 }
 
-.inkstream-root .text-slate-600:not(.inkstream-keep-dark) {
-  color: #cbbbe0 !important;
+html.dark .inkstream-root .text-slate-600:not(.inkstream-keep-dark) {
+  color: #cbbbe0;
 }
 
-.inkstream-root .text-slate-500:not(.inkstream-keep-dark),
-.inkstream-root .text-slate-400:not(.inkstream-keep-dark) {
-  color: #a995c4 !important;
+html.dark .inkstream-root .text-slate-500:not(.inkstream-keep-dark),
+html.dark .inkstream-root .text-slate-400:not(.inkstream-keep-dark) {
+  color: #a995c4;
 }
 
-/* Missing Piece Gold accent remapping from InkStream default blues */
+/* Missing Piece Gold accent buttons across both themes */
 .inkstream-root .bg-blue-600 {
-  background-color: #f6c915 !important;
-  color: #1d0830 !important;
+  background-color: #4a1259;
+  color: #faf8f4;
 }
 
 .inkstream-root .hover\:bg-blue-700:hover {
-  background-color: #ffe047 !important;
-  color: #1d0830 !important;
+  background-color: #360b42;
+  color: #faf8f4;
 }
 
-.inkstream-root .bg-blue-50 {
-  background-color: rgba(246, 201, 21, 0.14) !important;
+html.dark .inkstream-root .bg-blue-600 {
+  background-color: #f6c915;
+  color: #1d0830;
 }
 
-.inkstream-root .border-blue-200,
-.inkstream-root .border-blue-300,
-.inkstream-root .border-blue-600 {
-  border-color: rgba(246, 201, 21, 0.55) !important;
+html.dark .inkstream-root .hover\:bg-blue-700:hover {
+  background-color: #ffe047;
+  color: #1d0830;
 }
 
-.inkstream-root .text-blue-600,
-.inkstream-root .text-blue-700 {
-  color: #f6c915 !important;
+html.dark .inkstream-root .bg-blue-50 {
+  background-color: rgba(246, 201, 21, 0.14);
 }
 
-.inkstream-root .hover\:bg-slate-50:hover,
-.inkstream-root .hover\:bg-slate-100:hover {
-  background-color: rgba(246, 201, 21, 0.12) !important;
+html.dark .inkstream-root .border-blue-200,
+html.dark .inkstream-root .border-blue-300,
+html.dark .inkstream-root .border-blue-600 {
+  border-color: rgba(246, 201, 21, 0.55);
 }
 
-.inkstream-root .hover\:bg-slate-800:hover {
-  background-color: #3c1060 !important;
+html.dark .inkstream-root .text-blue-600,
+html.dark .inkstream-root .text-blue-700 {
+  color: #f6c915;
 }
 
-.inkstream-root input:not([type='range']):not([type='checkbox']):not([type='color']),
-.inkstream-root select,
-.inkstream-root textarea {
-  background-color: #130321 !important;
-  color: #f5f3f7 !important;
-  border-color: rgba(212, 164, 55, 0.38) !important;
+html.dark .inkstream-root .hover\:bg-slate-50:hover,
+html.dark .inkstream-root .hover\:bg-slate-100:hover {
+  background-color: rgba(246, 201, 21, 0.12);
 }
 
-.inkstream-root input::placeholder,
-.inkstream-root textarea::placeholder {
-  color: #c5b3de !important;
+html.dark .inkstream-root .hover\:bg-slate-800:hover {
+  background-color: #3c1060;
+}
+
+html.dark .inkstream-root input:not([type='range']):not([type='checkbox']):not([type='color']),
+html.dark .inkstream-root select,
+html.dark .inkstream-root textarea {
+  background-color: #130321;
+  color: #f5f3f7;
+  border-color: rgba(212, 164, 55, 0.38);
+}
+
+html.dark .inkstream-root input::placeholder,
+html.dark .inkstream-root textarea::placeholder {
+  color: #c5b3de;
 }
 
 /* High-contrast semantic callouts on dark royal purple */
-.inkstream-root .bg-emerald-50 {
-  background-color: rgba(6, 78, 59, 0.72) !important;
+html.dark .inkstream-root .bg-emerald-50 {
+  background-color: rgba(6, 78, 59, 0.72);
 }
 
-.inkstream-root .text-emerald-800,
-.inkstream-root .text-emerald-900,
-.inkstream-root .text-emerald-950,
-.inkstream-root .text-emerald-700 {
-  color: #a7f3d0 !important;
+html.dark .inkstream-root .text-emerald-800,
+html.dark .inkstream-root .text-emerald-900,
+html.dark .inkstream-root .text-emerald-950,
+html.dark .inkstream-root .text-emerald-700 {
+  color: #a7f3d0;
 }
 
-.inkstream-root .bg-rose-50 {
-  background-color: rgba(136, 19, 55, 0.55) !important;
+html.dark .inkstream-root .bg-rose-50 {
+  background-color: rgba(136, 19, 55, 0.55);
 }
 
-.inkstream-root .text-rose-700 {
-  color: #fecdd3 !important;
+html.dark .inkstream-root .text-rose-700 {
+  color: #fecdd3;
 }
 
 /* Keep the actual drawing canvas crisp white so every ink stroke pops cleanly */
 .inkstream-root .inkstream-canvas-stage {
-  background-color: #ffffff !important;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(74, 18, 89, 0.25), 0 12px 32px rgba(43, 9, 56, 0.14);
+}
+
+html.dark .inkstream-root .inkstream-canvas-stage {
+  background-color: #ffffff;
   box-shadow: 0 0 0 2px rgba(246, 201, 21, 0.5), 0 18px 42px rgba(9, 2, 18, 0.6);
 }

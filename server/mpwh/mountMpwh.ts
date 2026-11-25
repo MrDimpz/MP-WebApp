@@ -43,6 +43,7 @@ interface ChannelSession {
   roundWinners: RoundWinnerSummary[];
   recentActivity: ActivityFeedItem[];
   guessFeed: GuessFeedItem[];
+  pendingSolvedFeeds: Map<string, Array<Omit<GuessFeedItem, 'id' | 'timestamp'>>>;
   bufferTimers: Set<ReturnType<typeof setTimeout>>;
   nextRoundTimer: ReturnType<typeof setTimeout> | null;
   autoNextRound: boolean;
@@ -141,6 +142,7 @@ export class MpwhManager {
         roundWinners: [],
         recentActivity: [],
         guessFeed: [],
+        pendingSolvedFeeds: new Map(),
         bufferTimers: new Set(),
         nextRoundTimer: null,
         autoNextRound: true,
@@ -394,6 +396,28 @@ export class MpwhManager {
     this.broadcastGameState(sess);
   }
 
+  private queuePendingSolvedFeed(
+    sess: ChannelSession,
+    word: string,
+    entry: Omit<GuessFeedItem, 'id' | 'timestamp'>
+  ): void {
+    const existing = sess.pendingSolvedFeeds.get(word) ?? [];
+    existing.push(entry);
+    sess.pendingSolvedFeeds.set(word, existing);
+  }
+
+  private flushPendingSolvedFeeds(sess: ChannelSession, words?: string[]): void {
+    const keys = words ?? Array.from(sess.pendingSolvedFeeds.keys());
+    for (const word of keys) {
+      const queued = sess.pendingSolvedFeeds.get(word);
+      if (!queued || queued.length === 0) continue;
+      for (const entry of queued) {
+        this.pushGuessFeed(sess, entry);
+      }
+      sess.pendingSolvedFeeds.delete(word);
+    }
+  }
+
   private scheduleBufferExpiry(
     sess: ChannelSession,
     roundId: string,
@@ -406,8 +430,34 @@ export class MpwhManager {
       if (sess.ladderSet.status !== 'playing') return;
 
       const now = Date.now();
+      this.flushPendingSolvedFeeds(sess, solvedWords);
+
       for (const word of solvedWords) {
-        this.pushActivity(sess, `Word revealed: ${word.toUpperCase()}`, 'solve');
+        const winnerNames: string[] = [];
+        for (const board of sess.ladderSet.boards) {
+          for (const target of board.targets) {
+            if (target.word === word) {
+              board.lastGuessWord = word;
+              for (const w of target.winners) {
+                if (!winnerNames.includes(w.name)) {
+                  winnerNames.push(w.name);
+                }
+              }
+            }
+          }
+        }
+        if (winnerNames.length > 0) {
+          const shown = winnerNames.slice(0, 3).join(', ');
+          const extra =
+            winnerNames.length > 3 ? ` +${winnerNames.length - 3} more` : '';
+          this.pushActivity(
+            sess,
+            `${shown}${extra} found ${word.toUpperCase()}!`,
+            'solve'
+          );
+        } else {
+          this.pushActivity(sess, `Word revealed: ${word.toUpperCase()}`, 'solve');
+        }
       }
 
       const finalized = checkAndFinalizeRound(sess.ladderSet, now);
@@ -447,6 +497,7 @@ export class MpwhManager {
     sess.roundWinners = [];
     sess.recentActivity = [];
     sess.guessFeed = [];
+    sess.pendingSolvedFeeds.clear();
 
     const modeLabel =
       sess.mode === 'classic'
@@ -542,56 +593,47 @@ export class MpwhManager {
     }
 
     if (result.firstSolvedWords.length > 0) {
-      this.pushGuessFeed(sess, {
-        playerName: cleanName,
-        tiktokHandle,
-        avatarUrl: cleanAvatar,
-        word: result.word,
-        alreadyGuessed: false,
-        status: 'solved',
-      });
-      const countLabel =
-        result.firstSolvedWords.length > 1
-          ? `${result.firstSolvedWords.length} secret words`
-          : 'a secret word';
-      this.pushActivity(
-        sess,
-        `${cleanName} found ${countLabel}! 4s stream-lag buffer open...`,
-        'buffer'
-      );
+      // Hold winning feed chips & announcements until the silent 4-second lag timer finishes
+      for (const solvedWord of result.firstSolvedWords) {
+        this.queuePendingSolvedFeed(sess, solvedWord, {
+          playerName: cleanName,
+          tiktokHandle,
+          avatarUrl: cleanAvatar,
+          word: result.word,
+          alreadyGuessed: false,
+          status: 'solved',
+        });
+      }
       const delayMs = result.newBufferEndsAt
         ? Math.max(100, result.newBufferEndsAt - Date.now() + 40)
         : STREAM_LAG_BUFFER_MS + 40;
       this.scheduleBufferExpiry(sess, sess.roundId, result.firstSolvedWords, delayMs);
-      this.broadcastGameState(sess);
       return {
         accepted: true,
         word: result.word,
-        matchedWords: result.firstSolvedWords,
+        matchedWords: [],
         wasLagBufferHit: false,
       };
     }
 
     if (result.bufferMatchedWords.length > 0) {
-      this.pushGuessFeed(sess, {
-        playerName: cleanName,
-        tiktokHandle,
-        avatarUrl: cleanAvatar,
-        word: result.word,
-        alreadyGuessed: false,
-        status: 'buffer',
-      });
-      this.pushActivity(
-        sess,
-        `${cleanName} also got it during the 4s lag buffer!`,
-        'solve'
-      );
-      this.broadcastGameState(sess);
+      if (!result.duplicateBufferWinner) {
+        for (const matchedWord of result.bufferMatchedWords) {
+          this.queuePendingSolvedFeed(sess, matchedWord, {
+            playerName: cleanName,
+            tiktokHandle,
+            avatarUrl: cleanAvatar,
+            word: result.word,
+            alreadyGuessed: false,
+            status: 'solved',
+          });
+        }
+      }
       return {
         accepted: true,
         word: result.word,
-        matchedWords: result.bufferMatchedWords,
-        wasLagBufferHit: true,
+        matchedWords: [],
+        wasLagBufferHit: false,
       };
     }
 
@@ -647,6 +689,7 @@ export class MpwhManager {
     const sess = this.getOrCreateChannel(rawChannel);
     if (!sess.ladderSet || sess.ladderSet.status !== 'playing') return;
     this.clearChannelTimers(sess);
+    this.flushPendingSolvedFeeds(sess);
     const now = Date.now();
     sess.ladderSet.status = 'gave_up';
     sess.ladderSet.finishedAt = now;

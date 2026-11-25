@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowUpRight, LogIn, Mail, Moon, Sun } from 'lucide-react';
-import { auth } from '@/firebase';
-import { CLOUD_HYDRATED_EVENT, saveUserProfilePreferences } from '@/lib/cloud-progress';
 import { getCleanDisplayName, useUnifiedAuth } from '@/lib/unified-game-auth';
+import { useSiteTheme } from '@/lib/site-theme';
 import { LoggedInIndicator } from '@/components/logged-in-indicator';
 import { UserProfileIcon } from '@/components/user-profile-icon';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
@@ -11,45 +10,15 @@ import { AdminPortalModal } from '@/components/interactive-games/admin-portal-mo
 import { ContactUsModal } from '@/components/contact-us-modal';
 import { LanguageMenu } from '@/components/language-menu';
 
-const SITE_DARK_MODE_KEY = 'mp_site_dark_mode_v2';
-
 export function SiteHeader() {
   const { user } = useUnifiedAuth();
+  const { darkMode, toggleDarkMode } = useSiteTheme();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'account' | 'leaderboards'>('account');
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem(SITE_DARK_MODE_KEY);
-      if (saved !== null) return saved !== 'false';
-    } catch {}
-    return true;
-  });
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    try {
-      localStorage.setItem(SITE_DARK_MODE_KEY, String(darkMode));
-    } catch {}
-  }, [darkMode]);
-
-  useEffect(() => {
-    const handleCloudHydrated = () => {
-      try {
-        const saved = localStorage.getItem(SITE_DARK_MODE_KEY);
-        if (saved !== null) {
-          setDarkMode(saved !== 'false');
-        }
-      } catch {}
-    };
-    window.addEventListener(CLOUD_HYDRATED_EVENT, handleCloudHydrated);
-
     const handleOpenAuth = (e: Event) => {
       const detail = (e as CustomEvent<{ tab?: 'account' | 'leaderboards' }>).detail;
       setAuthModalTab(detail?.tab || 'account');
@@ -63,7 +32,6 @@ export function SiteHeader() {
       setAuthModalOpen(true);
     }
     return () => {
-      window.removeEventListener(CLOUD_HYDRATED_EVENT, handleCloudHydrated);
       window.removeEventListener('open-site-auth-modal', handleOpenAuth);
     };
   }, []);
@@ -140,15 +108,7 @@ export function SiteHeader() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              setDarkMode((d) => {
-                const next = !d;
-                if (auth?.currentUser) {
-                  void saveUserProfilePreferences({ darkMode: next });
-                }
-                return next;
-              });
-            }}
+            onClick={toggleDarkMode}
             title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             className="header-action"

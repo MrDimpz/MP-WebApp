@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { Moon, Sun } from "lucide-react";
 import {
   clearActiveInteractiveStreamerSession,
   getActiveInteractiveStreamerSession,
@@ -21,6 +22,7 @@ import {
   useInteractiveProfileScores,
   useUnifiedAuth,
 } from "../../lib/unified-game-auth";
+import { useSiteTheme } from "../../lib/site-theme";
 import { AdminPortalModal } from "./admin-portal-modal";
 import { UnifiedAuthModal } from "../solo-games/unified-auth-modal";
 import { getOverlayConfigFromLocation } from "../../lib/live-overlay";
@@ -62,6 +64,7 @@ function InteractiveStreamGateInner({
 }: InteractiveStreamGateProps) {
   const { activeStreamer } = useInteractiveAuthStore();
   const { user: siteUser } = useUnifiedAuth();
+  const { darkMode, toggleDarkMode } = useSiteTheme();
   const profileScores = useInteractiveProfileScores(siteUser?.uid);
   const dailyLimit = useInteractiveDailyLimit(gameSlug);
 
@@ -334,16 +337,15 @@ function InteractiveStreamGateInner({
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#08090f] text-slate-100">
+    <div className="min-h-screen flex flex-col bg-[#f7f3fc] text-[#2b0938] dark:bg-[#08090f] dark:text-slate-100 transition-colors">
       {/* Unified Interactive Games Top Bar */}
       <div
-        className="sticky top-0 z-50 w-full bg-[#0d101b] border-b border-white/15 px-3 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-2 text-xs shadow-md"
-        style={{ backgroundColor: "#0d101b", opacity: 1 }}
+        className="sticky top-0 z-50 w-full bg-[#faf7ff] dark:bg-[#0d101b] border-b border-[#4a1259]/20 dark:border-white/15 px-3 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-2 text-xs shadow-sm dark:shadow-md transition-colors"
       >
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             to="/interactive-games"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#181d30] hover:bg-[#232a42] border border-white/15 text-slate-200 font-bold transition-colors"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#efe7fb] hover:bg-[#e4d5f8] dark:bg-[#181d30] dark:hover:bg-[#232a42] border border-[#4a1259]/20 dark:border-white/15 text-[#2b0938] dark:text-slate-200 font-bold transition-colors whitespace-nowrap shrink-0"
             title="Back to Interactive Games"
           >
             ← Back
@@ -351,39 +353,39 @@ function InteractiveStreamGateInner({
 
           <Link
             to="/"
-            className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg hover:bg-[#181d30] transition-colors group"
+            className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg hover:bg-[#efe7fb] dark:hover:bg-[#181d30] transition-colors group"
             title="Return to The Missing Piece Home Screen"
           >
             <img
               src="/brand-logo.png"
               alt="The Missing Piece Home"
-              className="w-6 h-6 rounded-md object-cover border border-amber-400/50"
+              className="w-6 h-6 rounded-md object-cover border border-amber-500/60 dark:border-amber-400/50"
             />
-            <span className="font-extrabold tracking-tight text-white group-hover:text-amber-300 transition-colors">
+            <span className="font-extrabold tracking-tight text-[#2b0938] group-hover:text-amber-700 dark:text-white dark:group-hover:text-amber-300 transition-colors whitespace-nowrap">
               The Missing Piece
             </span>
           </Link>
 
-          <span className="hidden md:inline-block text-slate-500">·</span>
-          <span className="hidden md:inline-block font-semibold text-amber-300">
+          <span className="hidden md:inline-block text-[#4a1259]/40 dark:text-slate-500">·</span>
+          <span className="hidden md:inline-block font-semibold text-amber-700 dark:text-amber-300">
             {gameTitle}
           </span>
         </div>
 
         <div className="flex items-center flex-wrap gap-2">
           {activeStreamer ? (
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#0c2e24] border border-emerald-400/50 text-emerald-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-100 border border-emerald-600/35 text-emerald-900 dark:bg-[#0c2e24] dark:border-emerald-400/50 dark:text-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
               <span className="font-mono font-bold">
                 {activeStreamer.username}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-600/15 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300">
                 Unlimited
               </span>
               <button
                 type="button"
                 onClick={() => clearActiveInteractiveStreamerSession()}
-                className="ml-1 text-[11px] font-bold text-rose-300 hover:text-rose-200 underline cursor-pointer"
+                className="ml-1 text-[11px] font-bold text-rose-700 hover:text-rose-800 dark:text-rose-300 dark:hover:text-rose-200 underline cursor-pointer"
               >
                 Switch Key
               </button>
@@ -393,8 +395,8 @@ function InteractiveStreamGateInner({
               <span
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-semibold ${
                   dailyLimit.remaining > 0
-                    ? "bg-[#2b1f0d] border-amber-400/50 text-amber-200"
-                    : "bg-[#331019] border-rose-400/50 text-rose-200"
+                    ? "bg-amber-100 border-amber-600/35 text-amber-900 dark:bg-[#2b1f0d] dark:border-amber-400/50 dark:text-amber-200"
+                    : "bg-rose-100 border-rose-600/35 text-rose-900 dark:bg-[#331019] dark:border-rose-400/50 dark:text-rose-200"
                 }`}
                 title={`Free users can play up to ${MAX_FREE_INTERACTIVE_ROUNDS_PER_DAY} rounds per game per day. Stream Key holders get unlimited usage.`}
               >
@@ -410,7 +412,7 @@ function InteractiveStreamGateInner({
                   setErrorMsg(null);
                   setShowKeyModal(true);
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/60 text-amber-200 font-bold transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-400/25 hover:bg-amber-400/40 dark:bg-amber-400/20 dark:hover:bg-amber-400/30 border border-amber-600/45 dark:border-amber-400/60 text-amber-950 dark:text-amber-200 font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0"
               >
                 🔑 Enter Stream Key
               </button>
@@ -420,7 +422,7 @@ function InteractiveStreamGateInner({
           <button
             type="button"
             onClick={() => setShowProfileModal(true)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#26143d] hover:bg-[#331b52] border border-purple-400/45 text-purple-100 font-bold transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#f0e6fb] hover:bg-[#e4d3f7] dark:bg-[#26143d] dark:hover:bg-[#331b52] border border-[#4a1259]/30 dark:border-purple-400/45 text-[#2b0938] dark:text-purple-100 font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
             <span>👤</span>
             <span>
@@ -429,17 +431,28 @@ function InteractiveStreamGateInner({
                 : "Account & Link TikTok @"}
             </span>
             {profileScores && profileScores.totalPoints > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded bg-[#3b2a0e] text-amber-300 font-mono text-[10px]">
+              <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-200 text-amber-950 dark:bg-[#3b2a0e] dark:text-amber-300 font-mono text-[10px]">
                 {profileScores.totalPoints.toLocaleString()} pts
               </span>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleDarkMode}
+            title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#efe7fb] hover:bg-[#e4d5f8] dark:bg-[#181d30] dark:hover:bg-[#232a42] border border-[#4a1259]/25 dark:border-white/15 text-[#2b0938] dark:text-amber-300 font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0"
+          >
+            {darkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{darkMode ? "Light" : "Dark"}</span>
           </button>
         </div>
       </div>
 
       {/* Game Area or Daily Limit Wall */}
       {showLimitWall && !activeStreamer ? (
-        <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-radial from-purple-950/40 via-[#08090f] to-[#08090f]">
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-radial from-purple-200/50 via-[#f7f3fc] to-[#f7f3fc] dark:from-purple-950/40 dark:via-[#08090f] dark:to-[#08090f]">
           {renderKeyCard(true)}
         </div>
       ) : (

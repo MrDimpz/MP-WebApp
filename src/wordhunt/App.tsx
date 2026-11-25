@@ -10,9 +10,11 @@ import {
   Copy,
   Eye,
   Infinity as InfinityIcon,
+  Moon,
   Play,
   RotateCcw,
   Sparkles,
+  Sun,
   Trophy,
   Volume2,
   VolumeX,
@@ -22,6 +24,7 @@ import { LanguageMenu } from '@/components/language-menu';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import { UserProfileIcon } from '@/components/user-profile-icon';
 import { CLOUD_HYDRATED_EVENT, scheduleCloudProgressSync } from '@/lib/cloud-progress';
+import { useSiteTheme } from '@/lib/site-theme';
 import {
   getLocalTodayDateStr,
   recordDailyPuzzleSolved,
@@ -191,6 +194,7 @@ function buildShareSummary(
 
 export default function WordHuntSoloApp() {
   const { user } = useUnifiedAuth();
+  const { darkMode, toggleDarkMode } = useSiteTheme();
   const [dictionaryLanguage] = useDictionaryLanguage();
   const todayDate = useMemo(() => getLocalTodayDateStr(), []);
 
@@ -606,15 +610,15 @@ export default function WordHuntSoloApp() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#160524] text-[#F5F0FF] flex flex-col">
+    <div className="min-h-screen bg-[#F7F2FC] dark:bg-[#160524] text-[#2B0938] dark:text-[#F5F0FF] flex flex-col transition-colors">
       {/* Clean 3-Zone Top Bar */}
-      <header className="sticky top-0 z-30 border-b border-[#D4A437]/25 bg-[#160524]/95 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-[#E3D4F4] dark:border-[#D4A437]/25 bg-white/95 dark:bg-[#160524]/95 backdrop-blur-md">
         <div className="mx-auto max-w-6xl px-3 sm:px-5 h-16 flex items-center justify-between gap-4 sm:gap-8">
           {/* Zone 1: Back link + Wordmark */}
           <div className="flex items-center gap-3 min-w-0 shrink-0">
             <Link
               to="/solo-games"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[#D4A437]/30 bg-[#24083B] px-3 py-2 text-xs font-bold text-[#F6C915] hover:bg-[#310D4F] transition-colors whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#D7C4EC] dark:border-[#D4A437]/30 bg-[#F4ECFC] dark:bg-[#24083B] px-3 py-2 text-xs font-bold text-[#4C266D] dark:text-[#F6C915] hover:bg-[#EADBF9] dark:hover:bg-[#310D4F] transition-colors whitespace-nowrap shrink-0"
             >
               <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
               <span className="hidden sm:inline">Solo Games</span>
@@ -625,7 +629,7 @@ export default function WordHuntSoloApp() {
                 alt="The Missing Piece"
                 className="h-8 w-8 rounded-full object-contain shrink-0"
               />
-              <span className="font-display text-base sm:text-lg font-extrabold tracking-tight text-white">
+              <span className="font-display text-base sm:text-lg font-extrabold tracking-tight text-[#2B0938] dark:text-white">
                 Word Hunt
               </span>
             </div>
@@ -649,8 +653,8 @@ export default function WordHuntSoloApp() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`py-1 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                   activeTab === tab.id
-                    ? 'text-[#F6C915] border-b-2 border-[#F6C915]'
-                    : 'text-[#D4C0EC] hover:text-white'
+                    ? 'text-[#8F6500] dark:text-[#F6C915] border-b-2 border-[#B58100] dark:border-[#F6C915]'
+                    : 'text-[#5C3A78] dark:text-[#D4C0EC] hover:text-[#2B0938] dark:hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -658,20 +662,33 @@ export default function WordHuntSoloApp() {
             ))}
           </nav>
 
-          {/* Zone 3: Language, Streak, Audio & Account */}
+          {/* Zone 3: Language, Streak, Theme, Audio & Account */}
           <div className="flex items-center gap-2 shrink-0">
             <LanguageMenu variant="compact" />
             <DailyStreakBadge
               streak={dailyStreak.streak}
               solvedToday={dailyStreak.solvedToday}
-              variant="amber-dark"
+              variant={darkMode ? 'amber-dark' : 'amber-light'}
               compact
             />
             <button
               type="button"
+              onClick={toggleDarkMode}
+              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#D7C4EC] dark:border-white/15 bg-[#F4ECFC] dark:bg-[#24083B] text-[#4C266D] dark:text-[#E6D6F7] hover:border-[#B58100] dark:hover:border-[#F6C915]/50 hover:text-[#8F6500] dark:hover:text-[#F6C915] transition-colors cursor-pointer shrink-0"
+            >
+              {darkMode ? (
+                <Sun className="h-4 w-4 text-[#F6C915]" aria-hidden="true" />
+              ) : (
+                <Moon className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
+            <button
+              type="button"
               onClick={handleToggleMute}
               aria-label={muted ? 'Unmute sound effects' : 'Mute sound effects'}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-[#24083B] text-[#E6D6F7] hover:border-[#F6C915]/50 hover:text-[#F6C915] transition-colors cursor-pointer shrink-0"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#D7C4EC] dark:border-white/15 bg-[#F4ECFC] dark:bg-[#24083B] text-[#4C266D] dark:text-[#E6D6F7] hover:border-[#B58100] dark:hover:border-[#F6C915]/50 hover:text-[#8F6500] dark:hover:text-[#F6C915] transition-colors cursor-pointer shrink-0"
             >
               {muted ? (
                 <VolumeX className="h-4 w-4" aria-hidden="true" />
@@ -702,7 +719,7 @@ export default function WordHuntSoloApp() {
         </div>
 
         {/* Mobile Tab Strip */}
-        <div className="flex md:hidden items-center justify-center gap-6 border-t border-white/10 px-3 py-2 text-xs font-semibold">
+        <div className="flex md:hidden items-center justify-center gap-6 border-t border-[#E6D9F5] dark:border-white/10 px-3 py-2 text-xs font-semibold">
           {(
             [
               { id: 'play', label: 'Play' },
@@ -715,7 +732,7 @@ export default function WordHuntSoloApp() {
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === tab.id ? 'text-[#F6C915]' : 'text-[#C8B2E4]'
+                activeTab === tab.id ? 'text-[#8F6500] dark:text-[#F6C915]' : 'text-[#5C3A78] dark:text-[#C8B2E4]'
               }`}
             >
               {tab.label}
@@ -727,52 +744,52 @@ export default function WordHuntSoloApp() {
       {/* Main Content */}
       <main className="flex-1 mx-auto w-full max-w-6xl px-3 sm:px-5 py-5 sm:py-6">
         {activeTab === 'rules' ? (
-          <section className="mx-auto max-w-3xl rounded-2xl border border-[#D4A437]/30 bg-[#210736]/95 p-6 sm:p-8 space-y-6">
+          <section className="mx-auto max-w-3xl rounded-2xl border border-[#D7C4EC] dark:border-[#D4A437]/30 bg-white/95 dark:bg-[#210736]/95 p-6 sm:p-8 space-y-6 shadow-sm">
             <div className="space-y-1.5">
-              <p className="text-xs font-bold text-[#F6C915]">Single-Player Guide</p>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              <p className="text-xs font-bold text-[#8F6500] dark:text-[#F6C915]">Single-Player Guide</p>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#2B0938] dark:text-white">
                 How to Play Solo Word Hunt
               </h1>
-              <p className="text-sm text-[#D9C7EE] leading-relaxed">
+              <p className="text-sm text-[#5C3A78] dark:text-[#D9C7EE] leading-relaxed">
                 Crack the hidden 4–8 letter word using pure alphabetical binary search. Every valid
                 dictionary word of any length narrows the bracket above or below the target.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div className="rounded-xl border border-white/10 bg-[#160425] p-4 space-y-1.5">
-                <h2 className="text-sm font-extrabold text-[#F6C915]">
+              <div className="rounded-xl border border-[#E6D9F5] dark:border-white/10 bg-[#F8F3FD] dark:bg-[#160425] p-4 space-y-1.5">
+                <h2 className="text-sm font-extrabold text-[#8F6500] dark:text-[#F6C915]">
                   01. Narrow the A–Z Ladder
                 </h2>
-                <p className="text-xs text-[#D4C0EC] leading-relaxed">
+                <p className="text-xs text-[#5C3A78] dark:text-[#D4C0EC] leading-relaxed">
                   Type any real word in the active language ({langMeta.label}). If it comes before
                   the secret word alphabetically, it slots above; if it comes after, it slots below.
                 </p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-[#160425] p-4 space-y-1.5">
-                <h2 className="text-sm font-extrabold text-[#F6C915]">
+              <div className="rounded-xl border border-[#E6D9F5] dark:border-white/10 bg-[#F8F3FD] dark:bg-[#160425] p-4 space-y-1.5">
+                <h2 className="text-sm font-extrabold text-[#8F6500] dark:text-[#F6C915]">
                   02. Auto-Filled Prefix Letters
                 </h2>
-                <p className="text-xs text-[#D4C0EC] leading-relaxed">
+                <p className="text-xs text-[#5C3A78] dark:text-[#D4C0EC] leading-relaxed">
                   Whenever your closest word above and closest word below share starting letters,
                   those shared prefix letters fill into the secret word tiles automatically.
                 </p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-[#160425] p-4 space-y-1.5">
-                <h2 className="text-sm font-extrabold text-[#F6C915]">
+              <div className="rounded-xl border border-[#E6D9F5] dark:border-white/10 bg-[#F8F3FD] dark:bg-[#160425] p-4 space-y-1.5">
+                <h2 className="text-sm font-extrabold text-[#8F6500] dark:text-[#F6C915]">
                   03. Classic, Dual &amp; Quad Modes
                 </h2>
-                <p className="text-xs text-[#D4C0EC] leading-relaxed">
+                <p className="text-xs text-[#5C3A78] dark:text-[#D4C0EC] leading-relaxed">
                   Play Classic (1 word), Dual Ladder (2 words sorted A→Z on one board), or Quad Hunt
                   (4 simultaneous boards—click any board to target it, or broadcast across all
                   unsolved boards).
                 </p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-[#160425] p-4 space-y-1.5">
-                <h2 className="text-sm font-extrabold text-[#F6C915]">
+              <div className="rounded-xl border border-[#E6D9F5] dark:border-white/10 bg-[#F8F3FD] dark:bg-[#160425] p-4 space-y-1.5">
+                <h2 className="text-sm font-extrabold text-[#8F6500] dark:text-[#F6C915]">
                   04. Daily Streaks &amp; Smart Hints
                 </h2>
-                <p className="text-xs text-[#D4C0EC] leading-relaxed">
+                <p className="text-xs text-[#5C3A78] dark:text-[#D4C0EC] leading-relaxed">
                   Solve today&apos;s Daily Challenge to extend your Daily Streak and post your score
                   to the Solo Leaderboard. Use Bisect Hints to halve the bracket or Letter Clues to
                   reveal the next character.
@@ -792,13 +809,13 @@ export default function WordHuntSoloApp() {
             </div>
           </section>
         ) : activeTab === 'leaderboard' ? (
-          <section className="mx-auto max-w-3xl rounded-2xl border border-[#D4A437]/30 bg-[#210736]/95 p-6 sm:p-8 space-y-5">
+          <section className="mx-auto max-w-3xl rounded-2xl border border-[#D7C4EC] dark:border-[#D4A437]/30 bg-white/95 dark:bg-[#210736]/95 p-6 sm:p-8 space-y-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h1 className="text-2xl font-black tracking-tight text-white">
+                <h1 className="text-2xl font-black tracking-tight text-[#2B0938] dark:text-white">
                   Solo Word Hunt Leaderboard
                 </h1>
-                <p className="text-xs text-[#C8B2E4] mt-1">
+                <p className="text-xs text-[#6B4A8A] dark:text-[#C8B2E4] mt-1">
                   Top single-player scores across Classic, Dual, and Quad ladders
                 </p>
               </div>
@@ -808,7 +825,7 @@ export default function WordHuntSoloApp() {
                   setAuthModalTab('leaderboards');
                   setAuthModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#F6C915]/45 bg-[#2B0B46] px-3.5 py-2 text-xs font-bold text-[#F6C915] hover:bg-[#3A105E] transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[#C99A14]/55 dark:border-[#F6C915]/45 bg-[#FDF7E2] dark:bg-[#2B0B46] px-3.5 py-2 text-xs font-bold text-[#8F6500] dark:text-[#F6C915] hover:bg-[#FAF0C8] dark:hover:bg-[#3A105E] transition-colors cursor-pointer whitespace-nowrap shrink-0"
               >
                 <Trophy className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>All Solo Leaderboards</span>
@@ -816,33 +833,33 @@ export default function WordHuntSoloApp() {
             </div>
 
             {leaderboardEntries.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-[#160425] p-8 text-center space-y-2">
-                <p className="text-sm font-bold text-white">No scores recorded yet</p>
-                <p className="text-xs text-[#C8B2E4]">
+              <div className="rounded-xl border border-[#E6D9F5] dark:border-white/10 bg-[#F8F3FD] dark:bg-[#160425] p-8 text-center space-y-2">
+                <p className="text-sm font-bold text-[#2B0938] dark:text-white">No scores recorded yet</p>
+                <p className="text-xs text-[#6B4A8A] dark:text-[#C8B2E4]">
                   Sign in and solve a Solo Word Hunt board to claim the #1 spot.
                 </p>
               </div>
             ) : (
-              <ol className="divide-y divide-white/10 rounded-xl border border-white/10 bg-[#160425] overflow-hidden">
+              <ol className="divide-y divide-[#E6D9F5] dark:divide-white/10 rounded-xl border border-[#E6D9F5] dark:border-white/10 bg-[#F8F3FD] dark:bg-[#160425] overflow-hidden">
                 {leaderboardEntries.map((entry, idx) => (
                   <li
                     key={entry.id}
                     className="flex items-center justify-between gap-3 px-4 py-3"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="font-mono text-sm font-extrabold tabular-nums text-[#F6C915] w-6 shrink-0">
+                      <span className="font-mono text-sm font-extrabold tabular-nums text-[#8F6500] dark:text-[#F6C915] w-6 shrink-0">
                         #{idx + 1}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-white truncate">
+                        <p className="text-sm font-bold text-[#2B0938] dark:text-white truncate">
                           {entry.displayName}
                         </p>
-                        <p className="text-xs text-[#BFA8DC] truncate">
+                        <p className="text-xs text-[#6B4A8A] dark:text-[#BFA8DC] truncate">
                           {entry.metricLabel}
                         </p>
                       </div>
                     </div>
-                    <span className="font-mono text-sm font-extrabold tabular-nums text-emerald-300 shrink-0">
+                    <span className="font-mono text-sm font-extrabold tabular-nums text-emerald-700 dark:text-emerald-300 shrink-0">
                       {entry.score.toLocaleString()} pts
                     </span>
                   </li>
@@ -853,17 +870,17 @@ export default function WordHuntSoloApp() {
         ) : (
           <div className="space-y-5">
             {/* Control Strip: Daily/Practice + Mode Selector + Unboxed Stats + Reveal/New */}
-            <div className="rounded-2xl border border-[#D4A437]/30 bg-[#210736]/90 p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="rounded-2xl border border-[#D7C4EC] dark:border-[#D4A437]/30 bg-white/95 dark:bg-[#210736]/90 p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-sm">
               <div className="flex flex-wrap items-center gap-2">
                 {/* Daily vs Practice Segmented Toggle */}
-                <div className="inline-flex items-center gap-1 rounded-xl bg-[#140321] border border-[#D4A437]/25 p-1">
+                <div className="inline-flex items-center gap-1 rounded-xl bg-[#F4ECFC] dark:bg-[#140321] border border-[#D7C4EC] dark:border-[#D4A437]/25 p-1">
                   <button
                     type="button"
                     onClick={() => setPlayStyle('daily')}
                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                       playStyle === 'daily'
                         ? 'bg-[#F6C915] text-[#1D0830]'
-                        : 'text-[#D4C0EC] hover:text-white'
+                        : 'text-[#5C3A78] dark:text-[#D4C0EC] hover:text-[#2B0938] dark:hover:text-white'
                     }`}
                   >
                     <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
@@ -875,7 +892,7 @@ export default function WordHuntSoloApp() {
                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                       playStyle === 'practice'
                         ? 'bg-[#F6C915] text-[#1D0830]'
-                        : 'text-[#D4C0EC] hover:text-white'
+                        : 'text-[#5C3A78] dark:text-[#D4C0EC] hover:text-[#2B0938] dark:hover:text-white'
                     }`}
                   >
                     <InfinityIcon className="h-3.5 w-3.5" aria-hidden="true" />
@@ -892,8 +909,8 @@ export default function WordHuntSoloApp() {
                       onClick={() => setMode(opt.id)}
                       className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                         mode === opt.id
-                          ? 'bg-[#361156] border border-[#F6C915] text-[#F6C915]'
-                          : 'bg-[#140321] border border-[#D4A437]/20 text-[#D9C7EE] hover:border-[#F6C915]/45 hover:text-white'
+                          ? 'bg-[#F2E7FC] dark:bg-[#361156] border border-[#C99A14] dark:border-[#F6C915] text-[#7A5400] dark:text-[#F6C915]'
+                          : 'bg-[#F8F3FD] dark:bg-[#140321] border border-[#D7C4EC] dark:border-[#D4A437]/20 text-[#5C3A78] dark:text-[#D9C7EE] hover:border-[#B58100] dark:hover:border-[#F6C915]/45 hover:text-[#2B0938] dark:hover:text-white'
                       }`}
                     >
                       <span>{opt.label}</span>
@@ -907,18 +924,18 @@ export default function WordHuntSoloApp() {
 
               {/* Clean Unboxed Metadata + Actions */}
               <div className="flex flex-wrap items-center gap-3 justify-between lg:justify-end">
-                <div className="flex items-center gap-2 text-xs font-mono tabular-nums text-[#D4C0EC]">
+                <div className="flex items-center gap-2 text-xs font-mono tabular-nums text-[#5C3A78] dark:text-[#D4C0EC]">
                   <span>
                     {langMeta.flag} {langMeta.label}
                   </span>
                   <span aria-hidden="true">·</span>
                   <span className="inline-flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5 text-[#F6C915]" aria-hidden="true" />
+                    <Clock className="h-3.5 w-3.5 text-[#9A6E00] dark:text-[#F6C915]" aria-hidden="true" />
                     {formatDuration(elapsedMs)}
                   </span>
                   <span aria-hidden="true">·</span>
                   <span className="inline-flex items-center gap-1">
-                    <Sparkles className="h-3.5 w-3.5 text-[#F6C915]" aria-hidden="true" />
+                    <Sparkles className="h-3.5 w-3.5 text-[#9A6E00] dark:text-[#F6C915]" aria-hidden="true" />
                     {game?.hintsRemaining ?? 3} hints
                   </span>
                 </div>
@@ -928,7 +945,7 @@ export default function WordHuntSoloApp() {
                     <button
                       type="button"
                       onClick={handleReveal}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/18 bg-[#2B0B46] px-3 py-2 text-xs font-bold text-[#E5D7F7] hover:bg-[#3A105E] transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#D7C4EC] dark:border-white/18 bg-[#F4ECFC] dark:bg-[#2B0B46] px-3 py-2 text-xs font-bold text-[#4C266D] dark:text-[#E5D7F7] hover:bg-[#EADBF9] dark:hover:bg-[#3A105E] transition-colors cursor-pointer whitespace-nowrap shrink-0"
                     >
                       <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                       <span>Reveal</span>
@@ -964,12 +981,12 @@ export default function WordHuntSoloApp() {
               {/* Primary Game Stage */}
               <div className="lg:col-span-8 space-y-4">
                 <div
-                  className={`relative rounded-2xl border bg-[#210736]/95 shadow-xl overflow-hidden transition-colors ${
+                  className={`relative rounded-2xl border bg-white/95 dark:bg-[#210736]/95 shadow-xl overflow-hidden transition-colors ${
                     isWon
-                      ? 'border-emerald-400/55'
+                      ? 'border-emerald-500/60 dark:border-emerald-400/55'
                       : isGaveUp
-                      ? 'border-rose-400/45'
-                      : 'border-[#D4A437]/35'
+                      ? 'border-rose-400/55 dark:border-rose-400/45'
+                      : 'border-[#D7C4EC] dark:border-[#D4A437]/35'
                   }`}
                 >
                   {/* Subtle Brand Watermark */}
@@ -980,7 +997,7 @@ export default function WordHuntSoloApp() {
                     <img
                       src="/assets/aistudio/3d_logo_944e5372.png"
                       alt=""
-                      className="w-[85%] h-[85%] object-contain opacity-15"
+                      className="w-[85%] h-[85%] object-contain opacity-[0.06] dark:opacity-15"
                     />
                   </div>
 
@@ -997,11 +1014,11 @@ export default function WordHuntSoloApp() {
                     >
                       {loading || !game ? (
                         <div className="p-8 text-center space-y-2">
-                          <p className="text-sm font-bold text-[#F6C915]">
+                          <p className="text-sm font-bold text-[#8F6500] dark:text-[#F6C915]">
                             Preparing {playStyle === 'daily' ? 'Daily' : 'Practice'}{' '}
                             {formatModeLabel(mode)}...
                           </p>
-                          <p className="text-xs text-[#C8B2E4]">
+                          <p className="text-xs text-[#6B4A8A] dark:text-[#C8B2E4]">
                             Loading {langMeta.label} dictionary
                           </p>
                         </div>
@@ -1156,7 +1173,7 @@ export default function WordHuntSoloApp() {
                     </div>
 
                     {/* Typed Guess Input Bar docked directly beneath the board */}
-                    <div className="border-t border-[#D4A437]/25 bg-[#19052B]/90 px-4 py-3.5">
+                    <div className="border-t border-[#E6D9F5] dark:border-[#D4A437]/25 bg-[#F8F3FD]/90 dark:bg-[#19052B]/90 px-4 py-3.5">
                       <GuessInputBar
                         mode={game?.mode ?? mode}
                         disabled={!isPlaying || submitting || loading}
@@ -1187,55 +1204,55 @@ export default function WordHuntSoloApp() {
               {/* Right Sidebar: Personal Stats + Current Round Guesses */}
               <aside className="lg:col-span-4 space-y-4">
                 {/* Personal Stats Card */}
-                <section className="rounded-2xl border border-[#D4A437]/25 bg-[#210736]/90 p-4 space-y-3">
+                <section className="rounded-2xl border border-[#D7C4EC] dark:border-[#D4A437]/25 bg-white/95 dark:bg-[#210736]/90 p-4 space-y-3 shadow-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-sm font-extrabold text-white">Your Solo Stats</h2>
+                    <h2 className="text-sm font-extrabold text-[#2B0938] dark:text-white">Your Solo Stats</h2>
                     <button
                       type="button"
                       onClick={() => {
                         setAuthModalTab('leaderboards');
                         setAuthModalOpen(true);
                       }}
-                      className="text-xs font-bold text-[#F6C915] hover:underline cursor-pointer whitespace-nowrap shrink-0"
+                      className="text-xs font-bold text-[#8F6500] dark:text-[#F6C915] hover:underline cursor-pointer whitespace-nowrap shrink-0"
                     >
                       Leaderboard
                     </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2.5">
-                    <div className="rounded-xl bg-[#140321] border border-white/10 p-3">
-                      <div className="text-[11px] text-[#BFA8DC]">Best Score</div>
-                      <div className="font-mono text-lg font-extrabold tabular-nums text-[#F6C915]">
+                    <div className="rounded-xl bg-[#F8F3FD] dark:bg-[#140321] border border-[#E6D9F5] dark:border-white/10 p-3">
+                      <div className="text-[11px] text-[#6B4A8A] dark:text-[#BFA8DC]">Best Score</div>
+                      <div className="font-mono text-lg font-extrabold tabular-nums text-[#8F6500] dark:text-[#F6C915]">
                         {stats.bestScore.toLocaleString()}
                       </div>
                     </div>
-                    <div className="rounded-xl bg-[#140321] border border-white/10 p-3">
-                      <div className="text-[11px] text-[#BFA8DC]">Win Rate</div>
-                      <div className="font-mono text-lg font-extrabold tabular-nums text-emerald-300">
+                    <div className="rounded-xl bg-[#F8F3FD] dark:bg-[#140321] border border-[#E6D9F5] dark:border-white/10 p-3">
+                      <div className="text-[11px] text-[#6B4A8A] dark:text-[#BFA8DC]">Win Rate</div>
+                      <div className="font-mono text-lg font-extrabold tabular-nums text-emerald-700 dark:text-emerald-300">
                         {winRate}%
                       </div>
                     </div>
-                    <div className="rounded-xl bg-[#140321] border border-white/10 p-3">
-                      <div className="text-[11px] text-[#BFA8DC]">Win Streak</div>
-                      <div className="font-mono text-lg font-extrabold tabular-nums text-white">
+                    <div className="rounded-xl bg-[#F8F3FD] dark:bg-[#140321] border border-[#E6D9F5] dark:border-white/10 p-3">
+                      <div className="text-[11px] text-[#6B4A8A] dark:text-[#BFA8DC]">Win Streak</div>
+                      <div className="font-mono text-lg font-extrabold tabular-nums text-[#2B0938] dark:text-white">
                         {stats.currentStreak}{' '}
-                        <span className="text-[11px] font-semibold text-[#BFA8DC]">
+                        <span className="text-[11px] font-semibold text-[#6B4A8A] dark:text-[#BFA8DC]">
                           (best {stats.bestStreak})
                         </span>
                       </div>
                     </div>
-                    <div className="rounded-xl bg-[#140321] border border-white/10 p-3">
-                      <div className="text-[11px] text-[#BFA8DC]">Solved</div>
-                      <div className="font-mono text-lg font-extrabold tabular-nums text-white">
+                    <div className="rounded-xl bg-[#F8F3FD] dark:bg-[#140321] border border-[#E6D9F5] dark:border-white/10 p-3">
+                      <div className="text-[11px] text-[#6B4A8A] dark:text-[#BFA8DC]">Solved</div>
+                      <div className="font-mono text-lg font-extrabold tabular-nums text-[#2B0938] dark:text-white">
                         {stats.gamesWon}
-                        <span className="text-[11px] font-semibold text-[#BFA8DC]">
+                        <span className="text-[11px] font-semibold text-[#6B4A8A] dark:text-[#BFA8DC]">
                           /{stats.gamesPlayed}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-[#C8B2E4] pt-1 border-t border-white/10 font-mono tabular-nums">
+                  <div className="flex items-center justify-between text-xs text-[#6B4A8A] dark:text-[#C8B2E4] pt-1 border-t border-[#E6D9F5] dark:border-white/10 font-mono tabular-nums">
                     <span>Best Classic: {stats.fewestClassic ?? '—'}</span>
                     <span>Dual: {stats.fewestDual ?? '—'}</span>
                     <span>Quad: {stats.fewestQuad ?? '—'}</span>
@@ -1243,16 +1260,16 @@ export default function WordHuntSoloApp() {
                 </section>
 
                 {/* Guess History Log */}
-                <section className="rounded-2xl border border-[#D4A437]/25 bg-[#210736]/90 p-4 space-y-3">
+                <section className="rounded-2xl border border-[#D7C4EC] dark:border-[#D4A437]/25 bg-white/95 dark:bg-[#210736]/90 p-4 space-y-3 shadow-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-sm font-extrabold text-white">Round Guesses</h2>
-                    <span className="font-mono text-xs tabular-nums text-[#C8B2E4]">
+                    <h2 className="text-sm font-extrabold text-[#2B0938] dark:text-white">Round Guesses</h2>
+                    <span className="font-mono text-xs tabular-nums text-[#6B4A8A] dark:text-[#C8B2E4]">
                       {game?.totalGuesses ?? 0} total
                     </span>
                   </div>
 
                   {!game || game.guessFeed.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-white/15 bg-[#140321]/70 px-3 py-6 text-center text-xs text-[#BFA8DC]">
+                    <div className="rounded-xl border border-dashed border-[#D7C4EC] dark:border-white/15 bg-[#F8F3FD] dark:bg-[#140321]/70 px-3 py-6 text-center text-xs text-[#6B4A8A] dark:text-[#BFA8DC]">
                       Type any {langMeta.label} word below to place your first bracket on the
                       alphabetical ladder.
                     </div>
@@ -1261,18 +1278,18 @@ export default function WordHuntSoloApp() {
                       {game.guessFeed.slice(0, 30).map((item, idx) => (
                         <li
                           key={item.id}
-                          className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-[#140321] px-3 py-2 text-xs"
+                          className="flex items-center justify-between gap-2 rounded-xl border border-[#E6D9F5] dark:border-white/10 bg-[#F8F3FD] dark:bg-[#140321] px-3 py-2 text-xs"
                         >
-                          <span className="font-mono font-extrabold uppercase tracking-[0.12em] text-white truncate">
+                          <span className="font-mono font-extrabold uppercase tracking-[0.12em] text-[#2B0938] dark:text-white truncate">
                             {item.word}
                           </span>
                           <span
                             className={`font-semibold shrink-0 ${
                               item.status === 'solved'
-                                ? 'text-emerald-300'
+                                ? 'text-emerald-700 dark:text-emerald-300'
                                 : item.status === 'duplicate'
-                                ? 'text-amber-300'
-                                : 'text-[#BFA8DC]'
+                                ? 'text-amber-700 dark:text-amber-300'
+                                : 'text-[#6B4A8A] dark:text-[#BFA8DC]'
                             }`}
                           >
                             {item.status === 'solved'
@@ -1286,14 +1303,14 @@ export default function WordHuntSoloApp() {
                     </ul>
                   )}
 
-                  <div className="flex items-center justify-between pt-2 border-t border-white/10 text-[11px] text-[#BFA8DC]">
+                  <div className="flex items-center justify-between pt-2 border-t border-[#E6D9F5] dark:border-white/10 text-[11px] text-[#6B4A8A] dark:text-[#BFA8DC]">
                     <span>
                       {(game?.dictionarySize ?? 0).toLocaleString()} {langMeta.label} words active
                     </span>
                     <button
                       type="button"
                       onClick={() => setActiveTab('rules')}
-                      className="inline-flex items-center gap-1 font-semibold text-[#F6C915] hover:underline cursor-pointer"
+                      className="inline-flex items-center gap-1 font-semibold text-[#8F6500] dark:text-[#F6C915] hover:underline cursor-pointer"
                     >
                       <BookOpen className="h-3 w-3" aria-hidden="true" />
                       <span>Rules</span>

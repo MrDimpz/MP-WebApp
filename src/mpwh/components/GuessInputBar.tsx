@@ -48,14 +48,14 @@ export function GuessInputBar({
     <div className="space-y-2">
       {mode === 'quad' && (
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="font-semibold text-[#C8B2E4] mr-1">Target:</span>
+          <span className="font-semibold text-[#5C3A78] dark:text-[#C8B2E4] mr-1">Target:</span>
           <button
             type="button"
             onClick={() => onSelectBoard(null)}
             className={`px-2.5 py-1 rounded-md font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               selectedBoardIndex === null
                 ? 'bg-[#F6C915] text-[#1D0830]'
-                : 'bg-[#210736] text-[#D9C7EE] border border-[#D4A437]/30 hover:text-white'
+                : 'bg-white dark:bg-[#210736] text-[#4C266D] dark:text-[#D9C7EE] border border-[#D7C4EC] dark:border-[#D4A437]/30 hover:text-[#2B0938] dark:hover:text-white'
             }`}
           >
             All 4 Boards
@@ -68,7 +68,7 @@ export function GuessInputBar({
               className={`px-2.5 py-1 rounded-md font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                 selectedBoardIndex === idx
                   ? 'bg-[#F6C915] text-[#1D0830]'
-                  : 'bg-[#210736] text-[#D9C7EE] border border-[#D4A437]/30 hover:text-white'
+                  : 'bg-white dark:bg-[#210736] text-[#4C266D] dark:text-[#D9C7EE] border border-[#D7C4EC] dark:border-[#D4A437]/30 hover:text-[#2B0938] dark:hover:text-white'
               }`}
             >
               Board {idx + 1}
@@ -90,7 +90,7 @@ export function GuessInputBar({
           spellCheck={false}
           maxLength={32}
           aria-label="Enter any dictionary word guess"
-          className="flex-1 min-w-0 rounded-xl border border-[#D4A437]/40 bg-[#140321] px-4 py-3 font-mono text-base font-bold tracking-wider uppercase text-white placeholder:normal-case placeholder:tracking-normal placeholder:font-sans placeholder:font-normal placeholder:text-[#9F84C2] focus:border-[#F6C915] focus:outline-none disabled:opacity-50"
+          className="flex-1 min-w-0 rounded-xl border border-[#C8AEDF] dark:border-[#D4A437]/40 bg-white dark:bg-[#140321] px-4 py-3 font-mono text-base font-bold tracking-wider uppercase text-[#2B0938] dark:text-white placeholder:normal-case placeholder:tracking-normal placeholder:font-sans placeholder:font-normal placeholder:text-[#7E5E9B] dark:placeholder:text-[#9F84C2] focus:border-[#B58100] dark:focus:border-[#F6C915] focus:outline-none disabled:opacity-50"
         />
         <button
           type="submit"
@@ -109,29 +109,29 @@ export function GuessInputBar({
             role="status"
             className={`text-xs font-semibold truncate ${
               feedback.tone === 'error'
-                ? 'text-rose-300'
+                ? 'text-rose-600 dark:text-rose-300'
                 : feedback.tone === 'success'
-                ? 'text-emerald-300'
-                : 'text-[#F6C915]'
+                ? 'text-emerald-700 dark:text-emerald-300'
+                : 'text-[#8F6500] dark:text-[#F6C915]'
             }`}
           >
             {feedback.text}
           </p>
         ) : winNotice ? (
           <div className="flex items-center justify-between gap-3 w-full">
-            <span className="text-xs font-bold text-emerald-300 truncate">
+            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 truncate">
               Round #{winNotice.roundNumber} solved!
             </span>
             <button
               type="button"
               onClick={winNotice.onViewWinners}
-              className="text-xs font-extrabold text-[#F6C915] hover:underline cursor-pointer whitespace-nowrap shrink-0"
+              className="text-xs font-extrabold text-[#8F6500] dark:text-[#F6C915] hover:underline cursor-pointer whitespace-nowrap shrink-0"
             >
               View Winners
             </button>
           </div>
         ) : (
-          <span className="text-[11px] text-[#9F84C2] truncate">
+          <span className="text-[11px] text-[#6E4D8B] dark:text-[#9F84C2] truncate">
             {disabled ? disabledHelperText : helperText}
           </span>
         )}

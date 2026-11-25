@@ -5,6 +5,7 @@ export interface DatabaseBackendStatus {
   connected: boolean;
   mode: "mysql" | "firestore-fallback";
   error: string | null;
+  missingEnvVars?: string[];
   tables: {
     users: number;
     user_progress: number;
@@ -65,6 +66,9 @@ export async function fetchDatabaseBackendStatus(options?: {
         connected: Boolean(data?.connected),
         mode: data?.mode === "mysql" ? "mysql" : "firestore-fallback",
         error: typeof data?.error === "string" ? data.error : null,
+        missingEnvVars: Array.isArray(data?.missingEnvVars)
+          ? data.missingEnvVars.filter((v: unknown): v is string => typeof v === "string")
+          : undefined,
         tables: data?.tables && typeof data.tables === "object" ? data.tables : null,
       };
       cachedStatus = next;

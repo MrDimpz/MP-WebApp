@@ -6,6 +6,7 @@ export type DailyStreakBadgeVariant =
   | 'cyan'
   | 'emerald'
   | 'amber-dark'
+  | 'amber-light'
   | 'light'
   | 'slate';
 
@@ -22,6 +23,7 @@ const VARIANT_CLASSES: Record<DailyStreakBadgeVariant, string> = {
   cyan: 'bg-[#19e4ff]/15 border-[#19e4ff]/55 text-[#8aefff]',
   emerald: 'bg-emerald-500/15 border-emerald-400/50 text-emerald-300',
   'amber-dark': 'bg-[#2d0a3d] border-[#f5b82e]/60 text-[#f5b82e]',
+  'amber-light': 'bg-amber-50 border-amber-400/70 text-amber-800',
   light: 'bg-amber-50 dark:bg-amber-500/15 border-amber-300 dark:border-amber-400/45 text-amber-800 dark:text-amber-300',
   slate: 'bg-slate-900 border-amber-500/50 text-amber-300',
 };
@@ -31,6 +33,7 @@ const ICON_CLASSES: Record<DailyStreakBadgeVariant, string> = {
   cyan: 'text-[#ffe536] fill-[#ffe536]/80',
   emerald: 'text-emerald-400 fill-emerald-400/80',
   'amber-dark': 'text-[#f5b82e] fill-[#f5b82e]/85',
+  'amber-light': 'text-amber-500 fill-amber-400/80',
   light: 'text-amber-500 fill-amber-400/80',
   slate: 'text-amber-400 fill-amber-400/80',
 };

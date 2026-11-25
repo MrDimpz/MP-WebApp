@@ -7,16 +7,19 @@ import {
   Image as ImageIcon,
   Lock,
   LogOut,
+  Moon,
   Play,
   Plus,
   Radio,
   RefreshCw,
+  Sun,
   Users,
 } from 'lucide-react';
 import type { AvatarConfig, PublicRoomSummary, PublicUser } from '../shared/types.ts';
 import { Avatar, AvatarCustomizer } from './Avatar.tsx';
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
 import { LanguageMenu } from '@/components/language-menu';
+import { useSiteTheme } from '@/lib/site-theme';
 
 interface LobbyScreenProps {
   user: PublicUser | null;
@@ -190,6 +193,8 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
     });
   };
 
+  const { darkMode, toggleDarkMode } = useSiteTheme();
+
   return (
     <div className="min-h-screen studio-desk-bg flex flex-col">
       {/* Clean 3-Zone Top Bar */}
@@ -252,6 +257,15 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
 
           <div className="flex items-center gap-2.5 shrink-0">
             <LanguageMenu variant="compact" />
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
+            >
+              {darkMode ? <Sun className="w-4 h-4 text-[#F6C915]" /> : <Moon className="w-4 h-4" />}
+            </button>
             <LiveOverlayButton
               gameTitle="InkStream"
               gameSlug="inkstream"

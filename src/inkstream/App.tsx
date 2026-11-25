@@ -10,10 +10,13 @@ import {
   ExternalLink,
   Image as ImageIcon,
   LogOut,
+  Moon,
   Radio,
+  Sun,
   Volume2,
   VolumeX,
 } from 'lucide-react';
+import { useSiteTheme } from '@/lib/site-theme';
 import './inkstream.css';
 import type {
   AvatarConfig,
@@ -135,6 +138,7 @@ function InkStreamApp() {
   const { user: siteUser } = useUnifiedAuth();
   const activeStreamer = getActiveInteractiveStreamerSession();
   const [dictionaryLanguage] = useDictionaryLanguage();
+  const { darkMode, toggleDarkMode } = useSiteTheme();
 
   // Bearer token kept strictly in JS memory (never localStorage/sessionStorage)
   const [token, setToken] = useState<string | null>(null);
@@ -956,7 +960,7 @@ function InkStreamApp() {
               alt="The Missing Piece"
               className="w-7 h-7 rounded-full object-contain shrink-0 hidden sm:block"
             />
-            <span className="font-display font-extrabold text-xl tracking-tight text-[#F6C915] whitespace-nowrap shrink-0">
+            <span className="font-display font-extrabold text-xl tracking-tight text-[#4a1259] dark:text-[#F6C915] whitespace-nowrap shrink-0">
               InkStream
             </span>
 
@@ -1085,6 +1089,16 @@ function InkStreamApp() {
                 </span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
 
             <button
               type="button"

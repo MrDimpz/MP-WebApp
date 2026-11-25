@@ -28,8 +28,10 @@ import {
   Pause,
   Sparkles,
   Lock,
+  Moon,
   Unlock,
   ArrowLeft,
+  Sun,
   Trophy,
 } from 'lucide-react';
 import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
@@ -38,6 +40,7 @@ import { getLocalTodayDateStr, useDailyStreak } from '@/lib/daily-streak';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { LanguageMenu } from '@/components/language-menu';
+import { useSiteTheme } from '@/lib/site-theme';
 import { GameFullState } from './types/game.ts';
 import type { ActiveCelebration, RoundSummaryPayload } from './services/gameClient.ts';
 
@@ -55,6 +58,7 @@ function resolveRouteFromPathname(pathname: string): ActiveRoute {
 
 export default function App() {
   const { isOverlay, bg: overlayBg, streamer: overlayStreamer } = useOverlayConfig();
+  const { darkMode, toggleDarkMode } = useSiteTheme();
   const hasReceivedHostSyncRef = React.useRef(false);
 
   const {
@@ -427,9 +431,9 @@ export default function App() {
 
   return (
     <div
-      className={`lexi-root min-h-screen flex flex-col ${
+      className={`lexi-root min-h-screen flex flex-col transition-colors ${
         isCleanObsCapture && route === 'overlay'
-          ? 'bg-transparent text-slate-100'
+          ? 'lexi-overlay dark bg-transparent text-slate-100'
           : 'bg-slate-950 text-slate-100'
       }`}
     >
@@ -442,7 +446,7 @@ export default function App() {
               to="/interactive-games"
               className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5 text-amber-400" />
+              <ArrowLeft className="w-3.5 h-3.5 text-[#8F6500] dark:text-amber-400" />
               <span className="hidden sm:inline">Interactive Games</span>
             </Link>
             <div
@@ -461,8 +465,8 @@ export default function App() {
                 e.preventDefault();
                 navigate('game', '/game');
               }}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 ${
-                route === 'game' ? 'text-amber-400 font-semibold underline underline-offset-8' : ''
+              className={`hover:text-[#2B0938] dark:hover:text-white transition-colors whitespace-nowrap shrink-0 ${
+                route === 'game' ? 'text-[#8F6500] dark:text-amber-400 font-semibold underline underline-offset-8' : ''
               }`}
             >
               Game Arena
@@ -473,8 +477,8 @@ export default function App() {
                 e.preventDefault();
                 navigate('vertical', '/vertical');
               }}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 ${
-                route === 'vertical' ? 'text-amber-400 font-semibold underline underline-offset-8' : ''
+              className={`hover:text-[#2B0938] dark:hover:text-white transition-colors whitespace-nowrap shrink-0 ${
+                route === 'vertical' ? 'text-[#8F6500] dark:text-amber-400 font-semibold underline underline-offset-8' : ''
               }`}
             >
               Vertical 20:9
@@ -485,9 +489,9 @@ export default function App() {
                 e.preventDefault();
                 navigate('overlay', '/overlay');
               }}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 ${
+              className={`hover:text-[#2B0938] dark:hover:text-white transition-colors whitespace-nowrap shrink-0 ${
                 route === 'overlay' || route === 'display'
-                  ? 'text-amber-400 font-semibold underline underline-offset-8'
+                  ? 'text-[#8F6500] dark:text-amber-400 font-semibold underline underline-offset-8'
                   : ''
               }`}
             >
@@ -499,8 +503,8 @@ export default function App() {
                 e.preventDefault();
                 navigate('leaderboard', '/leaderboard');
               }}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 ${
-                route === 'leaderboard' ? 'text-amber-400 font-semibold underline underline-offset-8' : ''
+              className={`hover:text-[#2B0938] dark:hover:text-white transition-colors whitespace-nowrap shrink-0 ${
+                route === 'leaderboard' ? 'text-[#8F6500] dark:text-amber-400 font-semibold underline underline-offset-8' : ''
               }`}
             >
               Leaderboard
@@ -511,21 +515,30 @@ export default function App() {
                 e.preventDefault();
                 navigate('admin', '/admin');
               }}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 ${
-                route === 'admin' ? 'text-amber-400 font-semibold underline underline-offset-8' : ''
+              className={`hover:text-[#2B0938] dark:hover:text-white transition-colors whitespace-nowrap shrink-0 ${
+                route === 'admin' ? 'text-[#8F6500] dark:text-amber-400 font-semibold underline underline-offset-8' : ''
               }`}
             >
               Admin Studio
             </a>
           </nav>
 
-          {/* Zone 3: Language + Daily Streak + LIVE Overlay + Connect TikTok + New Round actions */}
+          {/* Zone 3: Language + Theme + Daily Streak + LIVE Overlay + Connect TikTok + New Round actions */}
           <div className="flex items-center gap-2.5 shrink-0">
             <LanguageMenu variant="compact" />
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 transition-colors cursor-pointer shrink-0"
+            >
+              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+            </button>
             <DailyStreakBadge
               streak={dailyStreak.streak}
               solvedToday={dailyStreak.solvedToday}
-              variant="slate"
+              variant={darkMode ? 'slate' : 'amber-light'}
               compact
             />
             <LiveOverlayButton
@@ -545,17 +558,17 @@ export default function App() {
               }}
               className={`px-3.5 py-2 text-xs font-bold rounded-lg border transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5 ${
                 gameState.tiktok?.status === 'CONNECTED'
-                  ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300 hover:bg-emerald-900/80'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-500/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80'
                   : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800'
               }`}
             >
-              <Wifi className={`w-3.5 h-3.5 ${gameState.tiktok?.status === 'CONNECTED' ? 'text-emerald-400' : 'text-slate-400'}`} />
+              <Wifi className={`w-3.5 h-3.5 ${gameState.tiktok?.status === 'CONNECTED' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`} />
               <span>{gameState.tiktok?.status === 'CONNECTED' ? `@${gameState.tiktok?.username} Connected` : 'Connect TikTok'}</span>
             </button>
             <button
               type="button"
               onClick={() => sendControlAction('next_round')}
-              className="px-4 py-2 text-xs font-bold text-slate-950 bg-gradient-to-b from-amber-300 to-amber-500 rounded-lg hover:from-amber-200 hover:to-amber-400 shadow-md transition-all whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-4 py-2 text-xs font-bold text-[#1D0830] bg-gradient-to-b from-amber-300 to-amber-500 rounded-lg hover:from-amber-200 hover:to-amber-400 shadow-md transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
               New Round
             </button>
@@ -625,11 +638,11 @@ export default function App() {
               <BrandLogo size="lg" />
               <div className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                  <span className="font-semibold text-amber-400 uppercase tracking-wider">
+                  <span className="font-semibold text-[#8F6500] dark:text-amber-400 uppercase tracking-wider">
                     {BRAND_TAGLINE}
                   </span>
                   <span aria-hidden="true">·</span>
-                  <span className="font-semibold text-white">Round {gameState.roundNumber}</span>
+                  <span className="font-semibold text-[#2B0938] dark:text-white">Round {gameState.roundNumber}</span>
                   <span aria-hidden="true">·</span>
                   <span>Status: {gameState.status}</span>
                   <span aria-hidden="true">·</span>
@@ -642,11 +655,11 @@ export default function App() {
                   <span aria-hidden="true">·</span>
                   <span>
                     Difficulty:{' '}
-                    <strong className="text-amber-300 uppercase">
+                    <strong className="text-[#8F6500] dark:text-amber-300 uppercase">
                       {gameState.difficulty || 'medium'}
                     </strong>
                     {gameState.autoDifficulty && (
-                      <span className="text-emerald-400 ml-1">(Auto-Adaptive)</span>
+                      <span className="text-emerald-700 dark:text-emerald-400 ml-1">(Auto-Adaptive)</span>
                     )}
                   </span>
                   {gameState.performanceMetrics && (
@@ -659,11 +672,11 @@ export default function App() {
                     </>
                   )}
                 </div>
-                <h1 className="text-xl sm:text-2xl font-display font-extrabold text-white tracking-tight">
-                  <span className="text-amber-300">{BRAND_NAME}</span> — Collaborative Live Word Puzzle
+                <h1 className="text-xl sm:text-2xl font-display font-extrabold text-[#2B0938] dark:text-white tracking-tight">
+                  <span className="text-[#8F6500] dark:text-amber-300">{BRAND_NAME}</span> — Collaborative Live Word Puzzle
                 </h1>
                 {gameState.performanceMetrics?.lastAdaptationNotice && (
-                  <div className="text-xs text-amber-300 font-medium">
+                  <div className="text-xs text-[#8F6500] dark:text-amber-300 font-medium">
                     ⚡ {gameState.performanceMetrics.lastAdaptationNotice}
                   </div>
                 )}
@@ -691,7 +704,7 @@ export default function App() {
                 value={gameState.difficulty || 'medium'}
                 onChange={(e) => updateGameConfig({ difficulty: e.target.value })}
                 aria-label="Select Difficulty Level"
-                className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-semibold text-amber-300 focus:outline-none focus:border-amber-400 cursor-pointer"
+                className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-semibold text-[#8F6500] dark:text-amber-300 focus:outline-none focus:border-amber-400 cursor-pointer"
               >
                 <option value="easy">Difficulty: Easy</option>
                 <option value="medium">Difficulty: Medium</option>
@@ -706,7 +719,7 @@ export default function App() {
                 title="Automatically scale difficulty between rounds based on viewer WPM, accuracy, and engagement"
                 className={`px-3 py-2 rounded-xl border text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   gameState.autoDifficulty
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                    ? 'bg-emerald-50 dark:bg-emerald-500/15 border-emerald-500/50 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -718,7 +731,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => sendControlAction('resume')}
-                  className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#1D0830] font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <Play className="w-3.5 h-3.5" />
                   <span>Resume</span>
@@ -738,11 +751,11 @@ export default function App() {
               <div
                 className={`px-4 py-2 rounded-xl border font-mono font-extrabold text-xl tabular-nums flex items-center gap-2 ${
                   gameState.remainingSeconds <= 10 && gameState.status === 'ACTIVE'
-                    ? 'bg-rose-950/90 border-rose-500 text-rose-300 animate-urgent'
-                    : 'bg-slate-950 border-slate-800 text-amber-400'
+                    ? 'bg-rose-50 dark:bg-rose-950/90 border-rose-500 text-rose-700 dark:text-rose-300 animate-urgent'
+                    : 'bg-slate-950 border-slate-800 text-[#8F6500] dark:text-amber-400'
                 }`}
               >
-                <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                <Clock className="w-4 h-4 text-[#8F6500] dark:text-amber-400 shrink-0" />
                 <span>
                   {gameState.status === 'COUNTDOWN'
                     ? `Starting in ${gameState.countdownSeconds}s`

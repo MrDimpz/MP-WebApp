@@ -53,6 +53,7 @@ import {
 } from '@/lib/daily-streak';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
+import { useSiteTheme } from '@/lib/site-theme';
 import './index.css';
 
 function resolvePlayerAvatar(rawUrl: string | null | undefined, name: string): string {
@@ -252,6 +253,7 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
 
   const [logoutNotice, setLogoutNotice] = useState<string | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
+  const { darkMode, toggleDarkMode } = useSiteTheme();
 
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminLoginOpen, setAdminLoginOpen] = useState(false);
@@ -1943,6 +1945,47 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
                   )}
                 </button>
                 )}
+
+                {/* Light / Dark Mode Toggle */}
+                <button
+                  className="mute-toggle"
+                  type="button"
+                  onClick={toggleDarkMode}
+                  title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                  aria-label={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                  {darkMode ? (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="4" />
+                      <path d="M12 2v2" />
+                      <path d="M12 20v2" />
+                      <path d="m4.93 4.93 1.41 1.41" />
+                      <path d="m17.66 17.66 1.41 1.41" />
+                      <path d="M2 12h2" />
+                      <path d="M20 12h2" />
+                      <path d="m6.34 17.66-1.41 1.41" />
+                      <path d="m19.07 4.93-1.41 1.41" />
+                    </svg>
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                    </svg>
+                  )}
+                </button>
 
                 {/* Sound Mute Toggle */}
                 <button

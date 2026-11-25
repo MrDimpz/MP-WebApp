@@ -1878,3 +1878,111 @@ a {
 }
 
 }
+
+/* Clean Porcelain-Lavender Light Mode for WiKirecTangled (non-overlay) */
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) {
+  --bg: #f6f1fc;
+  --bg-2: #ede4fa;
+  --panel: #ffffff;
+  --panel-2: #f4ecfc;
+  --border: #d7c4ec;
+  --border-soft: #c5a8e8;
+  --text: #2b0938;
+  --text-dim: #62427d;
+  --accent-orange: #b58100;
+  --accent-orange-2: #9a6e00;
+  --accent-green: #15803d;
+  --accent-green-deep: #166534;
+  --accent-blue: #7e22ce;
+  --accent-red: #dc2626;
+  --accent-yellow: #a16207;
+  --accent-magenta: #a21caf;
+  --accent-teal: #7c3aed;
+  --gold: #b58100;
+  --shadow-card: 0 4px 0 rgba(91, 33, 182, 0.14), inset 0 -2px 0 rgba(91, 33, 182, 0.08);
+  --cap-face: linear-gradient(180deg, #ffffff 0%, #f5effc 55%, #e6d7f7 100%);
+  --cap-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -4px 8px rgba(109, 40, 217, 0.12),
+    0 4px 0 #c4a7e7,
+    0 6px 10px rgba(43, 9, 56, 0.14);
+  --cap-shadow-pressed:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -2px 4px rgba(109, 40, 217, 0.16),
+    0 1px 0 #c4a7e7,
+    0 2px 4px rgba(43, 9, 56, 0.14);
+  --cap-shadow-lift:
+    inset 0 2px 0 rgba(250, 204, 21, 0.45),
+    inset 0 -4px 8px rgba(109, 40, 217, 0.14),
+    0 6px 0 #c4a7e7,
+    0 10px 14px rgba(43, 9, 56, 0.18);
+  background-color: #f6f1fc;
+  background-image:
+    radial-gradient(ellipse at 82% 4%, rgba(168, 85, 247, 0.14) 0%, transparent 45%),
+    radial-gradient(ellipse at 8% 36%, rgba(250, 204, 21, 0.14) 0%, transparent 50%);
+}
+
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .tlabel,
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .tfinder {
+  background: #f3ebfc;
+  border: 1px solid #d7c4ec;
+}
+
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .tcard.placeholder .tword {
+  color: rgba(43, 9, 56, 0.4);
+}
+
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .found-word-item.is-flashable:hover {
+  background: #ede4fa;
+}
+
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .grid {
+  background: linear-gradient(180deg, #ede3fa 0%, #e1d0f6 100%);
+  border-color: #c5a8e8;
+  box-shadow:
+    inset 0 4px 10px rgba(91, 33, 182, 0.12),
+    0 8px 18px rgba(43, 9, 56, 0.12);
+}
+
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .chat-stream-item.is-correct {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+}
+
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .chat-stream-item.is-gift {
+  background: #fefce8;
+  border-color: #eab308;
+}
+
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .tw-slot.title-found {
+  background: #ecfdf5;
+  border-color: #16a34a;
+}
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .tw-slot.title-found .tw-slot-word {
+  color: #166534;
+}
+
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .tw-slot.common-found {
+  background: #f3e8ff;
+  border-color: #9333ea;
+}
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .tw-slot.common-found .tw-slot-word {
+  color: #581c87;
+}
+
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .tw-slot.rare-found {
+  background: #fefce8;
+  border-color: #ca8a04;
+}
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .tw-slot.rare-found .tw-slot-word {
+  color: #854d0e;
+}
+
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .tw-slot.ultra-found {
+  background: #fdf4ff;
+  border-color: #c026d3;
+}
+html:not(.dark) .wikirec-root:not(.wikirec-overlay) .tw-slot.ultra-found .tw-slot-word {
+  color: #86198f;
+}
+

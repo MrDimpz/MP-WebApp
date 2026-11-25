@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
   CheckCircle2,
-  Clock,
   Crown,
   Lightbulb,
   Sparkles,
@@ -62,16 +60,16 @@ function BracketWordRow({
   if (!entry) {
     return (
       <div
-        className={`flex items-center justify-between gap-2 rounded-xl border border-dashed border-[#D4A437]/25 bg-[#12031E]/80 overflow-hidden ${heightClass}`}
+        className={`flex items-center justify-between gap-2 rounded-xl border border-dashed border-[#D7C4EC] dark:border-[#D4A437]/25 bg-[#F8F3FD]/85 dark:bg-[#12031E]/80 overflow-hidden ${heightClass}`}
       >
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#B8A0D6] min-w-0 truncate">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#6C4B8C] dark:text-[#B8A0D6] min-w-0 truncate">
           <ArrowIcon
-            className="h-3.5 w-3.5 text-[#D4A437]/70 shrink-0"
+            className="h-3.5 w-3.5 text-[#A57A10] dark:text-[#D4A437]/70 shrink-0"
             aria-hidden="true"
           />
           <span className="truncate">{emptyLabel}</span>
         </span>
-        <span className="font-mono text-[11px] uppercase tracking-wider text-[#957AB8] shrink-0">
+        <span className="font-mono text-[11px] uppercase tracking-wider text-[#8C6CA8] dark:text-[#957AB8] shrink-0">
           {direction === 'above' ? 'A' : direction === 'below' ? 'Z' : 'A–Z'}
         </span>
       </div>
@@ -82,16 +80,16 @@ function BracketWordRow({
     <div
       className={`flex items-center justify-between gap-2 rounded-xl border transition-colors overflow-hidden ${heightClass} ${
         entry.isHint
-          ? 'border-[#F6C915]/55 bg-[#F6C915]/12 text-[#FFF3B0]'
+          ? 'border-[#C99A14]/65 dark:border-[#F6C915]/70 bg-amber-50 dark:bg-[#F6C915]/18 text-[#7A5200] dark:text-[#FFF3B0]'
           : isLatest
-          ? 'border-[#F6C915]/70 bg-[#31104F]/75 text-white'
-          : 'border-[#D4A437]/28 bg-[#180528]/72 text-[#F5F0FF]'
+          ? 'border-[#C99A14] dark:border-[#F6C915] bg-[#EFE4FA] dark:bg-[#3A145E] text-[#2B0938] dark:text-white'
+          : 'border-[#D7C4EC] dark:border-[#D4A437]/42 bg-white/95 dark:bg-[#24093D]/95 text-[#2B0938] dark:text-white'
       }`}
     >
       <div className="flex items-center gap-2 min-w-0">
         <ArrowIcon
           className={`h-3.5 w-3.5 shrink-0 ${
-            entry.isHint ? 'text-[#F6C915]' : 'text-[#D4A437]'
+            entry.isHint ? 'text-[#B58100] dark:text-[#F6C915]' : 'text-[#A57A10] dark:text-[#D4A437]'
           }`}
           aria-hidden="true"
         />
@@ -107,25 +105,25 @@ function BracketWordRow({
           {entry.word}
         </span>
         {subLabel && density !== 'quad' && (
-          <span className="hidden sm:inline text-[11px] font-semibold text-[#C8B2E4] whitespace-nowrap shrink-0">
+          <span className="hidden sm:inline text-[11px] font-semibold text-[#6C4B8C] dark:text-[#C8B2E4] whitespace-nowrap shrink-0">
             {subLabel}
           </span>
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 shrink-0 text-[11px] text-[#C8B2E4]">
+      <div className="flex items-center gap-1.5 shrink-0 text-[11px] text-[#6C4B8C] dark:text-[#C8B2E4]">
         {entry.isHint ? (
-          <span className="font-bold uppercase tracking-wider text-[#F6C915]">
+          <span className="font-bold uppercase tracking-wider text-[#9A6E00] dark:text-[#F6C915]">
             Hint
           </span>
         ) : (
           <>
             {entry.guessedBy && density === 'classic' && (
-              <span className="max-w-[110px] truncate font-semibold text-[#E5D7F7]">
+              <span className="max-w-[110px] truncate font-semibold text-[#4C266D] dark:text-[#E5D7F7]">
                 {entry.guessedBy}
               </span>
             )}
-            <span className="font-mono tabular-nums text-[#B399D6]">
+            <span className="font-mono tabular-nums text-[#7C5B9E] dark:text-[#B399D6]">
               #{entry.order}
             </span>
           </>
@@ -144,7 +142,6 @@ function TargetWordCard({
   hintsRemaining,
   onUseHint,
   isGaveUp,
-  nowMs,
   overlayMode,
 }: {
   target: LadderTargetView;
@@ -159,17 +156,9 @@ function TargetWordCard({
     targetIndex: number
   ) => void;
   isGaveUp: boolean;
-  nowMs: number;
   overlayMode?: boolean;
 }) {
   const isRevealed = Boolean(target.word);
-  const isBufferActive = target.bufferActive;
-  const bufferRemainingMs =
-    isBufferActive && target.bufferEndsAt
-      ? Math.max(0, target.bufferEndsAt - nowMs)
-      : 0;
-  const bufferPct = Math.min(100, (bufferRemainingMs / 4000) * 100);
-  const bufferSec = (bufferRemainingMs / 1000).toFixed(1);
 
   const letterCount = target.revealedLength ?? target.word?.length ?? 5;
   const sharedPrefix = !isRevealed ? target.sharedPrefix : '';
@@ -201,13 +190,11 @@ function TargetWordCard({
           ? 'px-3.5 py-2.5'
           : 'px-4 py-3.5'
       } ${
-        target.solved && !isBufferActive
-          ? 'border-emerald-400/60 bg-emerald-950/35'
-          : isBufferActive
-          ? 'border-[#F6C915] bg-[#361156]/75'
+        target.solved
+          ? 'border-emerald-400/75 dark:border-emerald-400/65 bg-emerald-50/90 dark:bg-[#071D17]/95'
           : isGaveUp
-          ? 'border-rose-400/50 bg-rose-950/25'
-          : 'border-[#F6C915]/45 bg-[#150424]/72'
+          ? 'border-rose-400/60 dark:border-rose-400/55 bg-rose-50/90 dark:bg-[#220714]/95'
+          : 'border-[#C99A14]/55 dark:border-[#F6C915]/50 bg-[#F8F3FD]/90 dark:bg-[#0C0216]/95'
       }`}
     >
       {/* Fixed-Height Target Header Line */}
@@ -217,14 +204,9 @@ function TargetWordCard({
         }`}
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          {target.solved && !isBufferActive ? (
+          {target.solved ? (
             <CheckCircle2
-              className="h-3.5 w-3.5 text-emerald-400 shrink-0"
-              aria-hidden="true"
-            />
-          ) : isBufferActive ? (
-            <Clock
-              className="h-3.5 w-3.5 text-[#F6C915] shrink-0"
+              className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0"
               aria-hidden="true"
             />
           ) : null}
@@ -232,20 +214,14 @@ function TargetWordCard({
             className={`font-extrabold uppercase tracking-wider truncate ${
               isQuad ? 'text-[10px]' : 'text-xs'
             } ${
-              target.solved && !isBufferActive
-                ? 'text-emerald-300'
-                : isBufferActive
-                ? 'text-[#F6C915]'
+              target.solved
+                ? 'text-emerald-700 dark:text-emerald-300'
                 : isGaveUp
-                ? 'text-rose-300'
-                : 'text-[#F6C915]'
+                ? 'text-rose-700 dark:text-rose-300'
+                : 'text-[#8F6500] dark:text-[#F6C915]'
             }`}
           >
-            {isBufferActive
-              ? isQuad
-                ? '4s Window'
-                : 'Found · 4s Lag Window'
-              : target.solved
+            {target.solved
               ? isDual
                 ? `Word #${target.index + 1} Solved`
                 : 'Solved'
@@ -262,16 +238,14 @@ function TargetWordCard({
             isQuad ? 'text-[10px]' : 'text-xs'
           }`}
         >
-          {isBufferActive ? (
-            <span className="font-extrabold text-[#F6C915]">{bufferSec}s</span>
-          ) : target.solved && target.winners.length > 0 ? (
-            <span className="text-emerald-200 font-semibold truncate max-w-[140px]">
+          {target.solved && target.winners.length > 0 ? (
+            <span className="text-emerald-700 dark:text-emerald-200 font-semibold truncate max-w-[140px]">
               {target.winners.length === 1
                 ? target.winners[0].name
                 : `${target.winners[0].name} +${target.winners.length - 1}`}
             </span>
           ) : (
-            <span className="text-[#D4C0EC] font-semibold whitespace-nowrap">
+            <span className="text-[#5C3A78] dark:text-[#E2D2F7] font-semibold whitespace-nowrap">
               {!isRevealed && sharedPrefix.length > 0 && !isQuad
                 ? `${sharedPrefix.toUpperCase()}·${letterCount}L`
                 : `${letterCount} letters`}
@@ -280,7 +254,7 @@ function TargetWordCard({
         </div>
       </div>
 
-      {/* 3D Sculpted Letter Tiles (Fixed Height, Responsive Width in Quad) */}
+      {/* High-Contrast 3D Sculpted Letter Tiles (Fixed Height, Responsive Width in Quad) */}
       <div
         className={`flex items-center justify-center flex-nowrap ${
           isQuad ? 'gap-1' : isDual ? 'gap-1.5' : 'gap-2 sm:gap-2.5'
@@ -307,15 +281,13 @@ function TargetWordCard({
               } ${
                 isSolvedTile
                   ? isGaveUp && !target.solved
-                    ? 'bg-gradient-to-b from-rose-500/85 to-rose-700/95 border border-rose-300/70 border-b-[4px] border-b-rose-950 shadow-[0_6px_14px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.3)] text-white'
-                    : isBufferActive
-                    ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 border-2 border-[#F6C915] border-b-[5px] border-b-emerald-950 shadow-[0_8px_20px_rgba(246,201,21,0.38),inset_0_1px_0_rgba(255,255,255,0.45)] text-white'
-                    : 'bg-gradient-to-b from-emerald-500 to-emerald-700 border border-emerald-300/75 border-b-[5px] border-b-emerald-950 shadow-[0_8px_18px_rgba(16,185,129,0.32),inset_0_1px_0_rgba(255,255,255,0.35)] text-white'
+                    ? 'bg-gradient-to-b from-rose-500 to-rose-700 border-2 border-rose-200/90 border-b-[5px] border-b-rose-950 shadow-[0_6px_16px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.38)] text-white'
+                    : 'bg-gradient-to-b from-emerald-500 to-emerald-700 border-2 border-emerald-200/90 border-b-[5px] border-b-emerald-950 shadow-[0_8px_20px_rgba(16,185,129,0.42),inset_0_1px_0_rgba(255,255,255,0.42)] text-white'
                   : isAutoFilled
-                  ? 'bg-gradient-to-b from-[#523308] to-[#2B1903] border-2 border-[#F6C915] border-b-[5px] border-b-[#9E6B0C] shadow-[0_7px_18px_rgba(246,201,21,0.34),inset_0_1px_0_rgba(255,234,167,0.5)] text-[#FFE46B]'
+                  ? 'bg-gradient-to-b from-[#FFEA7A] to-[#F6C915] border-2 border-[#C99A14] dark:border-[#FFF6C2] border-b-[5px] border-b-[#9E6B0C] shadow-[0_7px_18px_rgba(246,201,21,0.42),inset_0_1px_0_rgba(255,255,255,0.75)] text-[#1D0830]'
                   : isClueFilled
-                  ? 'bg-gradient-to-b from-[#3E1D59] to-[#220B36] border border-[#F6C915]/80 border-b-[4px] border-b-[#8F6212] shadow-[0_6px_14px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,224,138,0.32)] text-[#F6C915]'
-                  : 'bg-gradient-to-b from-[#331354] to-[#1C0731] border border-[#D4A437]/30 border-b-[4px] border-b-[#0B0115] shadow-[0_6px_14px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.14)] text-[#A187C6]'
+                  ? 'bg-gradient-to-b from-[#EDE0FB] to-[#D9C2F5] dark:from-[#FFF4C4] dark:to-[#F7D364] border-2 border-[#B58100]/80 dark:border-[#FFE899] border-b-[5px] border-b-[#8F6212] dark:border-b-[#A67108] shadow-[0_6px_16px_rgba(246,201,21,0.3),inset_0_1px_0_rgba(255,255,255,0.8)] text-[#5B21B6] dark:text-[#2B0938]'
+                  : 'bg-gradient-to-b from-white to-[#EFE6FA] dark:from-[#F2EAFF] dark:to-[#D5C0F4] border-2 border-[#C8AEDF] dark:border-white/90 border-b-[5px] border-b-[#B89BD4] dark:border-b-[#7A56A8] shadow-[0_6px_16px_rgba(0,0,0,0.16)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.92)] text-[#5C3A78] dark:text-[#3A1658]'
               }`}
             >
               <span className="leading-none">{slot.char || '?'}</span>
@@ -326,33 +298,21 @@ function TargetWordCard({
 
       {/* Always-Rendered Fixed-Height Footer Slot */}
       <div
-        className={`border-t border-white/10 flex items-center justify-between gap-2 ${
+        className={`border-t border-[#E6D9F5] dark:border-white/12 flex items-center justify-between gap-2 ${
           isQuad ? 'mt-1.5 pt-1.5 h-6' : 'mt-2 pt-2 h-7'
         }`}
       >
-        {isBufferActive ? (
+        {target.solved ? (
           <>
             <div className="flex-1 min-w-0">
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#12031E]">
-                <div
-                  className="h-full bg-[#F6C915] transition-[width] duration-75 ease-linear"
-                  style={{ width: `${bufferPct}%` }}
-                />
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#E6D9F5] dark:bg-[#11021C]">
+                <div className="h-full w-full bg-emerald-500 dark:bg-emerald-400" />
               </div>
             </div>
-            <span className="text-[10px] font-bold text-[#F5E6FF] whitespace-nowrap shrink-0">
-              {target.winners.length} in · chat open
-            </span>
-          </>
-        ) : target.solved ? (
-          <>
-            <div className="flex-1 min-w-0">
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#11021C]">
-                <div className="h-full w-full bg-emerald-400" />
-              </div>
-            </div>
-            <span className="text-[10px] font-bold text-emerald-300 truncate max-w-[140px] shrink-0">
-              {target.winners[0]?.name
+            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 truncate max-w-[160px] shrink-0">
+              {target.winners.length > 1
+                ? `Won by ${target.winners[0].name} +${target.winners.length - 1}`
+                : target.winners[0]?.name
                 ? `Won by ${target.winners[0].name}`
                 : 'Solved'}
             </span>
@@ -360,20 +320,20 @@ function TargetWordCard({
         ) : isGaveUp ? (
           <>
             <div className="flex-1 min-w-0">
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#11021C]">
-                <div className="h-full w-full bg-rose-400/70" />
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#E6D9F5] dark:bg-[#11021C]">
+                <div className="h-full w-full bg-rose-500/80 dark:bg-rose-400/70" />
               </div>
             </div>
-            <span className="text-[10px] font-bold text-rose-300 whitespace-nowrap shrink-0">
+            <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 whitespace-nowrap shrink-0">
               Answer revealed
             </span>
           </>
         ) : (
           <>
             <div className="flex-1 min-w-0">
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#11021C]">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#E6D9F5] dark:bg-[#1F0936]">
                 <div
-                  className="h-full bg-[#F6C915] transition-all duration-300"
+                  className="h-full bg-[#D9A600] dark:bg-[#F6C915] transition-all duration-300"
                   style={{ width: `${Math.max(4, target.proximityPct)}%` }}
                 />
               </div>
@@ -389,7 +349,7 @@ function TargetWordCard({
                     onUseHint('bracket', boardIndex, target.index);
                   }}
                   title="Place a dictionary word halfway closer to the secret word"
-                  className={`inline-flex items-center gap-1 rounded-md border border-[#D4A437]/40 bg-[#25093D] font-bold text-[#F5EEFF] hover:border-[#F6C915] hover:text-[#F6C915] transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed whitespace-nowrap shrink-0 ${
+                  className={`inline-flex items-center gap-1 rounded-md border border-[#C8AEDF] dark:border-[#D4A437]/40 bg-white dark:bg-[#25093D] font-bold text-[#3B1759] dark:text-[#F5EEFF] hover:border-[#B58100] dark:hover:border-[#F6C915] hover:text-[#8F6500] dark:hover:text-[#F6C915] transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed whitespace-nowrap shrink-0 ${
                     isQuad ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-[11px]'
                   }`}
                 >
@@ -404,7 +364,7 @@ function TargetWordCard({
                     onUseHint('clue', boardIndex, target.index);
                   }}
                   title="Reveal starting letter clue"
-                  className={`inline-flex items-center gap-1 rounded-md border border-[#D4A437]/40 bg-[#25093D] font-bold text-[#F5EEFF] hover:border-[#F6C915] hover:text-[#F6C915] transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed whitespace-nowrap shrink-0 ${
+                  className={`inline-flex items-center gap-1 rounded-md border border-[#C8AEDF] dark:border-[#D4A437]/40 bg-white dark:bg-[#25093D] font-bold text-[#3B1759] dark:text-[#F5EEFF] hover:border-[#B58100] dark:hover:border-[#F6C915] hover:text-[#8F6500] dark:hover:text-[#F6C915] transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed whitespace-nowrap shrink-0 ${
                     isQuad ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-[11px]'
                   }`}
                 >
@@ -413,7 +373,7 @@ function TargetWordCard({
                 </button>
               </div>
             ) : (
-              <span className="font-mono text-[10px] font-bold text-[#C8B2E4] tabular-nums shrink-0">
+              <span className="font-mono text-[10px] font-bold text-[#5C3A78] dark:text-[#C8B2E4] tabular-nums shrink-0">
                 {Math.round(target.proximityPct)}%
               </span>
             )}
@@ -433,7 +393,6 @@ export function LadderBoard({
   hintsRemaining,
   onUseHint,
   isGaveUp,
-  clockOffsetMs,
   overlayMode = false,
   embedded = false,
   hideQuadSolvedPopup = false,
@@ -444,34 +403,17 @@ export function LadderBoard({
     : isDual
     ? 'dual'
     : 'classic';
-  const hasActiveBuffer = board.targets.some((t) => t.bufferActive);
-  const [nowMs, setNowMs] = useState(() => Date.now() + clockOffsetMs);
-
-  useEffect(() => {
-    setNowMs(Date.now() + clockOffsetMs);
-    if (!hasActiveBuffer) return;
-    const interval = window.setInterval(() => {
-      setNowMs(Date.now() + clockOffsetMs);
-    }, 80);
-    return () => window.clearInterval(interval);
-  }, [hasActiveBuffer, clockOffsetMs]);
 
   const t0 = board.targets[0];
   const t1 = isDual ? board.targets[1] : null;
   const showQuadSolverPopup =
     isQuad &&
-    board.solved &&
+    board.lockedSolved &&
     !hideQuadSolvedPopup &&
     !isGaveUp &&
     t0.winners.length > 0;
   const firstQuadWinner = t0.winners[0];
   const quadCoWinners = t0.winners.slice(1);
-  const quadBufferRemainingMs =
-    t0.bufferActive && t0.bufferEndsAt
-      ? Math.max(0, t0.bufferEndsAt - nowMs)
-      : 0;
-  const quadBufferPct = Math.min(100, (quadBufferRemainingMs / 4000) * 100);
-  const quadBufferSec = (quadBufferRemainingMs / 1000).toFixed(1);
 
   const middleSameWord =
     isDual &&
@@ -490,7 +432,7 @@ export function LadderBoard({
           ? isDual
             ? 'relative p-3.5 sm:p-4 transition-all flex flex-col'
             : 'relative p-4 sm:p-5 transition-all flex flex-col'
-          : `relative overflow-hidden rounded-2xl border bg-[#210736]/80 transition-all flex flex-col shadow-xl ${
+          : `relative overflow-hidden rounded-2xl border bg-white/95 dark:bg-[#210736]/80 transition-all flex flex-col shadow-xl ${
               isQuad
                 ? 'p-2.5 cursor-pointer'
                 : isDual
@@ -498,41 +440,34 @@ export function LadderBoard({
                 : 'p-4 sm:p-5'
             } ${
               board.lockedSolved
-                ? 'border-emerald-400/50'
-                : hasActiveBuffer
-                ? 'border-[#F6C915] shadow-[0_0_0_1px_rgba(246,201,21,0.3)]'
+                ? 'border-emerald-500/60 dark:border-emerald-400/50'
                 : isSelected
-                ? 'border-[#F6C915] shadow-[0_0_0_1px_rgba(246,201,21,0.35)]'
-                : 'border-[#D4A437]/30 hover:border-[#D4A437]/55'
+                ? 'border-[#C99A14] dark:border-[#F6C915] shadow-[0_0_0_1px_rgba(246,201,21,0.35)]'
+                : 'border-[#D7C4EC] dark:border-[#D4A437]/30 hover:border-[#B58100] dark:hover:border-[#D4A437]/55'
             }`
       }
     >
       {/* Fixed-Height Board Header */}
       <div
-        className={`flex items-center justify-between gap-2 border-b border-white/10 ${
+        className={`flex items-center justify-between gap-2 border-b border-[#E6D9F5] dark:border-white/10 ${
           isQuad ? 'pb-1.5 mb-1.5' : isDual ? 'pb-2 mb-2' : 'pb-2.5 mb-2.5'
         }`}
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <h3
-            className={`font-extrabold text-white truncate tracking-tight ${
+            className={`font-extrabold text-[#2B0938] dark:text-white truncate tracking-tight ${
               isQuad ? 'text-xs' : 'text-sm'
             }`}
           >
             {board.label}
           </h3>
           {board.lockedSolved && (
-            <span className="text-[11px] font-bold text-emerald-400 shrink-0">
+            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
               Solved
             </span>
           )}
-          {!board.lockedSolved && hasActiveBuffer && (
-            <span className="text-[11px] font-bold text-[#F6C915] shrink-0">
-              4s Buffer
-            </span>
-          )}
         </div>
-        <span className="font-mono text-[11px] tabular-nums text-[#C8B2E4] shrink-0">
+        <span className="font-mono text-[11px] tabular-nums text-[#6B4A8A] dark:text-[#C8B2E4] shrink-0">
           {board.guessCount} {board.guessCount === 1 ? 'guess' : 'guesses'}
         </span>
       </div>
@@ -562,7 +497,6 @@ export function LadderBoard({
           hintsRemaining={hintsRemaining}
           onUseHint={onUseHint}
           isGaveUp={isGaveUp}
-          nowMs={nowMs}
           overlayMode={overlayMode}
         />
 
@@ -640,7 +574,6 @@ export function LadderBoard({
               hintsRemaining={hintsRemaining}
               onUseHint={onUseHint}
               isGaveUp={isGaveUp}
-              nowMs={nowMs}
               overlayMode={overlayMode}
             />
 
@@ -720,35 +653,17 @@ export function LadderBoard({
 
             {quadCoWinners.length > 0 && (
               <p className="mt-1 max-w-full truncate px-1 text-[11px] font-semibold text-[#FFE46B]">
-                +{quadCoWinners.length} lag{' '}
-                {quadCoWinners.length === 1 ? 'winner' : 'winners'}:{' '}
+                +{quadCoWinners.length}{' '}
+                {quadCoWinners.length === 1 ? 'co-winner' : 'co-winners'}:{' '}
                 {quadCoWinners.map((w) => w.name).join(', ')}
               </p>
             )}
           </div>
 
-          {t0.bufferActive ? (
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[10px] font-bold text-[#F6C915]">
-                <span className="inline-flex items-center gap-1">
-                  <Clock className="h-3 w-3" aria-hidden="true" />
-                  4s Lag Buffer Open
-                </span>
-                <span className="font-mono tabular-nums">{quadBufferSec}s</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#12031E]">
-                <div
-                  className="h-full bg-[#F6C915] transition-[width] duration-75 ease-linear"
-                  style={{ width: `${quadBufferPct}%` }}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-[#C8B2E4] border-t border-white/10 pt-1.5">
-              <span>Solved in {board.guessCount} guesses</span>
-              <span className="text-emerald-300">Hunting remaining grids...</span>
-            </div>
-          )}
+          <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-[#C8B2E4] border-t border-white/10 pt-1.5">
+            <span>Solved in {board.guessCount} guesses</span>
+            <span className="text-emerald-300">Hunting remaining grids...</span>
+          </div>
         </div>
       )}
     </section>

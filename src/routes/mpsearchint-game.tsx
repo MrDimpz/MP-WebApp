@@ -8,7 +8,9 @@ export function MPSearchIntGamePage() {
     <InteractiveStreamGate gameTitle="MP Search Interactive" gameSlug="mpsearchint">
       <div
         className={`w-screen min-h-screen ${
-          isOverlay && bg === 'transparent' ? 'bg-transparent' : 'bg-[#140421]'
+          isOverlay && bg === 'transparent'
+            ? 'bg-transparent'
+            : 'bg-[#faf5ff] dark:bg-[#140421]'
         }`}
       >
         <MPSearchInteractiveApp />

@@ -196,7 +196,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
           maxWidth: clueLayout.maxWidth ? `${clueLayout.maxWidth}px` : undefined,
           fontSize: clueLayout.fontSize ? `${clueLayout.fontSize}px` : undefined,
         }}
-        className={`w-0 min-w-full font-extrabold text-white tracking-wide mb-3 leading-tight ${
+        className={`w-0 min-w-full font-extrabold text-[#2b0938] dark:text-white tracking-wide mb-3 leading-tight ${
           clueLayout.fontSize ? '' : 'text-2xl sm:text-3xl'
         } ${clueLayout.allowWrap ? 'whitespace-normal break-words' : 'whitespace-nowrap'}`}
       >
@@ -235,7 +235,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                   height: 'var(--tile-sz)',
                   '--tile-delay': `${colIdx * 18}ms`,
                 } as React.CSSProperties}
-                className="puzzle-tile-enter shrink-0 rounded-md transition-colors duration-200 bg-[#160224]/60 border border-purple-950/30 opacity-60"
+                className="puzzle-tile-enter shrink-0 rounded-md transition-colors duration-200 bg-[#dfd2f2]/60 dark:bg-[#160224]/60 border border-[#c7b3e6] dark:border-purple-950/30 opacity-60"
               />
             );
           }
@@ -273,11 +273,11 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                     : isRevealedByGuess
                     ? 'bg-gradient-to-b from-[#ffcf48] via-[#f5b82e] to-[#e6a822] text-[#220536] shadow-lg border-t-2 border-amber-100 ring-2 ring-amber-300/80 scale-[1.02]'
                     : isFilled
-                    ? 'bg-white text-[#220536] shadow-md border-t-2 border-slate-100 ring-2 ring-amber-300/80 scale-[1.02]'
-                    : 'bg-[#5e1d85] border-2 border-[#f5b82e]/90 shadow-md shadow-black/40 hover:bg-[#6e249b] hover:border-[#f5b82e]'
+                    ? 'bg-white text-[#220536] shadow-md border-t-2 border-slate-100 ring-2 ring-amber-400/80 dark:ring-amber-300/80 scale-[1.02]'
+                    : 'bg-white border-2 border-[#4a1259]/45 shadow-sm hover:bg-[#f7f2fe] hover:border-[#4a1259] dark:bg-[#5e1d85] dark:border-[#f5b82e]/90 dark:shadow-md dark:shadow-black/40 dark:hover:bg-[#6e249b] dark:hover:border-[#f5b82e]'
                 } ${
                   isThemeCellFocused
-                    ? 'ring-3 sm:ring-4 ring-[#f5b82e] ring-offset-2 ring-offset-[#250838] scale-105 z-10'
+                    ? 'ring-3 sm:ring-4 ring-amber-500 dark:ring-[#f5b82e] ring-offset-2 ring-offset-[#f4eefc] dark:ring-offset-[#250838] scale-105 z-10'
                     : ''
                 }`}
               >
@@ -338,7 +338,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                         height: 'var(--tile-sz)',
                         '--tile-delay': `${(rowIdx + 1) * 26 + colIdx * 16}ms`,
                       } as React.CSSProperties}
-                      className="puzzle-tile-enter shrink-0 rounded-md transition-colors duration-200 bg-[#160224]/60 border border-purple-950/30 opacity-60"
+                      className="puzzle-tile-enter shrink-0 rounded-md transition-colors duration-200 bg-[#dfd2f2]/60 dark:bg-[#160224]/60 border border-[#c7b3e6] dark:border-purple-950/30 opacity-60"
                     />
                   );
                 }
@@ -376,13 +376,13 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                           : isRevealedByGuess
                           ? 'bg-gradient-to-b from-[#ffcf48] via-[#f5b82e] to-[#e6a822] text-[#220536] shadow-lg border-t-2 border-amber-100 ring-2 ring-amber-300/80 scale-[1.02]'
                           : isFilled
-                          ? 'bg-white text-[#220536] shadow-md border-t-2 border-slate-100 ring-2 ring-amber-300/80 scale-[1.02]'
+                          ? 'bg-white text-[#220536] shadow-md border-t-2 border-slate-100 ring-2 ring-amber-400/80 dark:ring-amber-300/80 scale-[1.02]'
                           : isGuessMode
-                          ? 'bg-[#5e1d85] border-2 border-[#f5b82e]/90 shadow-md shadow-black/40 hover:bg-[#6e249b] hover:border-[#f5b82e]'
-                          : 'bg-[#561a7a] border-2 border-amber-200/80 shadow-md shadow-black/40 hover:bg-[#662090] hover:border-white'
+                          ? 'bg-white border-2 border-[#4a1259]/45 shadow-sm hover:bg-[#f7f2fe] hover:border-[#4a1259] dark:bg-[#5e1d85] dark:border-[#f5b82e]/90 dark:shadow-md dark:shadow-black/40 dark:hover:bg-[#6e249b] dark:hover:border-[#f5b82e]'
+                          : 'bg-white border-2 border-[#4a1259]/35 shadow-sm hover:bg-[#f7f2fe] hover:border-[#4a1259] dark:bg-[#561a7a] dark:border-amber-200/80 dark:shadow-md dark:shadow-black/40 dark:hover:bg-[#662090] dark:hover:border-white'
                       } ${
                         isFocused
-                          ? 'ring-3 sm:ring-4 ring-[#f5b82e] ring-offset-2 ring-offset-[#250838] scale-105 z-10'
+                          ? 'ring-3 sm:ring-4 ring-amber-500 dark:ring-[#f5b82e] ring-offset-2 ring-offset-[#f4eefc] dark:ring-offset-[#250838] scale-105 z-10'
                           : ''
                       }`}
                     >
@@ -413,10 +413,10 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
             className="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded-md drop-shadow-md hover:scale-105 transition-transform"
           />
           <div className="flex flex-col">
-            <span className="font-black text-xs sm:text-sm tracking-wider text-[#f5b82e] uppercase font-serif leading-tight drop-shadow-xs">
+            <span className="font-black text-xs sm:text-sm tracking-wider text-[#4a1259] dark:text-[#f5b82e] uppercase font-serif leading-tight drop-shadow-xs">
               The Missing Piece
             </span>
-            <span className="text-[9px] sm:text-[10px] text-white/70 tracking-widest uppercase font-semibold leading-none">
+            <span className="text-[9px] sm:text-[10px] text-[#4a1259]/70 dark:text-white/70 tracking-widest uppercase font-semibold leading-none">
               Find Your Space
             </span>
           </div>
@@ -427,13 +427,13 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
           <button
             type="button"
             onClick={onOpenMobileKeyboard}
-            className={`relative px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm tracking-wide shadow-lg transition-colors duration-200 bg-[#3d0f57] hover:bg-[#4b136b] border border-[#f5b82e]/50 flex items-center gap-2 cursor-pointer ${
-              isGuessMode ? 'text-[#f5b82e]' : 'text-white'
+            className={`relative px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm tracking-wide shadow-md dark:shadow-lg transition-colors duration-200 bg-white hover:bg-[#f7f2fe] dark:bg-[#3d0f57] dark:hover:bg-[#4b136b] border border-[#4a1259]/30 dark:border-[#f5b82e]/50 flex items-center gap-2 cursor-pointer ${
+              isGuessMode ? 'text-[#4a1259] dark:text-[#f5b82e]' : 'text-[#2b0938] dark:text-white'
             }`}
             title="Tap to open device keyboard"
           >
             {/* Triangular pointer pointing UP */}
-            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-x-6 sm:border-x-8 border-x-transparent border-b-6 sm:border-b-8 border-b-[#3d0f57]" />
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-x-6 sm:border-x-8 border-x-transparent border-b-6 sm:border-b-8 border-b-white dark:border-b-[#3d0f57]" />
             <Keyboard className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-85 shrink-0" />
             <span>{isGuessMode ? 'Guess a letter' : 'Tap any tile to type'}</span>
           </button>
@@ -442,7 +442,7 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
 
       {/* Centralised 1-Line Counter: 0-Guess Achievement + Guess Distribution (1 guess .. 8+ guesses) */}
       <div
-        className="w-full mt-3 sm:mt-3.5 mx-auto rounded-xl sm:rounded-2xl bg-[#1c042b]/90 border border-[#f5b82e]/30 px-1 py-2 sm:px-2 sm:py-2.5 shadow-lg text-center"
+        className="w-full mt-3 sm:mt-3.5 mx-auto rounded-xl sm:rounded-2xl bg-white/95 dark:bg-[#1c042b]/90 border border-[#4a1259]/20 dark:border-[#f5b82e]/30 px-1 py-2 sm:px-2 sm:py-2.5 shadow-sm dark:shadow-lg text-center"
         aria-label="Guess count summary"
       >
         <div className="grid grid-cols-[1.28fr_repeat(8,minmax(0,1fr))] gap-[3px] sm:gap-1.5 items-stretch">
@@ -493,13 +493,13 @@ export const ThematikBoard: React.FC<ThematikBoardProps> = ({
                 key={bucket.key}
                 className={`min-w-0 flex flex-col items-center justify-center rounded-lg sm:rounded-xl px-0.5 py-1.5 border transition-colors ${
                   hasCount
-                    ? 'bg-[#3b0f54]/85 border-[#f5b82e]/50 text-white shadow-xs'
-                    : 'bg-[#14021f]/75 border-purple-900/40 text-purple-300/60'
+                    ? 'bg-[#efe7fb] border-[#4a1259]/30 text-[#2b0938] dark:bg-[#3b0f54]/85 dark:border-[#f5b82e]/50 dark:text-white shadow-xs'
+                    : 'bg-[#f8f5fc] border-[#4a1259]/12 text-[#6b5e69] dark:bg-[#14021f]/75 dark:border-purple-900/40 dark:text-purple-300/60'
                 }`}
               >
                 <span
                   className={`text-xs sm:text-sm font-mono font-black tabular-nums leading-none ${
-                    hasCount ? 'text-[#f5b82e]' : 'text-purple-300/45'
+                    hasCount ? 'text-[#4a1259] dark:text-[#f5b82e]' : 'text-[#8b7a99] dark:text-purple-300/45'
                   }`}
                 >
                   {count}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { ArrowLeft, Check, Eye, RotateCcw, Trophy } from 'lucide-react';
+import { ArrowLeft, Check, Eye, Moon, RotateCcw, Sun, Trophy } from 'lucide-react';
 import type { VisualTheme, VisualThemeId } from '@/data/crossword-types';
 import type { PlacedClue, PuzzleDefinition, GridCellData } from '@/data/crossword-types';
 import { CURATED_PUZZLES, getTodayIsoDate } from '@/data/puzzles';
@@ -18,6 +18,7 @@ import {
 import { recordDailyPuzzleSolved, useDailyStreak } from '@/lib/daily-streak';
 import { CLOUD_HYDRATED_EVENT } from '@/lib/cloud-progress';
 import { triggerVictoryConfetti } from '@/lib/confetti';
+import { useSiteTheme } from '@/lib/site-theme';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 
 type Dir = 'across' | 'down';
@@ -164,6 +165,28 @@ const THEME_COLORS: Record<VisualThemeId, VisualTheme> & {
 	},
 };
 
+const LIGHT_PAPER_THEME: VisualTheme = {
+	id: 'editorial',
+	name: 'Broadsheet Paper (Light)',
+	subtitle: 'Warm alabaster & royal plum ink',
+	bgCanvas: '#FAF8F4',
+	bgSurface: '#FFFFFF',
+	bgElevated: '#F3EDFC',
+	textPrimary: '#2B0938',
+	textSecondary: '#4A1259',
+	textMuted: '#6B5E69',
+	borderSubtle: '#D6C8E5',
+	gridBlocked: '#2B0938',
+	gridCellBg: '#FFFFFF',
+	gridCellActiveWord: '#F3E8FF',
+	gridCellFocused: '#F5C427',
+	gridCellText: '#2B0938',
+	gridCellFocusedText: '#1D0830',
+	accentBg: '#4A1259',
+	accentText: '#FAF8F4',
+	accentBorder: '#4A1259',
+};
+
 interface PlayProps {
 	puzzle: PuzzleDefinition;
 	onExit: () => void;
@@ -171,8 +194,10 @@ interface PlayProps {
 
 export function CrosswordPlay({ puzzle, onExit }: PlayProps) {
 	const size = puzzle.gridSize;
-	const theme = THEME_COLORS[puzzle.recommendedVisualTheme] ?? THEME_COLORS.editorial;
-	const isDark = ['editorial', 'observatory', 'botanical', 'mahogany'].includes(theme.id);
+	const { darkMode, toggleDarkMode } = useSiteTheme();
+	const darkTheme = THEME_COLORS[puzzle.recommendedVisualTheme] ?? THEME_COLORS.editorial;
+	const theme = darkMode ? darkTheme : LIGHT_PAPER_THEME;
+	const isDark = darkMode;
 
 	const [letters, setLetters] = useState<string[][]>(() => {
 		const saved = loadSavedGrid(puzzle.id);
@@ -484,11 +509,28 @@ export function CrosswordPlay({ puzzle, onExit }: PlayProps) {
 				<button type="button" className="solo-back" style={{ color: theme.textSecondary }} onClick={onExit}>
 					<ArrowLeft size={16} /> Back to catalogue
 				</button>
-				<DailyStreakBadge
-					streak={dailyStreak.streak}
-					solvedToday={dailyStreak.solvedToday}
-					variant={isDark ? 'gold' : 'light'}
-				/>
+				<div className="flex items-center gap-2">
+					<DailyStreakBadge
+						streak={dailyStreak.streak}
+						solvedToday={dailyStreak.solvedToday}
+						variant={isDark ? 'gold' : 'light'}
+					/>
+					<button
+						type="button"
+						onClick={toggleDarkMode}
+						title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+						aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+						className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors cursor-pointer"
+						style={{
+							background: theme.bgSurface,
+							color: theme.textPrimary,
+							borderColor: theme.borderSubtle,
+						}}
+					>
+						{darkMode ? <Sun size={14} /> : <Moon size={14} />}
+						<span>{darkMode ? 'Light' : 'Dark'}</span>
+					</button>
+				</div>
 			</div>
 
 			<div className="crossword-head">
