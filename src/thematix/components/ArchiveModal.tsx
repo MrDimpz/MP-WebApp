@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, CheckCircle2, Play, Clock, Lock } from 'lucide-react';
+import { X, CheckCircle2, Play, Clock, Shuffle } from 'lucide-react';
 import { getArchivePuzzles, getPuzzleById } from '../data/puzzles';
 import { Puzzle } from '../types/game';
 import { loadPuzzleProgress } from '../utils/storage';
@@ -18,6 +18,16 @@ const MONTH_NAMES = [
 ];
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const TRAILING_SPAN_CLASS: Record<number, string> = {
+  0: 'col-span-7 mt-0.5',
+  1: 'col-span-1',
+  2: 'col-span-2',
+  3: 'col-span-3',
+  4: 'col-span-4',
+  5: 'col-span-5',
+  6: 'col-span-6',
+};
 
 export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   isOpen,
@@ -77,6 +87,11 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
     };
   }, [archivePuzzles, isOpen]);
 
+  const unsolvedPuzzles = useMemo(
+    () => archivePuzzles.filter((p) => !completionStats.progressMap[p.id]?.isSolved),
+    [archivePuzzles, completionStats.progressMap]
+  );
+
   if (!isOpen) return null;
 
   const yearNum = parseInt(selectedYear, 10);
@@ -85,6 +100,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   // Calendar calculations
   const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
   const firstDayOfWeek = new Date(yearNum, monthNum - 1, 1).getDay(); // 0 (Sun) to 6 (Sat)
+  const visibleDays = Array.from({ length: daysInMonth }, (_, idx) => idx + 1).filter(
+    (dayNum) => `${selectedYear}-${selectedMonth}-${String(dayNum).padStart(2, '0')}` <= todayLondon
+  );
+  const trailingSlots = (7 - ((firstDayOfWeek + visibleDays.length) % 7)) % 7;
 
   // Selected date key
   const selectedDateKey = `${selectedYear}-${selectedMonth}-${selectedDay.padStart(2, '0')}`;
@@ -105,6 +124,24 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
       onSelectPuzzle(selectedPuzzle);
       onClose();
     }
+  };
+
+  const handleRandomUnsolved = () => {
+    if (unsolvedPuzzles.length === 0) return;
+    const pool =
+      unsolvedPuzzles.length > 1
+        ? unsolvedPuzzles.filter((p) => p.id !== currentPuzzleId)
+        : unsolvedPuzzles;
+    const chosen = pool[Math.floor(Math.random() * pool.length)];
+    if (!chosen) return;
+    const [y, m, d] = chosen.date.split('-');
+    if (y && m && d) {
+      setSelectedYear(y);
+      setSelectedMonth(m);
+      setSelectedDay(d);
+    }
+    onSelectPuzzle(chosen);
+    onClose();
   };
 
   return (
@@ -199,19 +236,16 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               onChange={(e) => setSelectedDay(e.target.value)}
               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs sm:text-sm font-bold text-slate-800 dark:text-white cursor-pointer focus:ring-2 focus:ring-purple-500 focus:outline-hidden"
             >
-              {Array.from({ length: daysInMonth })
-                .map((_, idx) => idx + 1)
-                .filter((dayNum) => `${selectedYear}-${selectedMonth}-${String(dayNum).padStart(2, '0')}` <= todayLondon)
-                .map((dayNum) => {
-                  const dayStr = String(dayNum).padStart(2, '0');
-                  const pKey = `${selectedYear}-${selectedMonth}-${dayStr}`;
-                  const isDone = completionStats.progressMap[pKey]?.isSolved;
-                  return (
-                    <option key={dayStr} value={dayStr}>
-                      {dayNum} {isDone ? '✓ (Solved)' : ''}
-                    </option>
-                  );
-                })}
+              {visibleDays.map((dayNum) => {
+                const dayStr = String(dayNum).padStart(2, '0');
+                const pKey = `${selectedYear}-${selectedMonth}-${dayStr}`;
+                const isDone = completionStats.progressMap[pKey]?.isSolved;
+                return (
+                  <option key={dayStr} value={dayStr}>
+                    {dayNum} {isDone ? '✓ (Solved)' : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>
@@ -234,23 +268,14 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               <div key={`blank-${bIdx}`} className="h-10 sm:h-11 rounded-lg" />
             ))}
 
-            {/* Day Cells */}
-            {Array.from({ length: daysInMonth }).map((_, dIdx) => {
-              const dayNum = dIdx + 1;
+            {/* Unlocked Day Cells */}
+            {visibleDays.map((dayNum) => {
               const dayStr = String(dayNum).padStart(2, '0');
               const cellDateKey = `${selectedYear}-${selectedMonth}-${dayStr}`;
-              const isFuture = cellDateKey > todayLondon;
-              const isSelected = selectedDay === dayStr && !isFuture;
+              const isSelected = selectedDay === dayStr;
               const isPlaying = currentPuzzleId === cellDateKey;
               const isDone = completionStats.progressMap[cellDateKey]?.isSolved;
               const guesses = completionStats.progressMap[cellDateKey]?.guesses;
-
-              if (isFuture) {
-                // Completely hide dates that haven't unlocked yet
-                return (
-                  <div key={cellDateKey} className="h-10 sm:h-11 rounded-xl" />
-                );
-              }
 
               return (
                 <button
@@ -285,6 +310,49 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 </button>
               );
             })}
+
+            {/* Random Unsolved Puzzle button in the trailing blank space of the calendar */}
+            <button
+              type="button"
+              onClick={handleRandomUnsolved}
+              disabled={unsolvedPuzzles.length === 0}
+              title={
+                unsolvedPuzzles.length > 0
+                  ? `Load a random unsolved puzzle (${unsolvedPuzzles.length} left in bank)`
+                  : 'All puzzles in the bank are completed!'
+              }
+              className={`${TRAILING_SPAN_CLASS[trailingSlots]} h-10 sm:h-11 rounded-xl flex items-center justify-center ${
+                trailingSlots === 1 ? 'flex-col px-1 gap-0.5' : 'px-2 gap-1.5'
+              } font-extrabold transition-all border ${
+                unsolvedPuzzles.length > 0
+                  ? 'bg-gradient-to-r from-[#4a1259] via-purple-700 to-indigo-700 hover:brightness-110 active:scale-[0.98] text-white border-purple-400/50 shadow-sm shadow-purple-500/20 cursor-pointer'
+                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300/70 dark:border-emerald-800 cursor-not-allowed opacity-80'
+              }`}
+            >
+              <Shuffle
+                className={`${trailingSlots === 1 ? 'w-3.5 h-3.5' : 'w-4 h-4'} shrink-0 ${
+                  unsolvedPuzzles.length > 0 ? 'text-[#f5b82e]' : 'text-emerald-500'
+                }`}
+              />
+              {unsolvedPuzzles.length === 0 ? (
+                <span className={trailingSlots === 1 ? 'text-[9px] leading-none' : 'text-xs truncate'}>
+                  {trailingSlots === 1 ? 'Done' : 'All Solved!'}
+                </span>
+              ) : trailingSlots === 1 ? (
+                <span className="text-[9px] leading-none tracking-tight">Random</span>
+              ) : trailingSlots === 2 ? (
+                <span className="text-xs tracking-tight truncate">Random</span>
+              ) : (
+                <span className="text-xs tracking-tight truncate flex items-center gap-1.5">
+                  <span>Random Unsolved</span>
+                  {(trailingSlots === 0 || trailingSlots >= 4) && (
+                    <span className="text-[10px] font-bold text-[#f5b82e] bg-black/25 px-1.5 py-0.5 rounded-md">
+                      {unsolvedPuzzles.length} left
+                    </span>
+                  )}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
