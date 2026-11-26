@@ -47,7 +47,8 @@ export type ProgressBucketId =
   | "mpcolossal"
   | "tekscodle"
   | "wordhunt"
-  | "goingdeep";
+  | "goingdeep"
+  | "wordlock";
 
 export const VALID_PROGRESS_BUCKETS: ReadonlySet<ProgressBucketId> = new Set([
   "daily_streaks",
@@ -64,6 +65,7 @@ export const VALID_PROGRESS_BUCKETS: ReadonlySet<ProgressBucketId> = new Set([
   "tekscodle",
   "wordhunt",
   "goingdeep",
+  "wordlock",
 ]);
 
 export const CLOUD_HYDRATED_EVENT = "mp-cloud-progress-hydrated";
@@ -1066,6 +1068,58 @@ export function mergeCloudBucketPayloads(
             hard: Math.max(Number(eWins.hard || 0), Number(iWins.hard || 0)),
             expert: Math.max(Number(eWins.expert || 0), Number(iWins.expert || 0)),
           },
+        },
+      };
+    }
+
+    case "wordlock": {
+      const eProg = isPlainObject(existing.progress) ? (existing.progress as Record<string, any>) : {};
+      const iProg = isPlainObject(incoming.progress) ? (incoming.progress as Record<string, any>) : {};
+      const mergedProgress: Record<string, any> = { ...eProg };
+      for (const key of Object.keys(iProg)) {
+        const prev = eProg[key];
+        const next = iProg[key];
+        if (!prev) {
+          mergedProgress[key] = next;
+        } else {
+          const prevWon = prev.status === "won";
+          const nextWon = next?.status === "won";
+          if (nextWon && !prevWon) {
+            mergedProgress[key] = next;
+          } else if (nextWon && prevWon) {
+            mergedProgress[key] = {
+              ...prev,
+              ...next,
+              bestClicks:
+                prev.bestClicks != null && next.bestClicks != null
+                  ? Math.min(Number(prev.bestClicks), Number(next.bestClicks))
+                  : (next.bestClicks ?? prev.bestClicks ?? null),
+              bestScore: Math.max(Number(prev.bestScore || 0), Number(next.bestScore || 0)),
+            };
+          }
+        }
+      }
+      const eStats = isPlainObject(existing.stats) ? (existing.stats as Record<string, any>) : {};
+      const iStats = isPlainObject(incoming.stats) ? (incoming.stats as Record<string, any>) : {};
+      const eWins = isPlainObject(eStats.winsByDifficulty) ? eStats.winsByDifficulty : {};
+      const iWins = isPlainObject(iStats.winsByDifficulty) ? iStats.winsByDifficulty : {};
+      return {
+        progress: mergedProgress,
+        stats: {
+          played: Math.max(Number(eStats.played || 0), Number(iStats.played || 0)),
+          won: Math.max(Number(eStats.won || 0), Number(iStats.won || 0)),
+          currentStreak: Math.max(Number(eStats.currentStreak || 0), Number(iStats.currentStreak || 0)),
+          maxStreak: Math.max(Number(eStats.maxStreak || 0), Number(iStats.maxStreak || 0)),
+          parSolves: Math.max(Number(eStats.parSolves || 0), Number(iStats.parSolves || 0)),
+          totalScore: Math.max(Number(eStats.totalScore || 0), Number(iStats.totalScore || 0)),
+          bestScore: Math.max(Number(eStats.bestScore || 0), Number(iStats.bestScore || 0)),
+          winsByDifficulty: {
+            easy: Math.max(Number(eWins.easy || 0), Number(iWins.easy || 0)),
+            standard: Math.max(Number(eWins.standard || 0), Number(iWins.standard || 0)),
+            hard: Math.max(Number(eWins.hard || 0), Number(iWins.hard || 0)),
+            master: Math.max(Number(eWins.master || 0), Number(iWins.master || 0)),
+          },
+          lastWonDate: iStats.lastWonDate || eStats.lastWonDate || null,
         },
       };
     }
@@ -2131,6 +2185,38 @@ function mergeBucketWithLocal(
       }
       const mergedPayload = mergeCloudBucketPayloads(
         "goingdeep",
+        { progress: rProg || {}, stats: rStats || {} },
+        { progress: lProg || {}, stats: lStats || {} },
+      );
+      if (isPlainObject(mergedPayload.progress)) {
+        writeJsonLocal(progressKey, mergedPayload.progress);
+      }
+      if (isPlainObject(mergedPayload.stats)) {
+        writeJsonLocal(statsKey, mergedPayload.stats);
+      }
+      const localHadExtra =
+        !cloudPayload ||
+        Number(lStats?.played || 0) > Number(rStats?.played || 0) ||
+        Object.keys(lProg || {}).length > Object.keys(rProg || {}).length;
+      return { merged: mergedPayload, shouldPushToCloud: localHadExtra };
+    }
+
+    case "wordlock": {
+      const progressKey = `wordlock_progress_v1_${userPrefix}`;
+      const statsKey = `wordlock_stats_v1_${userPrefix}`;
+      const lProg = readJsonLocal<Record<string, any>>(progressKey);
+      const lStats = readJsonLocal<Record<string, any>>(statsKey);
+      const rProg = isPlainObject(cloudPayload?.progress)
+        ? (cloudPayload!.progress as Record<string, any>)
+        : null;
+      const rStats = isPlainObject(cloudPayload?.stats)
+        ? (cloudPayload!.stats as Record<string, any>)
+        : null;
+      if (!lProg && !lStats && !rProg && !rStats) {
+        return { merged: null, shouldPushToCloud: false };
+      }
+      const mergedPayload = mergeCloudBucketPayloads(
+        "wordlock",
         { progress: rProg || {}, stats: rStats || {} },
         { progress: lProg || {}, stats: lStats || {} },
       );

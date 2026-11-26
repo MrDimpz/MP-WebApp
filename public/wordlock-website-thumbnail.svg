@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none">
+  <defs>
+    <linearGradient id="wl-bg" x1="0" y1="0" x2="640" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#19052B"/>
+      <stop offset="50%" stop-color="#2B0938"/>
+      <stop offset="100%" stop-color="#160524"/>
+    </linearGradient>
+    <linearGradient id="wl-gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFE066"/>
+      <stop offset="50%" stop-color="#F6C915"/>
+      <stop offset="100%" stop-color="#C79619"/>
+    </linearGradient>
+    <linearGradient id="wl-vault" x1="160" y1="54" x2="480" y2="310" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3F2859"/>
+      <stop offset="50%" stop-color="#28153E"/>
+      <stop offset="100%" stop-color="#1A0B2B"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="640" height="360" rx="24" fill="url(#wl-bg)"/>
+
+  <!-- Subtle background grid -->
+  <g opacity="0.12" stroke="#D4A437" stroke-width="1">
+    <line x1="0" y1="72" x2="640" y2="72"/>
+    <line x1="0" y1="144" x2="640" y2="144"/>
+    <line x1="0" y1="216" x2="640" y2="216"/>
+    <line x1="0" y1="288" x2="640" y2="288"/>
+    <line x1="128" y1="0" x2="128" y2="360"/>
+    <line x1="256" y1="0" x2="256" y2="360"/>
+    <line x1="384" y1="0" x2="384" y2="360"/>
+    <line x1="512" y1="0" x2="512" y2="360"/>
+  </g>
+
+  <!-- 3D Vault Chassis -->
+  <rect x="136" y="42" width="368" height="276" rx="22" fill="url(#wl-vault)" stroke="url(#wl-gold)" stroke-width="3"/>
+  <rect x="158" y="64" width="324" height="232" rx="14" fill="#130620" stroke="#533275" stroke-width="2"/>
+
+  <!-- Side LED Strips -->
+  <rect x="145" y="88" width="6" height="32" rx="3" fill="#FFAA00"/>
+  <rect x="489" y="88" width="6" height="32" rx="3" fill="#FFAA00"/>
+  <rect x="145" y="164" width="6" height="36" rx="3" fill="#10B981"/>
+  <rect x="489" y="164" width="6" height="36" rx="3" fill="#10B981"/>
+  <rect x="145" y="242" width="6" height="32" rx="3" fill="#FFAA00"/>
+  <rect x="489" y="242" width="6" height="32" rx="3" fill="#FFAA00"/>
+
+  <!-- 4 Tumbler Tracks -->
+  <g font-family="ui-monospace, Menlo, monospace" font-weight="800" text-anchor="middle">
+    <!-- Row 1: TIME -->
+    <g transform="translate(0, 76)">
+      <rect x="176" y="0" width="64" height="52" rx="8" fill="#2B1842" stroke="#6B4794" stroke-width="1.5"/>
+      <rect x="250" y="0" width="64" height="52" rx="8" fill="#2B1842" stroke="#6B4794" stroke-width="1.5"/>
+      <rect x="324" y="0" width="64" height="52" rx="8" fill="#2B1842" stroke="#6B4794" stroke-width="1.5"/>
+      <rect x="398" y="0" width="64" height="52" rx="8" fill="#2B1842" stroke="#6B4794" stroke-width="1.5"/>
+      <text x="208" y="36" font-size="28" fill="#E9DFF7">T</text>
+      <text x="282" y="36" font-size="28" fill="#E9DFF7">I</text>
+      <text x="356" y="36" font-size="28" fill="#E9DFF7">M</text>
+      <text x="430" y="36" font-size="28" fill="#E9DFF7">E</text>
+    </g>
+
+    <!-- Center Master Key Bezel: GOLD -->
+    <rect x="166" y="142" width="308" height="78" rx="12" fill="#1F0B33" stroke="url(#wl-gold)" stroke-width="3"/>
+    <g transform="translate(0, 154)">
+      <rect x="176" y="0" width="64" height="54" rx="8" fill="#3B1A5C" stroke="#10B981" stroke-width="2.5"/>
+      <rect x="250" y="0" width="64" height="54" rx="8" fill="#3B1A5C" stroke="#10B981" stroke-width="2.5"/>
+      <rect x="324" y="0" width="64" height="54" rx="8" fill="#3B1A5C" stroke="#F6C915" stroke-width="2.5"/>
+      <rect x="398" y="0" width="64" height="54" rx="8" fill="#3B1A5C" stroke="#10B981" stroke-width="2.5"/>
+      <text x="208" y="38" font-size="31" fill="#FFF7D6">G</text>
+      <text x="282" y="38" font-size="31" fill="#FFF7D6">O</text>
+      <text x="356" y="38" font-size="31" fill="#FFF7D6">L</text>
+      <text x="430" y="38" font-size="31" fill="#FFF7D6">D</text>
+    </g>
+
+    <!-- Master Key Pin Lamps -->
+    <circle cx="208" cy="149" r="4" fill="#10B981"/>
+    <circle cx="282" cy="149" r="4" fill="#10B981"/>
+    <circle cx="356" cy="149" r="4" fill="#F6C915"/>
+    <circle cx="430" cy="149" r="4" fill="#10B981"/>
+
+    <!-- Row 3: LOCK -->
+    <g transform="translate(0, 234)">
+      <rect x="176" y="0" width="64" height="52" rx="8" fill="#2B1842" stroke="#6B4794" stroke-width="1.5"/>
+      <rect x="250" y="0" width="64" height="52" rx="8" fill="#2B1842" stroke="#6B4794" stroke-width="1.5"/>
+      <rect x="324" y="0" width="64" height="52" rx="8" fill="#2B1842" stroke="#6B4794" stroke-width="1.5"/>
+      <rect x="398" y="0" width="64" height="52" rx="8" fill="#2B1842" stroke="#6B4794" stroke-width="1.5"/>
+      <text x="208" y="36" font-size="28" fill="#E9DFF7">L</text>
+      <text x="282" y="36" font-size="28" fill="#E9DFF7">O</text>
+      <text x="356" y="36" font-size="28" fill="#E9DFF7">C</text>
+      <text x="430" y="36" font-size="28" fill="#E9DFF7">K</text>
+    </g>
+  </g>
+
+  <!-- Brass Release Lever on Right -->
+  <rect x="504" y="138" width="16" height="72" rx="8" fill="url(#wl-gold)"/>
+  <circle cx="512" cy="132" r="14" fill="url(#wl-gold)" stroke="#2B0938" stroke-width="3"/>
+
+  <!-- Top Brand Pill -->
+  <rect x="218" y="16" width="204" height="24" rx="12" fill="#F6C915"/>
+  <text x="320" y="32" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="900" letter-spacing="2" fill="#1D0830" text-anchor="middle">WORDLOCK · 3D VAULT</text>
+</svg>

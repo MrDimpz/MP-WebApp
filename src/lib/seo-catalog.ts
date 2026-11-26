@@ -685,6 +685,28 @@ export const SEO_ROUTES: Record<string, RouteSeoMeta> = {
       { name: "Going Deep", path: "/solo-games/goingdeep" },
     ],
   },
+  "/solo-games/wordlock": {
+    canonicalPath: "/solo-games/wordlock",
+    title: "WORDLOCK — Free 3D Mechanical Conveyor Vault Word Puzzle",
+    description:
+      "Rotate four interconnected 3D mechanical conveyor tracks until every horizontal row forms a valid 4-letter English word and the center Master Key locks in. Play Easy, Standard, Hard & Master modes with a 6-month daily archive.",
+    keywords:
+      "wordlock, 3d word puzzle, mechanical vault word game, daily 4-letter word puzzle, master key deduction game, free browser word game",
+    ogImagePath: DEFAULT_OG_IMAGE_PATH,
+    ogImageAlt: "WORDLOCK 3D mechanical conveyor vault daily word puzzle",
+    robots: DEFAULT_ROBOTS,
+    heading: "WORDLOCK — 3D Mechanical Vault Word Puzzle",
+    summary:
+      "Spin four vertical 3D conveyor tracks to align 5 or 7 valid 4-letter English words while cracking the hidden center Master Key within your click budget.",
+    gameGenre: "Word & Puzzle Game",
+    isSolo: true,
+    inLanguages: ["en"],
+    breadcrumbs: [
+      { name: "Home", path: "/" },
+      { name: "Solo Word Games", path: "/solo-games" },
+      { name: "WORDLOCK", path: "/solo-games/wordlock" },
+    ],
+  },
 };
 
 const ALIAS_TO_CANONICAL: Record<string, string> = {
@@ -841,6 +863,7 @@ export function buildStructuredData(meta: RouteSeoMeta, origin = SITE_ORIGIN): R
           { "@type": "ListItem", position: 11, name: "TEKSCOdle", url: `${origin}/solo-games/tekscodle` },
           { "@type": "ListItem", position: 12, name: "Word Hunt", url: `${origin}/solo-games/wordhunt` },
           { "@type": "ListItem", position: 13, name: "Going Deep", url: `${origin}/solo-games/goingdeep` },
+          { "@type": "ListItem", position: 14, name: "WORDLOCK", url: `${origin}/solo-games/wordlock` },
         ],
       },
     });

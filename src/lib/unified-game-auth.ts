@@ -68,6 +68,7 @@ export type SoloGameId =
   | "tekscodle"
   | "wordhunt"
   | "goingdeep"
+  | "wordlock"
   | "cruciverbalist"
   | "crossword";
 
@@ -157,6 +158,10 @@ export const SOLO_GAME_LABELS: Record<
   goingdeep: {
     title: "Going Deep",
     metric: "4-in-1 Layered Puzzle Score",
+  },
+  wordlock: {
+    title: "WORDLOCK",
+    metric: "3D Mechanical Vault Score",
   },
   cruciverbalist: {
     title: "Cruciverbalist Crossword",
@@ -455,6 +460,8 @@ const KNOWN_GAME_SAVE_PREFIXES = [
   "wordhunt_solo_stats_v1_",
   "goingdeep_progress_v1_",
   "goingdeep_stats_v1_",
+  "wordlock_progress_v1_",
+  "wordlock_stats_v1_",
 ];
 
 function getOrRecoverPersistentGuestId(): string {
@@ -2455,6 +2462,7 @@ export function subscribeToAllLeaderboards(
       tekscodle: [],
       wordhunt: [],
       goingdeep: [],
+      wordlock: [],
       cruciverbalist: [],
       crossword: [],
     };

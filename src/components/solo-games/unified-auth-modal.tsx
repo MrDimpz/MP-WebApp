@@ -142,6 +142,12 @@ const SOLO_GAME_META: Record<
     shortTitle: 'Going Deep',
     subtitle: 'Daily Standard, Hard & Expert 4-in-1 Layer Key Scores',
   },
+  wordlock: {
+    number: '15',
+    title: 'WORDLOCK — 3D Mechanical Vault',
+    shortTitle: 'WORDLOCK',
+    subtitle: 'Daily & Unlimited 5-Row and 7-Row Vault Cracker Scores',
+  },
 };
 
 const ALLOWED_GAMES: SoloGameId[] = [
@@ -159,6 +165,7 @@ const ALLOWED_GAMES: SoloGameId[] = [
   'tekscodle',
   'wordhunt',
   'goingdeep',
+  'wordlock',
 ];
 
 export function UnifiedLeaderboardPanel({
@@ -191,6 +198,7 @@ export function UnifiedLeaderboardPanel({
     tekscodle: [],
     wordhunt: [],
     goingdeep: [],
+    wordlock: [],
     cruciverbalist: [],
     crossword: [],
   });
