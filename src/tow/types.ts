@@ -148,6 +148,7 @@ export interface VictorySummary {
 
 export interface HudSnapshot {
   status: MatchStatus;
+  awaitingStart: boolean;
   phase: MatchPhase;
   timeRemainingSec: number;
   suddenDeathSec: number;

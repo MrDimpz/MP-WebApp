@@ -1,4 +1,5 @@
 import { Crown, Play, Trophy } from 'lucide-react';
+import { WinTallyBadge } from '@/components/interactive-games/win-tally-badge';
 import type { HudSnapshot } from '../types';
 
 interface VictoryOverlayProps {
@@ -51,6 +52,13 @@ export function VictoryOverlay({
               BLUE <strong className="text-[#00E5FF] tow-font-mono">{victory.finalBluePercent}%</strong>
             </span>
           </div>
+          <div className="mt-2.5 flex justify-center">
+            <WinTallyBadge
+              gameId="tow"
+              winnerName={`Team ${victory.winner}`}
+              label={`Team ${victory.winner} Tally`}
+            />
+          </div>
         </div>
 
         {/* Top 3 MVPs Podium */}
@@ -92,13 +100,20 @@ export function VictoryOverlay({
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="tow-font-mono text-[11px] font-bold text-[#F6C915]">
                           #{index + 1}
                         </span>
                         <span className="text-sm font-bold text-white truncate">
                           {mvp.nickname}
                         </span>
+                        {index === 0 && (
+                          <WinTallyBadge
+                            gameId="tow"
+                            winnerName={mvp.nickname}
+                            compact
+                          />
+                        )}
                       </div>
                       <div className="text-[11px] text-purple-200/75 truncate">
                         Best: <strong className="text-[#F6C915]">{mvp.biggestWord}</strong>{' '}

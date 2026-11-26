@@ -3,6 +3,7 @@ export type GamePhase =
   | 'WAVE_INTRO'
   | 'ACTIVE_WAVE'
   | 'ELIMINATION'
+  | 'MEMORIAL'
   | 'VICTORY';
 
 export type PromptTier = 1 | 2 | 3;
@@ -116,6 +117,8 @@ export interface Player {
   safe: boolean;
   lastWord?: string;
   lastWordTimestamp?: number;
+  eliminatedAt?: number;
+  eliminatedWave?: number;
   isBot?: boolean;
   loadout: PlayerLoadout;
 }
@@ -146,9 +149,19 @@ export interface IncomingChatLog {
 export type WsConnectionState = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR';
 
 export interface ArenaFeedbackEvent {
-  type: 'JOIN' | 'SAFE' | 'TAKEN' | 'INVALID' | 'BANNED' | 'ELIMINATE' | 'REVIVE' | 'VICTORY';
+  type: 'JOIN' | 'SAFE' | 'TAKEN' | 'INVALID' | 'BANNED' | 'BATTLE' | 'ELIMINATE' | 'REVIVE' | 'VICTORY';
   playerId?: string;
   playerIds?: string[];
   text?: string;
+  timestamp: number;
+}
+
+export interface WordFlashEvent {
+  id: string;
+  slot: number;
+  word: string;
+  username: string;
+  avatarUrl?: string;
+  color: string;
   timestamp: number;
 }

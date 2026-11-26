@@ -34,11 +34,15 @@ export function TopHeader({
       ? 'LOBBY · OPEN ENTRY'
       : phase === 'VICTORY'
         ? `ROUND COMPLETE · WAVE ${wave}`
-        : wave >= 5
-          ? `WAVE ${wave} · SUDDEN DEATH`
-          : wave >= 3
-            ? `WAVE ${wave} · ESCALATION`
-            : `WAVE ${wave} · WARMUP`;
+        : phase === 'ELIMINATION'
+          ? `WAVE ${wave} · BATTLE`
+          : phase === 'MEMORIAL'
+            ? `WAVE ${wave} · IN MEMORIAM`
+            : wave >= 5
+              ? `WAVE ${wave} · SUDDEN DEATH`
+              : wave >= 3
+                ? `WAVE ${wave} · ESCALATION`
+                : `WAVE ${wave} · WARMUP`;
 
   const subtitleColor =
     phase === 'VICTORY'

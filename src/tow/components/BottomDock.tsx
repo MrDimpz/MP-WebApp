@@ -266,7 +266,7 @@ export function BottomDock({
                   {isPaused ? (
                     <>
                       <Play className="w-3 h-3 fill-current" aria-hidden="true" />
-                      <span>Resume</span>
+                      <span>{hud.awaitingStart ? 'Start' : 'Resume'}</span>
                     </>
                   ) : (
                     <>

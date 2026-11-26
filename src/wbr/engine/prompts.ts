@@ -6,10 +6,10 @@ import {
 } from '../types/game';
 
 export const DEFAULT_CUSTOM_RULES: CustomGameRules = {
-  lobbyDurationSec: 15,
-  baseWaveDurationSec: 14,
+  lobbyDurationSec: 25,
+  baseWaveDurationSec: 20,
   waveDecaySec: 1.5,
-  minWaveDurationSec: 6,
+  minWaveDurationSec: 10,
   maxPlayers: 100,
   allowWave1LateJoin: true,
   bannedLetters: [],

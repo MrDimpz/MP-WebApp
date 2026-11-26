@@ -339,6 +339,24 @@ export default function MPColossalApp() {
     return set;
   }, [puzzle.words, userGrid]);
 
+  // Lock every cell belonging to a completely solved word or revealed hint
+  const lockedCells = useMemo(() => {
+    const locked = new Set<string>();
+    for (const key of Object.keys(revealedCells)) {
+      if (revealedCells[key]) locked.add(key);
+    }
+    solvedWordIds.forEach((wordId) => {
+      const w = puzzle.wordMap[wordId];
+      if (!w) return;
+      const dr = w.direction === 'down' ? 1 : 0;
+      const dc = w.direction === 'across' ? 1 : 0;
+      for (let i = 0; i < w.length; i++) {
+        locked.add(`${w.row + dr * i},${w.col + dc * i}`);
+      }
+    });
+    return locked;
+  }, [puzzle.wordMap, revealedCells, solvedWordIds]);
+
   const completedQuestsCount = useMemo(
     () =>
       puzzle.quests.filter(
@@ -500,16 +518,49 @@ export default function MPColossalApp() {
     [puzzle.cells, selectedCell, direction]
   );
 
-  const handleSelectWord = useCallback((word: PlacedWord) => {
-    setDirection(word.direction);
-    setSelectedCell({ row: word.row, col: word.col });
-    setPanTarget({
-      row: word.row + (word.direction === 'down' ? Math.floor(word.length / 2) : 0),
-      col: word.col + (word.direction === 'across' ? Math.floor(word.length / 2) : 0),
-      timestamp: Date.now(),
-    });
-    sound.playStep();
-  }, []);
+  const handleSelectWord = useCallback(
+    (word: PlacedWord) => {
+      setDirection(word.direction);
+      const dr = word.direction === 'down' ? 1 : 0;
+      const dc = word.direction === 'across' ? 1 : 0;
+      let targetRow = word.row;
+      let targetCol = word.col;
+
+      // Auto-skip filled and locked boxes when selecting a word
+      let foundEmpty = false;
+      for (let i = 0; i < word.length; i++) {
+        const r = word.row + dr * i;
+        const c = word.col + dc * i;
+        const k = `${r},${c}`;
+        if (!userGrid[k] && !lockedCells.has(k)) {
+          targetRow = r;
+          targetCol = c;
+          foundEmpty = true;
+          break;
+        }
+      }
+      if (!foundEmpty) {
+        for (let i = 0; i < word.length; i++) {
+          const r = word.row + dr * i;
+          const c = word.col + dc * i;
+          if (!lockedCells.has(`${r},${c}`)) {
+            targetRow = r;
+            targetCol = c;
+            break;
+          }
+        }
+      }
+
+      setSelectedCell({ row: targetRow, col: targetCol });
+      setPanTarget({
+        row: word.row + (word.direction === 'down' ? Math.floor(word.length / 2) : 0),
+        col: word.col + (word.direction === 'across' ? Math.floor(word.length / 2) : 0),
+        timestamp: Date.now(),
+      });
+      sound.playStep();
+    },
+    [userGrid, lockedCells]
+  );
 
   const handleCenterCell = useCallback(
     (row: number, col: number) => {
@@ -535,82 +586,163 @@ export default function MPColossalApp() {
   );
 
   const advanceCursorInWord = useCallback(
-    (step: 1 | -1, updatedGrid?: Record<string, string>) => {
+    (
+      step: 1 | -1,
+      updatedGrid?: Record<string, string>,
+      fromCell?: { row: number; col: number },
+      extraLocked?: Set<string>
+    ) => {
       if (!activeWord) return;
       const gridToUse = updatedGrid || userGrid;
+      const origin = fromCell || selectedCell;
+      const isLocked = (k: string) => lockedCells.has(k) || Boolean(extraLocked?.has(k));
       const dr = activeWord.direction === 'down' ? 1 : 0;
       const dc = activeWord.direction === 'across' ? 1 : 0;
 
       const currentOffset =
         activeWord.direction === 'down'
-          ? selectedCell.row - activeWord.row
-          : selectedCell.col - activeWord.col;
+          ? origin.row - activeWord.row
+          : origin.col - activeWord.col;
 
       if (step === 1) {
+        // 1. Scan forward for next empty, unlocked box
         for (let i = currentOffset + 1; i < activeWord.length; i++) {
           const r = activeWord.row + dr * i;
           const c = activeWord.col + dc * i;
-          if (!gridToUse[`${r},${c}`]) {
+          const k = `${r},${c}`;
+          if (!gridToUse[k] && !isLocked(k)) {
             setSelectedCell({ row: r, col: c });
             return;
           }
         }
-        if (currentOffset + 1 < activeWord.length) {
-          setSelectedCell({
-            row: activeWord.row + dr * (currentOffset + 1),
-            col: activeWord.col + dc * (currentOffset + 1),
-          });
+        // 2. Wrap around from start of word for any earlier empty, unlocked box
+        for (let i = 0; i < currentOffset; i++) {
+          const r = activeWord.row + dr * i;
+          const c = activeWord.col + dc * i;
+          const k = `${r},${c}`;
+          if (!gridToUse[k] && !isLocked(k)) {
+            setSelectedCell({ row: r, col: c });
+            return;
+          }
+        }
+        // 3. Fallback: next unlocked cell forward if all cells are filled
+        for (let i = currentOffset + 1; i < activeWord.length; i++) {
+          const r = activeWord.row + dr * i;
+          const c = activeWord.col + dc * i;
+          if (!isLocked(`${r},${c}`)) {
+            setSelectedCell({ row: r, col: c });
+            return;
+          }
         }
       } else {
-        if (currentOffset - 1 >= 0) {
-          setSelectedCell({
-            row: activeWord.row + dr * (currentOffset - 1),
-            col: activeWord.col + dc * (currentOffset - 1),
-          });
+        // Step backward skipping locked boxes
+        for (let i = currentOffset - 1; i >= 0; i--) {
+          const r = activeWord.row + dr * i;
+          const c = activeWord.col + dc * i;
+          if (!isLocked(`${r},${c}`)) {
+            setSelectedCell({ row: r, col: c });
+            return;
+          }
         }
       }
     },
-    [activeWord, selectedCell, userGrid]
+    [activeWord, selectedCell, userGrid, lockedCells]
   );
 
   const handleLetterInput = useCallback(
     (letter: string) => {
       const char = letter.toUpperCase();
-      const cell = puzzle.cells[selectedCell.row]?.[selectedCell.col];
+      let targetRow = selectedCell.row;
+      let targetCol = selectedCell.col;
+      let cell = puzzle.cells[targetRow]?.[targetCol];
       if (!cell || !cell.solution) return;
 
-      const key = `${selectedCell.row},${selectedCell.col}`;
-      const nextGrid = { ...userGrid, [key]: char };
-      setUserGrid(nextGrid);
+      let key = `${targetRow},${targetCol}`;
 
-      if (activeWord) {
+      // If current square is locked in (solved word or hint), auto-skip to next empty/unlocked square in active word
+      if (lockedCells.has(key)) {
+        if (!activeWord) return;
         const dr = activeWord.direction === 'down' ? 1 : 0;
         const dc = activeWord.direction === 'across' ? 1 : 0;
-        let wordComplete = true;
-        for (let i = 0; i < activeWord.length; i++) {
-          const k = `${activeWord.row + dr * i},${activeWord.col + dc * i}`;
-          if (nextGrid[k] !== activeWord.word[i]) {
-            wordComplete = false;
+        const currentOffset =
+          activeWord.direction === 'down'
+            ? targetRow - activeWord.row
+            : targetCol - activeWord.col;
+
+        let found: { row: number; col: number } | null = null;
+        for (let i = currentOffset + 1; i < activeWord.length; i++) {
+          const r = activeWord.row + dr * i;
+          const c = activeWord.col + dc * i;
+          const k = `${r},${c}`;
+          if (!userGrid[k] && !lockedCells.has(k)) {
+            found = { row: r, col: c };
             break;
           }
         }
-        if (wordComplete && !solvedWordIds.has(activeWord.id)) {
-          sound.playWordSolved();
-        } else {
-          sound.playKeyPress(char.charCodeAt(0) - 65);
+        if (!found) {
+          for (let i = 0; i < currentOffset; i++) {
+            const r = activeWord.row + dr * i;
+            const c = activeWord.col + dc * i;
+            const k = `${r},${c}`;
+            if (!userGrid[k] && !lockedCells.has(k)) {
+              found = { row: r, col: c };
+              break;
+            }
+          }
         }
+        if (!found) return;
+        targetRow = found.row;
+        targetCol = found.col;
+        key = `${targetRow},${targetCol}`;
+        cell = puzzle.cells[targetRow]?.[targetCol];
+        if (!cell || !cell.solution) return;
+        setSelectedCell({ row: targetRow, col: targetCol });
+      }
+
+      const nextGrid = { ...userGrid, [key]: char };
+      setUserGrid(nextGrid);
+
+      // Check if either across or down word touching this cell just became completely solved
+      const newlyLocked = new Set<string>();
+      let justSolvedAny = false;
+      const candidateWordIds = [cell.acrossWordId, cell.downWordId].filter(
+        (id): id is string => Boolean(id)
+      );
+      for (const wId of candidateWordIds) {
+        const w = puzzle.wordMap[wId];
+        if (!w) continue;
+        const dr = w.direction === 'down' ? 1 : 0;
+        const dc = w.direction === 'across' ? 1 : 0;
+        let allMatch = true;
+        for (let i = 0; i < w.length; i++) {
+          const k = `${w.row + dr * i},${w.col + dc * i}`;
+          if (nextGrid[k] !== w.word[i]) {
+            allMatch = false;
+            break;
+          }
+        }
+        if (allMatch) {
+          if (!solvedWordIds.has(w.id)) justSolvedAny = true;
+          for (let i = 0; i < w.length; i++) {
+            newlyLocked.add(`${w.row + dr * i},${w.col + dc * i}`);
+          }
+        }
+      }
+
+      if (justSolvedAny) {
+        sound.playWordSolved();
       } else {
         sound.playKeyPress(char.charCodeAt(0) - 65);
       }
 
-      advanceCursorInWord(1, nextGrid);
+      advanceCursorInWord(1, nextGrid, { row: targetRow, col: targetCol }, newlyLocked);
     },
-    [puzzle.cells, selectedCell, userGrid, activeWord, solvedWordIds, advanceCursorInWord]
+    [puzzle.cells, puzzle.wordMap, selectedCell, userGrid, activeWord, solvedWordIds, lockedCells, advanceCursorInWord]
   );
 
   const handleBackspace = useCallback(() => {
     const key = `${selectedCell.row},${selectedCell.col}`;
-    if (revealedCells[key]) {
+    if (lockedCells.has(key)) {
       advanceCursorInWord(-1);
       return;
     }
@@ -628,20 +760,23 @@ export default function MPColossalApp() {
           ? selectedCell.row - activeWord.row
           : selectedCell.col - activeWord.col;
 
-      if (currentOffset > 0) {
-        const prevR = activeWord.row + dr * (currentOffset - 1);
-        const prevC = activeWord.col + dc * (currentOffset - 1);
+      // Skip backwards past any locked cells to reach the nearest unlocked cell
+      for (let i = currentOffset - 1; i >= 0; i--) {
+        const prevR = activeWord.row + dr * i;
+        const prevC = activeWord.col + dc * i;
         const prevKey = `${prevR},${prevC}`;
+        if (lockedCells.has(prevKey)) continue;
         setSelectedCell({ row: prevR, col: prevC });
-        if (!revealedCells[prevKey] && userGrid[prevKey]) {
+        if (userGrid[prevKey]) {
           const next = { ...userGrid };
           delete next[prevKey];
           setUserGrid(next);
         }
         sound.playBackspace();
+        break;
       }
     }
-  }, [selectedCell, userGrid, revealedCells, activeWord, advanceCursorInWord]);
+  }, [selectedCell, userGrid, lockedCells, activeWord, advanceCursorInWord]);
 
   const stepToAdjacentWord = useCallback(
     (delta: 1 | -1) => {
@@ -1324,6 +1459,7 @@ export default function MPColossalApp() {
               puzzle={puzzle}
               userGrid={userGrid}
               revealedCells={revealedCells}
+              lockedCells={lockedCells}
               selectedCell={selectedCell}
               direction={direction}
               activeWord={activeWord}

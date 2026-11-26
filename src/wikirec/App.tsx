@@ -54,6 +54,8 @@ import {
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { useSiteTheme } from '@/lib/site-theme';
+import { recordInteractiveWin } from '@/lib/interactive-win-tally';
+import { WinTallyBadge } from '@/components/interactive-games/win-tally-badge';
 import './index.css';
 
 function resolvePlayerAvatar(rawUrl: string | null | undefined, name: string): string {
@@ -1359,12 +1361,25 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
   }, [chatOnlyItems, chatOnlyItems.length, authorizedStreamer, tiktokStatus.connected]);
 
   // Count completed interactive rounds toward the 3/day free limit (unlimited for key holders)
+  // and record persistent win tally for the round champion once per roundId
+  const lastWinTallyRoundIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (isOverlay || isSoloRoute) return;
     if (gameState?.isComplete && gameState.roundId) {
       recordInteractiveRoundCompleted('wikirec', gameState.roundId);
+      if (lastWinTallyRoundIdRef.current !== gameState.roundId) {
+        lastWinTallyRoundIdRef.current = gameState.roundId;
+        const topWinner = topThreePlayers[0];
+        if (topWinner) {
+          recordInteractiveWin(
+            'wikirec',
+            (topWinner.displayName || 'Player').replace(/^@/, ''),
+            topWinner.profileImage || undefined
+          );
+        }
+      }
     }
-  }, [isOverlay, isSoloRoute, gameState?.isComplete, gameState?.roundId]);
+  }, [isOverlay, isSoloRoute, gameState?.isComplete, gameState?.roundId, topThreePlayers]);
 
   const isSolo = mode === 'daily-solo' || mode === 'practice-solo';
   const showVictoryModal =
@@ -2914,6 +2929,12 @@ export default function App({ soloOnly = false }: { soloOnly?: boolean }) {
                   <span className="round-end-winner-score">
                     {topThreePlayers[0].score.toLocaleString()} pts
                   </span>
+                  <WinTallyBadge
+                    gameId="wikirec"
+                    winnerName={(topThreePlayers[0].displayName || 'Player').replace(/^@/, '')}
+                    compact
+                    className="mt-1"
+                  />
                 </div>
               </div>
             )}

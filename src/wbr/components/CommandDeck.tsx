@@ -11,6 +11,8 @@ interface CommandDeckProps {
   totalPhaseDuration: number;
   customRules: CustomGameRules;
   isPaused: boolean;
+  waitingForStart?: boolean;
+  isOverlay?: boolean;
   wipeoutMessage: string | null;
 }
 
@@ -23,6 +25,8 @@ export function CommandDeck({
   totalPhaseDuration,
   customRules,
   isPaused,
+  waitingForStart = false,
+  isOverlay = false,
   wipeoutMessage,
 }: CommandDeckProps) {
   const ratio =
@@ -43,7 +47,7 @@ export function CommandDeck({
     fuseBarColor = 'bg-[#F6C915]';
     timerTextColor = 'text-[#F6C915]';
     sparkColor = '#F6C915';
-  } else if (isDanger || phase === 'ELIMINATION') {
+  } else if (isDanger || phase === 'ELIMINATION' || phase === 'MEMORIAL') {
     fuseBarColor = 'bg-[#FF2A6D]';
     timerTextColor = 'text-[#FF2A6D]';
     sparkColor = '#FF2A6D';
@@ -89,13 +93,17 @@ export function CommandDeck({
               : phase === 'WAVE_INTRO'
                 ? `LOCKING WAVE ${wave} RULE...`
                 : phase === 'ELIMINATION'
-                  ? 'DETONATING UNSAFE PLAYERS'
-                  : phase === 'VICTORY'
-                    ? 'SOLE SURVIVOR CROWNED'
-                    : tierLabel}
+                  ? 'BATTLE SEQUENCE · KNOCKOUT!'
+                  : phase === 'MEMORIAL'
+                    ? 'IN MEMORIAM · FALLEN PLAYERS'
+                    : phase === 'VICTORY'
+                      ? 'SOLE SURVIVOR CROWNED'
+                      : tierLabel}
           </span>
           {isPaused ? (
-            <span className="text-[#F6C915] shrink-0">PAUSED</span>
+            <span className="text-[#F6C915] shrink-0">
+              {waitingForStart ? 'READY · PRESS START' : 'PAUSED'}
+            </span>
           ) : (
             <span className="font-mono tabular-nums text-amber-200/90 shrink-0">
               {phase === 'ACTIVE_WAVE' ? '1 WORD · NO REPEATS' : `MAX ${customRules.maxPlayers}`}
@@ -114,7 +122,9 @@ export function CommandDeck({
               TYPE <span className="text-[#F6C915]">&quot;JOIN&quot;</span> OR ANY WORD!
             </div>
             <p className="text-[11px] font-semibold text-purple-100/85 mt-1">
-              Comment in TikTok LIVE chat to drop your avatar in the arena
+              {waitingForStart
+                ? 'Holding in Lobby — press Start when ready to begin the countdown'
+                : 'Comment in TikTok LIVE chat to drop your avatar in the arena'}
             </p>
           </div>
         ) : phase === 'VICTORY' ? (
@@ -186,16 +196,16 @@ export function CommandDeck({
             className={`h-full rounded-full transition-[width,background-color] duration-75 ${fuseBarColor}`}
             style={{
               width: `${Math.max(0, Math.min(100, ratio * 100))}%`,
-              boxShadow: `0 0 12px ${sparkColor}`,
+              boxShadow: isOverlay ? undefined : `0 0 10px ${sparkColor}`,
             }}
           />
-          {ratio > 0.01 && !isPaused && (
+          {ratio > 0.01 && !isPaused && !isOverlay && (
             <span
               className="w-3.5 h-3.5 rounded-full absolute top-1/2 -ml-1.5 pointer-events-none wbr-fuse-spark"
               style={{
                 left: `${Math.min(100, ratio * 100)}%`,
                 backgroundColor: '#FFFFFF',
-                boxShadow: `0 0 10px 3px ${sparkColor}`,
+                boxShadow: `0 0 8px 2px ${sparkColor}`,
               }}
             />
           )}

@@ -588,7 +588,7 @@ export function HostDrawer({
                   <input
                     type="range"
                     min={8}
-                    max={24}
+                    max={60}
                     step={1}
                     value={customRules.baseWaveDurationSec}
                     onChange={(e) =>
@@ -612,7 +612,7 @@ export function HostDrawer({
                     <input
                       type="range"
                       min={4}
-                      max={12}
+                      max={30}
                       step={1}
                       value={customRules.minWaveDurationSec}
                       onChange={(e) =>
@@ -638,7 +638,7 @@ export function HostDrawer({
                     <input
                       type="range"
                       min={6}
-                      max={30}
+                      max={60}
                       step={1}
                       value={customRules.lobbyDurationSec}
                       onChange={(e) =>

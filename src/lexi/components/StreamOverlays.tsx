@@ -1,7 +1,8 @@
 import React from 'react';
 import { ActiveCelebration, RoundSummaryPayload } from '../services/gameClient.ts';
 import { BrandLogo, BRAND_NAME } from './BrandLogo.tsx';
-import { Gift, Heart, UserPlus, Share2, Sparkles, Play, RotateCcw } from 'lucide-react';
+import { Gift, Heart, UserPlus, Share2, Sparkles, Play, RotateCcw, Crown } from 'lucide-react';
+import { WinTallyBadge } from '@/components/interactive-games/win-tally-badge';
 
 interface StreamOverlaysProps {
   celebration: ActiveCelebration | null;
@@ -103,6 +104,72 @@ export const StreamOverlays: React.FC<StreamOverlaysProps> = ({
                 </div>
               </div>
             </div>
+
+            {(() => {
+              const roundScores = new Map<
+                string,
+                { name: string; points: number; words: number; avatar?: string }
+              >();
+              for (const entry of roundSummary.discoveredWords) {
+                const displayName = (
+                  entry.foundByNickname ||
+                  entry.foundByUsername ||
+                  'Player'
+                ).trim();
+                const key = displayName.toLowerCase();
+                const prev = roundScores.get(key);
+                if (prev) {
+                  prev.points += entry.points;
+                  prev.words += 1;
+                  if (!prev.avatar && entry.foundByAvatar) prev.avatar = entry.foundByAvatar;
+                } else {
+                  roundScores.set(key, {
+                    name: displayName,
+                    points: entry.points,
+                    words: 1,
+                    avatar: entry.foundByAvatar,
+                  });
+                }
+              }
+              const champion = Array.from(roundScores.values()).sort(
+                (a, b) => b.points - a.points
+              )[0];
+              const winnerName =
+                champion?.name || (roundSummary.targetReached ? 'Chat Community' : null);
+              if (!winnerName) return null;
+              return (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 rounded-xl bg-amber-500/10 border border-amber-400/40 px-3.5 py-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-amber-400/20 border border-amber-400/60 flex items-center justify-center shrink-0 overflow-hidden">
+                      {champion?.avatar ? (
+                        <img
+                          src={champion.avatar}
+                          alt={winnerName}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <Crown className="w-4 h-4 text-amber-300" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                        Round Winner
+                      </div>
+                      <div className="text-sm font-extrabold text-white truncate">
+                        {winnerName}
+                        {champion && (
+                          <span className="ml-2 text-xs font-mono text-amber-300">
+                            {champion.points} pts · {champion.words}w
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <WinTallyBadge gameId="lexi" winnerName={winnerName} compact />
+                </div>
+              );
+            })()}
 
             <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3.5 ${hideActions ? 'my-3' : 'my-5'}`}>
               <div className="rounded-xl bg-slate-950 border border-slate-800/80 p-3">

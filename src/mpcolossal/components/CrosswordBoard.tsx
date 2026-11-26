@@ -5,6 +5,7 @@ interface CrosswordBoardProps {
   puzzle: CrosswordPuzzle;
   userGrid: Record<string, string>;
   revealedCells: Record<string, boolean>;
+  lockedCells?: Set<string>;
   selectedCell: { row: number; col: number };
   direction: Direction;
   activeWord: PlacedWord | null;
@@ -22,6 +23,7 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
   puzzle,
   userGrid,
   revealedCells,
+  lockedCells,
   selectedCell,
   activeWord,
   cellSize,
@@ -367,12 +369,19 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
             const isInActiveWord = activeWordCoords.has(key);
             const userVal = userGrid[key] || '';
             const isRevealed = !!revealedCells[key];
+            const isLocked = Boolean(lockedCells?.has(key));
             const isCorrect = userVal !== '' && userVal === cell.solution;
-            const isWrong = showErrors && userVal !== '' && userVal !== cell.solution;
+            const isWrong = showErrors && userVal !== '' && userVal !== cell.solution && !isLocked;
 
             let bgClass = 'bg-[#FAF7F0] text-[#2B0938] hover:bg-[#F3EBE0]';
             if (isSelected) {
-              bgClass = 'bg-[#F6C915] text-[#1D0830] ring-2 ring-[#4A1259] z-20';
+              bgClass = isLocked
+                ? 'bg-emerald-300 text-emerald-950 ring-2 ring-[#4A1259] z-20'
+                : 'bg-[#F6C915] text-[#1D0830] ring-2 ring-[#4A1259] z-20';
+            } else if (isLocked && isInActiveWord) {
+              bgClass = 'bg-emerald-200/90 text-emerald-950 z-10';
+            } else if (isLocked) {
+              bgClass = 'bg-emerald-100 text-emerald-950';
             } else if (isInActiveWord) {
               bgClass = 'bg-[#FEF08A] text-[#1D0830] z-10';
             } else if (isCorrect && showErrors) {
@@ -393,7 +402,7 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
                   if (dragRef.current.moved) return;
                   onSelectCell(cell.row, cell.col, true);
                 }}
-                aria-label={`Row ${cell.row + 1}, Column ${cell.col + 1}${cell.number ? `, Clue number ${cell.number}` : ''}${userVal ? `, Letter ${userVal}` : ', Empty'}`}
+                aria-label={`Row ${cell.row + 1}, Column ${cell.col + 1}${cell.number ? `, Clue number ${cell.number}` : ''}${userVal ? `, Letter ${userVal}` : ', Empty'}${isLocked ? ', Locked' : ''}`}
                 style={{
                   top: `${top}px`,
                   left: `${left}px`,
@@ -436,8 +445,8 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
                   className={`pointer-events-none font-grid font-bold leading-none ${
                     isWrong
                       ? 'text-red-600 line-through decoration-2'
-                      : isRevealed
-                      ? 'text-emerald-800'
+                      : isLocked || isRevealed
+                      ? 'text-emerald-900'
                       : 'text-[#1D0830]'
                   }`}
                 >

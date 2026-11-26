@@ -4,6 +4,7 @@ import { Play, RotateCcw, Share2, Award, Check, Radio, Trophy } from 'lucide-rea
 import { GameModeId, PuzzleBoard } from '../utils/puzzleGenerator';
 import { LeaderboardPlayer } from './TikTokLeaderboardPanel';
 import { getSafeAvatarUrl, handleAvatarError } from '../utils/avatar';
+import { WinTallyBadge } from '../../components/interactive-games/win-tally-badge';
 
 interface TitleScreenProps {
   selectedMode: GameModeId;
@@ -358,6 +359,14 @@ export const PauseOrVictoryModal: React.FC<PauseOrVictoryModalProps> = ({
                 </div>
                 <div className="font-extrabold text-xs text-[#FFF3B0] truncate w-full px-0.5 tracking-tight">{p1.nickname}</div>
                 <div className="font-mono font-black text-sm text-[#F6C915] tabular-nums">{p1.score} pts</div>
+                {type === 'VICTORY' && (
+                  <WinTallyBadge
+                    gameId="squaredint"
+                    winnerName={p1.nickname}
+                    compact
+                    className="mt-1"
+                  />
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-dashed border-[#F6C915]/40 text-center text-[10px] text-[#A898BC]">

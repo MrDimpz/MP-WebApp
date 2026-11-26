@@ -13,6 +13,7 @@ import {
   Sparkles,
   FastForward,
 } from 'lucide-react';
+import { WinTallyBadge } from '@/components/interactive-games/win-tally-badge';
 import { RunningScoreboardPlayer, DifficultyMode, GameState } from '../types';
 import { getSafeAvatarUrl, handleAvatarError } from '../utils/avatar';
 import { deduplicateScoreboardPlayers } from '../utils/scoreboard';
@@ -126,9 +127,16 @@ export const RoundScoreboardModal: React.FC<RoundScoreboardModalProps> = ({
                     />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[9px] font-extrabold uppercase tracking-wider text-amber-300 flex items-center gap-1">
-                      <Trophy className="w-3 h-3 text-amber-400 fill-amber-400" />
-                      Round Winner · +1 Win
+                    <div className="text-[9px] font-extrabold uppercase tracking-wider text-amber-300 flex items-center gap-1.5 flex-wrap">
+                      <span className="inline-flex items-center gap-1">
+                        <Trophy className="w-3 h-3 text-amber-400 fill-amber-400" />
+                        Round Winner
+                      </span>
+                      <WinTallyBadge
+                        gameId="destackint"
+                        winnerName={firstPlace.nickname}
+                        compact
+                      />
                     </div>
                     <h3 className="text-sm sm:text-base font-black text-white tracking-tight truncate">
                       {firstPlace.nickname}

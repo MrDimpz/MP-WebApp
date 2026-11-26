@@ -53,6 +53,8 @@ import {
 } from '@/lib/daily-streak';
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
+import { recordInteractiveWin } from '@/lib/interactive-win-tally';
+import { WinTallyBadge } from '@/components/interactive-games/win-tally-badge';
 import { LiveOverlayButton } from '@/components/interactive-games/live-overlay-button';
 import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
 import {
@@ -933,6 +935,18 @@ export default function MPSearchInteractiveApp() {
     return slots;
   }, [scoreboard]);
 
+  // Record persistent win tally once per completed round (host-only)
+  const lastWinTallyRoundKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isOverlay || !isPuzzleCompleted) return;
+    const roundKey = `${roundNumber}:${currentPuzzle.dateKey}`;
+    if (lastWinTallyRoundKeyRef.current === roundKey) return;
+    const champion = scoreboard[0];
+    if (!champion) return;
+    lastWinTallyRoundKeyRef.current = roundKey;
+    recordInteractiveWin('mpsearchint', champion.nickname, champion.avatar);
+  }, [isOverlay, isPuzzleCompleted, roundNumber, currentPuzzle.dateKey, scoreboard]);
+
   // Pop-Up Final Screen Over the Main Board (Places 1-5 highlighting 1st, 2nd & 3rd)
   const finalBoardOverlayNode = isPuzzleCompleted ? (
     <div className="w-full h-full flex flex-col justify-between rounded-xl bg-gradient-to-b from-[#1E0631]/98 via-[#150424]/98 to-[#0E0219]/98 border-2 border-amber-400/70 p-3 sm:p-4 text-white shadow-[0_0_50px_rgba(245,158,11,0.3)] overflow-y-auto">
@@ -969,13 +983,20 @@ export default function MPSearchInteractiveApp() {
                   />
                 ) : null}
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="px-1.5 py-0.5 rounded bg-amber-400 text-[#1A052A] text-[9px] font-black uppercase tracking-wider">
                       1st Place
                     </span>
                     <span className="text-xs sm:text-sm font-black text-amber-200 truncate">
                       {first ? first.nickname : 'Unclaimed'}
                     </span>
+                    {first && (
+                      <WinTallyBadge
+                        gameId="mpsearchint"
+                        winnerName={first.nickname}
+                        compact
+                      />
+                    )}
                   </div>
                   <div className="text-[10px] text-amber-100/85 truncate">
                     {first

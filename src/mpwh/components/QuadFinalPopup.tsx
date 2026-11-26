@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Clock, Play, Trophy } from 'lucide-react';
+import { WinTallyBadge } from '@/components/interactive-games/win-tally-badge';
 import type { GameStatus, LadderInstanceView, RoundWinnerSummary } from '../shared/types';
 
 interface QuadFinalPopupProps {
@@ -98,13 +99,14 @@ export function QuadFinalPopup({
                   }`}
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-mono text-xs font-extrabold text-[#F6C915] tabular-nums">
                         #{idx + 1}
                       </span>
                       <span className="text-sm font-extrabold text-white truncate">
                         {winner.name}
                       </span>
+                      <WinTallyBadge gameId="mpwh" winnerName={winner.name} compact />
                     </div>
                     <p className="text-[11px] text-[#D4C0EC] truncate">
                       Found:{' '}

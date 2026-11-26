@@ -71,6 +71,8 @@ import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { LanguageMenu } from '@/components/language-menu';
 import { stripDiacritics, useDictionaryLanguage } from '@/lib/dictionary-languages';
+import { recordInteractiveWin } from '@/lib/interactive-win-tally';
+import { WinTallyBadge } from '@/components/interactive-games/win-tally-badge';
 
 const KEYBOARD_ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -478,6 +480,11 @@ export default function CrowdleApp() {
         crowdleSounds.playVictory();
         recordDailyPuzzleSolved('crowdle', todayDateStr);
         triggerVictoryConfetti();
+        if (!isOverlay) {
+          const winnerName =
+            st.targetWordGuesser?.nickname || newGuess.topVoter || 'Crowd Consensus';
+          recordInteractiveWin('crowdle', winnerName, st.targetWordGuesser?.avatar);
+        }
 
         let nextStreak = st.streak;
         let nextTotalStreak = st.totalStreak;
@@ -1287,6 +1294,15 @@ export default function CrowdleApp() {
                         </div>
                       </motion.div>
                     )}
+                    <WinTallyBadge
+                      gameId="crowdle"
+                      winnerName={
+                        activeState.targetWordGuesser?.nickname ||
+                        activeState.guesses[activeState.guesses.length - 1]?.topVoter ||
+                        'Crowd Consensus'
+                      }
+                      compact
+                    />
                     <p className="text-[10px] font-bold text-purple-200/70 uppercase tracking-widest pt-1">
                       Next round in {activeState.resetTimeLeft}s...
                     </p>

@@ -55,6 +55,7 @@ import {
   recordInteractiveRoundCompleted,
   tryConsumeOrCheckNextRound,
 } from '@/lib/interactive-daily-limits';
+import { recordInteractiveWin } from '@/lib/interactive-win-tally';
 import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
 import {
   creditInteractiveScoreByTikTokHandle,
@@ -173,6 +174,7 @@ function InkStreamApp() {
   const closeGuessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoSignedInRef = useRef(false);
   const prevTikTokScoresRef = useRef<Map<string, number>>(new Map());
+  const lastGameOverTallyTokenRef = useRef<string | null>(null);
   const chatDedupRef = useRef(createEventDeduplicator());
   const liveSessionId = useMemo(
     () => getLiveConnectionSessionId('inkstream'),
@@ -291,12 +293,21 @@ function InkStreamApp() {
       );
       touchActiveInteractiveStreamerSession();
     } else if (room.phase === 'GAME_OVER' && room.currentRound >= 1) {
-      recordInteractiveRoundCompleted(
-        'inkstream',
-        `${room.id}-gameover-r${room.currentRound}`
-      );
+      const token = `${room.id}-gameover-r${room.currentRound}`;
+      recordInteractiveRoundCompleted('inkstream', token);
+      if (lastGameOverTallyTokenRef.current !== token) {
+        lastGameOverTallyTokenRef.current = token;
+        const topTikTok = [...room.tiktokLeaderboard].sort((a, b) => b.score - a.score)[0];
+        const topRoom = [...room.players].sort((a, b) => b.score - a.score)[0];
+        if (topTikTok && topTikTok.score > 0) {
+          recordInteractiveWin('inkstream', topTikTok.nickname, topTikTok.profilePictureUrl);
+        }
+        if (topRoom && topRoom.score > 0) {
+          recordInteractiveWin('inkstream', topRoom.username);
+        }
+      }
     }
-  }, [room?.id, room?.phase, room?.currentRound, room?.turnNumber]);
+  }, [room?.id, room?.phase, room?.currentRound, room?.turnNumber, room?.tiktokLeaderboard, room?.players]);
 
   // Credit TikTok viewer scores to linked Missing Piece website profiles automatically
   useEffect(() => {

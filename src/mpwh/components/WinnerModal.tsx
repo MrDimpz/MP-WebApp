@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Clock, Play, Trophy, X } from 'lucide-react';
+import { WinTallyBadge } from '@/components/interactive-games/win-tally-badge';
 import type { LiveGameStateView } from '../shared/types';
 import { formatDuration, formatModeLabel } from '../utils/format';
 
@@ -121,13 +122,14 @@ export function WinnerModal({
                   }`}
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-xs font-extrabold text-[#F6C915] tabular-nums">
                         #{idx + 1}
                       </span>
                       <span className="text-base font-extrabold text-white truncate">
                         {winner.name}
                       </span>
+                      <WinTallyBadge gameId="mpwh" winnerName={winner.name} compact />
                     </div>
                     <p className="mt-0.5 text-xs text-[#D4C0EC] truncate">
                       Found:{' '}

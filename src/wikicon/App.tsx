@@ -49,6 +49,8 @@ import {
 import { DailyStreakBadge } from '@/components/daily-streak-badge';
 import { triggerVictoryConfetti } from '@/lib/confetti';
 import { SmoothMarquee } from '@/components/smooth-marquee';
+import { recordInteractiveWin } from '@/lib/interactive-win-tally';
+import { WinTallyBadge } from '@/components/interactive-games/win-tally-badge';
 import './index.css';
 import {
   GameMode,
@@ -714,6 +716,15 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
           isDaily: Boolean(round.isDaily),
           isNewHighScore: prevBest > 0 && topPlayerScore > prevBest,
         });
+        const sortedRoundPlayers = [...(round.leaderboard || [])].sort(
+          (a, b) => (b.score || 0) - (a.score || 0)
+        );
+        const topRoundWinner = sortedRoundPlayers[0];
+        recordInteractiveWin(
+          'wikicon',
+          topRoundWinner?.displayName || profile.displayName || 'Player',
+          topRoundWinner?.avatar
+        );
       }
       const updatedStreakState = !isOverlay
         ? recordDailyPuzzleSolved('wikicon', todayDateStr)
@@ -2216,6 +2227,12 @@ export function App({ soloOnly = false }: { soloOnly?: boolean }) {
                           <div className="text-sm font-extrabold text-white truncate">
                             {goldPlayer ? goldPlayer.displayName : profile.displayName}
                           </div>
+                          <WinTallyBadge
+                            gameId="wikicon"
+                            winnerName={goldPlayer ? goldPlayer.displayName : profile.displayName}
+                            compact
+                            className="mt-1"
+                          />
                         </div>
                       </div>
                       <div className="text-right shrink-0">

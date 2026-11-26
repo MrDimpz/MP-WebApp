@@ -47,6 +47,7 @@ import {
 import { UnifiedAuthModal } from '@/components/solo-games/unified-auth-modal';
 import { useOverlayConfig, useOverlaySync } from '@/lib/live-overlay';
 import { triggerVictoryConfetti } from '@/lib/confetti';
+import { recordInteractiveWin } from '@/lib/interactive-win-tally';
 import { useDictionaryLanguage } from '@/lib/dictionary-languages';
 import './index.css';
 
@@ -754,6 +755,7 @@ export default function App() {
     const roundWinner = deduplicateScoreboardPlayers(scoreboardRef.current)[0];
     if (roundWinner && !roundWinnerCreditedRef.current.has(completedRoundId)) {
       roundWinnerCreditedRef.current.add(completedRoundId);
+      recordInteractiveWin('destackint', roundWinner.nickname, roundWinner.profilePictureUrl);
       const winnerIdKey = normalizePlayerKey(roundWinner.id);
       const winnerNameKey = normalizePlayerKey(roundWinner.nickname);
       setOverallScoreboard((prev) =>

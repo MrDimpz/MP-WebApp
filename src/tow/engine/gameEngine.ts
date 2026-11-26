@@ -156,6 +156,7 @@ export class TerritoryWarEngine {
   private lastHudEmitMs = 0;
   private hudDirty = true;
   public isOverlayMode = false;
+  public awaitingStart = false;
   public onVictoryCallback: ((summary: VictorySummary, matchNumber: number) => void) | null = null;
   public onBeforeNextMatchCallback: ((completedMatchNumber: number) => boolean) | null = null;
 
@@ -189,6 +190,7 @@ export class TerritoryWarEngine {
     const nextBurnedTop = h.burnedWords?.[0]?.id;
 
     this.status = h.status;
+    this.awaitingStart = Boolean(h.awaitingStart);
     this.phase = h.phase;
     this.timeRemainingSec = h.timeRemainingSec;
     this.suddenDeathSec = h.suddenDeathSec;
@@ -267,6 +269,7 @@ export class TerritoryWarEngine {
 
     return {
       status: this.status,
+      awaitingStart: this.awaitingStart,
       phase: this.phase,
       timeRemainingSec: Math.max(0, this.timeRemainingSec),
       suddenDeathSec: Math.max(0, this.suddenDeathSec),
@@ -425,22 +428,30 @@ export class TerritoryWarEngine {
     if (this.status === 'PLAYING') {
       this.status = 'PAUSED';
     } else if (this.status === 'PAUSED') {
+      const wasAwaitingStart = this.awaitingStart;
+      this.awaitingStart = false;
       this.status = 'PLAYING';
+      if (wasAwaitingStart) {
+        this.phaseOpenedAtMs = Date.now();
+        this.showBanner('PHASE', `MATCH #${this.matchNumber} START`, this.baseRule.label, 'WHITE', 1900);
+        soundEngine.playAlertChime(false);
+      }
     } else if (this.status === 'VICTORY') {
       this.startNextMatch();
     }
     this.emitHud(true);
   }
 
-  public startNextMatch(): void {
-    if (this.onBeforeNextMatchCallback && !this.onBeforeNextMatchCallback(this.matchNumber)) {
+  public startNextMatch(holdUntilStart = false): void {
+    if (!holdUntilStart && this.onBeforeNextMatchCallback && !this.onBeforeNextMatchCallback(this.matchNumber)) {
       this.status = 'PAUSED';
       this.emitHud(true);
       return;
     }
     soundEngine.unlock();
     this.matchNumber += 1;
-    this.status = 'PLAYING';
+    this.awaitingStart = holdUntilStart;
+    this.status = holdUntilStart ? 'PAUSED' : 'PLAYING';
     this.phase = 1;
     this.timeRemainingSec = MATCH_DURATION_SEC;
     this.suddenDeathSec = SUDDEN_DEATH_DURATION_SEC;
@@ -491,8 +502,12 @@ export class TerritoryWarEngine {
     });
 
     this.rebalanceTeamsIfNeeded(true);
-    this.showBanner('PHASE', `MATCH #${this.matchNumber} START`, this.baseRule.label, 'WHITE', 1900);
-    soundEngine.playAlertChime(false);
+    if (holdUntilStart) {
+      this.activeBanner = null;
+    } else {
+      this.showBanner('PHASE', `MATCH #${this.matchNumber} START`, this.baseRule.label, 'WHITE', 1900);
+      soundEngine.playAlertChime(false);
+    }
     this.emitHud(true);
   }
 
@@ -504,10 +519,11 @@ export class TerritoryWarEngine {
     this.blueWins = 0;
     this.matchNumber = 0;
     this.simJoinedCount = 0;
+    this.simAccumulatorMs = 0;
     if (this.simulatorEnabled) {
       this.seedInitialSimRoster();
     }
-    this.startNextMatch();
+    this.startNextMatch(true);
   }
 
   public advancePhase(): void {

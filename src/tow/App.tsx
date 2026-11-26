@@ -20,6 +20,7 @@ import {
   getActiveInteractiveStreamerSession,
   touchActiveInteractiveStreamerSession,
 } from '@/lib/interactive-key-auth';
+import { recordInteractiveWin } from '@/lib/interactive-win-tally';
 import {
   attachResilientChatListeners,
   createEventDeduplicator,
@@ -171,6 +172,10 @@ export default function App() {
       triggerVictoryConfetti();
       recordInteractiveRoundCompleted('tow', `tow-round-${matchNumber}`);
       recordDailyPuzzleSolved('tow', getLocalTodayDateStr());
+      recordInteractiveWin('tow', `Team ${summary.winner}`);
+      if (summary.mvps[0]) {
+        recordInteractiveWin('tow', summary.mvps[0].nickname, summary.mvps[0].avatarUrl);
+      }
 
       // Credit real winning MVPs on linked Missing Piece accounts
       summary.mvps.forEach((mvp, index) => {

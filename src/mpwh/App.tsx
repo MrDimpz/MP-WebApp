@@ -30,6 +30,7 @@ import {
   tryConsumeOrCheckNextRound,
   useInteractiveDailyLimit,
 } from '@/lib/interactive-daily-limits';
+import { recordInteractiveWins } from '@/lib/interactive-win-tally';
 import {
   getActiveInteractiveStreamerSession,
   touchActiveInteractiveStreamerSession,
@@ -368,9 +369,13 @@ function MpwhHostApp() {
         colors: ['#F6C915', '#A855F7', '#34D399', '#FFE46B'],
       });
 
-      // Credit winners to linked Missing Piece profiles once per roundId
+      // Credit winners to linked Missing Piece profiles + interactive win tally once per roundId
       if (!creditedRoundsRef.current.has(game.roundId)) {
         creditedRoundsRef.current.add(game.roundId);
+        recordInteractiveWins(
+          'mpwh',
+          game.roundWinners.map((w) => ({ name: w.name }))
+        );
         for (const winner of game.roundWinners) {
           const handle = winner.tiktokHandle || winner.name;
           if (!handle) continue;

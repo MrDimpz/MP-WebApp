@@ -20,6 +20,7 @@ import {
   getActiveInteractiveStreamerSession,
   touchActiveInteractiveStreamerSession,
 } from '@/lib/interactive-key-auth';
+import { recordInteractiveWin } from '@/lib/interactive-win-tally';
 import {
   attachResilientChatListeners,
   createEventDeduplicator,
@@ -71,6 +72,7 @@ import {
   Player,
   PlayerLoadout,
   PromptRule,
+  WordFlashEvent,
   WsConnectionState,
 } from './types/game';
 
@@ -83,7 +85,8 @@ const STORAGE_KEYS = {
 };
 
 const WAVE_INTRO_DURATION = 2.5;
-const ELIMINATION_DURATION = 2.5;
+const BATTLE_DURATION = 2.6;
+const MEMORIAL_DURATION = 3.0;
 const VICTORY_DURATION = 8.0;
 
 interface WbrOverlaySnapshot {
@@ -92,11 +95,13 @@ interface WbrOverlaySnapshot {
   timeRemaining: number;
   totalPhaseDuration: number;
   isPaused: boolean;
+  waitingForStart: boolean;
   players: Player[];
   currentRule: PromptRule | null;
   spinDisplayRule: PromptRule | null;
-  burnedWordsList: string[];
   feedbackEvent: ArenaFeedbackEvent | null;
+  wordFlashes: WordFlashEvent[];
+  waveEliminatedPlayers: Player[];
   wipeoutMessage: string | null;
   hallOfFame: HallOfFameEntry[];
   customRules: CustomGameRules;
@@ -160,12 +165,17 @@ export default function App() {
     DEFAULT_CUSTOM_RULES.lobbyDurationSec
   );
   const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [waitingForStart, setWaitingForStart] = useState<boolean>(false);
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentRule, setCurrentRule] = useState<PromptRule | null>(null);
   const [spinDisplayRule, setSpinDisplayRule] = useState<PromptRule | null>(null);
-  const [burnedWordsList, setBurnedWordsList] = useState<string[]>([]);
   const [feedbackEvent, setFeedbackEvent] = useState<ArenaFeedbackEvent | null>(null);
+  const [wordFlashes, setWordFlashes] = useState<WordFlashEvent[]>([]);
+  const wordFlashTimersRef = useRef<Map<string, number>>(new Map());
+  const nextFlashSlotRef = useRef<number>(0);
+  const [waveEliminatedPlayers, setWaveEliminatedPlayers] = useState<Player[]>([]);
+  const pendingElimIdsRef = useRef<string[]>([]);
   const [wipeoutMessage, setWipeoutMessage] = useState<string | null>(null);
 
   // Audio & UI Controls
@@ -194,14 +204,16 @@ export default function App() {
   );
   const [botCosmeticsEnabled, setBotCosmeticsEnabled] = useState<boolean>(true);
 
-  // Simulator & Manual Chat State
+  // Built-in Site TikTok LIVE Server Connection State
+  const activeStreamerSession = getActiveInteractiveStreamerSession();
+  const hasStreamerSession = Boolean(activeStreamerSession?.username);
+
+  // Simulator & Manual Chat State (bots disabled automatically when a streamer is logged in)
   const [testUsername, setTestUsername] = useState<string>('You Live');
-  const [simEnabled, setSimEnabled] = useState<boolean>(true);
+  const [simEnabled, setSimEnabled] = useState<boolean>(() => !hasStreamerSession);
   const [botCount, setBotCount] = useState<number>(35);
   const [chatLogs, setChatLogs] = useState<IncomingChatLog[]>([]);
 
-  // Built-in Site TikTok LIVE Server Connection State
-  const activeStreamerSession = getActiveInteractiveStreamerSession();
   const [liveHandle, setLiveHandle] = useState<string>(() => {
     const fromSession = getActiveInteractiveStreamerSession()?.username || '';
     if (fromSession) return fromSession;
@@ -344,6 +356,39 @@ export default function App() {
       window.clearTimeout(tid);
     }
     botTimersRef.current = [];
+  }, []);
+
+  // Automatically disable and remove bots whenever a streamer is logged in or LIVE connected
+  useEffect(() => {
+    if (isOverlay) return;
+    if (isLiveConnected || hasStreamerSession) {
+      setSimEnabled(false);
+      clearBotTimers();
+      const nonBots = playersRef.current.filter((p) => !p.isBot);
+      if (nonBots.length !== playersRef.current.length) {
+        playersRef.current = nonBots;
+        setPlayers(nonBots);
+      }
+    }
+  }, [isLiveConnected, hasStreamerSession, isOverlay, clearBotTimers]);
+
+  const clearAllWordFlashes = useCallback(() => {
+    for (const tid of wordFlashTimersRef.current.values()) {
+      window.clearTimeout(tid);
+    }
+    wordFlashTimersRef.current.clear();
+    nextFlashSlotRef.current = 0;
+    setWordFlashes([]);
+  }, []);
+
+  // Clean up word flash timers on unmount
+  useEffect(() => {
+    return () => {
+      for (const tid of wordFlashTimersRef.current.values()) {
+        window.clearTimeout(tid);
+      }
+      wordFlashTimersRef.current.clear();
+    };
   }, []);
 
   const pushChatLog = useCallback(
@@ -502,7 +547,6 @@ export default function App() {
       burnedWordsSetRef.current.add(cleanWord);
       const nextBurned = [cleanWord, ...burnedWordsListRef.current];
       burnedWordsListRef.current = nextBurned;
-      setBurnedWordsList(nextBurned);
 
       const nextPlayers = playersRef.current.map((p) =>
         p.id === playerId
@@ -526,6 +570,54 @@ export default function App() {
         text: cleanWord,
         timestamp: Date.now() + Math.random(),
       });
+
+      // Flash used word across the entire arena in 2 columns (10 simultaneous slots for busy games)
+      const flashedAvatar =
+        existingPlayer.avatarUrl || payload.avatarUrl || generateProfilePicture(rawUser);
+      const flashId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const nowMs = Date.now();
+      setWordFlashes((prev) => {
+        const occupied = new Set(prev.map((f) => f.slot));
+        let chosenSlot: number | null = null;
+        for (let offset = 0; offset < 10; offset += 1) {
+          const candidate = (nextFlashSlotRef.current + offset) % 10;
+          if (!occupied.has(candidate)) {
+            chosenSlot = candidate;
+            break;
+          }
+        }
+        if (chosenSlot === null) {
+          const oldest = [...prev].sort((a, b) => a.timestamp - b.timestamp)[0];
+          chosenSlot = oldest ? oldest.slot : nextFlashSlotRef.current % 10;
+        }
+        nextFlashSlotRef.current = (chosenSlot + 1) % 10;
+
+        const replaced = prev.find((f) => f.slot === chosenSlot);
+        if (replaced) {
+          const oldTid = wordFlashTimersRef.current.get(replaced.id);
+          if (oldTid !== undefined) {
+            window.clearTimeout(oldTid);
+            wordFlashTimersRef.current.delete(replaced.id);
+          }
+        }
+
+        const nextFlash: WordFlashEvent = {
+          id: flashId,
+          slot: chosenSlot,
+          word: cleanWord,
+          username: rawUser,
+          avatarUrl: flashedAvatar,
+          color: existingPlayer.color,
+          timestamp: nowMs,
+        };
+        return [...prev.filter((f) => f.slot !== chosenSlot), nextFlash];
+      });
+      const tid = window.setTimeout(() => {
+        wordFlashTimersRef.current.delete(flashId);
+        setWordFlashes((curr) => curr.filter((f) => f.id !== flashId));
+      }, 2200);
+      wordFlashTimersRef.current.set(flashId, tid);
+
       pushChatLog(rawUser, cleanWord, 'SAFE');
 
       // Award Royale Coins + credit linked Missing Piece website account for real viewers
@@ -676,7 +768,31 @@ export default function App() {
     setPlayers([]);
     burnedWordsSetRef.current = new Set();
     burnedWordsListRef.current = [];
-    setBurnedWordsList([]);
+    pendingElimIdsRef.current = [];
+    setWaveEliminatedPlayers([]);
+    setCurrentRule(null);
+    setSpinDisplayRule(null);
+    setWipeoutMessage(null);
+    clearAllWordFlashes();
+    setWaitingForStart(false);
+    setWave(1);
+    setPhase('LOBBY');
+    setTotalPhaseDuration(dur);
+    setTimeRemaining(dur);
+    lastTickSecRef.current = 99;
+  }, [clearBotTimers, clearAllWordFlashes]);
+
+  // Reset to Lobby and HOLD (paused) until the host presses Start
+  const handleResetToLobby = useCallback(() => {
+    clearBotTimers();
+    clearAllWordFlashes();
+    const dur = customRulesRef.current.lobbyDurationSec;
+    playersRef.current = [];
+    setPlayers([]);
+    burnedWordsSetRef.current = new Set();
+    burnedWordsListRef.current = [];
+    pendingElimIdsRef.current = [];
+    setWaveEliminatedPlayers([]);
     setCurrentRule(null);
     setSpinDisplayRule(null);
     setWipeoutMessage(null);
@@ -684,8 +800,10 @@ export default function App() {
     setPhase('LOBBY');
     setTotalPhaseDuration(dur);
     setTimeRemaining(dur);
+    setIsPaused(true);
+    setWaitingForStart(true);
     lastTickSecRef.current = 99;
-  }, [clearBotTimers]);
+  }, [clearBotTimers, clearAllWordFlashes]);
 
   const startWaveIntroPhase = useCallback(
     (nextWave: number) => {
@@ -693,10 +811,12 @@ export default function App() {
         roundStartedRef.current = true;
       }
       clearBotTimers();
+      clearAllWordFlashes();
+      pendingElimIdsRef.current = [];
+      setWaveEliminatedPlayers([]);
       setWipeoutMessage(null);
       burnedWordsSetRef.current = new Set();
       burnedWordsListRef.current = [];
-      setBurnedWordsList([]);
       waveComboRef.current = 0;
 
       // Reset safe status for all alive players
@@ -719,7 +839,7 @@ export default function App() {
       setTimeRemaining(WAVE_INTRO_DURATION);
       lastTickSecRef.current = 99;
     },
-    [clearBotTimers]
+    [clearBotTimers, clearAllWordFlashes]
   );
 
   const startActiveWavePhase = useCallback(() => {
@@ -745,9 +865,10 @@ export default function App() {
         timestamp: Date.now() + Math.random(),
       });
 
-      // Record Daily Limit Round Completion + Daily Streak
+      // Record Daily Limit Round Completion + Daily Streak + Interactive Win Tally
       recordInteractiveRoundCompleted('wbr', `wbr-round-${roundCounterRef.current}`);
       recordDailyPuzzleSolved('wbr', getLocalTodayDateStr());
+      recordInteractiveWin('wbr', winner.username, winner.avatarUrl);
 
       // Award coins for round completion
       setCoins((c) => c + (winner.isBot ? 35 : 120));
@@ -792,12 +913,15 @@ export default function App() {
 
   const runEliminationResolution = useCallback(() => {
     clearBotTimers();
+    clearAllWordFlashes();
     const alivePlayers = playersRef.current.filter((p) => p.alive);
     const unsafePlayers = alivePlayers.filter((p) => !p.safe);
     const safePlayers = alivePlayers.filter((p) => p.safe);
 
     // Edge case: 0 survivors -> TOTAL WIPEOUT REVIVE!
     if (alivePlayers.length > 0 && safePlayers.length === 0) {
+      pendingElimIdsRef.current = [];
+      setWaveEliminatedPlayers([]);
       soundEngine.playRevive();
       setWipeoutMessage('TOTAL WIPEOUT! REVIVING LAST WAVE!');
       setFeedbackEvent({
@@ -805,33 +929,36 @@ export default function App() {
         timestamp: Date.now() + Math.random(),
       });
       setPhase('ELIMINATION');
-      setTotalPhaseDuration(ELIMINATION_DURATION);
-      setTimeRemaining(ELIMINATION_DURATION);
+      setTotalPhaseDuration(2.2);
+      setTimeRemaining(2.2);
       return;
     }
 
-    // Standard Elimination: detonate all unsafe players
-    if (unsafePlayers.length > 0) {
-      const eliminatedIds = unsafePlayers.map((p) => p.id);
-      soundEngine.playExplosion();
-      setFeedbackEvent({
-        type: 'ELIMINATE',
-        playerIds: eliminatedIds,
-        timestamp: Date.now() + Math.random(),
-      });
-
-      const elimSet = new Set(eliminatedIds);
-      const nextPlayers = playersRef.current.map((p) =>
-        elimSet.has(p.id) ? { ...p, alive: false, safe: false } : p
-      );
-      playersRef.current = nextPlayers;
-      setPlayers(nextPlayers);
+    // Edge case: 100% survived -> quick transition straight to next wave
+    if (unsafePlayers.length === 0) {
+      pendingElimIdsRef.current = [];
+      setWaveEliminatedPlayers([]);
+      setPhase('ELIMINATION');
+      setTotalPhaseDuration(0.8);
+      setTimeRemaining(0.8);
+      return;
     }
 
+    // Battle Sequence: keep unsafe players in the arena while all balls collide & destroy those who are out!
+    const eliminatedIds = unsafePlayers.map((p) => p.id);
+    pendingElimIdsRef.current = eliminatedIds;
+    setWaveEliminatedPlayers(unsafePlayers);
+    soundEngine.playSlotTick();
+    setFeedbackEvent({
+      type: 'BATTLE',
+      playerIds: eliminatedIds,
+      timestamp: Date.now() + Math.random(),
+    });
+
     setPhase('ELIMINATION');
-    setTotalPhaseDuration(ELIMINATION_DURATION);
-    setTimeRemaining(ELIMINATION_DURATION);
-  }, [clearBotTimers]);
+    setTotalPhaseDuration(BATTLE_DURATION);
+    setTimeRemaining(BATTLE_DURATION);
+  }, [clearBotTimers, clearAllWordFlashes]);
 
   // Handle transition when a phase timer reaches 0.0s
   const advanceFromCurrentPhase = useCallback(() => {
@@ -865,6 +992,49 @@ export default function App() {
 
     if (current === 'ELIMINATION') {
       setWipeoutMessage(null);
+      const pendingIds = pendingElimIdsRef.current;
+      if (pendingIds.length > 0) {
+        // Finalize knocked-out players & flash the 3-second Memorial popup
+        const elimSet = new Set(pendingIds);
+        const elimTime = Date.now();
+        const elimWave = waveRef.current;
+        const knockedOutList = playersRef.current
+          .filter((p) => elimSet.has(p.id))
+          .map((p) => ({
+            ...p,
+            alive: false,
+            safe: false,
+            eliminatedAt: elimTime,
+            eliminatedWave: elimWave,
+          }));
+        const nextPlayers = playersRef.current.map((p) =>
+          elimSet.has(p.id)
+            ? { ...p, alive: false, safe: false, eliminatedAt: elimTime, eliminatedWave: elimWave }
+            : p
+        );
+        pendingElimIdsRef.current = [];
+        playersRef.current = nextPlayers;
+        setPlayers(nextPlayers);
+        setWaveEliminatedPlayers(knockedOutList);
+        setPhase('MEMORIAL');
+        setTotalPhaseDuration(MEMORIAL_DURATION);
+        setTimeRemaining(MEMORIAL_DURATION);
+        return;
+      }
+
+      const survivors = playersRef.current.filter((p) => p.alive);
+      if (survivors.length === 1) {
+        startVictoryPhase(survivors[0]);
+      } else if (survivors.length === 0) {
+        startLobbyPhase();
+      } else {
+        startWaveIntroPhase(waveRef.current + 1);
+      }
+      return;
+    }
+
+    if (current === 'MEMORIAL') {
+      setWaveEliminatedPlayers([]);
       const survivors = playersRef.current.filter((p) => p.alive);
       if (survivors.length === 1) {
         startVictoryPhase(survivors[0]);
@@ -1063,11 +1233,13 @@ export default function App() {
             timeRemaining,
             totalPhaseDuration,
             isPaused,
+            waitingForStart,
             players,
             currentRule,
             spinDisplayRule,
-            burnedWordsList: burnedWordsList.slice(0, 30),
             feedbackEvent,
+            wordFlashes,
+            waveEliminatedPlayers,
             wipeoutMessage,
             hallOfFame: hallOfFame.slice(0, 6),
             customRules,
@@ -1081,11 +1253,13 @@ export default function App() {
       timeRemaining,
       totalPhaseDuration,
       isPaused,
+      waitingForStart,
       players,
       currentRule,
       spinDisplayRule,
-      burnedWordsList,
       feedbackEvent,
+      wordFlashes,
+      waveEliminatedPlayers,
       wipeoutMessage,
       hallOfFame,
       customRules,
@@ -1107,13 +1281,15 @@ export default function App() {
       setTimeRemaining(synced.timeRemaining);
       setTotalPhaseDuration(synced.totalPhaseDuration);
       setIsPaused(synced.isPaused);
+      setWaitingForStart(Boolean(synced.waitingForStart));
       setPlayers(synced.players || []);
       setCurrentRule(synced.currentRule || null);
       setSpinDisplayRule(synced.spinDisplayRule || null);
-      setBurnedWordsList(synced.burnedWordsList || []);
       if (synced.feedbackEvent) {
         setFeedbackEvent(synced.feedbackEvent);
       }
+      setWordFlashes(synced.wordFlashes || []);
+      setWaveEliminatedPlayers(synced.waveEliminatedPlayers || []);
       setWipeoutMessage(synced.wipeoutMessage || null);
       setHallOfFame(synced.hallOfFame || []);
       if (synced.customRules) {
@@ -1152,7 +1328,9 @@ export default function App() {
     setCurrentRule(nextRule);
     burnedWordsSetRef.current = new Set();
     burnedWordsListRef.current = [];
-    setBurnedWordsList([]);
+    pendingElimIdsRef.current = [];
+    setWaveEliminatedPlayers([]);
+    clearAllWordFlashes();
     waveComboRef.current = 0;
 
     const resetPlayers = playersRef.current.map((p) =>
@@ -1377,8 +1555,8 @@ export default function App() {
               : 'sm:rounded-[24px] sm:border sm:border-[#C5A8E8] dark:sm:border-[#F6C915]/25 sm:shadow-[0_18px_48px_rgba(43,9,56,0.25)] dark:sm:shadow-[0_0_60px_rgba(0,0,0,0.85),0_0_28px_rgba(246,201,21,0.14)]'
           }`}
         >
-          {/* Subtle CRT Scanline Overlay */}
-          {!isTransparentOverlay && (
+          {/* Subtle CRT Scanline Overlay (disabled in Overlay mode to eliminate lag) */}
+          {!isOverlay && !isTransparentOverlay && (
             <div className="absolute inset-0 wbr-crt-scanlines z-30 opacity-40" />
           )}
 
@@ -1407,31 +1585,48 @@ export default function App() {
             totalPhaseDuration={totalPhaseDuration}
             customRules={customRules}
             isPaused={isPaused}
+            waitingForStart={waitingForStart}
+            isOverlay={isOverlay}
             wipeoutMessage={wipeoutMessage}
           />
 
-          {/* ZONE 3: Physics Avatar Arena (48% host / 54% overlay) */}
+          {/* ZONE 3: Physics Avatar Arena (flex-fills remaining viewport cleanly) */}
           <PhysicsArenaCanvas
             players={players}
+            wave={wave}
             phase={phase}
             timeRemaining={timeRemaining}
             feedbackEvent={feedbackEvent}
+            wordFlashes={wordFlashes}
+            waveEliminatedPlayers={waveEliminatedPlayers}
             champion={champion}
             wipeoutMessage={wipeoutMessage}
+            waitingForStart={waitingForStart}
             isOverlay={isOverlay}
           />
 
-          {/* ZONE 4: Burned Words Ticker & Streamer Host Dock */}
+          {/* ZONE 4: Double-Layered Streamer Host Controls */}
           <BottomDock
-            burnedWords={burnedWordsList}
             isPaused={isPaused}
+            waitingForStart={waitingForStart}
             controlsCollapsed={controlsCollapsed}
             coins={coins}
             simEnabled={simEnabled}
             isLiveConnected={isLiveConnected}
             isOverlay={isOverlay}
-            onTogglePause={() => setIsPaused((p) => !p)}
-            onSkipPhase={advanceFromCurrentPhase}
+            onTogglePause={() => {
+              setIsPaused((p) => {
+                const nextPaused = !p;
+                if (!nextPaused) setWaitingForStart(false);
+                return nextPaused;
+              });
+            }}
+            onResetToLobby={handleResetToLobby}
+            onSkipPhase={() => {
+              setWaitingForStart(false);
+              setIsPaused(false);
+              advanceFromCurrentPhase();
+            }}
             onForceNewPrompt={handleForceNewPrompt}
             onClearLeaderboard={() => setHallOfFame([])}
             onToggleCollapse={() => setControlsCollapsed((c) => !c)}

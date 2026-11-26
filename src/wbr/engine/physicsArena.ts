@@ -98,20 +98,43 @@ export class PhysicsArenaEngine {
   private phase: GamePhase = 'LOBBY';
   private timeRemaining: number = 15;
   private isUrgent: boolean = false;
-  private screenShake: number = 0;
+  private isOverlay: boolean = false;
   private elapsedTime: number = 0;
   private confettiCooldown: number = 0;
+
+  // Battle sequence state (balls collide and destroy unsafe players)
+  private battleActive: boolean = false;
+  private battleUnsafeIds: Set<string> = new Set();
+  private battleDestroyedIds: Set<string> = new Set();
+  private battleElapsed: number = 0;
+  private battleDuration: number = 2.6;
+  private battleSweepCooldown: number = 0;
+  private battleAnimatedCount: number = 0;
+  private lastBattleSoundAt: number = 0;
+  private onBattleHit?: () => void;
 
   private rafId: number | null = null;
   private lastFrameTime: number = 0;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    isOverlay: boolean = false,
+    onBattleHit?: () => void
+  ) {
     this.canvas = canvas;
+    this.isOverlay = isOverlay;
+    this.onBattleHit = onBattleHit;
     const context = canvas.getContext('2d');
     if (!context) {
       throw new Error('Failed to acquire 2D canvas context');
     }
     this.ctx = context;
+    this.resize();
+  }
+
+  public setOverlayMode(isOverlay: boolean): void {
+    if (this.isOverlay === isOverlay) return;
+    this.isOverlay = isOverlay;
     this.resize();
   }
 
@@ -138,7 +161,8 @@ export class PhysicsArenaEngine {
   public resize(): void {
     const rect = this.canvas.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Lower DPR on overlay dramatically reduces GPU fillrate & OBS browser-source lag
+    this.dpr = this.isOverlay ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
     this.width = rect.width;
     this.height = rect.height;
     this.canvas.width = Math.round(rect.width * this.dpr);
@@ -150,6 +174,11 @@ export class PhysicsArenaEngine {
     this.phase = phase;
     this.timeRemaining = timeRemaining;
     this.isUrgent = phase === 'ACTIVE_WAVE' && timeRemaining <= 3.1 && timeRemaining > 0;
+    if (phase !== 'ELIMINATION') {
+      this.battleActive = false;
+      this.battleUnsafeIds.clear();
+      this.battleDestroyedIds.clear();
+    }
   }
 
   public syncPlayers(players: Player[]): void {
@@ -167,6 +196,10 @@ export class PhysicsArenaEngine {
     const pad = Math.max(26, baseRadius + 14);
 
     for (const player of alivePlayers) {
+      // Do not respawn bodies already destroyed during the current battle sequence
+      if (this.battleActive && this.battleDestroyedIds.has(player.id)) {
+        continue;
+      }
       const existing = this.bodies.get(player.id);
       if (existing) {
         existing.player = player;
@@ -236,7 +269,8 @@ export class PhysicsArenaEngine {
     else if (count <= 55) base = 16;
     else if (count <= 80) base = 14;
     else base = 12.5;
-    return Math.max(11, Math.min(38, base * scaleFactor));
+    // Decrease player size by 10% for cleaner spacing in busy games
+    return Math.max(9.9, Math.min(34.2, base * scaleFactor * 0.9));
   }
 
   public triggerSafeWord(playerId: string, word: string): void {
@@ -274,7 +308,6 @@ export class PhysicsArenaEngine {
     const body = this.bodies.get(playerId);
     if (!body) return;
 
-    body.shakeTimer = 0.42;
     this.floatingTexts.push({
       x: body.x,
       y: body.y - body.radius - 10,
@@ -288,17 +321,59 @@ export class PhysicsArenaEngine {
     });
   }
 
-  public triggerEliminations(eliminatedIds: string[]): void {
-    if (eliminatedIds.length === 0) return;
+  public startBattleSequence(unsafeIds: string[], durationSec: number = 2.6): void {
+    if (unsafeIds.length === 0) return;
+    this.battleActive = true;
+    this.battleUnsafeIds = new Set(unsafeIds);
+    this.battleDestroyedIds = new Set();
+    this.battleElapsed = 0;
+    this.battleDuration = Math.max(1.2, durationSec);
+    this.battleSweepCooldown = 0;
+    this.battleAnimatedCount = 0;
 
-    this.screenShake = Math.min(18, 7 + eliminatedIds.length * 0.45);
+    // Launch all balls into energetic bumper-car battle motion
+    const unsafeBodies: PhysicsBody[] = [];
+    for (const id of unsafeIds) {
+      const ub = this.bodies.get(id);
+      if (ub) unsafeBodies.push(ub);
+    }
 
-    const blastOrigins: Array<{ x: number; y: number }> = [];
+    for (const body of this.bodies.values()) {
+      const isUnsafe = this.battleUnsafeIds.has(body.id);
+      if (!isUnsafe && unsafeBodies.length > 0) {
+        // Safe balls charge toward the nearest unsafe ball
+        let nearest = unsafeBodies[0];
+        let bestDist = Infinity;
+        for (const ub of unsafeBodies) {
+          const d = Math.hypot(ub.x - body.x, ub.y - body.y);
+          if (d < bestDist) {
+            bestDist = d;
+            nearest = ub;
+          }
+        }
+        const angle =
+          Math.atan2(nearest.y - body.y, nearest.x - body.x) + (Math.random() - 0.5) * 0.45;
+        const speed = 290 + Math.random() * 120;
+        body.vx = Math.cos(angle) * speed;
+        body.vy = Math.sin(angle) * speed;
+      } else {
+        // Unsafe balls scatter & bounce wildly around the arena
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 230 + Math.random() * 110;
+        body.vx = Math.cos(angle) * speed;
+        body.vy = Math.sin(angle) * speed;
+      }
+    }
+  }
 
-    for (const id of eliminatedIds) {
-      const body = this.bodies.get(id);
-      if (!body) continue;
-      blastOrigins.push({ x: body.x, y: body.y });
+  private destroyBattleBody(id: string): void {
+    const body = this.bodies.get(id);
+    this.battleUnsafeIds.delete(id);
+    this.battleDestroyedIds.add(id);
+    if (!body) return;
+
+    const maxAnimatedElims = this.isOverlay ? 8 : 18;
+    if (this.battleAnimatedCount < maxAnimatedElims) {
       this.spawnEliminationEffect(
         body.x,
         body.y,
@@ -306,17 +381,52 @@ export class PhysicsArenaEngine {
         body.player.color,
         body.player.loadout.elimEffect
       );
+      this.battleAnimatedCount += 1;
+    } else {
+      this.spawnSimpleSparks(body.x, body.y, '#FF2A6D', 4);
+    }
+
+    const now = performance.now();
+    if (now - this.lastBattleSoundAt > 95) {
+      this.lastBattleSoundAt = now;
+      this.onBattleHit?.();
+    }
+
+    this.bodies.delete(id);
+  }
+
+  public triggerEliminations(eliminatedIds: string[]): void {
+    if (eliminatedIds.length === 0) return;
+
+    const blastOrigins: Array<{ x: number; y: number }> = [];
+    const maxAnimatedElims = this.isOverlay ? 6 : 14;
+    let animatedCount = 0;
+
+    for (const id of eliminatedIds) {
+      const body = this.bodies.get(id);
+      if (!body) continue;
+      blastOrigins.push({ x: body.x, y: body.y });
+      if (animatedCount < maxAnimatedElims) {
+        this.spawnEliminationEffect(
+          body.x,
+          body.y,
+          body.radius,
+          body.player.color,
+          body.player.loadout.elimEffect
+        );
+        animatedCount += 1;
+      }
       this.bodies.delete(id);
     }
 
-    // Apply radial shockwave knockback to remaining survivors
+    // Apply gentle radial knockback to remaining survivors
     for (const survivor of this.bodies.values()) {
       for (const origin of blastOrigins) {
         const dx = survivor.x - origin.x;
         const dy = survivor.y - origin.y;
         const dist = Math.hypot(dx, dy) || 1;
-        if (dist < 150) {
-          const force = ((150 - dist) / 150) * 180;
+        if (dist < 130) {
+          const force = ((130 - dist) / 130) * 110;
           survivor.vx += (dx / dist) * force;
           survivor.vy += (dy / dist) * force;
         }
@@ -325,49 +435,55 @@ export class PhysicsArenaEngine {
   }
 
   public triggerReviveFlash(): void {
-    this.screenShake = 10;
     this.shockwaves.push({
       x: this.width / 2,
       y: this.height / 2,
       radius: 10,
-      maxRadius: Math.max(this.width, this.height) * 0.85,
+      maxRadius: Math.max(this.width, this.height) * 0.75,
       color: '#FFD166',
-      lineWidth: 5,
-      life: 0.75,
-      maxLife: 0.75,
+      lineWidth: 4,
+      life: 0.65,
+      maxLife: 0.65,
     });
   }
 
   public triggerVictoryBurst(): void {
     const cx = this.width / 2;
     const cy = this.height / 2;
-    this.spawnConfettiCannon(cx, cy - 30, 65);
+    this.spawnConfettiCannon(cx, cy - 30, this.isOverlay ? 16 : 36);
     this.shockwaves.push({
       x: cx,
       y: cy,
       radius: 16,
-      maxRadius: Math.min(this.width, this.height) * 0.6,
+      maxRadius: Math.min(this.width, this.height) * 0.55,
       color: '#FFD166',
-      lineWidth: 4,
-      life: 0.7,
-      maxLife: 0.7,
+      lineWidth: 3.5,
+      life: 0.65,
+      maxLife: 0.65,
     });
   }
 
+  private get maxParticleCount(): number {
+    return this.isOverlay ? 28 : 75;
+  }
+
   private spawnSimpleSparks(x: number, y: number, color: string, count: number): void {
-    for (let i = 0; i < count; i++) {
+    const scaled = this.isOverlay ? Math.min(4, Math.ceil(count * 0.4)) : Math.min(8, Math.ceil(count * 0.65));
+    const room = Math.max(0, this.maxParticleCount - this.particles.length);
+    const finalCount = Math.min(scaled, room);
+    for (let i = 0; i < finalCount; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 50 + Math.random() * 140;
+      const speed = 50 + Math.random() * 120;
       this.particles.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        size: 2.2 + Math.random() * 2.8,
+        size: 2.0 + Math.random() * 2.2,
         color,
         alpha: 1,
-        life: 0.45 + Math.random() * 0.35,
-        maxLife: 0.8,
+        life: 0.35 + Math.random() * 0.25,
+        maxLife: 0.6,
         shape: 'spark',
         rotation: angle,
         vRot: 0,
@@ -378,23 +494,25 @@ export class PhysicsArenaEngine {
 
   private spawnConfettiCannon(x: number, y: number, count: number): void {
     const colors = ['#F6C915', '#FF2A6D', '#FFD166', '#38BDF8', '#A78BFA', '#FFFFFF'];
-    for (let i = 0; i < count; i++) {
+    const room = Math.max(0, this.maxParticleCount - this.particles.length);
+    const finalCount = Math.min(count, room);
+    for (let i = 0; i < finalCount; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 80 + Math.random() * 260;
+      const speed = 70 + Math.random() * 200;
       this.particles.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 90,
-        size: 4 + Math.random() * 4.5,
+        vy: Math.sin(angle) * speed - 80,
+        size: 3.5 + Math.random() * 3.5,
         color: colors[i % colors.length],
         alpha: 1,
-        life: 1.1 + Math.random() * 0.9,
-        maxLife: 2.0,
+        life: 0.9 + Math.random() * 0.6,
+        maxLife: 1.5,
         shape: 'confetti',
         rotation: Math.random() * Math.PI * 2,
-        vRot: (Math.random() - 0.5) * 14,
-        gravity: 230,
+        vRot: (Math.random() - 0.5) * 10,
+        gravity: 220,
       });
     }
   }
@@ -406,18 +524,34 @@ export class PhysicsArenaEngine {
     playerColor: string,
     effect: ElimEffectId
   ): void {
+    // Keep overlay bursts lightweight so rapid wave eliminations never drop frames
+    if (this.isOverlay) {
+      this.spawnSimpleSparks(x, y, playerColor, 6);
+      this.shockwaves.push({
+        x,
+        y,
+        radius: radius * 0.6,
+        maxRadius: radius * 2.5,
+        color: '#FF2A6D',
+        lineWidth: 2.5,
+        life: 0.32,
+        maxLife: 0.32,
+      });
+      return;
+    }
+
     switch (effect) {
       case 'party_confetti': {
-        this.spawnConfettiCannon(x, y, 26);
+        this.spawnConfettiCannon(x, y, 12);
         this.shockwaves.push({
           x,
           y,
           radius: radius * 0.5,
-          maxRadius: radius * 3.2,
+          maxRadius: radius * 2.8,
           color: '#FFD166',
-          lineWidth: 3,
-          life: 0.42,
-          maxLife: 0.42,
+          lineWidth: 2.5,
+          life: 0.38,
+          maxLife: 0.38,
         });
         break;
       }
@@ -609,10 +743,6 @@ export class PhysicsArenaEngine {
   private update(dt: number): void {
     this.elapsedTime += dt;
 
-    if (this.screenShake > 0) {
-      this.screenShake = Math.max(0, this.screenShake - dt * 38);
-    }
-
     const bodyArray = Array.from(this.bodies.values());
     const padX = 18;
     const padTop = 24;
@@ -625,23 +755,34 @@ export class PhysicsArenaEngine {
       const targetY = this.height / 2 + 10;
       champ.x += (targetX - champ.x) * Math.min(1, dt * 6);
       champ.y += (targetY - champ.y) * Math.min(1, dt * 6);
-      const champRadius = Math.min(this.width, this.height) * 0.165;
+      const champRadius = Math.min(this.width, this.height) * 0.165 * 0.9;
       champ.radius += (champRadius - champ.radius) * Math.min(1, dt * 5);
       champ.scale += (1 - champ.scale) * Math.min(1, dt * 7);
       champ.vx = 0;
       champ.vy = 0;
 
-      this.confettiCooldown -= dt;
-      if (this.confettiCooldown <= 0) {
-        this.confettiCooldown = 0.55;
-        this.spawnConfettiCannon(
-          this.width * (0.2 + Math.random() * 0.6),
-          this.height * 0.2,
-          16
-        );
+      if (!this.isOverlay) {
+        this.confettiCooldown -= dt;
+        if (this.confettiCooldown <= 0) {
+          this.confettiCooldown = 0.75;
+          this.spawnConfettiCannon(
+            this.width * (0.2 + Math.random() * 0.6),
+            this.height * 0.2,
+            16
+          );
+        }
       }
     } else {
-      // Standard 2D physics simulation
+      // Standard 2D physics simulation (with high-energy battle collision mode during ELIMINATION)
+      const isBattleMode = this.phase === 'ELIMINATION' && this.battleActive;
+      if (isBattleMode) {
+        this.battleElapsed += dt;
+      }
+
+      const remainingUnsafeBodies = isBattleMode
+        ? bodyArray.filter((b) => this.battleUnsafeIds.has(b.id))
+        : [];
+
       for (const b of bodyArray) {
         b.radius += (b.targetRadius - b.radius) * Math.min(1, dt * 8);
         b.scale += (1 - b.scale) * Math.min(1, dt * 10);
@@ -655,32 +796,74 @@ export class PhysicsArenaEngine {
           }
         }
 
-        // Gentle organic float / drift impulse so the arena always feels alive
-        const jitterScale =
-          this.isUrgent && !b.player.safe ? 120 : 24;
-        b.vx += (Math.random() - 0.5) * jitterScale * dt;
-        b.vy += (Math.random() - 0.5) * jitterScale * dt;
-
-        // Mild center gravity in Lobby/Active so avatars stay clustered nicely inside stadium
         const cx = this.width / 2;
         const cy = this.height / 2;
-        b.vx += (cx - b.x) * 0.12 * dt;
-        b.vy += (cy - b.y) * 0.12 * dt;
 
-        // Velocity damping & speed clamping
-        const damping = Math.pow(0.985, dt * 60);
-        b.vx *= damping;
-        b.vy *= damping;
+        if (isBattleMode) {
+          const isUnsafe = this.battleUnsafeIds.has(b.id);
+          if (!isUnsafe && remainingUnsafeBodies.length > 0) {
+            // Safe balls aggressively hunt & ram into the nearest unsafe ball
+            let nearest = remainingUnsafeBodies[0];
+            let bestDist = Infinity;
+            for (const ub of remainingUnsafeBodies) {
+              const d = Math.hypot(ub.x - b.x, ub.y - b.y);
+              if (d < bestDist) {
+                bestDist = d;
+                nearest = ub;
+              }
+            }
+            const dx = nearest.x - b.x;
+            const dy = nearest.y - b.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            const huntAccel = 620;
+            b.vx += (dx / dist) * huntAccel * dt;
+            b.vy += (dy / dist) * huntAccel * dt;
+          } else {
+            // Unsafe balls bounce frantically & get pulled toward the center fray
+            b.vx += (cx - b.x) * 0.65 * dt + (Math.random() - 0.5) * 260 * dt;
+            b.vy += (cy - b.y) * 0.65 * dt + (Math.random() - 0.5) * 260 * dt;
+          }
 
-        const maxSpeed = b.safePopTimer > 0 ? 280 : 125;
-        const speed = Math.hypot(b.vx, b.vy);
-        if (speed > maxSpeed) {
-          b.vx = (b.vx / speed) * maxSpeed;
-          b.vy = (b.vy / speed) * maxSpeed;
-        } else if (speed < 18) {
-          const ang = Math.random() * Math.PI * 2;
-          b.vx += Math.cos(ang) * 14 * dt;
-          b.vy += Math.sin(ang) * 14 * dt;
+          const battleDamping = Math.pow(0.994, dt * 60);
+          b.vx *= battleDamping;
+          b.vy *= battleDamping;
+
+          const maxBattleSpeed = isUnsafe ? 340 : 440;
+          const speed = Math.hypot(b.vx, b.vy);
+          if (speed > maxBattleSpeed) {
+            b.vx = (b.vx / speed) * maxBattleSpeed;
+            b.vy = (b.vy / speed) * maxBattleSpeed;
+          } else if (speed < 140) {
+            const ang = Math.random() * Math.PI * 2;
+            b.vx += Math.cos(ang) * 180 * dt;
+            b.vy += Math.sin(ang) * 180 * dt;
+          }
+        } else {
+          // Gentle organic float / drift impulse so the arena always feels alive
+          const jitterScale =
+            this.isUrgent && !b.player.safe ? 120 : 24;
+          b.vx += (Math.random() - 0.5) * jitterScale * dt;
+          b.vy += (Math.random() - 0.5) * jitterScale * dt;
+
+          // Mild center gravity in Lobby/Active so avatars stay clustered nicely inside stadium
+          b.vx += (cx - b.x) * 0.12 * dt;
+          b.vy += (cy - b.y) * 0.12 * dt;
+
+          // Velocity damping & speed clamping
+          const damping = Math.pow(0.985, dt * 60);
+          b.vx *= damping;
+          b.vy *= damping;
+
+          const maxSpeed = b.safePopTimer > 0 ? 280 : 125;
+          const speed = Math.hypot(b.vx, b.vy);
+          if (speed > maxSpeed) {
+            b.vx = (b.vx / speed) * maxSpeed;
+            b.vy = (b.vy / speed) * maxSpeed;
+          } else if (speed < 18) {
+            const ang = Math.random() * Math.PI * 2;
+            b.vx += Math.cos(ang) * 14 * dt;
+            b.vy += Math.sin(ang) * 14 * dt;
+          }
         }
 
         b.x += b.vx * dt;
@@ -691,21 +874,22 @@ export class PhysicsArenaEngine {
         const maxX = this.width - padX - b.radius;
         const minY = padTop + b.radius;
         const maxY = this.height - padBottom - b.radius;
+        const wallBounce = isBattleMode ? 0.96 : 0.88;
 
         if (b.x < minX) {
           b.x = minX;
-          b.vx = Math.abs(b.vx) * 0.88;
+          b.vx = Math.abs(b.vx) * wallBounce;
         } else if (b.x > maxX) {
           b.x = maxX;
-          b.vx = -Math.abs(b.vx) * 0.88;
+          b.vx = -Math.abs(b.vx) * wallBounce;
         }
 
         if (b.y < minY) {
           b.y = minY;
-          b.vy = Math.abs(b.vy) * 0.88;
+          b.vy = Math.abs(b.vy) * wallBounce;
         } else if (b.y > maxY) {
           b.y = maxY;
-          b.vy = -Math.abs(b.vy) * 0.88;
+          b.vy = -Math.abs(b.vy) * wallBounce;
         }
 
         // Update cosmetic trail points
@@ -727,7 +911,8 @@ export class PhysicsArenaEngine {
         }
       }
 
-      // Circle-to-circle elastic collision resolution
+      // Circle-to-circle elastic collision resolution (with battle-impact knockouts)
+      const toDestroyOnImpact = new Set<string>();
       const n = bodyArray.length;
       for (let i = 0; i < n; i++) {
         const a = bodyArray[i];
@@ -735,7 +920,7 @@ export class PhysicsArenaEngine {
           const b = bodyArray[j];
           const dx = b.x - a.x;
           const dy = b.y - a.y;
-          const minDist = a.radius + b.radius + 5;
+          const minDist = a.radius + b.radius + (isBattleMode ? 3 : 5);
           const distSq = dx * dx + dy * dy;
 
           if (distSq < minDist * minDist) {
@@ -754,12 +939,58 @@ export class PhysicsArenaEngine {
             const rvy = b.vy - a.vy;
             const velAlongNormal = rvx * nx + rvy * ny;
             if (velAlongNormal < 0) {
-              const restitution = 0.78;
+              const restitution = isBattleMode ? 1.02 : 0.78;
               const impulse = (-(1 + restitution) * velAlongNormal) / 2;
               a.vx -= impulse * nx;
               a.vy -= impulse * ny;
               b.vx += impulse * nx;
               b.vy += impulse * ny;
+            }
+
+            if (isBattleMode) {
+              const aUnsafe = this.battleUnsafeIds.has(a.id);
+              const bUnsafe = this.battleUnsafeIds.has(b.id);
+              if (aUnsafe !== bUnsafe) {
+                // Safe ball smashes unsafe ball -> destroy unsafe ball!
+                const loser = aUnsafe ? a : b;
+                const winner = aUnsafe ? b : a;
+                toDestroyOnImpact.add(loser.id);
+                winner.safePopTimer = 0.28;
+                this.spawnSimpleSparks(
+                  (a.x + b.x) / 2,
+                  (a.y + b.y) / 2,
+                  '#F6C915',
+                  6
+                );
+              } else if (aUnsafe && bUnsafe && this.battleElapsed >= 0.65) {
+                // Mid-battle chaos: unsafe balls crashing into each other also knock one out
+                toDestroyOnImpact.add(Math.random() < 0.5 ? a.id : b.id);
+              }
+            }
+          }
+        }
+      }
+
+      if (isBattleMode) {
+        for (const id of toDestroyOnImpact) {
+          this.destroyBattleBody(id);
+        }
+
+        // Guaranteed final sweep so 100% of out players are destroyed before Memorial popup
+        if (this.battleUnsafeIds.size > 0 && this.battleElapsed >= this.battleDuration - 0.55) {
+          if (this.battleElapsed >= this.battleDuration - 0.12) {
+            for (const id of Array.from(this.battleUnsafeIds)) {
+              this.destroyBattleBody(id);
+            }
+          } else {
+            this.battleSweepCooldown -= dt;
+            if (this.battleSweepCooldown <= 0) {
+              const remaining = Array.from(this.battleUnsafeIds);
+              const batchSize = Math.max(1, Math.ceil(remaining.length / 4));
+              for (let k = 0; k < batchSize && k < remaining.length; k += 1) {
+                this.destroyBattleBody(remaining[k]);
+              }
+              this.battleSweepCooldown = 0.09;
             }
           }
         }
@@ -824,17 +1055,11 @@ export class PhysicsArenaEngine {
     ctx.clearRect(0, 0, this.width, this.height);
 
     ctx.save();
-    // Apply screen shake if active
-    if (this.screenShake > 0.2) {
-      const sx = (Math.random() - 0.5) * this.screenShake * 2;
-      const sy = (Math.random() - 0.5) * this.screenShake * 2;
-      ctx.translate(sx, sy);
-    }
 
     this.drawStadiumFloor(ctx);
 
-    // Draw Victory Spotlight Rays behind champion
-    if (this.phase === 'VICTORY' && this.bodies.size === 1) {
+    // Draw Victory Spotlight Rays behind champion (host only to keep overlay ultra-smooth)
+    if (!this.isOverlay && this.phase === 'VICTORY' && this.bodies.size === 1) {
       this.drawVictorySpotlight(ctx);
     }
 
@@ -851,11 +1076,13 @@ export class PhysicsArenaEngine {
       ctx.restore();
     }
 
-    // Draw avatar trails first (underneath avatars)
+    // Draw avatar trails first (skipped in overlay mode to eliminate frame drops)
     const bodyArray = Array.from(this.bodies.values());
-    for (const b of bodyArray) {
-      if (b.player.loadout.trail !== 'none' && b.trail.length > 1) {
-        this.drawAvatarTrail(ctx, b, b.player.loadout.trail);
+    if (!this.isOverlay) {
+      for (const b of bodyArray) {
+        if (b.player.loadout.trail !== 'none' && b.trail.length > 1) {
+          this.drawAvatarTrail(ctx, b, b.player.loadout.trail);
+        }
       }
     }
 
@@ -872,15 +1099,13 @@ export class PhysicsArenaEngine {
       }
     }
 
-    // Draw lightning bolts
+    // Draw lightning bolts (crisp stroke without expensive shadowBlur)
     for (const bolt of this.lightningBolts) {
       const alpha = bolt.life / bolt.maxLife;
       ctx.save();
       ctx.strokeStyle = bolt.color;
       ctx.lineWidth = 2.6;
       ctx.globalAlpha = alpha;
-      ctx.shadowColor = '#38BDF8';
-      ctx.shadowBlur = 10;
       ctx.beginPath();
       bolt.points.forEach((pt, idx) => {
         if (idx === 0) ctx.moveTo(pt.x, pt.y);
@@ -1001,8 +1226,11 @@ export class PhysicsArenaEngine {
       rimColor = `rgba(255, 42, 109, ${0.45 + pulse * 0.5})`;
       rimWidth = 2.4 + pulse * 1.4;
     } else if (this.phase === 'ELIMINATION') {
-      rimColor = 'rgba(255, 42, 109, 0.7)';
-      rimWidth = 2.5;
+      rimColor = 'rgba(255, 42, 109, 0.78)';
+      rimWidth = 2.6;
+    } else if (this.phase === 'MEMORIAL') {
+      rimColor = 'rgba(244, 63, 94, 0.55)';
+      rimWidth = 2.2;
     }
 
     this.roundRect(ctx, pad, pad, w, h, cornerRadius);
@@ -1092,12 +1320,10 @@ export class PhysicsArenaEngine {
     const r = body.radius * body.scale;
     if (r < 2) return;
 
-    const shakeOffset =
-      body.shakeTimer > 0 ? Math.sin(body.shakeTimer * 55) * 5.5 : 0;
     const popScale =
-      body.safePopTimer > 0 ? 1 + Math.sin((body.safePopTimer / 0.45) * Math.PI) * 0.22 : 1;
+      body.safePopTimer > 0 ? 1 + Math.sin((body.safePopTimer / 0.45) * Math.PI) * 0.16 : 1;
 
-    const drawX = body.x + shakeOffset;
+    const drawX = body.x;
     const drawY = body.y;
     const finalR = r * popScale;
     const player = body.player;
@@ -1105,41 +1331,32 @@ export class PhysicsArenaEngine {
     ctx.save();
     ctx.translate(drawX, drawY);
 
-    // 1) Status ring color & pulse
+    // 1) Status ring color & pulse (crisp stroke without GPU-heavy shadowBlur)
     let ringColor = '#F6C915';
-    let glowBlur = 10;
     let ringWidth = Math.max(2.2, finalR * 0.14);
 
     if (this.phase === 'VICTORY') {
       ringColor = '#FFD166';
-      glowBlur = 22;
       ringWidth = 4.5;
     } else if (this.phase === 'LOBBY' || this.phase === 'WAVE_INTRO') {
       ringColor = '#F6C915';
-      glowBlur = 8;
     } else if (player.safe) {
       ringColor = '#F6C915';
-      glowBlur = 14;
       ringWidth = Math.max(2.8, finalR * 0.17);
     } else {
       // IN DANGER: pulsing red/orange ring
-      const pulseSpeed = this.isUrgent ? 16 : 6.5;
+      const pulseSpeed = this.isUrgent ? 12 : 5.5;
       const pulse = 0.5 + 0.5 * Math.sin(this.elapsedTime * pulseSpeed + body.x);
       ringColor = pulse > 0.5 ? '#FF2A6D' : '#FF6B35';
-      glowBlur = this.isUrgent ? 18 : 11;
-      ringWidth = Math.max(2.5, finalR * (0.14 + pulse * 0.06));
+      ringWidth = Math.max(2.5, finalR * (0.14 + pulse * 0.05));
     }
 
-    // Outer glow ring
-    ctx.save();
+    // Crisp outer ring
     ctx.beginPath();
     ctx.arc(0, 0, finalR + ringWidth * 0.45, 0, Math.PI * 2);
     ctx.strokeStyle = ringColor;
     ctx.lineWidth = ringWidth;
-    ctx.shadowColor = ringColor;
-    ctx.shadowBlur = glowBlur;
     ctx.stroke();
-    ctx.restore();
 
     // 2) Inner circular profile picture (real TikTok photo or illustrated profile picture)
     ctx.save();
@@ -1181,7 +1398,7 @@ export class PhysicsArenaEngine {
     }
 
     // 4) SAFE Checkmark Badge (top right)
-    if (player.safe && this.phase === 'ACTIVE_WAVE') {
+    if (player.safe && (this.phase === 'ACTIVE_WAVE' || this.phase === 'ELIMINATION')) {
       const badgeR = Math.max(5.5, finalR * 0.34);
       const bx = finalR * 0.72;
       const by = -finalR * 0.72;
@@ -1335,8 +1552,6 @@ export class PhysicsArenaEngine {
       case 'plasma_halo': {
         ctx.strokeStyle = '#F6C915';
         ctx.lineWidth = Math.max(2, r * 0.11);
-        ctx.shadowColor = '#F6C915';
-        ctx.shadowBlur = 10;
         ctx.beginPath();
         ctx.ellipse(0, -r * 0.28, r * 0.68, r * 0.2, 0, 0, Math.PI * 2);
         ctx.stroke();
@@ -1398,13 +1613,10 @@ export class PhysicsArenaEngine {
     const by = Math.max(bh + 8, body.y - body.radius - 16 - rise);
 
     ctx.fillStyle = '#F6C915';
-    ctx.shadowColor = 'rgba(246, 201, 21, 0.55)';
-    ctx.shadowBlur = 10;
     this.roundRect(ctx, bx - bw / 2, by - bh / 2, bw, bh, 6);
     ctx.fill();
 
     // Pointer triangle
-    ctx.shadowBlur = 0;
     ctx.beginPath();
     ctx.moveTo(bx - 4, by + bh / 2 - 1);
     ctx.lineTo(bx + 4, by + bh / 2 - 1);

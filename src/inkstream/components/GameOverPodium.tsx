@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { BarChart3, Crown, Download, Radio, RotateCcw, Settings, Trophy, Users } from 'lucide-react';
+import { WinTallyBadge } from '@/components/interactive-games/win-tally-badge';
 import type { RoomClientState } from '../shared/types.ts';
 import {
   downloadDataUrl,
@@ -76,6 +77,19 @@ export const GameOverPodium: React.FC<GameOverPodiumProps> = ({
         <p className="text-sm text-slate-600 mt-1">
           Champion: <span className="font-semibold text-slate-900">{activeChampionName}</span>
         </p>
+        {(podiumTab === 'tiktok' ? rankedTikTok[0]?.nickname : rankedPlayers[0]?.username) && (
+          <div className="mt-2.5 flex justify-center">
+            <WinTallyBadge
+              gameId="inkstream"
+              winnerName={
+                podiumTab === 'tiktok'
+                  ? rankedTikTok[0].nickname
+                  : rankedPlayers[0].username
+              }
+              className="!bg-amber-100 !border-amber-400 !text-amber-900 [&>span]:!text-amber-900 [&>span>span]:!text-amber-700"
+            />
+          </div>
+        )}
 
         {hasTikTokWinners && (
           <div className="inline-flex items-center gap-1 p-1 bg-slate-100 rounded-lg mt-4">

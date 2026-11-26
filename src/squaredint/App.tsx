@@ -87,6 +87,7 @@ import { triggerVictoryConfetti } from '../lib/confetti';
 import { DailyStreakBadge } from '../components/daily-streak-badge';
 import { LanguageMenu } from '../components/language-menu';
 import { stripDiacritics, useDictionaryLanguage } from '../lib/dictionary-languages';
+import { recordInteractiveWin } from '../lib/interactive-win-tally';
 
 type GameState = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'VICTORY';
 
@@ -251,9 +252,16 @@ export default function App() {
         isDaily: selectedDateStr === todayDateStr,
         isNewHighScore: prevBest > 0 && score > prevBest,
       });
+      const sortedPlayers = [...leaderboard].sort((a, b) => b.score - a.score);
+      const topWinner = sortedPlayers[0];
+      if (topWinner?.nickname) {
+        recordInteractiveWin('squaredint', topWinner.nickname, topWinner.profilePictureUrl);
+      } else {
+        recordInteractiveWin('squaredint', 'Streamer (You)');
+      }
     }
     prevGameStateRef.current = gameState;
-  }, [gameState, isOverlay, score, selectedDateStr, todayDateStr]);
+  }, [gameState, isOverlay, score, selectedDateStr, todayDateStr, leaderboard]);
 
   // Load saved progress whenever basePuzzle changes (host mode only; overlay follows host snapshot)
   useEffect(() => {

@@ -43,6 +43,7 @@ import { LanguageMenu } from '@/components/language-menu';
 import { useSiteTheme } from '@/lib/site-theme';
 import { GameFullState } from './types/game.ts';
 import type { ActiveCelebration, RoundSummaryPayload } from './services/gameClient.ts';
+import { recordInteractiveWin } from '@/lib/interactive-win-tally';
 
 type ActiveRoute = 'game' | 'vertical' | 'overlay' | 'display' | 'leaderboard' | 'admin';
 
@@ -203,6 +204,32 @@ export default function App() {
     if (isOverlay || !roundSummary) return;
     if (lastCelebratedRoundRef.current === roundSummary.roundNumber) return;
     lastCelebratedRoundRef.current = roundSummary.roundNumber;
+
+    // Record persistent win tally for the round's top contributor
+    const roundScores = new Map<string, { name: string; points: number; avatar?: string }>();
+    for (const entry of roundSummary.discoveredWords) {
+      const displayName = (entry.foundByNickname || entry.foundByUsername || 'Player').trim();
+      const key = displayName.toLowerCase();
+      const prev = roundScores.get(key);
+      if (prev) {
+        prev.points += entry.points;
+        if (!prev.avatar && entry.foundByAvatar) prev.avatar = entry.foundByAvatar;
+      } else {
+        roundScores.set(key, {
+          name: displayName,
+          points: entry.points,
+          avatar: entry.foundByAvatar,
+        });
+      }
+    }
+    const topContributor = Array.from(roundScores.values()).sort(
+      (a, b) => b.points - a.points
+    )[0];
+    if (topContributor) {
+      recordInteractiveWin('lexi', topContributor.name, topContributor.avatar);
+    } else if (roundSummary.targetReached) {
+      recordInteractiveWin('lexi', 'Chat Community');
+    }
 
     const bestKey = 'mp_lexi_best_round_score_v1';
     let prevBest = 0;
