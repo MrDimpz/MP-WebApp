@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { GameMode, GameStats, Puzzle, WordValidationStatus } from './types/game';
 import { DAILY_PUZZLES, getTodayPuzzle, getRandomPuzzle } from './data/puzzles';
 import {
@@ -29,6 +29,7 @@ import { ThematikBoard } from './components/ThematikBoard';
 import { GameSidebar } from './components/GameSidebar';
 import { HowToPlayModal } from './components/HowToPlayModal';
 import { WinModal } from './components/WinModal';
+import { PuzzlePoliceCar } from './components/PuzzlePoliceCar';
 import { ArchiveModal } from './components/ArchiveModal';
 import { StatsModal } from './components/StatsModal';
 import { SettingsModal } from './components/SettingsModal';
@@ -129,6 +130,10 @@ export default function App() {
   const [showWinModal, setShowWinModal] = useState<boolean>(false);
   const [forceTestSprayBanner, setForceTestSprayBanner] = useState<boolean>(false);
   const [testSprayGuessCount, setTestSprayGuessCount] = useState<number>(-1);
+  const [policePatrolRunId, setPolicePatrolRunId] = useState<number>(0);
+  const [policeLingering, setPoliceLingering] = useState<boolean>(false);
+  const [gridRoadTopPx, setGridRoadTopPx] = useState<number>(138);
+  const policeLingerTimerRef = useRef<number | null>(null);
   const [showArchive, setShowArchive] = useState<boolean>(false);
   const [showStats, setShowStats] = useState<boolean>(false);
   const [showSettings, setShowSettings] = useState<boolean>(false);
@@ -159,6 +164,45 @@ export default function App() {
       return collapsed === 'grumpygorilla';
     });
   }, [currentUser]);
+
+  useEffect(() => {
+    const updateRoadTop = () => {
+      const el = contentRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      if (top > 0) {
+        setGridRoadTopPx(Math.max(108, Math.round(top)));
+      }
+    };
+    updateRoadTop();
+    window.addEventListener('resize', updateRoadTop);
+    return () => window.removeEventListener('resize', updateRoadTop);
+  }, [showWinModal, puzzle.id]);
+
+  useEffect(() => {
+    if (
+      showWinModal &&
+      isGrumpyGorillaUser &&
+      !isGivenUp &&
+      !forceTestSprayBanner &&
+      letterGuessesCount === 0
+    ) {
+      if (policeLingerTimerRef.current) {
+        window.clearTimeout(policeLingerTimerRef.current);
+        policeLingerTimerRef.current = null;
+      }
+      setPoliceLingering(false);
+      setPolicePatrolRunId((id) => id + 1);
+    }
+  }, [showWinModal, isGrumpyGorillaUser, isGivenUp, forceTestSprayBanner, letterGuessesCount]);
+
+  useEffect(() => {
+    return () => {
+      if (policeLingerTimerRef.current) {
+        window.clearTimeout(policeLingerTimerRef.current);
+      }
+    };
+  }, []);
 
   const [cloudReloadTick, setCloudReloadTick] = useState(0);
 
@@ -1188,11 +1232,38 @@ export default function App() {
         dailyStreak={dailyStreak.streak}
         solvedToday={dailyStreak.solvedToday}
         onTestSprayBanner={() => {
-          setTestSprayGuessCount((prev) => (prev + 1) % 9);
+          if (policeLingerTimerRef.current) {
+            window.clearTimeout(policeLingerTimerRef.current);
+            policeLingerTimerRef.current = null;
+          }
+          setPoliceLingering(false);
+          const nextTestCount = (testSprayGuessCount + 1) % 9;
+          setTestSprayGuessCount(nextTestCount);
+          if (nextTestCount === 0) {
+            setPolicePatrolRunId((id) => id + 1);
+          }
           setForceTestSprayBanner(true);
           setShowWinModal(true);
         }}
       />
+
+      {/* Puzzle Police Cruiser — only on 0-guess wins (or 0-guess dot test) */}
+      {(showWinModal &&
+        (forceTestSprayBanner
+          ? Math.max(0, testSprayGuessCount) === 0
+          : isGrumpyGorillaUser && !isGivenUp && letterGuessesCount === 0)) ||
+      policeLingering ? (
+        <PuzzlePoliceCar
+          roadTopPx={gridRoadTopPx}
+          runKey={policePatrolRunId}
+          loop={
+            showWinModal &&
+            (forceTestSprayBanner
+              ? Math.max(0, testSprayGuessCount) === 0
+              : isGrumpyGorillaUser && !isGivenUp && letterGuessesCount === 0)
+          }
+        />
+      ) : null}
 
       {/* Main Play Area - Centered on screen */}
       <main className="relative z-10 flex-1 w-full flex items-center justify-center p-2.5 sm:p-6 overflow-y-auto">
@@ -1257,8 +1328,21 @@ export default function App() {
           forceTestSprayBanner || (isGrumpyGorillaUser && !isGivenUp)
         }
         onClose={() => {
+          const hadPoliceCar = forceTestSprayBanner
+            ? Math.max(0, testSprayGuessCount) === 0
+            : isGrumpyGorillaUser && !isGivenUp && letterGuessesCount === 0;
           setShowWinModal(false);
           setForceTestSprayBanner(false);
+          if (hadPoliceCar) {
+            setPoliceLingering(true);
+            if (policeLingerTimerRef.current) {
+              window.clearTimeout(policeLingerTimerRef.current);
+            }
+            policeLingerTimerRef.current = window.setTimeout(() => {
+              setPoliceLingering(false);
+              policeLingerTimerRef.current = null;
+            }, 4900);
+          }
         }}
         onSelectNext={() => {
           const idx = DAILY_PUZZLES.findIndex((p) => p.id === puzzle.id);

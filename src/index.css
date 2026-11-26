@@ -929,3 +929,99 @@ html.mpwh-overlay-lock #root::-webkit-scrollbar {
   animation: band-enter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Thematix: Puzzle Police patrol car drive-across & flashing siren animations */
+@keyframes puzzle-police-drive {
+  0% {
+    transform: translate3d(-360px, 0, 0);
+  }
+  84% {
+    transform: translate3d(calc(100vw + 80px), 0, 0);
+  }
+  100% {
+    transform: translate3d(calc(100vw + 80px), 0, 0);
+  }
+}
+
+@keyframes puzzle-police-bounce {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-2.5px) rotate(-0.5deg);
+  }
+}
+
+@keyframes puzzle-police-siren-red {
+  0%, 46% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  50%, 96% {
+    opacity: 0.12;
+    transform: scale(0.82);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes puzzle-police-siren-blue {
+  0%, 46% {
+    opacity: 0.12;
+    transform: scale(0.82);
+  }
+  50%, 96% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 0.12;
+    transform: scale(0.82);
+  }
+}
+
+@keyframes puzzle-police-puff {
+  0% {
+    opacity: 0.72;
+    transform: translate(0, 0) scale(0.65);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-34px, -10px) scale(1.55);
+  }
+}
+
+.animate-puzzle-police-drive {
+  animation: puzzle-police-drive 5.2s linear infinite;
+  will-change: transform;
+}
+
+.animate-puzzle-police-drive-once {
+  animation: puzzle-police-drive 4.8s linear 1 forwards;
+  will-change: transform;
+}
+
+.animate-puzzle-police-bounce {
+  animation: puzzle-police-bounce 0.28s ease-in-out infinite;
+}
+
+.animate-puzzle-police-red {
+  animation: puzzle-police-siren-red 0.34s steps(2, end) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.animate-puzzle-police-blue {
+  animation: puzzle-police-siren-blue 0.34s steps(2, end) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.animate-puzzle-police-puff {
+  animation: puzzle-police-puff 0.55s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+
