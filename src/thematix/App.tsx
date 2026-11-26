@@ -128,6 +128,7 @@ export default function App() {
   const [showHowToPlay, setShowHowToPlay] = useState<boolean>(false);
   const [showWinModal, setShowWinModal] = useState<boolean>(false);
   const [forceTestSprayBanner, setForceTestSprayBanner] = useState<boolean>(false);
+  const [testSprayGuessCount, setTestSprayGuessCount] = useState<number>(-1);
   const [showArchive, setShowArchive] = useState<boolean>(false);
   const [showStats, setShowStats] = useState<boolean>(false);
   const [showSettings, setShowSettings] = useState<boolean>(false);
@@ -1187,6 +1188,7 @@ export default function App() {
         dailyStreak={dailyStreak.streak}
         solvedToday={dailyStreak.solvedToday}
         onTestSprayBanner={() => {
+          setTestSprayGuessCount((prev) => (prev + 1) % 9);
           setForceTestSprayBanner(true);
           setShowWinModal(true);
         }}
@@ -1248,10 +1250,11 @@ export default function App() {
       <WinModal
         isOpen={showWinModal}
         puzzle={puzzle}
-        letterGuessesCount={forceTestSprayBanner ? 0 : letterGuessesCount}
+        letterGuessesCount={
+          forceTestSprayBanner ? Math.max(0, testSprayGuessCount) : letterGuessesCount
+        }
         showGrumpySprayBanner={
-          forceTestSprayBanner ||
-          (isGrumpyGorillaUser && letterGuessesCount === 0 && !isGivenUp)
+          forceTestSprayBanner || (isGrumpyGorillaUser && !isGivenUp)
         }
         onClose={() => {
           setShowWinModal(false);
