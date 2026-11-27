@@ -49,8 +49,8 @@ const SOLO_HIGHLIGHTS = [
   {
     name: 'MP Colossal Atlas',
     to: '/solo-games/mpcolossal',
-    tag: '200×200 Crossword',
-    desc: 'Explore 40,000 squares across 25 themed sectors and 4,100+ clues with Atlas Radar.',
+    tag: '250×250 Crossword',
+    desc: 'Explore 62,500 squares across 25 themed sectors and 6,400+ clues with Atlas Radar.',
   },
   {
     name: 'Squared Daily Grid',
@@ -234,7 +234,7 @@ export function SeoGuideSection({ variant }: SeoGuideSectionProps) {
             <h2 className="text-sm font-bold text-[#F6C915]">Daily Word &amp; Crossword Archives</h2>
             <p className="text-xs text-[#D6CBE2] leading-relaxed">
               Play fresh daily boards across Unolingo (183-day archive), MP Search (368-day archive),
-              Missing Rebus (733+ riddles), Squared, Thematix, and MP Colossal&apos;s 200×200 world.
+              Missing Rebus (733+ riddles), Squared, Thematix, and MP Colossal&apos;s 250×250 world.
             </p>
           </div>
           <div className="rounded-xl border border-white/10 bg-black/25 p-4 space-y-1.5">
