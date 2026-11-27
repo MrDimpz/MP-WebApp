@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router';
-import { Play, RotateCcw, Share2, Award, Check, Radio, Trophy } from 'lucide-react';
+import { Play, RotateCcw, Share2, Award, Check, Radio, Trophy, Repeat } from 'lucide-react';
 import { GameModeId, PuzzleBoard } from '../utils/puzzleGenerator';
 import { LeaderboardPlayer } from './TikTokLeaderboardPanel';
 import { getSafeAvatarUrl, handleAvatarError } from '../utils/avatar';
@@ -194,12 +194,15 @@ interface PauseOrVictoryModalProps {
   bonusCount: number;
   foundFeatured: boolean;
   leaderboard?: LeaderboardPlayer[];
-  onResume: () => void;
-  onNewSeededBoard: () => void;
-  onSwitchMode: (mode: GameModeId) => void;
-  onOpenConnectModal: () => void;
+  overlayOnly?: boolean;
+  autoAdvanceSecondsLeft?: number | null;
+  winnerWinsCount?: number;
+  onResume?: () => void;
+  onNewSeededBoard?: () => void;
+  onSwitchMode?: (mode: GameModeId) => void;
+  onOpenConnectModal?: () => void;
   isLiveConnected?: boolean;
-  onReturnTitle: () => void;
+  onReturnTitle?: () => void;
 }
 
 export const PauseOrVictoryModal: React.FC<PauseOrVictoryModalProps> = ({
@@ -211,6 +214,9 @@ export const PauseOrVictoryModal: React.FC<PauseOrVictoryModalProps> = ({
   bonusCount,
   foundFeatured,
   leaderboard = [],
+  overlayOnly = false,
+  autoAdvanceSecondsLeft = null,
+  winnerWinsCount,
   onResume,
   onNewSeededBoard,
   onSwitchMode,
@@ -265,7 +271,7 @@ export const PauseOrVictoryModal: React.FC<PauseOrVictoryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75">
-      <div className="w-full max-w-md rounded-2xl bg-gradient-to-b from-[#2B0948] to-[#1A042D] border-2 border-[#D4A437] p-6 text-[#F5F3F7] shadow-[0_24px_60px_rgba(0,0,0,0.75)] space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar animate-pop">
+      <div className="w-full max-w-md rounded-2xl bg-gradient-to-b from-[#2B0948] to-[#1A042D] border-2 border-[#D4A437] p-5 sm:p-6 text-[#F5F3F7] shadow-[0_24px_60px_rgba(0,0,0,0.75)] space-y-4 max-h-[92vh] overflow-y-auto custom-scrollbar animate-pop">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
           <div>
@@ -278,6 +284,27 @@ export const PauseOrVictoryModal: React.FC<PauseOrVictoryModalProps> = ({
           </div>
           <Award className="w-7 h-7 text-[#F6C915] shrink-0" />
         </div>
+
+        {/* Auto-Advance Countdown Banner (Host & Overlay) */}
+        {type === 'VICTORY' && autoAdvanceSecondsLeft !== null && autoAdvanceSecondsLeft > 0 && (
+          <div className="rounded-xl bg-emerald-950/75 border border-emerald-400/50 px-3.5 py-2.5 space-y-1.5">
+            <div className="flex items-center justify-between gap-2 text-xs font-bold text-emerald-200">
+              <span className="flex items-center gap-1.5">
+                <Repeat className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+                <span>Auto Mode · Next Random Puzzle</span>
+              </span>
+              <span className="font-mono font-extrabold text-sm text-[#F6C915] tabular-nums">
+                {autoAdvanceSecondsLeft}s
+              </span>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-black/45 overflow-hidden border border-emerald-400/25">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-400 to-[#F6C915] transition-all duration-1000 ease-linear"
+                style={{ width: `${Math.max(0, Math.min(100, (autoAdvanceSecondsLeft / 15) * 100))}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Tabular Stats Summary */}
         <div className="grid grid-cols-3 gap-3 text-center bg-[#150324]/80 p-3 rounded-xl border border-white/10">
@@ -363,6 +390,7 @@ export const PauseOrVictoryModal: React.FC<PauseOrVictoryModalProps> = ({
                   <WinTallyBadge
                     gameId="squaredint"
                     winnerName={p1.nickname}
+                    wins={winnerWinsCount}
                     compact
                     className="mt-1"
                   />
@@ -402,94 +430,109 @@ export const PauseOrVictoryModal: React.FC<PauseOrVictoryModalProps> = ({
           </div>
         </div>
 
-        {/* Scoring Breakdown */}
-        <div className="space-y-1 text-xs text-[#D6CBE2]">
-          <div className="font-semibold text-[#F5F3F7]">Length Scoring System</div>
-          <div className="font-mono text-[11px] text-[#C8B8DA] leading-relaxed">
-            4L = 1 pt · 5L = 2 pts · 6L = 4 pts · 7L = 7 pts · 8+L = 11+ pts · ★ Featured = +5 Bonus pts
-          </div>
-        </div>
+        {/* Interactive Host-Only Sections (Hidden on LIVE Overlay) */}
+        {!overlayOnly && (
+          <>
+            {/* Scoring Breakdown */}
+            <div className="space-y-1 text-xs text-[#D6CBE2]">
+              <div className="font-semibold text-[#F5F3F7]">Length Scoring System</div>
+              <div className="font-mono text-[11px] text-[#C8B8DA] leading-relaxed">
+                4L = 1 pt · 5L = 2 pts · 6L = 4 pts · 7L = 7 pts · 8+L = 11+ pts · ★ Featured = +5 Bonus pts
+              </div>
+            </div>
 
-        {/* Mode Switcher */}
-        <div className="space-y-1.5">
-          <div className="text-xs font-semibold text-[#F5F3F7]">Switch Grid Size</div>
-          <div className="grid grid-cols-3 gap-2">
-            {(
-              [
-                { id: 'express-3x3', label: '3×3 Express' },
-                { id: 'daily-4x4', label: '4×4 Daily' },
-                { id: 'royal-5x5', label: '5×5 Royal' },
-              ] as const
-            ).map((m) => (
+            {/* Mode Switcher */}
+            {onSwitchMode && (
+              <div className="space-y-1.5">
+                <div className="text-xs font-semibold text-[#F5F3F7]">Switch Grid Size</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      { id: 'express-3x3', label: '3×3 Express' },
+                      { id: 'daily-4x4', label: '4×4 Daily' },
+                      { id: 'royal-5x5', label: '5×5 Royal' },
+                    ] as const
+                  ).map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => onSwitchMode(m.id)}
+                      className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                        puzzle.mode === m.id
+                          ? 'bg-[#F6C915] text-[#1D0830]'
+                          : 'bg-white/10 text-[#D6CBE2] hover:bg-white/15'
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {onResume && (
+                <button
+                  type="button"
+                  onClick={onResume}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-[#FFE566] to-[#E5B012] text-[#1D0830] font-display font-bold text-sm hover:brightness-105 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>{type === 'VICTORY' ? 'Inspect Board' : 'Resume'}</span>
+                </button>
+              )}
+
+              {onOpenConnectModal && (
+                <button
+                  type="button"
+                  onClick={onOpenConnectModal}
+                  className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                    isLiveConnected
+                      ? 'bg-emerald-950/80 border border-emerald-400/50 text-emerald-300'
+                      : 'bg-white/10 hover:bg-white/15 text-[#F6C915]'
+                  }`}
+                >
+                  <Radio className={`w-4 h-4 ${isLiveConnected ? 'text-emerald-400 animate-pulse' : ''}`} />
+                  <span>{isLiveConnected ? 'Live Settings' : 'Connect'}</span>
+                </button>
+              )}
+
               <button
-                key={m.id}
                 type="button"
-                onClick={() => onSwitchMode(m.id)}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  puzzle.mode === m.id
-                    ? 'bg-[#F6C915] text-[#1D0830]'
-                    : 'bg-white/10 text-[#D6CBE2] hover:bg-white/15'
-                }`}
+                onClick={handleShare}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-[#F5F3F7] transition-colors cursor-pointer whitespace-nowrap shrink-0"
               >
-                {m.label}
+                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+                <span>{copied ? 'Copied!' : 'Share'}</span>
               </button>
-            ))}
-          </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <button
-            type="button"
-            onClick={onResume}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-[#FFE566] to-[#E5B012] text-[#1D0830] font-display font-bold text-sm hover:brightness-105 transition-all cursor-pointer whitespace-nowrap shrink-0"
-          >
-            <Play className="w-4 h-4 fill-current" />
-            <span>{type === 'VICTORY' ? 'Inspect Board' : 'Resume'}</span>
-          </button>
+              {onNewSeededBoard && (
+                <button
+                  type="button"
+                  onClick={onNewSeededBoard}
+                  className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-[#E6BE5A] transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                  title="Play previous daily puzzle board"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Prev Day</span>
+                </button>
+              )}
+            </div>
 
-          <button
-            type="button"
-            onClick={onOpenConnectModal}
-            className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-              isLiveConnected
-                ? 'bg-emerald-950/80 border border-emerald-400/50 text-emerald-300'
-                : 'bg-white/10 hover:bg-white/15 text-[#F6C915]'
-            }`}
-          >
-            <Radio className={`w-4 h-4 ${isLiveConnected ? 'text-emerald-400 animate-pulse' : ''}`} />
-            <span>{isLiveConnected ? 'Live Settings' : 'Connect'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleShare}
-            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-[#F5F3F7] transition-colors cursor-pointer whitespace-nowrap shrink-0"
-          >
-            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
-            <span>{copied ? 'Copied!' : 'Share'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onNewSeededBoard}
-            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-[#E6BE5A] transition-colors cursor-pointer whitespace-nowrap shrink-0"
-            title="Play previous daily puzzle board"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Prev Day</span>
-          </button>
-        </div>
-
-        <div className="text-center pt-1">
-          <button
-            type="button"
-            onClick={onReturnTitle}
-            className="text-xs text-[#B9A8CC] hover:text-white underline cursor-pointer"
-          >
-            Return to Title Screen
-          </button>
-        </div>
+            {onReturnTitle && (
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={onReturnTitle}
+                  className="text-xs text-[#B9A8CC] hover:text-white underline cursor-pointer"
+                >
+                  Return to Title Screen
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

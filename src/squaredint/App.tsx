@@ -23,6 +23,7 @@ import {
   Trophy,
   Radio,
   ArrowLeft,
+  Repeat,
 } from 'lucide-react';
 import {
   GameModeId,
@@ -87,7 +88,7 @@ import { triggerVictoryConfetti } from '../lib/confetti';
 import { DailyStreakBadge } from '../components/daily-streak-badge';
 import { LanguageMenu } from '../components/language-menu';
 import { stripDiacritics, useDictionaryLanguage } from '../lib/dictionary-languages';
-import { recordInteractiveWin } from '../lib/interactive-win-tally';
+import { getInteractiveWinCount, recordInteractiveWin } from '../lib/interactive-win-tally';
 
 type GameState = 'TITLE_MENU' | 'PLAYING' | 'PAUSED' | 'VICTORY';
 
@@ -106,12 +107,57 @@ interface SavedPuzzleProgress {
   revealedPrefixes: [string, number][];
 }
 
+const SQUAREDINT_MIN_DATE = '2024-01-01';
+const AUTO_ADVANCE_DURATION_SEC = 15;
+const AUTO_MODE_STORAGE_KEY = 'missing_piece_squaredint_auto_mode';
+
 function getLocalTodayString(): string {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+function getAllUsableDates(minDateStr: string, maxDateStr: string): string[] {
+  const dates: string[] = [];
+  const start = new Date(`${minDateStr}T12:00:00Z`);
+  const end = new Date(`${maxDateStr}T12:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
+    return [maxDateStr];
+  }
+  const cur = new Date(start);
+  while (cur <= end) {
+    dates.push(cur.toISOString().slice(0, 10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return dates;
+}
+
+function getCompletedDatesStorageKey(mode: GameModeId): string {
+  return `missing_piece_squaredint_completed_${getCurrentUserSessionPrefix()}_${mode}`;
+}
+
+function loadCompletedDatesForMode(mode: GameModeId): Set<string> {
+  try {
+    const raw = localStorage.getItem(getCompletedDatesStorageKey(mode));
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return new Set(parsed.filter((d): d is string => typeof d === 'string'));
+    }
+  } catch {
+    // Ignore storage error
+  }
+  return new Set();
+}
+
+function saveCompletedDatesForMode(mode: GameModeId, dates: Set<string>): void {
+  try {
+    localStorage.setItem(getCompletedDatesStorageKey(mode), JSON.stringify(Array.from(dates)));
+  } catch {
+    // Ignore quota errors
+  }
 }
 
 export default function App() {
@@ -125,6 +171,24 @@ export default function App() {
   const prevGameStateRef = useRef<GameState>(gameState);
   const [mode, setMode] = useState<GameModeId>('daily-4x4');
   const [selectedDateStr, setSelectedDateStr] = useState<string>(todayDateStr);
+  const [autoMode, setAutoMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(AUTO_MODE_STORAGE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [autoAdvanceSecondsLeft, setAutoAdvanceSecondsLeft] = useState<number | null>(null);
+  const [syncedTopWinnerWins, setSyncedTopWinnerWins] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (isOverlay) return;
+    try {
+      localStorage.setItem(AUTO_MODE_STORAGE_KEY, String(autoMode));
+    } catch {
+      // Ignore storage error
+    }
+  }, [autoMode, isOverlay]);
 
   // TikTok Live Socket & Interactive State
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -252,13 +316,13 @@ export default function App() {
         isDaily: selectedDateStr === todayDateStr,
         isNewHighScore: prevBest > 0 && score > prevBest,
       });
-      const sortedPlayers = [...leaderboard].sort((a, b) => b.score - a.score);
+      const sortedPlayers = [...leaderboard].sort((a, b) => b.score - a.score || b.wordsFound - a.wordsFound);
       const topWinner = sortedPlayers[0];
-      if (topWinner?.nickname) {
-        recordInteractiveWin('squaredint', topWinner.nickname, topWinner.profilePictureUrl);
-      } else {
-        recordInteractiveWin('squaredint', 'Streamer (You)');
-      }
+      const winnerName = topWinner?.nickname || 'Streamer (You)';
+      recordInteractiveWin('squaredint', winnerName, topWinner?.profilePictureUrl);
+      setSyncedTopWinnerWins(Math.max(1, getInteractiveWinCount('squaredint', winnerName)));
+    } else if (!isOverlay && gameState !== 'VICTORY') {
+      setSyncedTopWinnerWins(undefined);
     }
     prevGameStateRef.current = gameState;
   }, [gameState, isOverlay, score, selectedDateStr, todayDateStr, leaderboard]);
@@ -358,6 +422,25 @@ export default function App() {
     }
     return { remainingStartsPerCell: starts, remainingUsesPerCell: uses };
   }, [requiredWords, foundWords, basePuzzle.size]);
+
+  // Compute remaining words left for each word letter-length (4L, 5L, 6L, ...)
+  const remainingByLength = useMemo(() => {
+    const counts = new Map<number, { total: number; remaining: number }>();
+    for (const word of requiredWords.keys()) {
+      const len = word.length;
+      const entry = counts.get(len) || { total: 0, remaining: 0 };
+      entry.total += 1;
+      if (!foundWords.has(word)) {
+        entry.remaining += 1;
+      }
+      counts.set(len, entry);
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([length, data]) => ({ length, ...data }));
+  }, [requiredWords, foundWords]);
+
+  const totalRemainingWords = Math.max(0, requiredWords.size - foundWords.size);
 
   // Sample unfound word for quick testing when live connected
   const sampleUnfoundWord = useMemo(() => {
@@ -1087,13 +1170,105 @@ export default function App() {
     [grid, requiredWords, foundWords, bonusWords, score, showToast, handleInspectWord]
   );
 
-  // Record completed Squared Interactive puzzles toward the 3/day free limit (unlimited for key holders)
+  // Record completed Squared Interactive puzzles toward the 3/day free limit & persistent completed pool
   useEffect(() => {
     if (isOverlay) return;
     if (gameState === 'VICTORY') {
       recordInteractiveRoundCompleted('squaredint', `${mode}:${selectedDateStr}`);
+      const completed = loadCompletedDatesForMode(mode);
+      if (!completed.has(selectedDateStr)) {
+        completed.add(selectedDateStr);
+        saveCompletedDatesForMode(mode, completed);
+      }
     }
   }, [isOverlay, gameState, mode, selectedDateStr]);
+
+  // Auto-mode helper: randomly pick an unfinished puzzle date, recycling all dates once exhausted
+  const advanceToRandomUnfinishedPuzzle = useCallback(() => {
+    if (isOverlay) return;
+    const allowed = tryConsumeOrCheckNextRound('squaredint', `${mode}:${selectedDateStr}`);
+    if (!allowed) {
+      setAutoMode(false);
+      setAutoAdvanceSecondsLeft(null);
+      return;
+    }
+
+    const allDates = getAllUsableDates(SQUAREDINT_MIN_DATE, todayDateStr);
+    const completed = loadCompletedDatesForMode(mode);
+    completed.add(selectedDateStr);
+
+    let unfinished = allDates.filter((d) => !completed.has(d));
+    let recycled = false;
+
+    if (unfinished.length === 0) {
+      completed.clear();
+      saveCompletedDatesForMode(mode, completed);
+      recycled = true;
+      unfinished = allDates.length > 1 ? allDates.filter((d) => d !== selectedDateStr) : allDates;
+    } else {
+      saveCompletedDatesForMode(mode, completed);
+    }
+
+    const nextDate = unfinished[Math.floor(Math.random() * unfinished.length)] || todayDateStr;
+
+    if (recycled) {
+      try {
+        localStorage.removeItem(
+          `missing_piece_save_${getCurrentUserSessionPrefix()}_${mode}-${nextDate}`
+        );
+      } catch {
+        // Ignore storage error
+      }
+    }
+
+    setAutoAdvanceSecondsLeft(null);
+    setSelectedDateStr(nextDate);
+    setGameState('PLAYING');
+
+    window.setTimeout(() => {
+      showToast(
+        recycled
+          ? 'All puzzles finished — recycling bank!'
+          : `Auto Mode: Next puzzle (${nextDate})`,
+        'purple',
+        recycled
+          ? `Starting fresh board (${nextDate})`
+          : `${Math.max(0, unfinished.length - 1)} unfinished puzzles remaining`
+      );
+    }, 80);
+  }, [isOverlay, mode, selectedDateStr, todayDateStr, showToast]);
+
+  const advanceToRandomUnfinishedRef = useRef(advanceToRandomUnfinishedPuzzle);
+  useEffect(() => {
+    advanceToRandomUnfinishedRef.current = advanceToRandomUnfinishedPuzzle;
+  }, [advanceToRandomUnfinishedPuzzle]);
+
+  // When Auto Mode is active and a puzzle finishes, show the final popup for 15 seconds then start next random puzzle
+  useEffect(() => {
+    if (isOverlay) return;
+    if (gameState !== 'VICTORY' || !autoMode) {
+      setAutoAdvanceSecondsLeft(null);
+      return;
+    }
+
+    let remaining = AUTO_ADVANCE_DURATION_SEC;
+    setAutoAdvanceSecondsLeft(remaining);
+
+    const intervalId = window.setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        window.clearInterval(intervalId);
+        setAutoAdvanceSecondsLeft(0);
+        advanceToRandomUnfinishedRef.current();
+      } else {
+        setAutoAdvanceSecondsLeft(remaining);
+      }
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isOverlay, gameState, autoMode, selectedDateStr, mode]);
 
   // Step to previous usable date when clicking "Prev Day" in modal
   const handleStepPreviousDate = useCallback(() => {
@@ -1107,7 +1282,7 @@ export default function App() {
     const nm = String(prevDate.getMonth() + 1).padStart(2, '0');
     const nd = String(prevDate.getDate()).padStart(2, '0');
     const candidate = `${ny}-${nm}-${nd}`;
-    if (candidate >= '2024-01-01') {
+    if (candidate >= SQUAREDINT_MIN_DATE) {
       setSelectedDateStr(candidate);
     }
   }, [isOverlay, foundWords.size, gameState, mode, selectedDateStr]);
@@ -1235,6 +1410,9 @@ export default function App() {
     hintedCells: number[];
     showStartBadges: boolean;
     boardDarkMode: boolean;
+    autoMode: boolean;
+    autoAdvanceSecondsLeft: number | null;
+    topWinnerWins?: number;
   }
 
   const syncedSnapshot = useMemo<SquaredOverlaySnapshot | null>(
@@ -1256,6 +1434,9 @@ export default function App() {
             hintedCells: Array.from(hintedCells),
             showStartBadges,
             boardDarkMode,
+            autoMode,
+            autoAdvanceSecondsLeft,
+            topWinnerWins: syncedTopWinnerWins,
           }
         : null,
     [
@@ -1275,6 +1456,9 @@ export default function App() {
       hintedCells,
       showStartBadges,
       boardDarkMode,
+      autoMode,
+      autoAdvanceSecondsLeft,
+      syncedTopWinnerWins,
     ]
   );
 
@@ -1305,6 +1489,15 @@ export default function App() {
       if (typeof remote.boardDarkMode === 'boolean') {
         setBoardDarkMode(remote.boardDarkMode);
       }
+      if (typeof remote.autoMode === 'boolean') {
+        setAutoMode(remote.autoMode);
+      }
+      setAutoAdvanceSecondsLeft(
+        typeof remote.autoAdvanceSecondsLeft === 'number' ? remote.autoAdvanceSecondsLeft : null
+      );
+      setSyncedTopWinnerWins(
+        typeof remote.topWinnerWins === 'number' ? remote.topWinnerWins : undefined
+      );
     }, []),
   });
 
@@ -1321,27 +1514,49 @@ export default function App() {
         }`}
       >
         <div className="w-full max-w-[508px] flex flex-col items-center gap-3.5">
-          {/* Compact Progress & Score Strip */}
-          <div className="w-full px-3.5 py-2 rounded-2xl bg-[#170428]/92 border-2 border-[#D4A437]/75 shadow-[0_8px_24px_rgba(0,0,0,0.55)] flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="font-display font-extrabold text-sm text-[#F6C915] tracking-tight whitespace-nowrap">
-                Squared #{basePuzzle.puzzleNumber}
-              </span>
-              <span className="text-[11px] font-mono text-[#D6CBE2] tabular-nums whitespace-nowrap">
-                {foundWords.size}/{requiredWords.size} ({progressPct}%)
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="w-16 h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/15">
-                <div
-                  className="h-full bg-gradient-to-r from-[#D49B27] via-[#F6C915] to-[#FFE566] transition-all duration-300"
-                  style={{ width: `${Math.max(4, progressPct)}%` }}
-                />
+          {/* Compact Score & Words Left by Letter Length Strip */}
+          <div className="w-full px-3.5 py-2 rounded-2xl bg-[#170428]/92 border-2 border-[#D4A437]/75 shadow-[0_8px_24px_rgba(0,0,0,0.55)] space-y-1.5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-display font-extrabold text-sm text-[#F6C915] tracking-tight whitespace-nowrap">
+                  Squared #{basePuzzle.puzzleNumber}
+                </span>
+                <span className="text-[11px] font-mono text-[#D6CBE2] tabular-nums whitespace-nowrap">
+                  {foundWords.size}/{requiredWords.size} · {totalRemainingWords} left
+                </span>
               </div>
-              <span className="font-mono font-extrabold text-xs text-[#F6C915] tabular-nums whitespace-nowrap">
+              <span className="font-mono font-extrabold text-xs text-[#F6C915] tabular-nums whitespace-nowrap shrink-0">
                 {score.toLocaleString()} pts
               </span>
             </div>
+            {remainingByLength.length > 0 && (
+              <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-white/10">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#E6BE5A] shrink-0">
+                  Left
+                </span>
+                <div className="flex flex-wrap items-center justify-end gap-1">
+                  {remainingByLength.map((item) => (
+                    <span
+                      key={item.length}
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border font-mono tabular-nums text-[11px] ${
+                        item.remaining === 0
+                          ? 'bg-emerald-950/60 border-emerald-400/40 text-emerald-300'
+                          : 'bg-[#26093E]/90 border-[#E6BE5A]/35 text-[#F5F3F7]'
+                      }`}
+                    >
+                      <span className="text-[10px] font-bold text-[#C4B4D6]">{item.length}L</span>
+                      <span
+                        className={`font-extrabold ${
+                          item.remaining === 0 ? 'text-emerald-300' : 'text-[#F6C915]'
+                        }`}
+                      >
+                        {item.remaining}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Live Word Toast / Banner */}
@@ -1425,18 +1640,21 @@ export default function App() {
             </span>
           </div>
 
-          {/* Round Complete Banner (No Interactive Buttons) */}
+          {/* Final Victory Popup displayed on the LIVE Overlay */}
           {gameState === 'VICTORY' && (
-            <div className="w-full p-3 rounded-2xl bg-gradient-to-r from-[#133A2E]/95 via-[#2B0846]/95 to-[#133A2E]/95 border-2 border-emerald-400/80 shadow-xl text-center">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                Board Solved · {foundWords.size}/{requiredWords.size} Words
-              </div>
-              {leaderboard[0] && (
-                <div className="mt-1 text-sm font-extrabold text-[#F6C915]">
-                  Top Player: {leaderboard[0].nickname} ({leaderboard[0].score.toLocaleString()} pts)
-                </div>
-              )}
-            </div>
+            <PauseOrVictoryModal
+              type="VICTORY"
+              puzzle={basePuzzle}
+              score={score}
+              foundCount={foundWords.size}
+              totalRequired={requiredWords.size}
+              bonusCount={bonusWords.length}
+              foundFeatured={foundFeatured}
+              leaderboard={leaderboard}
+              overlayOnly
+              autoAdvanceSecondsLeft={autoAdvanceSecondsLeft}
+              winnerWinsCount={syncedTopWinnerWins}
+            />
           )}
 
           {/* Compact Top Live Players & Recent Solved Words */}
@@ -1538,6 +1756,7 @@ export default function App() {
           bonusCount={bonusWords.length}
           foundFeatured={foundFeatured}
           leaderboard={leaderboard}
+          autoAdvanceSecondsLeft={gameState === 'VICTORY' ? autoAdvanceSecondsLeft : null}
           onResume={() => setGameState('PLAYING')}
           onNewSeededBoard={() => {
             handleStepPreviousDate();
@@ -1628,31 +1847,68 @@ export default function App() {
                 setGameState((prev) => (prev === 'VICTORY' ? 'PLAYING' : prev));
               }}
             />
+
+            {/* Automatic Next-Puzzle Toggle Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setAutoMode((prev) => {
+                  const next = !prev;
+                  showToast(
+                    next ? 'Auto Mode Enabled' : 'Auto Mode Disabled',
+                    next ? 'emerald' : 'neutral',
+                    next
+                      ? 'Shows final popup for 15s, then loads a random unfinished puzzle'
+                      : 'Puzzles will pause on the final popup until you advance manually'
+                  );
+                  return next;
+                });
+              }}
+              aria-pressed={autoMode}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                autoMode
+                  ? 'bg-emerald-500/20 border-emerald-400/75 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.28)]'
+                  : 'bg-white/10 hover:bg-white/15 text-[#D6CBE2] border-white/15'
+              }`}
+              title={
+                autoMode
+                  ? 'Auto Mode ON: Shows final popup for 15s, then starts a random unfinished puzzle (recycles bank when all are done)'
+                  : 'Turn on Auto Mode to show the final popup for 15s and automatically start a random unfinished puzzle'
+              }
+            >
+              <Repeat
+                className={`w-3.5 h-3.5 shrink-0 ${
+                  autoMode ? 'text-emerald-300' : 'text-[#F6C915]'
+                }`}
+              />
+              <span className="tabular-nums">
+                {autoMode
+                  ? autoAdvanceSecondsLeft !== null && autoAdvanceSecondsLeft > 0
+                    ? `Auto · ${autoAdvanceSecondsLeft}s`
+                    : 'Auto: ON'
+                  : 'Auto'}
+              </span>
+            </button>
           </div>
 
-          {/* Center (Desktop/Tablet md+): Rank Progress & Score Cluster */}
+          {/* Center (Desktop/Tablet md+): Rank & Score Cluster */}
           <div className="hidden md:flex items-center gap-4 shrink-0">
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-2 text-xs whitespace-nowrap">
-                <span className="font-semibold text-[#E6BE5A]">
-                  {rankInfo.current.name}
-                </span>
-                <span className="text-[#8E79A6]" aria-hidden="true">·</span>
-                <span className="font-mono font-bold text-[#F6C915] tabular-nums">
-                  {score} pts
-                </span>
-                <span className="text-[#8E79A6]" aria-hidden="true">·</span>
-                <span className="font-mono text-[#F5F3F7] tabular-nums">
-                  {foundWords.size}/{requiredWords.size} ({progressPct}%)
-                </span>
-              </div>
-              {/* Progress Bar */}
-              <div className="w-36 lg:w-44 h-1.5 bg-black/40 rounded-full overflow-hidden mt-1 border border-white/10">
-                <div
-                  className="h-full bg-gradient-to-r from-[#D49B27] via-[#F6C915] to-[#FFE566] transition-all duration-300"
-                  style={{ width: `${Math.max(3, progressPct)}%` }}
-                />
-              </div>
+            <div className="flex items-center gap-2 text-xs whitespace-nowrap">
+              <span className="font-semibold text-[#E6BE5A]">
+                {rankInfo.current.name}
+              </span>
+              <span className="text-[#8E79A6]" aria-hidden="true">·</span>
+              <span className="font-mono font-bold text-[#F6C915] tabular-nums">
+                {score} pts
+              </span>
+              <span className="text-[#8E79A6]" aria-hidden="true">·</span>
+              <span className="font-mono text-[#F5F3F7] tabular-nums">
+                {foundWords.size}/{requiredWords.size}
+              </span>
+              <span className="text-[#8E79A6]" aria-hidden="true">·</span>
+              <span className="font-mono font-semibold text-[#E6BE5A] tabular-nums">
+                {totalRemainingWords} left
+              </span>
             </div>
           </div>
 
@@ -1800,7 +2056,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Mobile/Compact Sub-Row (< md): Score, Progress Bar & Words Counter */}
+        {/* Mobile/Compact Sub-Row (< md): Score & Words Counter */}
         <div className="flex md:hidden items-center justify-between gap-2.5 pt-1.5 mt-1.5 border-t border-white/10 text-[11px] whitespace-nowrap">
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="font-semibold text-[#E6BE5A]">{rankInfo.current.name}</span>
@@ -1808,15 +2064,8 @@ export default function App() {
             <span className="font-mono font-bold text-[#F6C915] tabular-nums">{score} pts</span>
           </div>
 
-          <div className="flex-1 h-1.5 bg-black/40 rounded-full overflow-hidden border border-white/10 max-w-40">
-            <div
-              className="h-full bg-gradient-to-r from-[#D49B27] via-[#F6C915] to-[#FFE566] transition-all duration-300"
-              style={{ width: `${Math.max(4, progressPct)}%` }}
-            />
-          </div>
-
           <span className="font-mono text-[#F5F3F7] tabular-nums shrink-0">
-            {foundWords.size}/{requiredWords.size} ({progressPct}%)
+            {foundWords.size}/{requiredWords.size} · {totalRemainingWords} left
           </span>
         </div>
       </header>
@@ -1955,35 +2204,59 @@ export default function App() {
             )}
           </div>
 
-          {/* Words Found / Required Counter Indicator */}
-          <div className="w-full max-w-[390px] px-1 py-1 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-wider font-bold text-[#E6BE5A]">
-                Words Found
-              </span>
-              <span className="font-mono font-extrabold text-sm sm:text-base text-[#F6C915] bg-[#3B115A] px-2.5 py-0.5 rounded-lg border border-[#F6C915]/30 shadow-xs tabular-nums">
-                {foundWords.size} / {requiredWords.size}
-              </span>
-              {bonusWords.length > 0 && (
-                <span className="text-[11px] font-mono font-semibold text-emerald-300 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-md">
-                  +{bonusWords.length} bonus
+          {/* Words Found & Remaining Words Left by Letter Length */}
+          <div className="w-full max-w-[404px] px-1 py-1 space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-wider font-bold text-[#E6BE5A]">
+                  Words Found
                 </span>
-              )}
+                <span className="font-mono font-extrabold text-sm sm:text-base text-[#F6C915] bg-[#3B115A] px-2.5 py-0.5 rounded-lg border border-[#F6C915]/30 shadow-xs tabular-nums">
+                  {foundWords.size} / {requiredWords.size}
+                </span>
+                {bonusWords.length > 0 && (
+                  <span className="text-[11px] font-mono font-semibold text-emerald-300 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                    +{bonusWords.length} bonus
+                  </span>
+                )}
+              </div>
+
+              <span className="font-mono font-bold text-xs text-[#E6BE5A] bg-[#260C3B] px-2 py-0.5 rounded-lg border border-[#E6BE5A]/30 tabular-nums shrink-0">
+                {totalRemainingWords} left
+              </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-[#D6CBE2] tabular-nums">
-                {Math.min(100, Math.round((foundWords.size / Math.max(requiredWords.size, 1)) * 100))}%
-              </span>
-              <div className="w-20 sm:w-24 h-2 bg-[#260C3B] rounded-full overflow-hidden border border-[#52217D]">
-                <div
-                  className="h-full bg-gradient-to-r from-[#E6BE5A] to-[#F6C915] transition-all duration-300 rounded-full"
-                  style={{
-                    width: `${Math.min(100, (foundWords.size / Math.max(requiredWords.size, 1)) * 100)}%`,
-                  }}
-                />
+            {remainingByLength.length > 0 && (
+              <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-[#19042B]/85 border border-[#E6BE5A]/25">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-[#E6BE5A] shrink-0">
+                  Words Left
+                </span>
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  {remainingByLength.map((item) => (
+                    <div
+                      key={item.length}
+                      title={`${item.remaining} of ${item.total} ${item.length}-letter words left`}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border font-mono tabular-nums transition-colors ${
+                        item.remaining === 0
+                          ? 'bg-emerald-950/60 border-emerald-400/40 text-emerald-300'
+                          : 'bg-[#2C0B48] border-[#E6BE5A]/35 text-[#F5F3F7]'
+                      }`}
+                    >
+                      <span className="text-[10px] font-bold text-[#C4B4D6]">
+                        {item.length}L
+                      </span>
+                      <span
+                        className={`text-xs sm:text-sm font-extrabold ${
+                          item.remaining === 0 ? 'text-emerald-300' : 'text-[#F6C915]'
+                        }`}
+                      >
+                        {item.remaining}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Interactive Squaredle/Squares Board */}
