@@ -253,6 +253,7 @@ export const PauseOrVictoryModal: React.FC<PauseOrVictoryModalProps> = ({
   const p1 = top3[0] || null;
   const p2 = top3[1] || null;
   const p3 = top3[2] || null;
+  const runnersUp = sortedLeaderboard.slice(3, 5);
 
   const handleShare = () => {
     const pct = totalRequired > 0 ? Math.round((foundCount / totalRequired) * 100) : 0;
@@ -333,7 +334,7 @@ export const PauseOrVictoryModal: React.FC<PauseOrVictoryModalProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-bold text-[#F6C915] tracking-wider uppercase">
               <Trophy className="w-4 h-4 text-[#F6C915]" />
-              <span>Top 3 Match Podium</span>
+              <span>Top 5 Match Standings</span>
             </div>
             <span className="text-[10px] text-[#D6CBE2] font-mono">
               {leaderboard.length > 0 ? `${leaderboard.length} Live Competitors` : 'Match Leaderboard'}
@@ -428,6 +429,37 @@ export const PauseOrVictoryModal: React.FC<PauseOrVictoryModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* 4th & 5th Place Compact Runners-Up */}
+          {runnersUp.length > 0 && (
+            <div className={`grid gap-1.5 pt-1 border-t border-white/10 ${runnersUp.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {runnersUp.map((player, idx) => (
+                <div
+                  key={player.id}
+                  className="flex items-center justify-between gap-1.5 px-2 py-1 rounded-lg bg-black/35 border border-purple-300/20 min-w-0"
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="font-mono font-bold text-[10px] text-purple-300/85 shrink-0">
+                      #{idx + 4}
+                    </span>
+                    <img
+                      src={getSafeAvatarUrl(player.profilePictureUrl, player.nickname)}
+                      alt={player.nickname}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => handleAvatarError(e, player.nickname)}
+                      className="w-5 h-5 rounded-full object-cover border border-white/20 shrink-0"
+                    />
+                    <span className="text-[11px] font-semibold text-purple-100 truncate">
+                      {player.nickname}
+                    </span>
+                  </div>
+                  <span className="font-mono font-bold text-[11px] text-purple-200 tabular-nums shrink-0">
+                    {player.score} pts
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Interactive Host-Only Sections (Hidden on LIVE Overlay) */}

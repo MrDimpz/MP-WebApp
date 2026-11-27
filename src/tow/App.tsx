@@ -19,6 +19,7 @@ import {
 import {
   getActiveInteractiveStreamerSession,
   touchActiveInteractiveStreamerSession,
+  useInteractiveAuthStore,
 } from '@/lib/interactive-key-auth';
 import { recordInteractiveWin } from '@/lib/interactive-win-tally';
 import {
@@ -108,7 +109,8 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Built-in Site TikTok LIVE Resilient Bridge State
-  const activeStreamerSession = getActiveInteractiveStreamerSession();
+  const { activeStreamer: activeStreamerSession } = useInteractiveAuthStore();
+  const hasStreamerSession = Boolean(activeStreamerSession?.username);
   const [liveHandle, setLiveHandle] = useState<string>(() => {
     const fromSession = getActiveInteractiveStreamerSession()?.username || '';
     if (fromSession) return fromSession;
@@ -153,6 +155,14 @@ export default function App() {
     gameEngine.setOverlayMode(isOverlay);
   }, [isOverlay]);
 
+  // Automatically disable and remove bots whenever a streamer is logged in or LIVE connected
+  useEffect(() => {
+    if (isOverlay) return;
+    if (isLiveConnected || hasStreamerSession) {
+      gameEngine.disableAndRemoveBots();
+    }
+  }, [isLiveConnected, hasStreamerSession, isOverlay]);
+
   // Subscribe to game engine HUD snapshots
   useEffect(() => {
     return gameEngine.subscribe((snapshot) => {
@@ -177,14 +187,14 @@ export default function App() {
         recordInteractiveWin('tow', summary.mvps[0].nickname, summary.mvps[0].avatarUrl);
       }
 
-      // Credit real winning MVPs on linked Missing Piece accounts
-      summary.mvps.forEach((mvp, index) => {
+      // Credit top 5 real players on linked Missing Piece accounts (higher rewards for top 3)
+      summary.mvps.slice(0, 5).forEach((mvp, index) => {
         const key = mvp.username.trim().replace(/^@+/, '').toLowerCase();
         if (realViewerUsernamesRef.current.has(key)) {
           creditInteractiveScoreByTikTokHandle({
             tiktokUsername: mvp.username,
             gameId: 'tow',
-            pointsEarned: index === 0 ? 150 : 90,
+            pointsEarned: index === 0 ? 150 : index < 3 ? 90 : 50,
             reason: `Tug of Words #${index + 1} MVP (${mvp.biggestWord})`,
           });
         }
@@ -607,6 +617,7 @@ export default function App() {
             onResetTeams={() => gameEngine.resetTeams()}
             onNextPhase={() => gameEngine.advancePhase()}
             onToggleMute={() => gameEngine.toggleMute()}
+            onTogglePowerUps={() => gameEngine.setPowerUpsEnabled(!hud.powerUpsEnabled)}
             onOpenDrawer={() => setDrawerOpen(true)}
           />
 

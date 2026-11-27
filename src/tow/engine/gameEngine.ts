@@ -1,3 +1,4 @@
+import { getActiveInteractiveStreamerSession } from '@/lib/interactive-key-auth';
 import { soundEngine } from '../audio/soundEngine';
 import { generateAvatarPortraitUrl } from '../data/avatarPortraits';
 import {
@@ -47,6 +48,7 @@ const COOLDOWN_MS = 3000;
 const MAX_BURNED_WORDS = 10;
 const MAX_SHIELDS = 6;
 const INVERT_DURATION_MS = 6000;
+const INACTIVE_TIMEOUT_MS = 90000;
 
 const RED_AVATAR_PALETTE = ['#FF2A5F', '#FF4D6D', '#E11D48', '#FB7185', '#F43F5E', '#FF5E7E'];
 const BLUE_AVATAR_PALETTE = ['#00E5FF', '#0EA5E9', '#38BDF8', '#06B6D4', '#22D3EE', '#3B82F6'];
@@ -103,11 +105,12 @@ export class TerritoryWarEngine {
   public blueShields = 0;
 
   // Power-Up State
+  public powerUpsEnabled = true;
   public redPowerUps: TeamPowerUpState = { doublePushCharges: 0, shieldBreakReady: false, invertedUntil: 0 };
   public bluePowerUps: TeamPowerUpState = { doublePushCharges: 0, shieldBreakReady: false, invertedUntil: 0 };
   public fieldPowerUps: FieldPowerUp[] = [];
-  private nextPowerUpAtElapsedSec = 5;
-  private longestWordThisMatch = 7; // beating >=8 letters earns Longest Word achievement
+  private nextPowerUpAtElapsedSec = 7;
+  private longestWordThisMatch = 8; // beating >=9 letters earns Longest Word achievement
   private phaseOpenedAtMs = Date.now();
   private fastestAwardedThisPhase = false;
 
@@ -150,6 +153,7 @@ export class TerritoryWarEngine {
   private simJoinTimerMs = 0;
   private cachedValidWords: string[] = [];
   private cacheDirty = true;
+  private inactivityCheckAccumSec = 0;
 
   // Subscribers for React HUD & Platform Integration
   private listeners = new Set<(snap: HudSnapshot) => void>();
@@ -164,7 +168,11 @@ export class TerritoryWarEngine {
     this.baseRule = pickBaseRule();
     this.plannedModifier = pickModifierForRule(this.baseRule);
     this.bonusLetter = pickBonusShieldLetter(this.baseRule, null);
-    this.seedInitialSimRoster();
+    const hasStreamerSession = Boolean(getActiveInteractiveStreamerSession()?.username);
+    this.simulatorEnabled = !hasStreamerSession;
+    if (this.simulatorEnabled) {
+      this.seedInitialSimRoster();
+    }
   }
 
   public setOverlayMode(enabled: boolean): void {
@@ -197,6 +205,7 @@ export class TerritoryWarEngine {
     this.targetRedPercent = h.redPercent;
     this.redShields = h.redShields;
     this.blueShields = h.blueShields;
+    this.powerUpsEnabled = h.powerUpsEnabled !== false;
     this.redPowerUps = { ...h.redPowerUps };
     this.bluePowerUps = { ...h.bluePowerUps };
     this.fieldPowerUps = Array.isArray(h.fieldPowerUps) ? [...h.fieldPowerUps] : [];
@@ -300,6 +309,7 @@ export class TerritoryWarEngine {
         : null,
       simulatorEnabled: this.simulatorEnabled,
       simIntensity: this.simIntensity,
+      powerUpsEnabled: this.powerUpsEnabled,
       muted: soundEngine.isMuted(),
       recentSwitchMessage: now < this.switchMsgUntil ? this.recentSwitchMessage : null,
       balanceNotice: now < this.balanceNoticeUntil ? this.balanceNotice : null,
@@ -308,10 +318,53 @@ export class TerritoryWarEngine {
 
   private seedInitialSimRoster(): void {
     for (let i = 0; i < 12; i++) {
-      this.ensurePlayerDrafted(SIMULATED_NICKNAMES[i], SIMULATED_NICKNAMES[i]);
+      this.ensurePlayerDrafted(SIMULATED_NICKNAMES[i], SIMULATED_NICKNAMES[i], undefined, true);
     }
     this.simJoinedCount = 12;
     this.rebalanceTeamsIfNeeded(true);
+  }
+
+  public removeBotPlayers(): void {
+    let removedAny = false;
+    for (const [key, player] of Array.from(this.players.entries())) {
+      if (player.isBot) {
+        this.players.delete(key);
+        this.teamRegistry.delete(key);
+        removedAny = true;
+      }
+    }
+    this.simJoinedCount = 0;
+    this.simAccumulatorMs = 0;
+    this.simJoinTimerMs = 0;
+    if (removedAny) {
+      this.rebalanceTeamsIfNeeded(true);
+      this.emitHud(true);
+    }
+  }
+
+  public disableAndRemoveBots(): void {
+    const wasEnabled = this.simulatorEnabled;
+    this.simulatorEnabled = false;
+    this.removeBotPlayers();
+    if (wasEnabled) {
+      this.emitHud(true);
+    }
+  }
+
+  private pruneInactivePlayers(now: number, silentRebalance = false): void {
+    let removedAny = false;
+    for (const [key, player] of Array.from(this.players.entries())) {
+      if (now - player.lastActiveAt >= INACTIVE_TIMEOUT_MS) {
+        this.players.delete(key);
+        this.teamRegistry.delete(key);
+        removedAny = true;
+      }
+    }
+    if (removedAny) {
+      this.rebalanceTeamsIfNeeded(silentRebalance);
+      this.hudDirty = true;
+      this.emitHud(true);
+    }
   }
 
   private refreshWordCacheIfNeeded(): void {
@@ -458,8 +511,8 @@ export class TerritoryWarEngine {
     this.victoryCountdownSec = VICTORY_DURATION_SEC;
     this.matchElapsedSec = 0;
     this.nextBountyAtElapsedSec = 18;
-    this.nextPowerUpAtElapsedSec = 5;
-    this.longestWordThisMatch = 7;
+    this.nextPowerUpAtElapsedSec = 7;
+    this.longestWordThisMatch = 8;
     this.phaseOpenedAtMs = Date.now();
     this.fastestAwardedThisPhase = false;
 
@@ -501,6 +554,7 @@ export class TerritoryWarEngine {
       p.feedbackText = '';
     });
 
+    this.pruneInactivePlayers(Date.now(), true);
     this.rebalanceTeamsIfNeeded(true);
     if (holdUntilStart) {
       this.activeBanner = null;
@@ -551,12 +605,27 @@ export class TerritoryWarEngine {
     this.simulatorEnabled = enabled;
     if (enabled && this.players.size === 0) {
       this.seedInitialSimRoster();
+    } else if (!enabled) {
+      this.removeBotPlayers();
     }
     this.emitHud(true);
   }
 
   public setSimIntensity(intensity: SimIntensity): void {
     this.simIntensity = intensity;
+    this.emitHud(true);
+  }
+
+  public setPowerUpsEnabled(enabled: boolean): void {
+    this.powerUpsEnabled = enabled;
+    if (!enabled) {
+      this.fieldPowerUps = [];
+      this.redPowerUps = { doublePushCharges: 0, shieldBreakReady: false, invertedUntil: 0 };
+      this.bluePowerUps = { doublePushCharges: 0, shieldBreakReady: false, invertedUntil: 0 };
+      if (this.activeBanner?.kind === 'POWERUP') {
+        this.activeBanner = null;
+      }
+    }
     this.emitHud(true);
   }
 
@@ -603,6 +672,7 @@ export class TerritoryWarEngine {
   }
 
   public spawnFieldPowerUp(): void {
+    if (!this.powerUpsEnabled) return;
     if (this.fieldPowerUps.length >= 2) return;
     this.refreshWordCacheIfNeeded();
 
@@ -889,7 +959,12 @@ export class TerritoryWarEngine {
     }
   }
 
-  private ensurePlayerDrafted(rawUsername: string, rawNickname?: string, customAvatarUrl?: string): PlayerRecord {
+  private ensurePlayerDrafted(
+    rawUsername: string,
+    rawNickname?: string,
+    customAvatarUrl?: string,
+    isBot = false
+  ): PlayerRecord {
     const key = normalizeKey(rawUsername);
     const displayNick = cleanNickname(rawNickname || rawUsername);
     const existing = this.players.get(key);
@@ -899,6 +974,9 @@ export class TerritoryWarEngine {
         existing.customAvatarUrl = customAvatarUrl;
         existing.avatarUrl = customAvatarUrl;
         this.preloadAvatar(customAvatarUrl);
+      }
+      if (!isBot && existing.isBot) {
+        existing.isBot = false;
       }
       existing.lastActiveAt = Date.now();
       return existing;
@@ -948,6 +1026,7 @@ export class TerritoryWarEngine {
       feedbackUntil: 0,
       lastActiveAt: Date.now(),
       draftedAt: Date.now(),
+      isBot,
     };
 
     this.players.set(key, record);
@@ -982,7 +1061,12 @@ export class TerritoryWarEngine {
     const rawComment = payload.comment.trim();
     if (!rawComment) return { outcome: 'IGNORED', reason: 'Empty message' };
 
-    const player = this.ensurePlayerDrafted(payload.username, payload.nickname, payload.avatarUrl);
+    const player = this.ensurePlayerDrafted(
+      payload.username,
+      payload.nickname,
+      payload.avatarUrl,
+      Boolean(payload.isBot)
+    );
     const now = Date.now();
 
     // Handle !SWITCH command during Victory / Lobby between matches
@@ -1208,57 +1292,59 @@ export class TerritoryWarEngine {
     const pos = this.getPlayerCanvasPos(player);
     const borderY = Math.max(0.06, Math.min(0.94, this.visualRedPercent / 100));
 
-    // Check Battlefield Power-Up Orb Claims
-    for (let i = this.fieldPowerUps.length - 1; i >= 0; i--) {
-      const pu = this.fieldPowerUps[i];
-      if (this.matchesPowerUpTrigger(word, pu)) {
-        this.fieldPowerUps.splice(i, 1);
+    // Check Battlefield Power-Up Orb Claims & Achievement-Awarded Power-Ups (only when enabled)
+    if (this.powerUpsEnabled) {
+      for (let i = this.fieldPowerUps.length - 1; i >= 0; i--) {
+        const pu = this.fieldPowerUps[i];
+        if (this.matchesPowerUpTrigger(word, pu)) {
+          this.fieldPowerUps.splice(i, 1);
+          const tag = this.awardPowerUpToTeam(
+            player.team,
+            pu.type,
+            'FIELD ORB',
+            player.nickname,
+            pu.x,
+            Math.max(0.14, Math.min(0.86, borderY + pu.yOffset))
+          );
+          effectTags.push(tag);
+          break;
+        }
+      }
+
+      // Check Achievement-Awarded Power-Ups (Longest Word / Fastest Valid Word / Shield Crusher)
+      if (word.length > this.longestWordThisMatch) {
+        this.longestWordThisMatch = word.length;
         const tag = this.awardPowerUpToTeam(
           player.team,
-          pu.type,
-          'FIELD ORB',
+          'DOUBLE_PUSH',
+          `LONGEST WORD (${word.length} LTR)`,
           player.nickname,
-          pu.x,
-          Math.max(0.14, Math.min(0.86, borderY + pu.yOffset))
+          pos.x,
+          pos.y
         );
         effectTags.push(tag);
-        break;
+      } else if (!this.fastestAwardedThisPhase && now - this.phaseOpenedAtMs <= 2600) {
+        this.fastestAwardedThisPhase = true;
+        const tag = this.awardPowerUpToTeam(
+          player.team,
+          'INVERT_CONTROL',
+          'FASTEST WORD',
+          player.nickname,
+          pos.x,
+          pos.y
+        );
+        effectTags.push(tag);
+      } else if (player.streak === 4 && (enemyHasShields || !myPowerUps.shieldBreakReady)) {
+        const tag = this.awardPowerUpToTeam(
+          player.team,
+          'SHIELD_BREAK',
+          '4X STREAK',
+          player.nickname,
+          pos.x,
+          pos.y
+        );
+        effectTags.push(tag);
       }
-    }
-
-    // Check Achievement-Awarded Power-Ups (Longest Word / Fastest Valid Word / Shield Crusher)
-    if (word.length > this.longestWordThisMatch) {
-      this.longestWordThisMatch = word.length;
-      const tag = this.awardPowerUpToTeam(
-        player.team,
-        'DOUBLE_PUSH',
-        `LONGEST WORD (${word.length} LTR)`,
-        player.nickname,
-        pos.x,
-        pos.y
-      );
-      effectTags.push(tag);
-    } else if (!this.fastestAwardedThisPhase && now - this.phaseOpenedAtMs <= 3500) {
-      this.fastestAwardedThisPhase = true;
-      const tag = this.awardPowerUpToTeam(
-        player.team,
-        'INVERT_CONTROL',
-        'FASTEST WORD',
-        player.nickname,
-        pos.x,
-        pos.y
-      );
-      effectTags.push(tag);
-    } else if (player.streak === 3 && (enemyHasShields || !myPowerUps.shieldBreakReady)) {
-      const tag = this.awardPowerUpToTeam(
-        player.team,
-        'SHIELD_BREAK',
-        '3X STREAK',
-        player.nickname,
-        pos.x,
-        pos.y
-      );
-      effectTags.push(tag);
     }
 
     // Keep enemyPowerUps reference clean
@@ -1503,12 +1589,17 @@ export class TerritoryWarEngine {
     if (winner === 'RED') this.redWins += 1;
     else this.blueWins += 1;
 
-    const winningPlayers = Array.from(this.players.values())
-      .filter((p) => p.team === winner && p.matchWordsCount > 0)
-      .sort((a, b) => b.matchPushTotal - a.matchPushTotal)
-      .slice(0, 3);
+    const topPlayers = Array.from(this.players.values())
+      .filter((p) => p.matchWordsCount > 0)
+      .sort(
+        (a, b) =>
+          b.matchPushTotal - a.matchPushTotal ||
+          (b.team === winner ? 1 : 0) - (a.team === winner ? 1 : 0) ||
+          b.matchWordsCount - a.matchWordsCount
+      )
+      .slice(0, 5);
 
-    const mvps: MvpEntry[] = winningPlayers.map((p) => ({
+    const mvps: MvpEntry[] = topPlayers.map((p) => ({
       username: p.username,
       nickname: p.nickname,
       team: p.team,
@@ -1689,6 +1780,20 @@ export class TerritoryWarEngine {
       return;
     }
 
+    // Inactivity management: do not count paused time against the 90s idle timeout
+    if (this.status === 'PAUSED') {
+      const dtMs = dt * 1000;
+      this.players.forEach((p) => {
+        p.lastActiveAt += dtMs;
+      });
+    } else if (this.status === 'PLAYING' || this.status === 'SUDDEN_DEATH') {
+      this.inactivityCheckAccumSec += dt;
+      if (this.inactivityCheckAccumSec >= 1.0) {
+        this.inactivityCheckAccumSec = 0;
+        this.pruneInactivePlayers(now);
+      }
+    }
+
     // Match Clock, Phase Transitions & Spawns
     if (this.status === 'PLAYING') {
       this.timeRemainingSec -= dt;
@@ -1700,9 +1805,13 @@ export class TerritoryWarEngine {
         this.enterPhase3();
       }
 
-      // Field Power-Up spawning every ~13s
-      if (this.matchElapsedSec >= this.nextPowerUpAtElapsedSec && this.timeRemainingSec > 8) {
-        this.nextPowerUpAtElapsedSec += 13;
+      // Field Power-Up spawning every ~17.3s (25% fewer spawns per match: 3 instead of 4)
+      if (
+        this.powerUpsEnabled &&
+        this.matchElapsedSec >= this.nextPowerUpAtElapsedSec &&
+        this.timeRemainingSec > 8
+      ) {
+        this.nextPowerUpAtElapsedSec += 17.3;
         this.spawnFieldPowerUp();
       }
 
@@ -1804,7 +1913,7 @@ export class TerritoryWarEngine {
       if (this.simJoinTimerMs >= 1100) {
         this.simJoinTimerMs = 0;
         const nick = SIMULATED_NICKNAMES[this.simJoinedCount];
-        this.ensurePlayerDrafted(nick, nick);
+        this.ensurePlayerDrafted(nick, nick, undefined, true);
         this.simJoinedCount += 1;
       }
     }
@@ -1837,7 +1946,12 @@ export class TerritoryWarEngine {
     // 10% chance to type an already-used word ("TAKEN!" red shake)
     if (this.burnedWords.length >= 2 && Math.random() < 0.1) {
       const dupe = this.burnedWords[Math.floor(Math.random() * Math.min(5, this.burnedWords.length))].word;
-      this.processChatMessage({ username: chosen.username, nickname: chosen.nickname, comment: dupe });
+      this.processChatMessage({
+        username: chosen.username,
+        nickname: chosen.nickname,
+        comment: dupe,
+        isBot: true,
+      });
       return;
     }
 
@@ -1880,7 +1994,12 @@ export class TerritoryWarEngine {
     }
 
     if (selectedWord) {
-      this.processChatMessage({ username: chosen.username, nickname: chosen.nickname, comment: selectedWord });
+      this.processChatMessage({
+        username: chosen.username,
+        nickname: chosen.nickname,
+        comment: selectedWord,
+        isBot: true,
+      });
     }
   }
 }

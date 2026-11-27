@@ -231,21 +231,58 @@ export const GameOverPodium: React.FC<GameOverPodiumProps> = ({
         </div>
       )}
 
-      {/* Remaining Rankings (#4+) */}
+      {/* Remaining Rankings (#4–#5 Only) */}
       {podiumTab === 'room' && rankedPlayers.length > 3 && (
-        <div className="border-t border-slate-100 pt-3">
-          <div className="divide-y divide-slate-100 max-h-36 overflow-y-auto thin-scrollbar">
-            {rankedPlayers.slice(3).map((p, idx) => (
-              <div key={p.id} className="flex items-center justify-between py-1.5 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono-tabular font-bold text-slate-400 w-6">
+        <div className="border-t border-slate-100 pt-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            {rankedPlayers.slice(3, 5).map((p, idx) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200/70 text-xs"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-mono-tabular font-bold text-slate-400 shrink-0">
                     #{idx + 4}
                   </span>
-                  <Avatar config={p.avatar} size={22} />
-                  <span className="font-semibold text-slate-800">{p.username}</span>
+                  <Avatar config={p.avatar} size={20} />
+                  <span className="font-semibold text-slate-700 truncate">{p.username}</span>
                 </div>
-                <span className="font-mono-tabular font-semibold text-slate-700">
+                <span className="font-mono-tabular font-semibold text-slate-600 shrink-0">
                   {p.score} pts
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {podiumTab === 'tiktok' && room.tiktokLeaderboard.length > 3 && (
+        <div className="border-t border-slate-100 pt-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            {room.tiktokLeaderboard.slice(3, 5).map((viewer, idx) => (
+              <div
+                key={viewer.uniqueId}
+                className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200/70 text-xs"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-mono-tabular font-bold text-slate-400 shrink-0">
+                    #{idx + 4}
+                  </span>
+                  {viewer.profilePictureUrl ? (
+                    <img
+                      src={viewer.profilePictureUrl}
+                      alt={viewer.nickname}
+                      referrerPolicy="no-referrer"
+                      className="w-5 h-5 rounded-full object-cover border border-slate-300 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-slate-700 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                      {viewer.nickname.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="font-semibold text-slate-700 truncate">@{viewer.nickname}</span>
+                </div>
+                <span className="font-mono-tabular font-semibold text-slate-600 shrink-0">
+                  {viewer.score} pts
                 </span>
               </div>
             ))}

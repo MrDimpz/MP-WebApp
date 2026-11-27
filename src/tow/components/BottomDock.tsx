@@ -12,6 +12,8 @@ import {
   SlidersHorizontal,
   Volume2,
   VolumeX,
+  Zap,
+  ZapOff,
 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { SmoothMarquee } from '@/components/smooth-marquee';
@@ -27,6 +29,7 @@ interface BottomDockProps {
   onResetTeams: () => void;
   onNextPhase: () => void;
   onToggleMute: () => void;
+  onTogglePowerUps: () => void;
   onOpenDrawer: () => void;
 }
 
@@ -39,6 +42,7 @@ export function BottomDock({
   onResetTeams,
   onNextPhase,
   onToggleMute,
+  onTogglePowerUps,
   onOpenDrawer,
 }: BottomDockProps) {
   const [controlsCollapsed, setControlsCollapsed] = useState(false);
@@ -159,10 +163,10 @@ export function BottomDock({
 
       {/* 2. Quick-Type Validator Input Bar (Hidden in LIVE Studio Overlay) */}
       {!isOverlay && (
-        <form onSubmit={handleQuickSubmit} className="px-3 pb-1.5">
+        <form onSubmit={handleQuickSubmit} className="px-3 pb-1.5 flex items-center gap-1.5">
           <div
             key={submitCue?.key ?? 'idle'}
-            className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 transition-colors ${
+            className={`flex-1 min-w-0 flex items-center gap-1.5 rounded-lg border px-2 py-1 transition-colors ${
               submitCue?.kind === 'ERROR'
                 ? 'tow-animate-input-shake border-[#FF2A5F] bg-[#FF2A5F]/15'
                 : submitCue?.kind === 'VALID'
@@ -233,6 +237,29 @@ export function BottomDock({
               <span>FIRE</span>
             </button>
           </div>
+          <button
+            type="button"
+            onClick={onTogglePowerUps}
+            aria-pressed={!hud.powerUpsEnabled}
+            aria-label={hud.powerUpsEnabled ? 'Turn Power-Ups Off' : 'Turn Power-Ups On'}
+            title={
+              hud.powerUpsEnabled
+                ? 'Power-Ups ON — click to turn power-ups off completely'
+                : 'Power-Ups OFF — click to re-enable power-ups'
+            }
+            className={`h-[34px] px-2.5 rounded-lg border text-[10.5px] font-extrabold inline-flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+              hud.powerUpsEnabled
+                ? 'bg-[#2B0938] hover:bg-[#3A0E4D] border-[#F6C915]/45 text-[#F6C915]'
+                : 'bg-[#2A0622] hover:bg-[#3B0A30] border-[#FF2A5F]/65 text-[#FF8FA3]'
+            }`}
+          >
+            {hud.powerUpsEnabled ? (
+              <Zap className="w-3 h-3 shrink-0" aria-hidden="true" />
+            ) : (
+              <ZapOff className="w-3 h-3 shrink-0" aria-hidden="true" />
+            )}
+            <span>{hud.powerUpsEnabled ? 'PWR ON' : 'PWR OFF'}</span>
+          </button>
         </form>
       )}
 

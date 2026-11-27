@@ -15,6 +15,7 @@ export interface TikTokChatMessage {
   nickname?: string;
   avatarUrl?: string;
   comment: string;
+  isBot?: boolean;
 }
 
 export interface BaseRule {
@@ -100,6 +101,7 @@ export interface PlayerRecord {
   feedbackUntil: number;
   lastActiveAt: number;
   draftedAt: number;
+  isBot?: boolean;
 }
 
 export interface BurnedWordEntry {
@@ -174,6 +176,7 @@ export interface HudSnapshot {
   victory: VictorySummary | null;
   simulatorEnabled: boolean;
   simIntensity: SimIntensity;
+  powerUpsEnabled: boolean;
   muted: boolean;
   recentSwitchMessage: string | null;
   balanceNotice: string | null;

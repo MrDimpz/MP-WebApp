@@ -317,16 +317,17 @@ export function HostDrawer({
               Orbs spawn on the battlefield and are also awarded for{' '}
               <strong className="text-white">Longest Word</strong> (Double Push),{' '}
               <strong className="text-white">Fastest Word</strong> (Invert Control), and{' '}
-              <strong className="text-white">3x Streaks</strong> (Shield Break).
+              <strong className="text-white">4x Streaks</strong> (Shield Break).
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
+                disabled={!hud.powerUpsEnabled}
                 onClick={() => gameEngine.spawnFieldPowerUp()}
-                className="h-9 px-3 rounded-lg bg-[#2B0938] hover:bg-[#3A0E4D] border border-[#F6C915]/30 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="h-9 px-3 rounded-lg bg-[#2B0938] hover:bg-[#3A0E4D] disabled:opacity-45 disabled:cursor-not-allowed border border-[#F6C915]/30 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Zap className="w-3.5 h-3.5 text-[#F6C915]" aria-hidden="true" />
-                Spawn Power-Up
+                {hud.powerUpsEnabled ? 'Spawn Power-Up' : 'Power-Ups Off'}
               </button>
               <button
                 type="button"
