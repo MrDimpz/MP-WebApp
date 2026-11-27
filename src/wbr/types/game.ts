@@ -2,6 +2,7 @@ export type GamePhase =
   | 'LOBBY'
   | 'WAVE_INTRO'
   | 'ACTIVE_WAVE'
+  | 'LAG_GRACE'
   | 'ELIMINATION'
   | 'MEMORIAL'
   | 'VICTORY';
@@ -13,20 +14,42 @@ export type PromptRuleType =
   | 'STARTS_WITH'
   | 'ENDS_WITH'
   | 'EXACT_LENGTH'
+  | 'MIN_LENGTH'
+  | 'MAX_LENGTH'
   | 'MIN_LENGTH_STARTS'
   | 'NO_LETTER'
+  | 'NO_TWO_LETTERS'
   | 'ENDS_WITH_MIN_LENGTH'
+  | 'STARTS_AND_ENDS'
   | 'CONTAINS_ANY'
+  | 'CONTAINS_BOTH'
   | 'DOUBLE_LETTERS'
+  | 'DOUBLE_CONSONANT'
   | 'SAME_START_END'
   | 'MIN_LENGTH_NO_LETTER'
-  | 'PALINDROME_OR_MIN_LENGTH';
+  | 'PALINDROME_OR_MIN_LENGTH'
+  | 'MIN_VOWELS'
+  | 'EXACT_VOWELS'
+  | 'CONSECUTIVE_VOWELS'
+  | 'STARTS_VOWEL'
+  | 'ENDS_VOWEL'
+  | 'STARTS_TWO_CONSONANTS'
+  | 'ENDS_TWO_CONSONANTS'
+  | 'CONSONANT_CLUSTER'
+  | 'MIN_CONSONANTS'
+  | 'UNIQUE_LETTERS'
+  | 'SECOND_LETTER';
 
 export type PromptCategoryGroup =
   | 'SUBSTRING'
   | 'AFFIX'
   | 'LENGTH'
   | 'FORBIDDEN'
+  | 'VOWELS'
+  | 'CONSONANTS'
+  | 'STRUCTURE'
+  | 'LETTER_COMBO'
+  | 'RARE_LETTERS'
   | 'SPECIAL';
 
 export type GlobalWordCategory =
@@ -47,7 +70,9 @@ export interface PromptRule {
   param?: string;
   param2?: string;
   minLength?: number;
+  maxLength?: number;
   exactLength?: number;
+  count?: number;
 }
 
 export type HatCosmeticId =

@@ -27,6 +27,8 @@ export function BattlefieldCanvas() {
 
     let animId = 0;
     let lastTs = performance.now();
+    const watermarkImg = new Image();
+    watermarkImg.src = '/assets/aistudio/3d_logo_944e5372.png';
 
     const resize = () => {
       const parent = canvas.parentElement;
@@ -155,6 +157,22 @@ export function BattlefieldCanvas() {
       });
       ctx.setLineDash([]);
       ctx.restore();
+
+      // 2.5. 25% OPACITY MISSING PIECE LOGO WATERMARK ON GAME FIELD
+      if (
+        watermarkImg.complete &&
+        watermarkImg.naturalWidth > 0 &&
+        watermarkImg.naturalHeight > 0
+      ) {
+        ctx.save();
+        ctx.globalAlpha = 0.25;
+        const maxDim = Math.min(W, H) * 0.72;
+        const aspect = watermarkImg.naturalWidth / watermarkImg.naturalHeight;
+        const drawW = aspect >= 1 ? maxDim : maxDim * aspect;
+        const drawH = aspect >= 1 ? maxDim / aspect : maxDim;
+        ctx.drawImage(watermarkImg, W / 2 - drawW / 2, H / 2 - drawH / 2, drawW, drawH);
+        ctx.restore();
+      }
 
       // 3. TEAM BASES
       const redBaseDanger = gameEngine.visualRedPercent <= 15;

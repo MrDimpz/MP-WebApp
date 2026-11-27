@@ -85,6 +85,8 @@ const STORAGE_KEYS = {
 };
 
 const WAVE_INTRO_DURATION = 2.5;
+const POST_MEMORIAL_INTRO_DURATION = 6.0;
+const LAG_GRACE_DURATION = 3.0;
 const BATTLE_DURATION = 2.6;
 const MEMORIAL_DURATION = 3.0;
 const VICTORY_DURATION = 8.0;
@@ -466,8 +468,8 @@ export default function App() {
         return;
       }
 
-      // 2) ACTIVE WAVE PHASE: Validate words for ALIVE + UNSAFE players (and optional Wave 1 latecomers)
-      if (currentPhase !== 'ACTIVE_WAVE') {
+      // 2) ACTIVE WAVE & STREAM LAG GRACE PHASE: Allow unlimited guesses per alive player while in time
+      if (currentPhase !== 'ACTIVE_WAVE' && currentPhase !== 'LAG_GRACE') {
         return;
       }
 
@@ -480,9 +482,11 @@ export default function App() {
         }
       }
 
-      if (!existingPlayer.alive || existingPlayer.safe) {
+      if (!existingPlayer.alive) {
         return;
       }
+
+      const wasSafe = existingPlayer.safe;
 
       const activeRule = currentRuleRef.current;
       if (!activeRule) return;
@@ -631,9 +635,9 @@ export default function App() {
         });
       }
 
-      // Early Wave End: If 100% of alive players are SAFE, fast-forward timer to 0.5s!
+      // Early Wave End: If 100% of alive players in a multiplayer round just became SAFE, fast-forward timer to 0.5s!
       const aliveList = nextPlayers.filter((p) => p.alive);
-      if (aliveList.length > 0 && aliveList.every((p) => p.safe)) {
+      if (!wasSafe && aliveList.length > 1 && aliveList.every((p) => p.safe)) {
         setTimeRemaining((prev) => (prev > 0.5 ? 0.5 : prev));
       }
     },
@@ -806,7 +810,7 @@ export default function App() {
   }, [clearBotTimers, clearAllWordFlashes]);
 
   const startWaveIntroPhase = useCallback(
-    (nextWave: number) => {
+    (nextWave: number, introDuration: number = WAVE_INTRO_DURATION) => {
       if (nextWave === 1) {
         roundStartedRef.current = true;
       }
@@ -835,8 +839,8 @@ export default function App() {
       setCurrentRule(chosen);
       setWave(nextWave);
       setPhase('WAVE_INTRO');
-      setTotalPhaseDuration(WAVE_INTRO_DURATION);
-      setTimeRemaining(WAVE_INTRO_DURATION);
+      setTotalPhaseDuration(introDuration);
+      setTimeRemaining(introDuration);
       lastTickSecRef.current = 99;
     },
     [clearBotTimers, clearAllWordFlashes]
@@ -986,6 +990,21 @@ export default function App() {
     }
 
     if (current === 'ACTIVE_WAVE') {
+      const alivePlayers = playersRef.current.filter((p) => p.alive);
+      const allMultiplayerSafe = alivePlayers.length > 1 && alivePlayers.every((p) => p.safe);
+      if (allMultiplayerSafe) {
+        runEliminationResolution();
+      } else {
+        clearBotTimers();
+        setPhase('LAG_GRACE');
+        setTotalPhaseDuration(LAG_GRACE_DURATION);
+        setTimeRemaining(LAG_GRACE_DURATION);
+        lastTickSecRef.current = 99;
+      }
+      return;
+    }
+
+    if (current === 'LAG_GRACE') {
       runEliminationResolution();
       return;
     }
@@ -1041,7 +1060,7 @@ export default function App() {
       } else if (survivors.length === 0) {
         startLobbyPhase();
       } else {
-        startWaveIntroPhase(waveRef.current + 1);
+        startWaveIntroPhase(waveRef.current + 1, POST_MEMORIAL_INTRO_DURATION);
       }
       return;
     }
@@ -1050,6 +1069,7 @@ export default function App() {
       startLobbyPhase();
     }
   }, [
+    clearBotTimers,
     runEliminationResolution,
     simEnabled,
     startActiveWavePhase,

@@ -34,22 +34,26 @@ export function TopHeader({
       ? 'LOBBY · OPEN ENTRY'
       : phase === 'VICTORY'
         ? `ROUND COMPLETE · WAVE ${wave}`
-        : phase === 'ELIMINATION'
-          ? `WAVE ${wave} · BATTLE`
-          : phase === 'MEMORIAL'
-            ? `WAVE ${wave} · IN MEMORIAM`
-            : wave >= 5
-              ? `WAVE ${wave} · SUDDEN DEATH`
-              : wave >= 3
-                ? `WAVE ${wave} · ESCALATION`
-                : `WAVE ${wave} · WARMUP`;
+        : phase === 'LAG_GRACE'
+          ? `WAVE ${wave} · STREAM LAG GRACE`
+          : phase === 'ELIMINATION'
+            ? `WAVE ${wave} · BATTLE`
+            : phase === 'MEMORIAL'
+              ? `WAVE ${wave} · IN MEMORIAM`
+              : wave >= 5
+                ? `WAVE ${wave} · SUDDEN DEATH`
+                : wave >= 3
+                  ? `WAVE ${wave} · ESCALATION`
+                  : `WAVE ${wave} · WARMUP`;
 
   const subtitleColor =
     phase === 'VICTORY'
       ? 'text-[#F6C915]'
-      : wave >= 5 && phase !== 'LOBBY'
-        ? 'text-[#FF2A6D]'
-        : 'text-[#F6C915]';
+      : phase === 'LAG_GRACE'
+        ? 'text-amber-300'
+        : wave >= 5 && phase !== 'LOBBY'
+          ? 'text-[#FF2A6D]'
+          : 'text-[#F6C915]';
 
   const topThree = hallOfFame.slice(0, 3);
   const rankColors = ['text-[#F6C915]', 'text-purple-200', 'text-amber-400'];
@@ -89,7 +93,7 @@ export function TopHeader({
               <span className="text-purple-300/60 text-[11px]">/ {Math.max(totalJoinedCount, aliveCount)}</span>
             </div>
             <div className="text-[9.5px] font-bold uppercase tracking-wider text-purple-200/75 mt-0.5 tabular-nums">
-              {phase === 'ACTIVE_WAVE' ? (
+              {phase === 'ACTIVE_WAVE' || phase === 'LAG_GRACE' ? (
                 <span className="text-emerald-300">{safeCount} SAFE</span>
               ) : (
                 <span>ALIVE</span>

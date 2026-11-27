@@ -39,11 +39,16 @@ import { CosmeticIcon, LoadoutPreviewHeader } from './CosmeticPreview';
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 const RULE_GROUP_LABELS: Record<PromptCategoryGroup, string> = {
-  SUBSTRING: 'Contains Substring (ER, QU, CH…)',
-  AFFIX: 'Starts / Ends With (B, ED, ING…)',
-  LENGTH: 'Exact / Min Length (5 letters, 6+)',
-  FORBIDDEN: 'Forbidden Letter (No E / No A)',
-  SPECIAL: 'Special (Doubles, Palindrome, Same End)',
+  SUBSTRING: 'Contains Letter Pair',
+  AFFIX: 'Starts / Ends With',
+  LENGTH: 'Exact / Min / Max Length',
+  FORBIDDEN: 'Forbidden Letters',
+  VOWELS: 'Vowel Rules',
+  CONSONANTS: 'Consonant Blends & Clusters',
+  STRUCTURE: 'Word Structure & Letter Positions',
+  LETTER_COMBO: 'Multi-Letter Combos',
+  RARE_LETTERS: 'Rare & High-Value Letters',
+  SPECIAL: 'Special Patterns',
 };
 
 interface HostDrawerProps {
@@ -181,12 +186,15 @@ export function HostDrawer({
   };
 
   const toggleRuleGroup = (group: PromptCategoryGroup) => {
+    const currentlyEnabled = customRules.enabledRuleGroups[group] !== false;
     const nextGroups = {
       ...customRules.enabledRuleGroups,
-      [group]: !customRules.enabledRuleGroups[group],
+      [group]: !currentlyEnabled,
     };
     // Ensure at least one rule group remains enabled
-    const activeCount = Object.values(nextGroups).filter(Boolean).length;
+    const activeCount = (Object.keys(RULE_GROUP_LABELS) as PromptCategoryGroup[]).filter(
+      (g) => nextGroups[g] !== false
+    ).length;
     if (activeCount === 0) return;
     onUpdateCustomRules({ ...customRules, enabledRuleGroups: nextGroups });
   };

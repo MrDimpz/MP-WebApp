@@ -263,7 +263,7 @@ export function PhysicsArenaCanvas({
       <canvas ref={canvasRef} className="w-full h-full block" />
 
       {/* 2-Column Full-Arena Flashed Used Words (10 Simultaneous Slots) */}
-      {phase === 'ACTIVE_WAVE' && wordFlashes.length > 0 && (
+      {(phase === 'ACTIVE_WAVE' || phase === 'LAG_GRACE') && wordFlashes.length > 0 && (
         <div
           className={`absolute inset-x-2 top-1.5 ${
             knockedOutPlayers.length > 0 ? 'bottom-9' : 'bottom-1.5'

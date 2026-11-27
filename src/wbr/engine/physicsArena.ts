@@ -94,6 +94,7 @@ export class PhysicsArenaEngine {
   private lightningBolts: LightningBolt[] = [];
   private floatingTexts: FloatingText[] = [];
   private imageCache: Map<string, HTMLImageElement | 'error'> = new Map();
+  private watermarkImg: HTMLImageElement | null = null;
 
   private phase: GamePhase = 'LOBBY';
   private timeRemaining: number = 15;
@@ -129,6 +130,11 @@ export class PhysicsArenaEngine {
       throw new Error('Failed to acquire 2D canvas context');
     }
     this.ctx = context;
+    if (typeof Image !== 'undefined') {
+      const logo = new Image();
+      logo.src = '/assets/aistudio/3d_logo_944e5372.png';
+      this.watermarkImg = logo;
+    }
     this.resize();
   }
 
@@ -173,7 +179,9 @@ export class PhysicsArenaEngine {
   public setPhaseState(phase: GamePhase, timeRemaining: number): void {
     this.phase = phase;
     this.timeRemaining = timeRemaining;
-    this.isUrgent = phase === 'ACTIVE_WAVE' && timeRemaining <= 3.1 && timeRemaining > 0;
+    this.isUrgent =
+      (phase === 'ACTIVE_WAVE' && timeRemaining <= 3.1 && timeRemaining > 0) ||
+      phase === 'LAG_GRACE';
     if (phase !== 'ELIMINATION') {
       this.battleActive = false;
       this.battleUnsafeIds.clear();
@@ -1215,6 +1223,25 @@ export class PhysicsArenaEngine {
     ctx.lineTo(cx, cy + r2 + 14);
     ctx.stroke();
 
+    // 25% opacity Missing Piece 3D logo watermark centered on the game field
+    if (
+      this.watermarkImg &&
+      this.watermarkImg.complete &&
+      this.watermarkImg.naturalWidth > 0 &&
+      this.watermarkImg.naturalHeight > 0
+    ) {
+      ctx.save();
+      this.roundRect(ctx, pad, pad, w, h, cornerRadius);
+      ctx.clip();
+      ctx.globalAlpha = 0.25;
+      const maxDim = Math.min(w, h) * 0.72;
+      const aspect = this.watermarkImg.naturalWidth / this.watermarkImg.naturalHeight;
+      const drawW = aspect >= 1 ? maxDim : maxDim * aspect;
+      const drawH = aspect >= 1 ? maxDim / aspect : maxDim;
+      ctx.drawImage(this.watermarkImg, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+      ctx.restore();
+    }
+
     // Outer neon stadium rim reacting to game tension
     let rimColor = 'rgba(246, 201, 21, 0.45)';
     let rimWidth = 2;
@@ -1398,7 +1425,10 @@ export class PhysicsArenaEngine {
     }
 
     // 4) SAFE Checkmark Badge (top right)
-    if (player.safe && (this.phase === 'ACTIVE_WAVE' || this.phase === 'ELIMINATION')) {
+    if (
+      player.safe &&
+      (this.phase === 'ACTIVE_WAVE' || this.phase === 'LAG_GRACE' || this.phase === 'ELIMINATION')
+    ) {
       const badgeR = Math.max(5.5, finalR * 0.34);
       const bx = finalR * 0.72;
       const by = -finalR * 0.72;

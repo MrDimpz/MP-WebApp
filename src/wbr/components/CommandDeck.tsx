@@ -35,8 +35,11 @@ export function CommandDeck({
       : 0;
 
   const isActiveWave = phase === 'ACTIVE_WAVE';
+  const isLagGrace = phase === 'LAG_GRACE';
   const isDanger = isActiveWave && timeRemaining <= 3.05 && timeRemaining > 0;
   const isWarning = isActiveWave && timeRemaining <= 6.0 && timeRemaining > 3.05;
+  const isRuleLockedInIntro =
+    phase === 'WAVE_INTRO' && !!currentRule && spinDisplayRule?.id === currentRule.id;
 
   // Fuse color shifts starlight gold -> warm amber -> flashing crimson
   let fuseBarColor = 'bg-[#F6C915]';
@@ -47,6 +50,10 @@ export function CommandDeck({
     fuseBarColor = 'bg-[#F6C915]';
     timerTextColor = 'text-[#F6C915]';
     sparkColor = '#F6C915';
+  } else if (isLagGrace) {
+    fuseBarColor = 'bg-amber-400';
+    timerTextColor = 'text-amber-300';
+    sparkColor = '#FBBF24';
   } else if (isDanger || phase === 'ELIMINATION' || phase === 'MEMORIAL') {
     fuseBarColor = 'bg-[#FF2A6D]';
     timerTextColor = 'text-[#FF2A6D]';
@@ -78,27 +85,33 @@ export function CommandDeck({
       {/* Main Rule / Prompt Card */}
       <div
         className={`flex-1 rounded-xl border px-3.5 py-2 flex flex-col justify-center items-center text-center relative overflow-hidden transition-colors duration-150 ${
-          isDanger
-            ? 'bg-[#340A24] border-[#FF2A6D] wbr-danger-pulse'
-            : phase === 'VICTORY'
-              ? 'bg-[#2E1B0A] border-[#F6C915]/85'
-              : 'bg-[#26083B]/95 border-[#D4A437]/40'
+          isLagGrace
+            ? 'bg-[#34160A] border-amber-400 wbr-danger-pulse'
+            : isDanger
+              ? 'bg-[#340A24] border-[#FF2A6D] wbr-danger-pulse'
+              : phase === 'VICTORY'
+                ? 'bg-[#2E1B0A] border-[#F6C915]/85'
+                : 'bg-[#26083B]/95 border-[#D4A437]/40'
         }`}
       >
         {/* Top micro-meta row */}
         <div className="w-full flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-purple-200/75 mb-0.5">
-          <span className="truncate">
+          <span className={`truncate ${isLagGrace ? 'text-amber-300' : ''}`}>
             {phase === 'LOBBY'
               ? 'CHAT TO ENTER ARENA'
               : phase === 'WAVE_INTRO'
-                ? `LOCKING WAVE ${wave} RULE...`
-                : phase === 'ELIMINATION'
-                  ? 'BATTLE SEQUENCE · KNOCKOUT!'
-                  : phase === 'MEMORIAL'
-                    ? 'IN MEMORIAM · FALLEN PLAYERS'
-                    : phase === 'VICTORY'
-                      ? 'SOLE SURVIVOR CROWNED'
-                      : tierLabel}
+                ? isRuleLockedInIntro
+                  ? `WAVE ${wave} LOCKED · GET READY!`
+                  : `LOCKING WAVE ${wave} RULE...`
+                : isLagGrace
+                  ? "TIME'S UP · STREAM LAG (+3S)"
+                  : phase === 'ELIMINATION'
+                    ? 'BATTLE SEQUENCE · KNOCKOUT!'
+                    : phase === 'MEMORIAL'
+                      ? 'IN MEMORIAM · FALLEN PLAYERS'
+                      : phase === 'VICTORY'
+                        ? 'SOLE SURVIVOR CROWNED'
+                        : tierLabel}
           </span>
           {isPaused ? (
             <span className="text-[#F6C915] shrink-0">
@@ -106,7 +119,11 @@ export function CommandDeck({
             </span>
           ) : (
             <span className="font-mono tabular-nums text-amber-200/90 shrink-0">
-              {phase === 'ACTIVE_WAVE' ? '1 WORD · NO REPEATS' : `MAX ${customRules.maxPlayers}`}
+              {phase === 'ACTIVE_WAVE'
+                ? 'UNLIMITED GUESSES · NO REPEATS'
+                : isLagGrace
+                  ? 'LATE WORDS ACCEPTED'
+                  : `MAX ${customRules.maxPlayers}`}
             </span>
           )}
         </div>
