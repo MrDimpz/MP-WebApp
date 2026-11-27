@@ -130,6 +130,8 @@ export default function App() {
   const [showWinModal, setShowWinModal] = useState<boolean>(false);
   const [forceTestSprayBanner, setForceTestSprayBanner] = useState<boolean>(false);
   const [testSprayGuessCount, setTestSprayGuessCount] = useState<number>(-1);
+  const [triggerRandomMultiGuessSticker, setTriggerRandomMultiGuessSticker] =
+    useState<boolean>(false);
   const [policePatrolRunId, setPolicePatrolRunId] = useState<number>(0);
   const [policeLingering, setPoliceLingering] = useState<boolean>(false);
   const [gridRoadTopPx, setGridRoadTopPx] = useState<number>(138);
@@ -331,6 +333,7 @@ export default function App() {
     }
     setActiveRowIndex(0);
     setActiveLetterIndex(0);
+    setTriggerRandomMultiGuessSticker(false);
   }, [puzzle.id, cloudReloadTick]);
 
   const persistProgress = useCallback(
@@ -479,6 +482,7 @@ export default function App() {
           recordDailyPuzzleSolved('thematix', todayLondonDate, updatedStats.currentStreak);
         }
         persistProgress(newGuessed, newGuessesCount, nextFilledWords, nextThemeWord, true, false);
+        setTriggerRandomMultiGuessSticker(newGuessesCount >= 1 && Math.random() < 0.4);
         setTimeout(() => setShowWinModal(true), 600);
       } else {
         persistProgress(newGuessed, newGuessesCount, nextFilledWords, nextThemeWord, false, false);
@@ -951,6 +955,7 @@ export default function App() {
         recordDailyPuzzleSolved('thematix', todayLondonDate, updatedStats.currentStreak);
       }
       persistProgress(guessedLetters, letterGuessesCount, filledWords, filledThemeWord, true, false);
+      setTriggerRandomMultiGuessSticker(letterGuessesCount >= 1 && Math.random() < 0.4);
       setTimeout(() => setShowWinModal(true), 500);
     } else {
       sound.playError();
@@ -1007,6 +1012,7 @@ export default function App() {
     setIsSolved(false);
     setIsGivenUp(false);
     setShowWinModal(false);
+    setTriggerRandomMultiGuessSticker(false);
     setWordValidation(['neutral', 'neutral', 'neutral', 'neutral', 'neutral', 'neutral']);
     setThemeValidation('neutral');
     setActiveRowIndex(0);
@@ -1325,7 +1331,10 @@ export default function App() {
           forceTestSprayBanner ? Math.max(0, testSprayGuessCount) : letterGuessesCount
         }
         showGrumpySprayBanner={
-          forceTestSprayBanner || (isGrumpyGorillaUser && !isGivenUp)
+          forceTestSprayBanner ||
+          (isGrumpyGorillaUser &&
+            !isGivenUp &&
+            (letterGuessesCount === 0 || triggerRandomMultiGuessSticker))
         }
         onClose={() => {
           const hadPoliceCar = forceTestSprayBanner
