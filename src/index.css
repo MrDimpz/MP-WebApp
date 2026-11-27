@@ -191,8 +191,8 @@ html.dark .cookie-actions button:hover {
 .brand-name { font-size: 14px; line-height: 1.12; letter-spacing: .7px; color: var(--ink); }
 .brand-name span { color: var(--ink); letter-spacing: 2px; }
 .brand-mark { display: grid; place-items: center; width: 47px; height: 47px; background: var(--yellow); border: 1.5px solid var(--ink); border-radius: 13px; transform: rotate(-7deg); }
-.site-header nav { display: flex; gap: 35px; font-size: 14px; font-weight: 500; }
-.site-header nav a, .header-action, .footer-main > a:last-child { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+.site-header nav { display: flex; gap: 24px; font-size: 14px; font-weight: 500; }
+.site-header nav a, .header-action, .footer-main > a:last-child { display: flex; align-items: center; gap: 8px; color: var(--ink); white-space: nowrap; }
 .site-header nav a:hover { text-decoration: underline; text-underline-offset: 5px; }
 .header-actions { display: flex; align-items: center; gap: 10px; }
 .header-auth-btn { display: inline-flex; align-items: center; gap: 7px; border: 1.5px solid var(--ink); border-radius: 8px; padding: 12px 16px; font-size: 13px; font-weight: 600; background: var(--yellow); color: var(--ink); cursor: pointer; }
@@ -709,7 +709,10 @@ html.dark .game-card.is-featured .game-link {
 
 .gorilla-shack-tile-wrapper {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
+  gap: 18px;
   width: 100%;
   margin: 28px auto 0;
 }
@@ -804,6 +807,101 @@ html.dark .game-card.is-featured .game-link {
 .gorilla-shack-tile:hover .gorilla-shack-tile__arrow {
   background: #facc15;
   color: #090312;
+  transform: translate(2px, -2px);
+}
+
+.wildgrove-pill,
+.mp-site a.wildgrove-pill {
+  min-width: 280px;
+  max-width: 390px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 20px 14px 16px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 18% 50%, #0f4c3a 0%, #092c22 58%, #041510 100%);
+  border: 2px solid #34d399;
+  box-shadow: 0 6px 0 #063326, 0 10px 24px rgba(4, 21, 16, 0.35);
+  text-decoration: none;
+  color: #d1fae5;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+}
+
+.wildgrove-pill:hover,
+.mp-site a.wildgrove-pill:hover {
+  transform: translateY(-4px);
+  border-color: #facc15;
+  box-shadow: 0 8px 0 #064e3b, 0 14px 30px rgba(16, 185, 129, 0.35);
+}
+
+.wildgrove-pill__icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 9999px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+  border: 1.5px solid #34d399;
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.38);
+}
+
+.wildgrove-pill__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.wildgrove-pill__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: #6ee7b7;
+}
+
+.wildgrove-pill__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #facc15;
+  box-shadow: 0 0 8px #facc15;
+  flex-shrink: 0;
+}
+
+.wildgrove-pill__title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: #fef08a;
+  text-shadow: 0 2px 0 #041b14;
+  line-height: 1.2;
+}
+
+.wildgrove-pill__arrow {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid #34d399;
+  background: rgba(16, 185, 129, 0.22);
+  color: #fef08a;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: background-color 180ms ease-out, color 180ms ease-out, border-color 180ms ease-out, transform 180ms ease-out;
+}
+
+.wildgrove-pill:hover .wildgrove-pill__arrow {
+  background: #facc15;
+  border-color: #facc15;
+  color: #041510;
   transform: translate(2px, -2px);
 }
 

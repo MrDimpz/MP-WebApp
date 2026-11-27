@@ -1,9 +1,11 @@
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Trees } from 'lucide-react';
+
+const WILDGROVE_URL = 'https://wildgrove.missingpiecepuzzles.fun/';
 
 /**
- * Centralised horizontal tile (30% width on desktop, responsive min-width on mobile)
- * placed below the Solo and Interactive Games tiles, linking to https://thegorillashack.co.uk/
- * Features The Gorilla Shack logo and matching obsidian, electric purple, and solar yellow palette.
+ * Centralised horizontal partner strip placed below the Solo and Interactive Games sections,
+ * pairing The Gorilla Shack tile (https://thegorillashack.co.uk/) with the Wildgrove pill
+ * (https://wildgrove.missingpiecepuzzles.fun/).
  */
 export function GorillaShackTile() {
   return (
@@ -29,6 +31,29 @@ export function GorillaShackTile() {
           </strong>
         </div>
         <span className="gorilla-shack-tile__arrow" aria-hidden="true">
+          <ArrowUpRight size={20} />
+        </span>
+      </a>
+
+      <a
+        href={WILDGROVE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="wildgrove-pill"
+        aria-label="Visit Wildgrove — Explore Wildgrove in a new tab"
+      >
+        <span className="wildgrove-pill__icon" aria-hidden="true">
+          <Trees size={26} strokeWidth={2} />
+        </span>
+        <div className="wildgrove-pill__body">
+          <span className="wildgrove-pill__eyebrow">
+            <span className="wildgrove-pill__dot" /> WILDGROVE
+          </span>
+          <strong className="wildgrove-pill__title">
+            Explore Wildgrove
+          </strong>
+        </div>
+        <span className="wildgrove-pill__arrow" aria-hidden="true">
           <ArrowUpRight size={20} />
         </span>
       </a>

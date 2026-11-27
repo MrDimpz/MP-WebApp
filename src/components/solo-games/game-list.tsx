@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, ArrowUpRight, CheckCircle2, LogIn, LogOut, Trophy } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, CheckCircle2, LogIn, LogOut, Trees, Trophy } from 'lucide-react';
 import {
   getCleanDisplayName,
   logoutUser,
@@ -50,7 +50,7 @@ export function SoloGameList() {
           TEKSCOdle, 4-in-1 layered word puzzles in Going Deep, and 3D mechanical vault cracking in
           WORDLOCK.
         </p>
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <a
             href="https://thegorillashack.co.uk/"
             target="_blank"
@@ -58,6 +58,16 @@ export function SoloGameList() {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-amber-200 underline underline-offset-4 transition-colors"
           >
             <span>Visit The Gorilla Shack for more fun and games</span>
+            <ArrowUpRight size={14} />
+          </a>
+          <a
+            href="https://wildgrove.missingpiecepuzzles.fun/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#072e22] via-[#0d4633] to-[#08291f] border border-emerald-400/75 px-3.5 py-1.5 text-xs font-bold text-emerald-100 hover:border-[#facc15] hover:text-[#fef08a] shadow-sm transition-all"
+          >
+            <Trees size={14} className="text-emerald-300 shrink-0" aria-hidden="true" />
+            <span>Visit Wildgrove</span>
             <ArrowUpRight size={14} />
           </a>
         </div>

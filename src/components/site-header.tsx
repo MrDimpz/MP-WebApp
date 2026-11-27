@@ -66,6 +66,13 @@ export function SiteHeader() {
             Solo games <ArrowUpRight size={15} />
           </Link>
           <a
+            href="https://wildgrove.missingpiecepuzzles.fun/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Wildgrove <ArrowUpRight size={15} />
+          </a>
+          <a
             href="https://thegorillashack.co.uk/"
             target="_blank"
             rel="noopener noreferrer"
