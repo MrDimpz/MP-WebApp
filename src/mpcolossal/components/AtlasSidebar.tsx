@@ -1,6 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { CrosswordPuzzle, PlacedWord } from '../utils/crosswordGenerator';
 import { CheckCircle2, Compass, PanelRightClose, Search, Sparkles, X } from 'lucide-react';
+
+const ESTIMATED_CLUE_ROW_HEIGHT = 76;
+const VIRTUAL_OVERSCAN = 12;
+const VIRTUALIZE_THRESHOLD = 250;
 
 interface AtlasSidebarProps {
   puzzle: CrosswordPuzzle;
@@ -34,12 +38,21 @@ export const AtlasSidebar: React.FC<AtlasSidebarProps> = ({
   onCloseMobile,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [directionFilter, setDirectionFilter] = useState<'all' | 'across' | 'down' | 'cryptic' | 'unsolved'>('all');
   const [selectedQuestId, setSelectedQuestId] = useState<number>(0);
 
+  // Virtualized scroll state for Classic Mode clue list
+  const clueScrollRef = useRef<HTMLDivElement | null>(null);
+  const rowHeightsRef = useRef<Map<string, number>>(new Map());
+  const measureRafRef = useRef<number | null>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(640);
+  const [measureVersion, setMeasureVersion] = useState(0);
+
   // Filter clues for Classic Mode
   const filteredWords = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = deferredSearchQuery.trim().toLowerCase();
     return puzzle.words.filter((w) => {
       if (selectedSectorFilter !== 'all' && w.sectorId !== selectedSectorFilter) {
         return false;
@@ -57,10 +70,122 @@ export const AtlasSidebar: React.FC<AtlasSidebarProps> = ({
       }
       return true;
     });
-  }, [puzzle.words, selectedSectorFilter, directionFilter, solvedWordIds, searchQuery]);
+  }, [puzzle.words, selectedSectorFilter, directionFilter, solvedWordIds, deferredSearchQuery]);
 
-  // Limit rendered list in DOM to 120 items for instant scrolling even with 4,000+ clues
-  const visibleClueList = useMemo(() => filteredWords.slice(0, 120), [filteredWords]);
+  // Reset scroll position when filter criteria or puzzle scale changes
+  useEffect(() => {
+    if (clueScrollRef.current) {
+      clueScrollRef.current.scrollTop = 0;
+    }
+    setScrollTop(0);
+  }, [puzzle.scale, selectedSectorFilter, directionFilter, deferredSearchQuery]);
+
+  // Track clue list container height for accurate virtualization
+  useEffect(() => {
+    const el = clueScrollRef.current;
+    if (!el || mode !== 'classic') return;
+
+    const updateHeight = () => {
+      if (el.clientHeight > 0) {
+        setViewportHeight(el.clientHeight);
+      }
+    };
+    updateHeight();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(updateHeight);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }
+  }, [mode, isDesktopOpen, isOpenOnMobile]);
+
+  useEffect(() => {
+    return () => {
+      if (measureRafRef.current !== null) {
+        cancelAnimationFrame(measureRafRef.current);
+      }
+    };
+  }, []);
+
+  const handleClueScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
+
+  const measureRowHeight = useCallback((wordId: string, node: HTMLButtonElement | null) => {
+    if (!node) return;
+    const h = node.offsetHeight;
+    if (h <= 0) return;
+    const prev = rowHeightsRef.current.get(wordId);
+    if (prev === undefined || Math.abs(prev - h) > 1) {
+      rowHeightsRef.current.set(wordId, h);
+      if (measureRafRef.current === null) {
+        measureRafRef.current = requestAnimationFrame(() => {
+          measureRafRef.current = null;
+          setMeasureVersion((v) => v + 1);
+        });
+      }
+    }
+  }, []);
+
+  const shouldVirtualize = filteredWords.length > VIRTUALIZE_THRESHOLD;
+
+  // Prefix sum of row offsets for instant binary-search virtualization across all 4,200+ clues
+  const prefixOffsets = useMemo(() => {
+    if (!shouldVirtualize) return null;
+    const count = filteredWords.length;
+    const offsets = new Float64Array(count + 1);
+    const heights = rowHeightsRef.current;
+    for (let i = 0; i < count; i++) {
+      offsets[i + 1] = offsets[i] + (heights.get(filteredWords[i].id) ?? ESTIMATED_CLUE_ROW_HEIGHT);
+    }
+    return offsets;
+  }, [filteredWords, shouldVirtualize, measureVersion]);
+
+  const { visibleClueList, topSpacerHeight, bottomSpacerHeight } = useMemo(() => {
+    if (!shouldVirtualize || !prefixOffsets) {
+      return {
+        visibleClueList: filteredWords,
+        topSpacerHeight: 0,
+        bottomSpacerHeight: 0,
+      };
+    }
+
+    const count = filteredWords.length;
+    const totalHeight = prefixOffsets[count];
+
+    // Binary search for first item whose bottom >= scrollTop
+    let lo = 0;
+    let hi = count;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (prefixOffsets[mid + 1] < scrollTop) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    const startIdx = Math.max(0, lo - VIRTUAL_OVERSCAN);
+
+    // Binary search for first item whose top > scrollTop + viewportHeight
+    const viewBottom = scrollTop + viewportHeight;
+    lo = startIdx;
+    hi = count;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (prefixOffsets[mid] <= viewBottom) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    const endIdx = Math.min(count, lo + VIRTUAL_OVERSCAN);
+
+    return {
+      visibleClueList: filteredWords.slice(startIdx, endIdx),
+      topSpacerHeight: prefixOffsets[startIdx],
+      bottomSpacerHeight: Math.max(0, totalHeight - prefixOffsets[endIdx]),
+    };
+  }, [filteredWords, shouldVirtualize, prefixOffsets, scrollTop, viewportHeight]);
 
   const currentQuest = puzzle.quests[selectedQuestId] || puzzle.quests[0];
 
@@ -296,60 +421,80 @@ export const AtlasSidebar: React.FC<AtlasSidebarProps> = ({
                   </button>
                 ))}
               </div>
+
+              <div className="flex items-center justify-between text-[11px] font-mono-tabular text-slate-500 dark:text-purple-300/80 px-0.5">
+                <span>
+                  Showing all {filteredWords.length.toLocaleString()}{' '}
+                  {filteredWords.length === 1 ? 'clue' : 'clues'}
+                </span>
+                {filteredWords.length > 0 && (
+                  <span>
+                    #{filteredWords[0].number} – #{filteredWords[filteredWords.length - 1].number}
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* Virtual-sliced Clue List */}
-            <div className="flex-1 overflow-y-auto divide-y divide-purple-200/50 dark:divide-purple-900/50 custom-scrollbar">
-              {visibleClueList.length === 0 ? (
+            {/* Virtualized Full Clue List (all matching clues scrollable) */}
+            <div
+              ref={clueScrollRef}
+              onScroll={handleClueScroll}
+              className="flex-1 overflow-y-auto custom-scrollbar"
+            >
+              {filteredWords.length === 0 ? (
                 <div className="p-8 text-center text-xs text-slate-500 dark:text-purple-300/70 space-y-2">
                   <Compass className="w-6 h-6 mx-auto opacity-60" />
                   <p>No clues match your current filter.</p>
                 </div>
               ) : (
-                visibleClueList.map((w) => {
-                  const isSolved = solvedWordIds.has(w.id);
-                  const isCurrent = activeWord?.id === w.id;
+                <div>
+                  {topSpacerHeight > 0 && (
+                    <div aria-hidden="true" style={{ height: topSpacerHeight }} />
+                  )}
+                  {visibleClueList.map((w) => {
+                    const isSolved = solvedWordIds.has(w.id);
+                    const isCurrent = activeWord?.id === w.id;
 
-                  return (
-                    <button
-                      key={w.id}
-                      type="button"
-                      onClick={() => handleWordClick(w)}
-                      className={`w-full text-left px-3.5 py-2.5 transition-colors cursor-pointer flex items-start gap-2.5 ${
-                        isCurrent
-                          ? 'bg-amber-400/20 dark:bg-[#F6C915]/15 text-[#2B0938] dark:text-white'
-                          : isSolved
-                          ? 'bg-emerald-50/60 dark:bg-emerald-950/20 text-slate-500 dark:text-purple-300/60 hover:bg-purple-50 dark:hover:bg-purple-900/30'
-                          : 'hover:bg-purple-50/80 dark:hover:bg-purple-900/30 text-[#2B0938] dark:text-purple-100'
-                      }`}
-                    >
-                      <span className="font-mono-tabular text-xs font-bold text-amber-600 dark:text-[#F6C915] shrink-0 w-12">
-                        {w.number}
-                        {w.direction === 'across' ? 'A' : 'D'}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className={`text-xs leading-snug ${isSolved ? 'line-through opacity-70' : 'font-medium'}`}>
-                          {w.clue}
-                        </p>
-                        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-purple-300/75 font-mono-tabular">
-                          <span>{w.category}</span>
-                          <span aria-hidden="true">·</span>
-                          <span>R{w.row + 1}:C{w.col + 1}</span>
-                          {w.isCryptic && (
-                            <>
-                              <span aria-hidden="true">·</span>
-                              <span className="text-amber-600 dark:text-[#F6C915] font-semibold">Cryptic</span>
-                            </>
-                          )}
+                    return (
+                      <button
+                        key={w.id}
+                        ref={shouldVirtualize ? (node) => measureRowHeight(w.id, node) : undefined}
+                        type="button"
+                        onClick={() => handleWordClick(w)}
+                        className={`w-full text-left px-3.5 py-2.5 border-b border-purple-200/50 dark:border-purple-900/50 transition-colors cursor-pointer flex items-start gap-2.5 ${
+                          isCurrent
+                            ? 'bg-amber-400/20 dark:bg-[#F6C915]/15 text-[#2B0938] dark:text-white'
+                            : isSolved
+                            ? 'bg-emerald-50/60 dark:bg-emerald-950/20 text-slate-500 dark:text-purple-300/60 hover:bg-purple-50 dark:hover:bg-purple-900/30'
+                            : 'hover:bg-purple-50/80 dark:hover:bg-purple-900/30 text-[#2B0938] dark:text-purple-100'
+                        }`}
+                      >
+                        <span className="font-mono-tabular text-xs font-bold text-amber-600 dark:text-[#F6C915] shrink-0 w-12">
+                          {w.number}
+                          {w.direction === 'across' ? 'A' : 'D'}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-xs leading-snug ${isSolved ? 'line-through opacity-70' : 'font-medium'}`}>
+                            {w.clue}
+                          </p>
+                          <div className="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-purple-300/75 font-mono-tabular">
+                            <span>{w.category}</span>
+                            <span aria-hidden="true">·</span>
+                            <span>R{w.row + 1}:C{w.col + 1}</span>
+                            {w.isCryptic && (
+                              <>
+                                <span aria-hidden="true">·</span>
+                                <span className="text-amber-600 dark:text-[#F6C915] font-semibold">Cryptic</span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-              {filteredWords.length > 120 && (
-                <div className="p-3 text-center text-[11px] text-slate-500 dark:text-purple-300/80 font-mono-tabular">
-                  Showing 120 of {filteredWords.length.toLocaleString()} matching clues · Refine search or sector above
+                      </button>
+                    );
+                  })}
+                  {bottomSpacerHeight > 0 && (
+                    <div aria-hidden="true" style={{ height: bottomSpacerHeight }} />
+                  )}
                 </div>
               )}
             </div>
