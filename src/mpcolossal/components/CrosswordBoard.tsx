@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CellData, CrosswordPuzzle, Direction, PlacedWord } from '../utils/crosswordGenerator';
+import { CellData, CrosswordPuzzle, Direction, PlacedWord, SCALE_CONFIG } from '../utils/crosswordGenerator';
 
 interface CrosswordBoardProps {
   puzzle: CrosswordPuzzle;
@@ -73,7 +73,10 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
 
   const activeCellSize = streamMode ? streamCellSize : cellSize;
   const streamBoardPx = streamCellSize * 12;
-  const totalBoardPx = puzzle.size * activeCellSize;
+  const boardCols = puzzle.cols || puzzle.size;
+  const boardRows = puzzle.rows || puzzle.size;
+  const totalBoardWidthPx = boardCols * activeCellSize;
+  const totalBoardHeightPx = boardRows * activeCellSize;
 
   useEffect(() => {
     if (streamMode && onStreamWidthChange) {
@@ -83,16 +86,16 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
 
   const clampPan = useCallback(
     (x: number, y: number, viewW: number, viewH: number) => {
-      const minX = totalBoardPx <= viewW ? (viewW - totalBoardPx) / 2 : viewW - totalBoardPx;
-      const maxX = totalBoardPx <= viewW ? (viewW - totalBoardPx) / 2 : 0;
-      const minY = totalBoardPx <= viewH ? (viewH - totalBoardPx) / 2 : viewH - totalBoardPx;
-      const maxY = totalBoardPx <= viewH ? (viewH - totalBoardPx) / 2 : 0;
+      const minX = totalBoardWidthPx <= viewW ? (viewW - totalBoardWidthPx) / 2 : viewW - totalBoardWidthPx;
+      const maxX = totalBoardWidthPx <= viewW ? (viewW - totalBoardWidthPx) / 2 : 0;
+      const minY = totalBoardHeightPx <= viewH ? (viewH - totalBoardHeightPx) / 2 : viewH - totalBoardHeightPx;
+      const maxY = totalBoardHeightPx <= viewH ? (viewH - totalBoardHeightPx) / 2 : 0;
       return {
         x: Math.max(minX, Math.min(maxX, x)),
         y: Math.max(minY, Math.min(maxY, y)),
       };
     },
-    [totalBoardPx]
+    [totalBoardWidthPx, totalBoardHeightPx]
   );
 
   // Measure outer stage for Stream Mode 12x12 sizing
@@ -189,16 +192,16 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
     const buffer = streamMode ? 1 : 3;
     const startCol = Math.max(0, Math.floor(-pan.x / activeCellSize) - buffer);
     const endCol = Math.min(
-      puzzle.size - 1,
+      boardCols - 1,
       Math.ceil((containerDims.width - pan.x) / activeCellSize) + buffer
     );
     const startRow = Math.max(0, Math.floor(-pan.y / activeCellSize) - buffer);
     const endRow = Math.min(
-      puzzle.size - 1,
+      boardRows - 1,
       Math.ceil((containerDims.height - pan.y) / activeCellSize) + buffer
     );
     return { startRow, endRow, startCol, endCol };
-  }, [pan.x, pan.y, activeCellSize, streamMode, containerDims.width, containerDims.height, puzzle.size]);
+  }, [pan.x, pan.y, activeCellSize, streamMode, containerDims.width, containerDims.height, boardCols, boardRows]);
 
   useEffect(() => {
     onViewportChange(visibleBounds);
@@ -223,15 +226,16 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
       const rowArr = puzzle.cells[r];
       if (!rowArr) continue;
       for (let c = visibleBounds.startCol; c <= visibleBounds.endCol; c++) {
-        list.push(rowArr[c]);
+        if (rowArr[c]) list.push(rowArr[c]);
       }
     }
     return list;
   }, [puzzle.cells, visibleBounds]);
 
   // Sector boundary lines for visual cartographic orientation
-  const sectorsPerSide = Math.round(Math.sqrt(puzzle.sectors.length));
-  const sectorSpan = puzzle.size / sectorsPerSide;
+  const sectorsPerSide = SCALE_CONFIG[puzzle.scale].sectorsPerSide;
+  const mainSectorCount = sectorsPerSide * sectorsPerSide;
+  const sectorSpan = boardCols / sectorsPerSide;
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -310,8 +314,8 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
         <div
           className="absolute top-0 left-0 will-change-transform"
           style={{
-            width: `${totalBoardPx}px`,
-            height: `${totalBoardPx}px`,
+            width: `${totalBoardWidthPx}px`,
+            height: `${totalBoardHeightPx}px`,
             transform: `translate3d(${Math.round(pan.x)}px, ${Math.round(pan.y)}px, 0)`,
           }}
         >
@@ -320,29 +324,59 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
 
           {/* Sector Watermark Banners at top-left of each sector */}
           {puzzle.sectors.map((sec, idx) => {
-            const sRow = Math.floor(idx / sectorsPerSide);
-            const sCol = idx % sectorsPerSide;
-            const topPx = sRow * sectorSpan * activeCellSize;
+            const isSecretSector =
+              puzzle.secretStartRow !== undefined && idx >= mainSectorCount;
+            const sRow = isSecretSector ? sectorsPerSide : Math.floor(idx / sectorsPerSide);
+            const sCol = isSecretSector
+              ? (idx - mainSectorCount) % sectorsPerSide
+              : idx % sectorsPerSide;
+            const topPx = isSecretSector
+              ? (puzzle.secretStartRow as number) * activeCellSize
+              : sRow * sectorSpan * activeCellSize;
             const leftPx = sCol * sectorSpan * activeCellSize;
-            const spanPx = sectorSpan * activeCellSize;
+            const widthPx = sectorSpan * activeCellSize;
+            const heightPx = isSecretSector
+              ? (boardRows - (puzzle.secretStartRow as number)) * activeCellSize
+              : sectorSpan * activeCellSize;
 
             return (
               <div
                 key={sec.id}
-                className="pointer-events-none absolute border border-[#D4A437]/30"
+                className={`pointer-events-none absolute border ${
+                  isSecretSector ? 'border-[#F6C915]/60' : 'border-[#D4A437]/30'
+                }`}
                 style={{
                   top: `${topPx}px`,
                   left: `${leftPx}px`,
-                  width: `${spanPx}px`,
-                  height: `${spanPx}px`,
+                  width: `${widthPx}px`,
+                  height: `${heightPx}px`,
                 }}
               >
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#2B0938]/92 dark:bg-[#160524]/92 border-b border-r border-[#D4A437]/45 text-[11px] font-mono-tabular tracking-wide text-[#F6C915]">
+                <div
+                  className={`inline-flex items-center gap-2 px-2.5 py-1 border-b border-r text-[11px] font-mono-tabular tracking-wide ${
+                    isSecretSector
+                      ? 'bg-[#3b0d47]/95 border-[#F6C915]/75 text-[#FFE047] font-bold'
+                      : 'bg-[#2B0938]/92 dark:bg-[#160524]/92 border-[#D4A437]/45 text-[#F6C915]'
+                  }`}
+                >
                   <span>{sec.name}</span>
                 </div>
               </div>
             );
           })}
+
+          {/* Golden vault seam divider when extended */}
+          {puzzle.secretStartRow !== undefined && (
+            <div
+              aria-hidden="true"
+              style={{
+                top: `${puzzle.secretStartRow * activeCellSize - 2}px`,
+                left: 0,
+                width: `${totalBoardWidthPx}px`,
+              }}
+              className="pointer-events-none absolute h-1 bg-[#F6C915] shadow-[0_0_12px_rgba(246,201,21,0.8)] z-30"
+            />
+          )}
 
           {/* Virtualized Interactive Grid Cells */}
           {visibleCells.map((cell) => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CrosswordPuzzle, PlacedWord } from '../utils/crosswordGenerator';
+import { CrosswordPuzzle, PlacedWord, SCALE_CONFIG } from '../utils/crosswordGenerator';
 import { Compass, Maximize2, Minimize2, X } from 'lucide-react';
 
 interface MiniMapProps {
@@ -28,7 +28,10 @@ export const MiniMap: React.FC<MiniMapProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  const canvasSize = expanded ? 300 : 210;
+  const boardCols = puzzle.cols || puzzle.size;
+  const boardRows = puzzle.rows || puzzle.size;
+  const canvasWidth = expanded ? 300 : 210;
+  const canvasHeight = Math.round(canvasWidth * (boardRows / boardCols));
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -36,37 +39,53 @@ export const MiniMap: React.FC<MiniMapProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const { size, cells } = puzzle;
-    const scale = canvasSize / size;
+    const { cells } = puzzle;
+    const scaleX = canvasWidth / boardCols;
+    const scaleY = canvasHeight / boardRows;
 
     // Royal Obsidian background
     ctx.fillStyle = '#11031A';
-    ctx.fillRect(0, 0, canvasSize, canvasSize);
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // Draw sector grid hairlines
-    const sectorsPerSide = Math.round(Math.sqrt(puzzle.sectors.length));
-    const sectorSpan = size / sectorsPerSide;
+    const sectorsPerSide = SCALE_CONFIG[puzzle.scale].sectorsPerSide;
+    const sectorSpan = boardCols / sectorsPerSide;
     ctx.strokeStyle = 'rgba(212, 164, 55, 0.25)';
     ctx.lineWidth = 1;
     for (let i = 1; i < sectorsPerSide; i++) {
-      const pos = Math.floor(i * sectorSpan * scale) + 0.5;
+      const posX = Math.floor(i * sectorSpan * scaleX) + 0.5;
       ctx.beginPath();
-      ctx.moveTo(pos, 0);
-      ctx.lineTo(pos, canvasSize);
+      ctx.moveTo(posX, 0);
+      ctx.lineTo(posX, canvasHeight);
       ctx.stroke();
+
+      const posY = Math.floor(i * sectorSpan * scaleY) + 0.5;
       ctx.beginPath();
-      ctx.moveTo(0, pos);
-      ctx.lineTo(canvasSize, pos);
+      ctx.moveTo(0, posY);
+      ctx.lineTo(canvasWidth, posY);
+      ctx.stroke();
+    }
+
+    // Highlight secret vault seam line when extended
+    if (puzzle.secretStartRow !== undefined) {
+      const seamY = Math.floor(puzzle.secretStartRow * scaleY) + 0.5;
+      ctx.strokeStyle = '#F6C915';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, seamY);
+      ctx.lineTo(canvasWidth, seamY);
       ctx.stroke();
     }
 
     // Render every crossword cell
-    const cellPx = Math.max(1, scale);
-    for (let r = 0; r < size; r++) {
+    const cellW = Math.max(1, scaleX);
+    const cellH = Math.max(1, scaleY);
+    for (let r = 0; r < boardRows; r++) {
       const rowCells = cells[r];
-      for (let c = 0; c < size; c++) {
+      if (!rowCells) continue;
+      for (let c = 0; c < boardCols; c++) {
         const cell = rowCells[c];
-        if (!cell.solution) continue;
+        if (!cell || !cell.solution) continue;
 
         const key = `${r},${c}`;
         const val = userGrid[key];
@@ -77,11 +96,13 @@ export const MiniMap: React.FC<MiniMapProps> = ({
           ctx.fillStyle = '#C084FC'; // Violet entered
         } else if (cell.isQuestCell) {
           ctx.fillStyle = '#D97706'; // Quest highlight
+        } else if (puzzle.secretStartRow !== undefined && r >= puzzle.secretStartRow) {
+          ctx.fillStyle = '#A855F7'; // Secret vault unsolved square
         } else {
           ctx.fillStyle = '#6B4C80'; // Unsolved playable square
         }
 
-        ctx.fillRect(c * scale, r * scale, cellPx, cellPx);
+        ctx.fillRect(c * scaleX, r * scaleY, cellW, cellH);
       }
     }
 
@@ -94,36 +115,36 @@ export const MiniMap: React.FC<MiniMapProps> = ({
         const r = activeWord.row + dr * i;
         const c = activeWord.col + dc * i;
         ctx.fillRect(
-          c * scale - 0.5,
-          r * scale - 0.5,
-          Math.max(2.5, cellPx + 1),
-          Math.max(2.5, cellPx + 1)
+          c * scaleX - 0.5,
+          r * scaleY - 0.5,
+          Math.max(2.5, cellW + 1),
+          Math.max(2.5, cellH + 1)
         );
       }
     }
 
     // Draw current camera viewport reticle
-    const vx = Math.max(0, viewportRect.startCol * scale);
-    const vy = Math.max(0, viewportRect.startRow * scale);
-    const vw = Math.min(canvasSize - vx, (viewportRect.endCol - viewportRect.startCol) * scale);
-    const vh = Math.min(canvasSize - vy, (viewportRect.endRow - viewportRect.startRow) * scale);
+    const vx = Math.max(0, viewportRect.startCol * scaleX);
+    const vy = Math.max(0, viewportRect.startRow * scaleY);
+    const vw = Math.min(canvasWidth - vx, (viewportRect.endCol - viewportRect.startCol) * scaleX);
+    const vh = Math.min(canvasHeight - vy, (viewportRect.endRow - viewportRect.startRow) * scaleY);
 
     ctx.strokeStyle = '#F6C915';
     ctx.lineWidth = 2;
     ctx.strokeRect(vx, vy, Math.max(8, vw), Math.max(8, vh));
     ctx.fillStyle = 'rgba(246, 201, 21, 0.14)';
     ctx.fillRect(vx, vy, Math.max(8, vw), Math.max(8, vh));
-  }, [puzzle, userGrid, activeWord, viewportRect, canvasSize]);
+  }, [puzzle, userGrid, activeWord, viewportRect, canvasWidth, canvasHeight, boardCols, boardRows]);
 
   const handlePointerToGrid = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = Math.max(0, Math.min(canvasSize, e.clientX - rect.left));
-    const y = Math.max(0, Math.min(canvasSize, e.clientY - rect.top));
+    const x = Math.max(0, Math.min(canvasWidth, e.clientX - rect.left));
+    const y = Math.max(0, Math.min(canvasHeight, e.clientY - rect.top));
 
-    const targetCol = Math.floor((x / canvasSize) * puzzle.size);
-    const targetRow = Math.floor((y / canvasSize) * puzzle.size);
+    const targetCol = Math.floor((x / canvasWidth) * boardCols);
+    const targetRow = Math.floor((y / canvasHeight) * boardRows);
     onCenterCell(targetRow, targetCol);
   };
 
@@ -132,7 +153,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
       <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-1.5 text-xs font-bold text-[#3b0d47] dark:text-white">
           <Compass className="w-3.5 h-3.5 text-amber-500 dark:text-[#F6C915] shrink-0" />
-          <span className="whitespace-nowrap">Atlas Radar ({puzzle.size}×{puzzle.size})</span>
+          <span className="whitespace-nowrap">Atlas Radar ({boardRows}×{boardCols})</span>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -159,8 +180,8 @@ export const MiniMap: React.FC<MiniMapProps> = ({
       <div className="relative rounded-lg overflow-hidden border border-purple-300 dark:border-purple-800 bg-[#11031A]">
         <canvas
           ref={canvasRef}
-          width={canvasSize}
-          height={canvasSize}
+          width={canvasWidth}
+          height={canvasHeight}
           onPointerDown={(e) => {
             e.currentTarget.setPointerCapture(e.pointerId);
             setIsDragging(true);

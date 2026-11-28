@@ -84,7 +84,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
               <div className="text-xs text-amber-600 dark:text-[#F6C915] font-mono-tabular font-bold">
-                {SCALE_CONFIG[puzzle.scale].label} · {puzzle.size}×{puzzle.size} Grid
+                {SCALE_CONFIG[puzzle.scale].label} · {puzzle.rows}×{puzzle.cols} Grid
               </div>
               <p className="text-sm text-slate-600 dark:text-purple-200/85">
                 {isVictory

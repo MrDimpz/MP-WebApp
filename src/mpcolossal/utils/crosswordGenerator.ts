@@ -19,6 +19,7 @@ export interface PlacedWord {
   sectorId: number;
   questId?: number;
   questStep?: number;
+  isSecret?: boolean;
 }
 
 export interface CellData {
@@ -44,12 +45,16 @@ export interface QuestData {
 export interface CrosswordPuzzle {
   scale: GridScale;
   size: number;
+  rows: number;
+  cols: number;
   cells: CellData[][];
   words: PlacedWord[];
   wordMap: Record<string, PlacedWord>;
   quests: QuestData[];
   sectors: SectorInfo[];
   totalWhiteCells: number;
+  mainWordCount: number;
+  secretStartRow?: number;
 }
 
 export const SCALE_CONFIG: Record<GridScale, {
@@ -188,8 +193,50 @@ function buildPost1200Clue(
 }
 
 const COLOSSAL_PRESERVE_MAX_NUMBER = 1200;
+const COLOSSAL_SECRET_EXTRA_ROWS = 25;
 
-export function generateColossalCrossword(scale: GridScale): CrosswordPuzzle {
+const SECRET_SECTORS: SectorInfo[] = [
+  {
+    id: 25,
+    name: '26. Deep Vault West',
+    subtitle: 'Western wing of the hidden lower broadsheet',
+    questTitle: 'The Trapdoor Opens',
+    questDescription: 'Chart the western wing of the secret 25×200 underground vault.'
+  },
+  {
+    id: 26,
+    name: '27. Cipher Catacombs',
+    subtitle: 'Second chamber beneath the main atlas border',
+    questTitle: 'Beneath the Border',
+    questDescription: 'Crack the second chamber hidden beneath the colossal atlas.'
+  },
+  {
+    id: 27,
+    name: '28. Mastermind Sanctum',
+    subtitle: 'Heart of the secret 25×200 extension',
+    questTitle: 'The Centerpiece Twist',
+    questDescription: 'Conquer the heart of the secret lower broadsheet.'
+  },
+  {
+    id: 28,
+    name: '29. Sunken Archive',
+    subtitle: 'Eastern passages of the extended atlas',
+    questTitle: 'Echoes Below',
+    questDescription: 'Decode the eastern passages of the extended crossword.'
+  },
+  {
+    id: 29,
+    name: '30. Final Horizon',
+    subtitle: 'The ultimate corner of the Colossal Atlas',
+    questTitle: 'The Last Word',
+    questDescription: 'Finish the final corner of the true Colossal Atlas.'
+  }
+];
+
+export function generateColossalCrossword(
+  scale: GridScale,
+  includeSecretExtension = false
+): CrosswordPuzzle {
   const config = SCALE_CONFIG[scale];
   const size = config.size;
   const sectorsPerSide = config.sectorsPerSide;
@@ -950,7 +997,7 @@ export function generateColossalCrossword(scale: GridScale): CrosswordPuzzle {
       }
     }
 
-    // Build structured Quests across all 25 sectors
+    // Build structured Quests across all 25 main sectors
     const totalSectors = sectorsPerSide * sectorsPerSide;
     const activeSectors = SECTORS.slice(0, totalSectors);
     const finalQuests: QuestData[] = [];
@@ -987,15 +1034,451 @@ export function generateColossalCrossword(scale: GridScale): CrosswordPuzzle {
       });
     }
 
+    const mainWordCount = finalWords.length;
+
+    // When the secret extension is not yet unlocked, return the exact 200x200 puzzle
+    if (!includeSecretExtension) {
+      return {
+        scale,
+        size,
+        rows: size,
+        cols: size,
+        cells: finalCells,
+        words: finalWords,
+        wordMap: finalWordMap,
+        quests: finalQuests,
+        sectors: activeSectors,
+        totalWhiteCells: finalWhiteCells,
+        mainWordCount
+      };
+    }
+
+    // Secret 25h x 200w bottom extension (rows 200..224), populated with all new unique
+    // words & clues stitched directly onto the bottom edge of the 200x200 main grid.
+    const extRows = size + COLOSSAL_SECRET_EXTRA_ROWS;
+    const extCharGrid: string[][] = [
+      ...rCharGrid.map((row) => [...row]),
+      ...Array.from({ length: COLOSSAL_SECRET_EXTRA_ROWS }, () => Array(size).fill(''))
+    ];
+    const extHasAcross: boolean[][] = [
+      ...rHasAcross.map((row) => [...row]),
+      ...Array.from({ length: COLOSSAL_SECRET_EXTRA_ROWS }, () => Array(size).fill(false))
+    ];
+    const extHasDown: boolean[][] = [
+      ...rHasDown.map((row) => [...row]),
+      ...Array.from({ length: COLOSSAL_SECRET_EXTRA_ROWS }, () => Array(size).fill(false))
+    ];
+    const extAcrossWordAt: string[][] = [
+      ...rAcrossWordAt.map((row) => [...row]),
+      ...Array.from({ length: COLOSSAL_SECRET_EXTRA_ROWS }, () => Array(size).fill(''))
+    ];
+    const extDownWordAt: string[][] = [
+      ...rDownWordAt.map((row) => [...row]),
+      ...Array.from({ length: COLOSSAL_SECRET_EXTRA_ROWS }, () => Array(size).fill(''))
+    ];
+
+    const secretRng = createRng(size * 104729 + 25200);
+    const secretPlacements: Array<{
+      entry: VocabEntry;
+      row: number;
+      col: number;
+      direction: Direction;
+    }> = [];
+    const sFrontier: Array<{ r: number; c: number }> = [];
+
+    function canPlaceSecretWord(
+      word: string,
+      row: number,
+      col: number,
+      direction: Direction,
+      allowBridgeStart = false
+    ): number {
+      if (usedWords.has(word)) return -1;
+      if (!allowBridgeStart && row < size) return -1;
+
+      const len = word.length;
+      const dr = direction === 'down' ? 1 : 0;
+      const dc = direction === 'across' ? 1 : 0;
+
+      if (row < 0 || col < 0) return -1;
+      const endR = row + dr * (len - 1);
+      const endC = col + dc * (len - 1);
+      if (endR >= extRows || endC >= size) return -1;
+      // Must actually enter the secret 25x200 zone
+      if (endR < size) return -1;
+
+      const beforeR = row - dr;
+      const beforeC = col - dc;
+      if (beforeR >= 0 && beforeC >= 0 && extCharGrid[beforeR][beforeC] !== '') return -1;
+
+      const afterR = row + dr * len;
+      const afterC = col + dc * len;
+      if (afterR < extRows && afterC < size && extCharGrid[afterR][afterC] !== '') return -1;
+
+      let intersections = 0;
+      for (let i = 0; i < len; i++) {
+        const r = row + dr * i;
+        const c = col + dc * i;
+        const existing = extCharGrid[r][c];
+        if (existing !== '') {
+          if (existing !== word[i]) return -1;
+          if (direction === 'across' && extHasAcross[r][c]) return -1;
+          if (direction === 'down' && extHasDown[r][c]) return -1;
+          if (direction === 'across' && extDownWordAt[r][c] === word) return -1;
+          if (direction === 'down' && extAcrossWordAt[r][c] === word) return -1;
+          intersections++;
+        } else {
+          if (direction === 'across') {
+            if (r > 0 && extCharGrid[r - 1][c] !== '') return -1;
+            if (r < extRows - 1 && extCharGrid[r + 1][c] !== '') return -1;
+          } else {
+            if (c > 0 && extCharGrid[r][c - 1] !== '') return -1;
+            if (c < size - 1 && extCharGrid[r][c + 1] !== '') return -1;
+          }
+        }
+      }
+
+      return intersections > 0 ? intersections : -1;
+    }
+
+    function commitSecretWord(entry: VocabEntry, row: number, col: number, direction: Direction) {
+      const word = entry.word;
+      const dr = direction === 'down' ? 1 : 0;
+      const dc = direction === 'across' ? 1 : 0;
+      for (let i = 0; i < word.length; i++) {
+        const r = row + dr * i;
+        const c = col + dc * i;
+        extCharGrid[r][c] = word[i];
+        if (direction === 'across') {
+          extHasAcross[r][c] = true;
+          extAcrossWordAt[r][c] = word;
+        } else {
+          extHasDown[r][c] = true;
+          extDownWordAt[r][c] = word;
+        }
+        if (r >= size) {
+          sFrontier.push({ r, c });
+        }
+      }
+      usedWords.add(word);
+      secretPlacements.push({ entry, row, col, direction });
+    }
+
+    function pickBestSecretCandidate(
+      r: number,
+      c: number,
+      targetDir: Direction,
+      startOffset: number,
+      maxChecks: number,
+      allowBridgeStart = false,
+      forceStartAtCell = false
+    ) {
+      const ch = extCharGrid[r][c];
+      const candidates = rWordsByChar[ch];
+      if (!candidates || candidates.length === 0) return null;
+
+      let best: { entry: VocabEntry; startR: number; startC: number; score: number } | null = null;
+      const total = candidates.length;
+      const step = Math.max(1, Math.floor(total / Math.min(total, maxChecks * 2)));
+      let checkedUnused = 0;
+
+      for (let s = 0; s < total && checkedUnused < maxChecks; s++) {
+        const cand = candidates[(startOffset + s * step) % total];
+        if (forceStartAtCell && cand.charIdx !== 0) continue;
+        if (usedWords.has(cand.entry.word)) continue;
+        checkedUnused++;
+
+        const startR = targetDir === 'down' ? r - cand.charIdx : r;
+        const startC = targetDir === 'across' ? c - cand.charIdx : c;
+        const intersections = canPlaceSecretWord(
+          cand.entry.word,
+          startR,
+          startC,
+          targetDir,
+          allowBridgeStart
+        );
+        if (intersections > 0) {
+          const lenBonus = cand.entry.word.length <= 8 ? cand.entry.word.length * 2 : 12;
+          const score = intersections * 28 + lenBonus + (cand.entry.crypticClue ? 3 : 0);
+          if (!best || score > best.score) {
+            best = { entry: cand.entry, startR, startC, score };
+            if (intersections >= 2) break;
+          }
+        }
+      }
+      return best;
+    }
+
+    // Step S1: Drop Down bridge words cleanly from unnumbered bottom-edge Across cells (rows 197..199)
+    // so the secret 25x200 vault stitches seamlessly onto the solved main grid without changing any 1..3882 numbers
+    const secretBridgeAnchors: Array<{ r: number; c: number }> = [];
+    for (let r = size - 3; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (!extCharGrid[r][c]) continue;
+        if (!extHasAcross[r][c] || extHasDown[r][c]) continue;
+        if (finalCells[r][c].number !== undefined) continue;
+        if (r > 0 && extCharGrid[r - 1][c] !== '') continue;
+        let belowClear = true;
+        for (let rr = r + 1; rr < size; rr++) {
+          if (extCharGrid[rr][c] !== '') {
+            belowClear = false;
+            break;
+          }
+          if (c > 0 && extCharGrid[rr][c - 1] !== '') {
+            belowClear = false;
+            break;
+          }
+          if (c < size - 1 && extCharGrid[rr][c + 1] !== '') {
+            belowClear = false;
+            break;
+          }
+        }
+        if (belowClear) {
+          secretBridgeAnchors.push({ r, c });
+        }
+      }
+    }
+
+    for (const anchor of secretBridgeAnchors) {
+      const ch = extCharGrid[anchor.r][anchor.c];
+      const candidates = rWordsByChar[ch];
+      if (!candidates || candidates.length === 0) continue;
+      const startOffset = Math.floor(secretRng() * candidates.length);
+      const best = pickBestSecretCandidate(
+        anchor.r,
+        anchor.c,
+        'down',
+        startOffset,
+        140,
+        true,
+        true
+      );
+      if (best) {
+        commitSecretWord(best.entry, best.startR, best.startC, 'down');
+      }
+    }
+
+    function expandSecretFrontier(startHead: number): number {
+      let head = startHead;
+      while (head < sFrontier.length) {
+        const remaining = sFrontier.length - head;
+        if (remaining > 1) {
+          const pick = head + Math.floor(secretRng() * Math.min(remaining, 24));
+          const tmp = sFrontier[head];
+          sFrontier[head] = sFrontier[pick];
+          sFrontier[pick] = tmp;
+        }
+        const { r, c } = sFrontier[head++];
+        const ch = extCharGrid[r][c];
+        if (!ch) continue;
+        const needAcross = !extHasAcross[r][c];
+        const needDown = !extHasDown[r][c];
+        if (!needAcross && !needDown) continue;
+
+        const targetDir: Direction = needAcross ? 'across' : 'down';
+        const candidates = rWordsByChar[ch];
+        if (!candidates || candidates.length === 0) continue;
+
+        const startOffset = Math.floor(secretRng() * candidates.length);
+        const best = pickBestSecretCandidate(r, c, targetDir, startOffset, 80, false, false);
+        if (best) {
+          commitSecretWord(best.entry, best.startR, best.startC, targetDir);
+        }
+      }
+      return head;
+    }
+
+    let sFrontierHead = expandSecretFrontier(0);
+
+    // Step S2: Density sweeps across rows 200..224 to pack the 25x200 vault densely with unique words
+    for (let pass = 0; pass < 3; pass++) {
+      let addedInPass = 0;
+      for (let r = size; r < extRows; r++) {
+        for (let c = 1; c < size - 1; c++) {
+          const ch = extCharGrid[r][c];
+          if (!ch) continue;
+          const needAcross = !extHasAcross[r][c];
+          const needDown = !extHasDown[r][c];
+          if (!needAcross && !needDown) continue;
+
+          const targetDir: Direction = needAcross ? 'across' : 'down';
+          const candidates = rWordsByChar[ch];
+          if (!candidates || candidates.length === 0) continue;
+
+          const startOffset = (r * 41 + c * 23 + pass * 137) % candidates.length;
+          const best = pickBestSecretCandidate(r, c, targetDir, startOffset, 64, false, false);
+          if (best) {
+            commitSecretWord(best.entry, best.startR, best.startC, targetDir);
+            addedInPass++;
+          }
+        }
+      }
+      sFrontierHead = expandSecretFrontier(sFrontierHead);
+      if (addedInPass === 0) break;
+    }
+
+    // Build extended cells array (rows 0..199 synced with bridge cells, rows 200..224 assigned secret sectors 25..29)
+    const extCells: CellData[][] = [
+      ...finalCells.map((rowArr, r) =>
+        r >= size - 3
+          ? rowArr.map((cell, c) => ({
+              ...cell,
+              solution: extCharGrid[r][c]
+            }))
+          : rowArr
+      ),
+      ...Array.from({ length: COLOSSAL_SECRET_EXTRA_ROWS }, (_, offsetR) => {
+        const r = size + offsetR;
+        return Array.from({ length: size }, (_, c) => {
+          const sCol = Math.min(sectorsPerSide - 1, Math.floor(c / sectorSpan));
+          return {
+            row: r,
+            col: c,
+            solution: extCharGrid[r][c],
+            sectorId: totalSectors + sCol
+          };
+        });
+      })
+    ];
+
+    let extWhiteCells = 0;
+    for (let r = 0; r < extRows; r++) {
+      for (let c = 0; c < size; c++) {
+        if (extCharGrid[r][c] !== '') extWhiteCells++;
+      }
+    }
+
+    // Number secret words cleanly starting right after main max number (3883+) in top-to-bottom, left-to-right order
+    const secretAcrossStart = new Map<string, typeof secretPlacements[0]>();
+    const secretDownStart = new Map<string, typeof secretPlacements[0]>();
+    for (const p of secretPlacements) {
+      const key = `${p.row},${p.col}`;
+      if (p.direction === 'across') secretAcrossStart.set(key, p);
+      else secretDownStart.set(key, p);
+    }
+
+    const extWords = [...finalWords];
+    const extWordMap: Record<string, PlacedWord> = { ...finalWordMap };
+    let extNum = finalNum;
+
+    for (let r = size - 3; r < extRows; r++) {
+      for (let c = 0; c < size; c++) {
+        const key = `${r},${c}`;
+        const sA = secretAcrossStart.get(key);
+        const sD = secretDownStart.get(key);
+        if (!sA && !sD) continue;
+
+        const num = extNum++;
+        extCells[r][c].number = num;
+        const sectorId =
+          r >= size
+            ? extCells[r][c].sectorId
+            : totalSectors + Math.min(sectorsPerSide - 1, Math.floor(c / sectorSpan));
+
+        if (sA) {
+          const wStr = sA.entry.word;
+          const { clue, isCryptic } = buildPost1200Clue(sA.entry, num, 'across');
+          const id = `${num}-across`;
+          const placed: PlacedWord = {
+            id,
+            number: num,
+            word: wStr,
+            direction: 'across',
+            row: r,
+            col: c,
+            length: wStr.length,
+            clue,
+            crypticClue: sA.entry.crypticClue,
+            isCryptic,
+            category: sA.entry.category,
+            sectorId,
+            isSecret: true
+          };
+          extWords.push(placed);
+          extWordMap[id] = placed;
+          for (let i = 0; i < wStr.length; i++) {
+            extCells[r][c + i].acrossWordId = id;
+          }
+        }
+
+        if (sD) {
+          const wStr = sD.entry.word;
+          const { clue, isCryptic } = buildPost1200Clue(sD.entry, num, 'down');
+          const id = `${num}-down`;
+          const placed: PlacedWord = {
+            id,
+            number: num,
+            word: wStr,
+            direction: 'down',
+            row: r,
+            col: c,
+            length: wStr.length,
+            clue,
+            crypticClue: sD.entry.crypticClue,
+            isCryptic,
+            category: sD.entry.category,
+            sectorId,
+            isSecret: true
+          };
+          extWords.push(placed);
+          extWordMap[id] = placed;
+          for (let i = 0; i < wStr.length; i++) {
+            extCells[r + i][c].downWordId = id;
+          }
+        }
+      }
+    }
+
+    // Build bonus quests for the 5 newly revealed secret sectors (25..29)
+    const extSectors = [...activeSectors, ...SECRET_SECTORS];
+    const extQuests = [...finalQuests];
+
+    for (let i = 0; i < SECRET_SECTORS.length; i++) {
+      const sInfo = SECRET_SECTORS[i];
+      const sId = sInfo.id;
+      const sectorWords = extWords.filter((w) => w.sectorId === sId && w.length >= 5);
+      const stepCount = Math.min(7, Math.max(4, Math.floor(sectorWords.length / 6)));
+      const chosenWords: string[] = [];
+
+      if (sectorWords.length > 0) {
+        const stride = Math.max(1, Math.floor(sectorWords.length / stepCount));
+        for (let k = 0; k < stepCount && k * stride < sectorWords.length; k++) {
+          const w = sectorWords[k * stride];
+          w.questId = sId;
+          w.questStep = k + 1;
+          chosenWords.push(w.id);
+
+          const dr = w.direction === 'down' ? 1 : 0;
+          const dc = w.direction === 'across' ? 1 : 0;
+          for (let m = 0; m < w.length; m++) {
+            extCells[w.row + dr * m][w.col + dc * m].isQuestCell = true;
+          }
+        }
+      }
+
+      extQuests.push({
+        id: sId,
+        sectorId: sId,
+        title: sInfo.questTitle,
+        subtitle: sInfo.name,
+        description: sInfo.questDescription,
+        wordIds: chosenWords
+      });
+    }
+
     return {
       scale,
       size,
-      cells: finalCells,
-      words: finalWords,
-      wordMap: finalWordMap,
-      quests: finalQuests,
-      sectors: activeSectors,
-      totalWhiteCells: finalWhiteCells
+      rows: extRows,
+      cols: size,
+      cells: extCells,
+      words: extWords,
+      wordMap: extWordMap,
+      quests: extQuests,
+      sectors: extSectors,
+      totalWhiteCells: extWhiteCells,
+      mainWordCount,
+      secretStartRow: size
     };
   }
 
@@ -1040,11 +1523,14 @@ export function generateColossalCrossword(scale: GridScale): CrosswordPuzzle {
   return {
     scale,
     size,
+    rows: size,
+    cols: size,
     cells,
     words,
     wordMap,
     quests,
     sectors: activeSectors,
-    totalWhiteCells
+    totalWhiteCells,
+    mainWordCount: words.length
   };
 }

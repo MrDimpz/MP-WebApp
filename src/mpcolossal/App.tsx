@@ -15,6 +15,10 @@ import { MiniMap } from './components/MiniMap';
 import { AtlasSidebar } from './components/AtlasSidebar';
 import { SummaryModal } from './components/SummaryModal';
 import {
+  SecretCelebrationModal,
+  SecretModalVariant,
+} from './components/SecretCelebrationModal';
+import {
   ArrowLeft,
   ArrowLeftRight,
   BookOpen,
@@ -23,9 +27,11 @@ import {
   Compass,
   Eye,
   HelpCircle,
+  LayoutGrid,
   LocateFixed,
   LogIn,
   Map as MapIcon,
+  Menu,
   Moon,
   PanelRightClose,
   PanelRightOpen,
@@ -36,6 +42,7 @@ import {
   User as UserIcon,
   Volume2,
   VolumeX,
+  X,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -64,6 +71,8 @@ interface SavedScaleState {
   hintsUsed: number;
   elapsedSeconds: number;
   solvedTodayDate?: string;
+  secretRevealed?: boolean;
+  secretCompleted?: boolean;
 }
 
 const THEME_STORAGE_KEY = 'mpcolossal_dark_mode_v2';
@@ -194,8 +203,19 @@ export default function MPColossalApp() {
     setShowAuthModal(true);
   }, []);
 
-  // Generate puzzle for current scale
-  const puzzle: CrosswordPuzzle = useMemo(() => generateColossalCrossword(scale), [scale]);
+  // Hidden 25x200 extension state (MP Colossal only — completely invisible until main grid is solved)
+  const [secretRevealed, setSecretRevealed] = useState<boolean>(false);
+  const [secretCompleted, setSecretCompleted] = useState<boolean>(false);
+  const [secretModalVariant, setSecretModalVariant] = useState<SecretModalVariant | null>(null);
+  const secretRevealTimerRef = useRef<number | null>(null);
+  const secretRevealScheduledRef = useRef<boolean>(false);
+  const secretFinaleTriggeredRef = useRef<boolean>(false);
+
+  // Generate puzzle for current scale (only appends the 25x200 extension after main colossal is solved)
+  const puzzle: CrosswordPuzzle = useMemo(
+    () => generateColossalCrossword(scale, scale === 'colossal' && secretRevealed),
+    [scale, secretRevealed]
+  );
 
   // Player state
   const [userGrid, setUserGrid] = useState<Record<string, string>>({});
@@ -214,6 +234,7 @@ export default function MPColossalApp() {
   const [showErrors, setShowErrors] = useState<boolean>(false);
   const [streamLayout, setStreamLayout] = useState<boolean>(false);
   const [streamGridWidthPx, setStreamGridWidthPx] = useState<number>(0);
+  const [showStreamMenu, setShowStreamMenu] = useState<boolean>(false);
   const [showRadarPopup, setShowRadarPopup] = useState<boolean>(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState<boolean>(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
@@ -256,15 +277,35 @@ export default function MPColossalApp() {
       if (parsed.solvedTodayDate === todayKey) {
         setSolvedTodayFlag(true);
       }
+      const isColossal = scale === 'colossal';
+      const restoredSecretRevealed = isColossal && Boolean(parsed.secretRevealed);
+      const restoredSecretCompleted = isColossal && Boolean(parsed.secretCompleted);
+      setSecretRevealed(restoredSecretRevealed);
+      setSecretCompleted(restoredSecretCompleted);
+      secretRevealScheduledRef.current = restoredSecretRevealed;
+      secretFinaleTriggeredRef.current = restoredSecretCompleted;
     } else {
       setUserGrid({});
       setRevealedCells({});
       setHintsUsed(0);
       setElapsedSeconds(0);
+      setSecretRevealed(false);
+      setSecretCompleted(false);
+      secretRevealScheduledRef.current = false;
+      secretFinaleTriggeredRef.current = false;
     }
   }, [scale, todayKey]);
 
+  const prevScaleInitRef = useRef<GridScale | null>(null);
   useEffect(() => {
+    if (prevScaleInitRef.current === scale) return;
+    prevScaleInitRef.current = scale;
+
+    if (secretRevealTimerRef.current !== null) {
+      window.clearTimeout(secretRevealTimerRef.current);
+      secretRevealTimerRef.current = null;
+    }
+    setSecretModalVariant(null);
     syncSavedProgress();
 
     const firstWord = puzzle.words[0];
@@ -275,7 +316,7 @@ export default function MPColossalApp() {
     }
     prevCompletedQuestIdsRef.current = null;
     setQuestCompletePopup(null);
-  }, [scale, puzzle, syncSavedProgress]);
+  }, [scale, puzzle.words, syncSavedProgress]);
 
   useEffect(() => {
     window.addEventListener('unified-auth-updated', syncSavedProgress);
@@ -298,6 +339,8 @@ export default function MPColossalApp() {
         hintsUsed,
         elapsedSeconds,
         solvedTodayDate: solvedTodayFlag ? todayKey : undefined,
+        ...(scale === 'colossal' && secretRevealed ? { secretRevealed: true } : {}),
+        ...(scale === 'colossal' && secretCompleted ? { secretCompleted: true } : {}),
       };
       window.localStorage.setItem(getScaleStorageKey(scale), JSON.stringify(payload));
       if (Object.keys(userGrid).length > 0 || solvedTodayFlag) {
@@ -315,16 +358,27 @@ export default function MPColossalApp() {
     } catch {
       // Ignore quota errors
     }
-  }, [userGrid, revealedCells, hintsUsed, elapsedSeconds, solvedTodayFlag, todayKey, scale, gameState]);
+  }, [
+    userGrid,
+    revealedCells,
+    hintsUsed,
+    elapsedSeconds,
+    solvedTodayFlag,
+    secretRevealed,
+    secretCompleted,
+    todayKey,
+    scale,
+    gameState,
+  ]);
 
   // Session timer when actively playing and modals are closed
   useEffect(() => {
-    if (gameState !== 'PLAYING' || showAuthModal) return;
+    if (gameState !== 'PLAYING' || showAuthModal || secretModalVariant !== null) return;
     const timer = window.setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [gameState, showAuthModal]);
+  }, [gameState, showAuthModal, secretModalVariant]);
 
   // Compute solved words set
   const solvedWordIds = useMemo(() => {
@@ -471,24 +525,76 @@ export default function MPColossalApp() {
       if (questPopupTimerRef.current !== null) {
         window.clearTimeout(questPopupTimerRef.current);
       }
+      if (secretRevealTimerRef.current !== null) {
+        window.clearTimeout(secretRevealTimerRef.current);
+      }
     };
   }, []);
 
-  // Trigger Victory when all words solved
+  // Trigger Victory / Hidden 25x200 Reveal / Grand Finale when all words solved
   useEffect(() => {
     if (
-      gameState === 'PLAYING' &&
-      puzzle.words.length > 0 &&
-      solvedWordIds.size === puzzle.words.length
+      gameState !== 'PLAYING' ||
+      puzzle.words.length === 0 ||
+      solvedWordIds.size !== puzzle.words.length
     ) {
-      sound.playQuestComplete();
-      triggerVictoryConfetti();
-      setSolvedTodayFlag(true);
-      recordDailyPuzzleSolved('mpcolossal', todayKey, 1);
-      syncLeaderboardProgress(true);
-      setGameState('GAME_OVER');
+      return;
     }
-  }, [solvedWordIds.size, puzzle.words.length, gameState, todayKey, syncLeaderboardProgress]);
+
+    if (scale === 'colossal') {
+      if (!secretRevealed) {
+        // Silent 10-second pause after final main-grid clue, then explosive cartoon reveal of 25x200 vault
+        if (!secretRevealScheduledRef.current) {
+          secretRevealScheduledRef.current = true;
+          setSolvedTodayFlag(true);
+          recordDailyPuzzleSolved('mpcolossal', todayKey, 1);
+          syncLeaderboardProgress(true);
+
+          secretRevealTimerRef.current = window.setTimeout(() => {
+            secretRevealTimerRef.current = null;
+            setGameState('PLAYING');
+            setQuestCompletePopup(null);
+            setSecretRevealed(true);
+            setSecretModalVariant('reveal');
+            sound.playSecretExplosion();
+            triggerVictoryConfetti();
+            window.setTimeout(() => triggerVictoryConfetti(), 550);
+          }, 10000);
+        }
+        return;
+      }
+
+      // Extended 225x200 puzzle completed: explosive visual flair + fanfare + grand finale popup
+      if (!secretFinaleTriggeredRef.current) {
+        secretFinaleTriggeredRef.current = true;
+        setSecretCompleted(true);
+        setSolvedTodayFlag(true);
+        recordDailyPuzzleSolved('mpcolossal', todayKey, 1);
+        syncLeaderboardProgress(true);
+        sound.playGrandFanfare();
+        triggerVictoryConfetti();
+        window.setTimeout(() => triggerVictoryConfetti(), 650);
+        window.setTimeout(() => triggerVictoryConfetti(), 1350);
+        setSecretModalVariant('finale');
+      }
+      return;
+    }
+
+    sound.playQuestComplete();
+    triggerVictoryConfetti();
+    setSolvedTodayFlag(true);
+    recordDailyPuzzleSolved('mpcolossal', todayKey, 1);
+    syncLeaderboardProgress(true);
+    setGameState('GAME_OVER');
+  }, [
+    solvedWordIds.size,
+    puzzle.words.length,
+    gameState,
+    scale,
+    secretRevealed,
+    todayKey,
+    syncLeaderboardProgress,
+  ]);
 
   // Determine active word from selectedCell and direction
   const activeWord: PlacedWord | null = useMemo(() => {
@@ -604,8 +710,8 @@ export default function MPColossalApp() {
 
   const handleCenterCell = useCallback(
     (row: number, col: number) => {
-      const clampedRow = Math.max(0, Math.min(puzzle.size - 1, row));
-      const clampedCol = Math.max(0, Math.min(puzzle.size - 1, col));
+      const clampedRow = Math.max(0, Math.min((puzzle.rows || puzzle.size) - 1, row));
+      const clampedCol = Math.max(0, Math.min((puzzle.cols || puzzle.size) - 1, col));
       setPanTarget({ row: clampedRow, col: clampedCol, timestamp: Date.now() });
 
       for (let rad = 0; rad <= 6; rad++) {
@@ -832,7 +938,7 @@ export default function MPColossalApp() {
 
   // Global keyboard shortcuts during PLAYING state
   useEffect(() => {
-    if (gameState !== 'PLAYING' || showAuthModal) return;
+    if (gameState !== 'PLAYING' || showAuthModal || secretModalVariant !== null) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
       const targetEl = e.target as HTMLElement | null;
@@ -842,10 +948,16 @@ export default function MPColossalApp() {
 
       if (e.key === 'Escape') {
         e.preventDefault();
+        if (showStreamMenu) {
+          setShowStreamMenu(false);
+          return;
+        }
         syncLeaderboardProgress(false);
         setGameState('PAUSED');
         return;
       }
+
+      if (showStreamMenu) return;
 
       if (e.key === 'Tab') {
         e.preventDefault();
@@ -906,6 +1018,8 @@ export default function MPColossalApp() {
   }, [
     gameState,
     showAuthModal,
+    secretModalVariant,
+    showStreamMenu,
     selectedCell,
     direction,
     puzzle.cells,
@@ -996,21 +1110,39 @@ export default function MPColossalApp() {
 
   const handleAutoSolveEntireBoard = () => {
     const nextGrid: Record<string, string> = {};
-    for (let r = 0; r < puzzle.size; r++) {
-      for (let c = 0; c < puzzle.size; c++) {
-        const sol = puzzle.cells[r][c].solution;
+    const maxR = puzzle.rows || puzzle.size;
+    const maxC = puzzle.cols || puzzle.size;
+    for (let r = 0; r < maxR; r++) {
+      const rowArr = puzzle.cells[r];
+      if (!rowArr) continue;
+      for (let c = 0; c < maxC; c++) {
+        const sol = rowArr[c]?.solution;
         if (sol) {
           nextGrid[`${r},${c}`] = sol;
         }
       }
     }
     setUserGrid(nextGrid);
+    if (scale === 'colossal') {
+      // Return to active board so the 10-second secret reveal or grand finale flow triggers authentically
+      setGameState('PLAYING');
+      return;
+    }
     sound.playQuestComplete();
     triggerVictoryConfetti();
     setGameState('GAME_OVER');
   };
 
   const handleRestartPuzzle = () => {
+    if (secretRevealTimerRef.current !== null) {
+      window.clearTimeout(secretRevealTimerRef.current);
+      secretRevealTimerRef.current = null;
+    }
+    secretRevealScheduledRef.current = false;
+    secretFinaleTriggeredRef.current = false;
+    setSecretRevealed(false);
+    setSecretCompleted(false);
+    setSecretModalVariant(null);
     setUserGrid({});
     setRevealedCells({});
     setHintsUsed(0);
@@ -1035,6 +1167,7 @@ export default function MPColossalApp() {
   const handleChangeStreamLayout = useCallback(
     (enabled: boolean) => {
       setStreamLayout(enabled);
+      setShowStreamMenu(false);
       if (enabled) {
         setIsDesktopSidebarOpen(false);
         setIsMobileSidebarOpen(false);
@@ -1133,73 +1266,51 @@ export default function MPColossalApp() {
         className="sr-only fixed -top-96 left-0 opacity-0 pointer-events-none"
       />
 
-      {/* Top Missing Piece HUD Bar */}
-      <header
-        className={`${
-          streamLayout
-            ? 'min-h-10 py-1 px-2 gap-1.5'
-            : 'min-h-12 sm:min-h-14 py-1.5 px-2 sm:px-4 gap-1.5 sm:gap-3'
-        } bg-white/95 dark:bg-[#1a0624]/95 border-b border-purple-200 dark:border-purple-900/60 flex flex-wrap items-center justify-between shrink-0 z-30 backdrop-blur-md`}
-      >
-        {/* Left: Solo Games Back + 3D Logo + Title */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-          <Link
-            to="/solo-games"
-            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold text-[#4a1259] dark:text-amber-300 bg-purple-100/80 dark:bg-purple-900/50 hover:bg-purple-200/80 dark:hover:bg-purple-800/60 border border-purple-200/80 dark:border-purple-700/60 transition-colors whitespace-nowrap shrink-0"
-            title="Back to Solo Games"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="hidden xl:inline">Solo Games</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => {
-              syncLeaderboardProgress(false);
-              setGameState('TITLE_MENU');
-            }}
-            className="flex items-center gap-1.5 sm:gap-2 text-left group shrink-0 cursor-pointer"
-          >
-            <img
-              src="/assets/aistudio/3d_logo_944e5372.png"
-              alt="MP Colossal"
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-contain drop-shadow"
-            />
-            <span
-              className={`${
-                streamLayout ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'
-              } font-extrabold tracking-tight text-[#3b0d47] dark:text-white group-hover:text-amber-500 dark:group-hover:text-[#F6C915] transition-colors whitespace-nowrap`}
+      {/* Top Missing Piece HUD Bar (hidden completely in Stream View; options live behind bottom Menu button) */}
+      {!streamLayout && (
+        <header className="min-h-12 sm:min-h-14 py-1.5 px-2 sm:px-4 gap-1.5 sm:gap-3 bg-white/95 dark:bg-[#1a0624]/95 border-b border-purple-200 dark:border-purple-900/60 flex flex-wrap items-center justify-between shrink-0 z-30 backdrop-blur-md">
+          {/* Left: Solo Games Back + 3D Logo + Title */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+            <Link
+              to="/solo-games"
+              className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold text-[#4a1259] dark:text-amber-300 bg-purple-100/80 dark:bg-purple-900/50 hover:bg-purple-200/80 dark:hover:bg-purple-800/60 border border-purple-200/80 dark:border-purple-700/60 transition-colors whitespace-nowrap shrink-0"
+              title="Back to Solo Games"
             >
-              MP <span className="text-amber-500 dark:text-[#F6C915]">Colossal</span>
-            </span>
-          </button>
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline">Solo Games</span>
+            </Link>
 
-          {streamLayout ? (
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-purple-300 font-mono-tabular whitespace-nowrap">
-              <span aria-hidden="true">·</span>
-              <span className="text-amber-600 dark:text-[#F6C915] font-bold">12×12</span>
-              <span aria-hidden="true">·</span>
-              <span>
-                <strong className="text-[#3b0d47] dark:text-white">{solvedWordIds.size}</strong>/
-                {puzzle.words.length}
+            <button
+              type="button"
+              onClick={() => {
+                syncLeaderboardProgress(false);
+                setGameState('TITLE_MENU');
+              }}
+              className="flex items-center gap-1.5 sm:gap-2 text-left group shrink-0 cursor-pointer"
+            >
+              <img
+                src="/assets/aistudio/3d_logo_944e5372.png"
+                alt="MP Colossal"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-contain drop-shadow"
+              />
+              <span className="text-sm sm:text-base font-extrabold tracking-tight text-[#3b0d47] dark:text-white group-hover:text-amber-500 dark:group-hover:text-[#F6C915] transition-colors whitespace-nowrap">
+                MP <span className="text-amber-500 dark:text-[#F6C915]">Colossal</span>
               </span>
-            </div>
-          ) : (
+            </button>
+
             <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 dark:text-purple-300/80 font-mono-tabular truncate">
               <span aria-hidden="true">·</span>
               <span className="text-amber-600 dark:text-[#F6C915] font-bold">
-                {puzzle.size}×{puzzle.size}
+                {puzzle.rows}×{puzzle.cols}
               </span>
               <span aria-hidden="true">·</span>
               <span className="truncate text-[#4a1259] dark:text-purple-200 font-medium">
                 {currentSector?.name}
               </span>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Center Telemetry */}
-        {!streamLayout && (
+          {/* Center Telemetry */}
           <div className="hidden xl:flex items-center gap-3 text-xs font-mono-tabular text-slate-600 dark:text-purple-200/85 bg-purple-50/80 dark:bg-[#240938] px-3 py-1.5 rounded-xl border border-purple-200/70 dark:border-purple-800/60">
             <span>
               Words:{' '}
@@ -1224,11 +1335,9 @@ export default function MPColossalApp() {
               </strong>
             </span>
           </div>
-        )}
 
-        {/* Right Utility Controls */}
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          {!streamLayout && (
+          {/* Right Utility Controls */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <div className="hidden sm:flex items-center bg-purple-50 dark:bg-[#11031A] border border-purple-200 dark:border-purple-800/70 rounded-lg p-0.5">
               <button
                 type="button"
@@ -1255,110 +1364,108 @@ export default function MPColossalApp() {
                 <ZoomIn className="w-3.5 h-3.5" />
               </button>
             </div>
-          )}
 
-          <button
-            type="button"
-            onClick={() =>
-              setPanTarget({
-                row: selectedCell.row,
-                col: selectedCell.col,
-                timestamp: Date.now(),
-              })
-            }
-            title="Center Active Cell"
-            className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-[#4a1259] dark:text-purple-100 bg-purple-50 dark:bg-[#240938] border border-purple-200 dark:border-purple-800/70 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
-          >
-            <LocateFixed className="w-3.5 h-3.5 text-amber-500 dark:text-[#F6C915]" />
-            {!streamLayout && <span className="hidden md:inline">Center</span>}
-          </button>
+            <button
+              type="button"
+              onClick={() =>
+                setPanTarget({
+                  row: selectedCell.row,
+                  col: selectedCell.col,
+                  timestamp: Date.now(),
+                })
+              }
+              title="Center Active Cell"
+              className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-[#4a1259] dark:text-purple-100 bg-purple-50 dark:bg-[#240938] border border-purple-200 dark:border-purple-800/70 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <LocateFixed className="w-3.5 h-3.5 text-amber-500 dark:text-[#F6C915]" />
+              <span className="hidden md:inline">Center</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setShowErrors((prev) => !prev)}
-            title="Highlight Incorrect Letters"
-            className={`inline-flex items-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
-              showErrors
-                ? 'bg-emerald-500/15 border-emerald-500/60 text-emerald-700 dark:text-emerald-300'
-                : 'bg-purple-50 dark:bg-[#240938] border-purple-200 dark:border-purple-800/70 text-[#4a1259] dark:text-purple-200'
-            }`}
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span className={streamLayout ? 'inline' : 'hidden sm:inline'}>Check</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setShowErrors((prev) => !prev)}
+              title="Highlight Incorrect Letters"
+              className={`inline-flex items-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
+                showErrors
+                  ? 'bg-emerald-500/15 border-emerald-500/60 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-purple-50 dark:bg-[#240938] border-purple-200 dark:border-purple-800/70 text-[#4a1259] dark:text-purple-200'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Check</span>
+            </button>
 
-          {/* Clues Drawer Toggle */}
-          <button
-            type="button"
-            onClick={() => setIsDesktopSidebarOpen((prev) => !prev)}
-            title={isDesktopSidebarOpen ? 'Hide Side Clue Bar' : 'Show Side Clue Bar'}
-            className={`hidden lg:inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
-              isDesktopSidebarOpen
-                ? 'bg-[#F6C915] text-[#1D0830] border-[#D4A437]'
-                : 'bg-purple-50 dark:bg-[#240938] text-[#4a1259] dark:text-purple-100 border-purple-200 dark:border-purple-800/70'
-            }`}
-          >
-            {isDesktopSidebarOpen ? (
-              <PanelRightClose className="w-3.5 h-3.5" />
+            {/* Clues Drawer Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsDesktopSidebarOpen((prev) => !prev)}
+              title={isDesktopSidebarOpen ? 'Hide Side Clue Bar' : 'Show Side Clue Bar'}
+              className={`hidden lg:inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
+                isDesktopSidebarOpen
+                  ? 'bg-[#F6C915] text-[#1D0830] border-[#D4A437]'
+                  : 'bg-purple-50 dark:bg-[#240938] text-[#4a1259] dark:text-purple-100 border-purple-200 dark:border-purple-800/70'
+              }`}
+            >
+              {isDesktopSidebarOpen ? (
+                <PanelRightClose className="w-3.5 h-3.5" />
+              ) : (
+                <PanelRightOpen className="w-3.5 h-3.5" />
+              )}
+              <span>Clues</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileSidebarOpen((prev) => !prev)}
+              title="Open Quests & Clue List"
+              className="lg:hidden inline-flex items-center gap-1 px-2 py-1.5 text-xs font-bold text-[#1D0830] bg-[#F6C915] border border-[#D4A437] rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Clues</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={openLeaderboardModal}
+              title="Leaderboard"
+              className="hidden sm:inline-flex p-1.5 text-amber-600 dark:text-[#F6C915] bg-amber-500/10 border border-amber-400/35 rounded-lg transition-colors cursor-pointer"
+            >
+              <Trophy className="w-4 h-4" />
+            </button>
+
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={openSignInModal}
+                title="Account"
+                className="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold cursor-pointer"
+              >
+                <UserProfileIcon
+                  user={currentUser}
+                  className="w-4 h-4 shrink-0"
+                  fallback={<UserIcon className="w-3.5 h-3.5" />}
+                />
+                <span className="max-w-[80px] truncate">{getCleanDisplayName(currentUser)}</span>
+              </button>
             ) : (
-              <PanelRightOpen className="w-3.5 h-3.5" />
+              <button
+                type="button"
+                onClick={openSignInModal}
+                title="Sign In"
+                className="hidden md:inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#2d0938] text-amber-300 border border-amber-400/40 text-xs font-bold cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
             )}
-            <span>Clues</span>
-          </button>
 
-          <button
-            type="button"
-            onClick={() => setIsMobileSidebarOpen((prev) => !prev)}
-            title="Open Quests & Clue List"
-            className="lg:hidden inline-flex items-center gap-1 px-2 py-1.5 text-xs font-bold text-[#1D0830] bg-[#F6C915] border border-[#D4A437] rounded-lg transition-colors cursor-pointer whitespace-nowrap"
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span className="hidden xs:inline">Clues</span>
-          </button>
+            <DailyStreakBadge
+              streak={dailyStreak.streak}
+              solvedToday={dailyStreak.solvedToday}
+              variant="light"
+              compact
+            />
 
-          <button
-            type="button"
-            onClick={openLeaderboardModal}
-            title="Leaderboard"
-            className="hidden sm:inline-flex p-1.5 text-amber-600 dark:text-[#F6C915] bg-amber-500/10 border border-amber-400/35 rounded-lg transition-colors cursor-pointer"
-          >
-            <Trophy className="w-4 h-4" />
-          </button>
-
-          {currentUser ? (
-            <button
-              type="button"
-              onClick={openSignInModal}
-              title="Account"
-              className="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold cursor-pointer"
-            >
-              <UserProfileIcon
-                user={currentUser}
-                className="w-4 h-4 shrink-0"
-                fallback={<UserIcon className="w-3.5 h-3.5" />}
-              />
-              <span className="max-w-[80px] truncate">{getCleanDisplayName(currentUser)}</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={openSignInModal}
-              title="Sign In"
-              className="hidden md:inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#2d0938] text-amber-300 border border-amber-400/40 text-xs font-bold cursor-pointer"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Sign In</span>
-            </button>
-          )}
-
-          <DailyStreakBadge
-            streak={dailyStreak.streak}
-            solvedToday={dailyStreak.solvedToday}
-            variant="light"
-            compact
-          />
-
-          {!streamLayout && (
             <button
               type="button"
               onClick={() => setIsMuted(sound.toggleMute())}
@@ -1371,42 +1478,42 @@ export default function MPColossalApp() {
                 <Volume2 className="w-4 h-4 text-amber-500 dark:text-[#F6C915]" />
               )}
             </button>
-          )}
 
-          <button
-            type="button"
-            onClick={() => setDarkMode((d) => !d)}
-            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="p-1.5 text-[#4a1259] dark:text-purple-200 bg-purple-50 dark:bg-[#240938] border border-purple-200 dark:border-purple-800/70 rounded-lg transition-colors cursor-pointer"
-          >
-            {darkMode ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-[#4a1259]" />
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={() => setDarkMode((d) => !d)}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="p-1.5 text-[#4a1259] dark:text-purple-200 bg-purple-50 dark:bg-[#240938] border border-purple-200 dark:border-purple-800/70 rounded-lg transition-colors cursor-pointer"
+            >
+              {darkMode ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-[#4a1259]" />
+              )}
+            </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              syncLeaderboardProgress(false);
-              setGameState('PAUSED');
-            }}
-            className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-extrabold text-[#1D0830] bg-[#F6C915] hover:bg-[#FFE047] rounded-lg transition-colors cursor-pointer whitespace-nowrap shadow-xs"
-          >
-            <Pause className="w-3.5 h-3.5 fill-current" />
-            <span>Menu</span>
-          </button>
-        </div>
-      </header>
+            <button
+              type="button"
+              onClick={() => {
+                syncLeaderboardProgress(false);
+                setGameState('PAUSED');
+              }}
+              className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-extrabold text-[#1D0830] bg-[#F6C915] hover:bg-[#FFE047] rounded-lg transition-colors cursor-pointer whitespace-nowrap shadow-xs"
+            >
+              <Pause className="w-3.5 h-3.5 fill-current" />
+              <span>Menu</span>
+            </button>
+          </div>
+        </header>
+      )}
 
       {/* Main Workspace */}
       <div className="flex-1 flex min-h-0 relative">
         {/* Left/Center Playfield Column */}
         <div className="flex-1 flex flex-col min-w-0 relative">
           {streamLayout ? (
-            /* STREAM LAYOUT TOP CLUE BANNER */
-            <div className="w-full bg-white/95 dark:bg-[#1a0624] border-b border-purple-200 dark:border-purple-900/60 flex justify-center shrink-0 z-20 px-1.5">
+            /* STREAM LAYOUT TOP CLUE BANNER — expanded using reclaimed header space for high readability */
+            <div className="w-full bg-white/95 dark:bg-[#1a0624] border-b border-purple-200 dark:border-purple-900/60 flex justify-center shrink-0 z-20 px-2">
               <button
                 type="button"
                 onClick={toggleActiveDirection}
@@ -1415,29 +1522,29 @@ export default function MPColossalApp() {
                   width: streamGridWidthPx > 0 ? `${streamGridWidthPx}px` : '100%',
                   maxWidth: '100%',
                 }}
-                className="px-2.5 py-2 hover:bg-purple-50 dark:hover:bg-[#240938] flex flex-col items-center justify-center gap-1 text-center transition-colors cursor-pointer"
+                className="px-3 py-2.5 sm:py-3 hover:bg-purple-50 dark:hover:bg-[#240938] flex flex-col items-center justify-center gap-1.5 text-center transition-colors cursor-pointer"
               >
                 {activeWord ? (
                   <>
-                    <div className="flex items-center justify-center gap-2 text-xs">
-                      <span className="font-mono-tabular text-[11px] font-extrabold text-[#1D0830] bg-[#F6C915] px-2 py-0.5 rounded whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-2.5 text-xs sm:text-sm">
+                      <span className="font-mono-tabular text-xs sm:text-sm font-extrabold text-[#1D0830] bg-[#F6C915] px-2.5 py-0.5 rounded-md whitespace-nowrap">
                         {activeWord.number} {activeWord.direction === 'across' ? 'ACROSS' : 'DOWN'}
                       </span>
-                      <span className="text-[11px] font-mono-tabular text-slate-500 dark:text-purple-300 whitespace-nowrap">
+                      <span className="text-xs sm:text-sm font-mono-tabular font-medium text-slate-600 dark:text-purple-200 whitespace-nowrap">
                         {activeWord.category}
                       </span>
                     </div>
-                    <div className="w-full h-11 sm:h-13">
+                    <div className="w-full h-20 sm:h-24">
                       <DynamicClueText
                         text={activeWord.clue}
                         centered
-                        maxPx={16.5}
-                        minPx={9}
+                        maxPx={28}
+                        minPx={13}
                       />
                     </div>
                   </>
                 ) : (
-                  <div className="h-12 flex items-center justify-center text-sm text-slate-500 dark:text-purple-300 text-center">
+                  <div className="h-20 sm:h-24 flex items-center justify-center text-base sm:text-lg font-medium text-slate-500 dark:text-purple-300 text-center">
                     Select any white square on the 12×12 grid to view its clue
                   </div>
                 )}
@@ -1584,10 +1691,241 @@ export default function MPColossalApp() {
 
           {/* Bottom Action & Clue Bar */}
           <div
-            className={`bg-white/95 dark:bg-[#1a0624]/95 border-t border-purple-200 dark:border-purple-900/60 ${
+            className={`relative bg-white/95 dark:bg-[#1a0624]/95 border-t border-purple-200 dark:border-purple-900/60 ${
               streamLayout ? 'px-2.5 py-2' : 'px-2.5 sm:px-4 py-2 space-y-2'
             } z-30 shrink-0`}
           >
+            {/* Stream View Menu Popover containing all header options */}
+            {streamLayout && showStreamMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
+                  onClick={() => setShowStreamMenu(false)}
+                />
+                <div
+                  role="dialog"
+                  aria-label="Stream View Menu"
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-[min(94vw,420px)] bg-white dark:bg-[#1c0729] border-2 border-[#D4A437]/70 rounded-2xl shadow-2xl p-3.5 space-y-3"
+                >
+                  {/* Brand, Solo Games, and Close */}
+                  <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-purple-200 dark:border-purple-800/70">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowStreamMenu(false);
+                        syncLeaderboardProgress(false);
+                        setGameState('TITLE_MENU');
+                      }}
+                      className="flex items-center gap-2 text-left group cursor-pointer min-w-0"
+                    >
+                      <img
+                        src="/assets/aistudio/3d_logo_944e5372.png"
+                        alt="MP Colossal"
+                        className="w-7 h-7 rounded-full object-contain drop-shadow shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-extrabold tracking-tight text-[#3b0d47] dark:text-white group-hover:text-amber-500 dark:group-hover:text-[#F6C915] transition-colors truncate">
+                          MP <span className="text-amber-500 dark:text-[#F6C915]">Colossal</span>
+                        </div>
+                        <div className="text-[11px] font-mono-tabular text-slate-500 dark:text-purple-300 truncate">
+                          12×12 Stream · {currentSector?.name}
+                        </div>
+                      </div>
+                    </button>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Link
+                        to="/solo-games"
+                        onClick={() => setShowStreamMenu(false)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#4a1259] dark:text-amber-300 bg-purple-100/80 dark:bg-purple-900/50 hover:bg-purple-200/80 dark:hover:bg-purple-800/60 border border-purple-200/80 dark:border-purple-700/60 transition-colors whitespace-nowrap"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Solo Games</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setShowStreamMenu(false)}
+                        aria-label="Close Menu"
+                        className="p-1.5 rounded-lg text-[#4a1259] dark:text-purple-200 bg-purple-50 dark:bg-[#2a0c3f] hover:bg-purple-100 dark:hover:bg-purple-900/70 border border-purple-200 dark:border-purple-800/70 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Progress & Streak Summary */}
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-purple-50/90 dark:bg-[#240938] border border-purple-200/80 dark:border-purple-800/60 text-xs font-mono-tabular">
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-slate-600 dark:text-purple-200">
+                      <span>
+                        Words:{' '}
+                        <strong className="text-[#3b0d47] dark:text-white">
+                          {solvedWordIds.size.toLocaleString()}
+                        </strong>
+                        /{puzzle.words.length.toLocaleString()}
+                      </span>
+                      <span>
+                        Quests:{' '}
+                        <strong className="text-emerald-600 dark:text-emerald-400">
+                          {completedQuestsCount}
+                        </strong>
+                        /{puzzle.quests.length}
+                      </span>
+                      <span>
+                        Score:{' '}
+                        <strong className="text-amber-600 dark:text-[#F6C915]">
+                          {atlasScore.toLocaleString()}
+                        </strong>
+                      </span>
+                    </div>
+                    <DailyStreakBadge
+                      streak={dailyStreak.streak}
+                      solvedToday={dailyStreak.solvedToday}
+                      variant="light"
+                      compact
+                    />
+                  </div>
+
+                  {/* All Header Controls Grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPanTarget({
+                          row: selectedCell.row,
+                          col: selectedCell.col,
+                          timestamp: Date.now(),
+                        });
+                        setShowStreamMenu(false);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#4a1259] dark:text-purple-100 bg-purple-50 dark:bg-[#240938] hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800/70 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <LocateFixed className="w-4 h-4 text-amber-500 dark:text-[#F6C915] shrink-0" />
+                      <span>Center Cell</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowErrors((prev) => !prev)}
+                      className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border transition-colors cursor-pointer ${
+                        showErrors
+                          ? 'bg-emerald-500/15 border-emerald-500/60 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-purple-50 dark:bg-[#240938] border-purple-200 dark:border-purple-800/70 text-[#4a1259] dark:text-purple-100 hover:bg-purple-100 dark:hover:bg-purple-900/60'
+                      }`}
+                    >
+                      <Eye className="w-4 h-4 shrink-0" />
+                      <span>Check Errors: {showErrors ? 'On' : 'Off'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.innerWidth >= 1024) {
+                          setIsDesktopSidebarOpen((prev) => !prev);
+                        } else {
+                          setIsMobileSidebarOpen((prev) => !prev);
+                        }
+                        setShowStreamMenu(false);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#1D0830] bg-[#F6C915] hover:bg-[#FFE047] border border-[#D4A437] rounded-xl transition-colors cursor-pointer"
+                    >
+                      <BookOpen className="w-4 h-4 shrink-0" />
+                      <span>Clues &amp; Quests</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowStreamMenu(false);
+                        openLeaderboardModal();
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-[#F6C915] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/35 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <Trophy className="w-4 h-4 shrink-0" />
+                      <span>Leaderboard</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowStreamMenu(false);
+                        openSignInModal();
+                      }}
+                      className={`flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl border transition-colors cursor-pointer ${
+                        currentUser
+                          ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-800 dark:text-emerald-300'
+                          : 'bg-[#2d0938] text-amber-300 border-amber-400/40 hover:bg-[#3e0e4d]'
+                      }`}
+                    >
+                      {currentUser ? (
+                        <>
+                          <UserProfileIcon
+                            user={currentUser}
+                            className="w-4 h-4 shrink-0"
+                            fallback={<UserIcon className="w-3.5 h-3.5 shrink-0" />}
+                          />
+                          <span className="truncate">{getCleanDisplayName(currentUser)}</span>
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="w-4 h-4 shrink-0" />
+                          <span>Sign In</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsMuted(sound.toggleMute())}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#4a1259] dark:text-purple-100 bg-purple-50 dark:bg-[#240938] hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800/70 rounded-xl transition-colors cursor-pointer"
+                    >
+                      {isMuted ? (
+                        <VolumeX className="w-4 h-4 text-rose-500 shrink-0" />
+                      ) : (
+                        <Volume2 className="w-4 h-4 text-amber-500 dark:text-[#F6C915] shrink-0" />
+                      )}
+                      <span>{isMuted ? 'Audio Muted' : 'Audio On'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDarkMode((d) => !d)}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#4a1259] dark:text-purple-100 bg-purple-50 dark:bg-[#240938] hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800/70 rounded-xl transition-colors cursor-pointer"
+                    >
+                      {darkMode ? (
+                        <Sun className="w-4 h-4 text-amber-400 shrink-0" />
+                      ) : (
+                        <Moon className="w-4 h-4 text-[#4a1259] shrink-0" />
+                      )}
+                      <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleChangeStreamLayout(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#4a1259] dark:text-purple-100 bg-purple-50 dark:bg-[#240938] hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800/70 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <LayoutGrid className="w-4 h-4 text-amber-500 dark:text-[#F6C915] shrink-0" />
+                      <span>Full Atlas View</span>
+                    </button>
+                  </div>
+
+                  {/* Atlas Pause / Scale / Reset Menu Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowStreamMenu(false);
+                      syncLeaderboardProgress(false);
+                      setGameState('PAUSED');
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-extrabold text-[#1D0830] bg-[#F6C915] hover:bg-[#FFE047] rounded-xl transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Pause className="w-3.5 h-3.5 fill-current" />
+                    <span>Atlas Pause, Grid Scale &amp; Reset</span>
+                  </button>
+                </div>
+              </>
+            )}
+
             {!streamLayout && (
               <div className="flex items-center justify-between gap-2">
                 <button
@@ -1718,15 +2056,32 @@ export default function MPColossalApp() {
               </button>
 
               {streamLayout && (
-                <button
-                  type="button"
-                  onClick={() => stepToAdjacentWord(1)}
-                  aria-label="Next Clue"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[#4a1259] dark:text-purple-100 bg-purple-50 dark:bg-[#240938] border border-purple-200 dark:border-purple-800/70 rounded-lg cursor-pointer whitespace-nowrap"
-                >
-                  <span>Next</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => stepToAdjacentWord(1)}
+                    aria-label="Next Clue"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[#4a1259] dark:text-purple-100 bg-purple-50 dark:bg-[#240938] border border-purple-200 dark:border-purple-800/70 rounded-lg cursor-pointer whitespace-nowrap"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowStreamMenu((prev) => !prev)}
+                    aria-expanded={showStreamMenu}
+                    aria-label="Toggle Stream Menu"
+                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-extrabold rounded-lg border transition-colors cursor-pointer whitespace-nowrap shadow-xs ${
+                      showStreamMenu
+                        ? 'bg-[#2B0938] text-[#F6C915] border-[#F6C915]'
+                        : 'bg-[#F6C915] hover:bg-[#FFE047] text-[#1D0830] border-[#D4A437]'
+                    }`}
+                  >
+                    {showStreamMenu ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
+                    <span>Menu</span>
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -1768,6 +2123,43 @@ export default function MPColossalApp() {
         onReturnToTitle={() => setGameState('TITLE_MENU')}
         onAutoSolveEntireBoard={handleAutoSolveEntireBoard}
         onOpenLeaderboard={openLeaderboardModal}
+      />
+
+      {/* Secret 25x200 Reveal & Grand Finale Celebration Modal (MP Colossal only) */}
+      <SecretCelebrationModal
+        variant={secretModalVariant}
+        secretWordCount={Math.max(0, puzzle.words.length - puzzle.mainWordCount)}
+        totalWordsSolved={solvedWordIds.size}
+        elapsedSeconds={elapsedSeconds}
+        atlasScore={atlasScore}
+        onPrimaryAction={() => {
+          const currentVariant = secretModalVariant;
+          setSecretModalVariant(null);
+          if (currentVariant === 'reveal') {
+            const firstSecret = puzzle.words.find((w) => w.isSecret);
+            if (firstSecret) {
+              handleSelectWord(firstSecret);
+            } else {
+              handleCenterCell(puzzle.secretStartRow ?? 200, Math.floor((puzzle.cols || 200) / 2));
+            }
+          }
+        }}
+        onReplayFanfare={
+          secretModalVariant === 'finale'
+            ? () => {
+                sound.playGrandFanfare();
+                triggerVictoryConfetti();
+              }
+            : undefined
+        }
+        onOpenLeaderboard={() => {
+          setSecretModalVariant(null);
+          openLeaderboardModal();
+        }}
+        onReturnToTitle={() => {
+          setSecretModalVariant(null);
+          setGameState('TITLE_MENU');
+        }}
       />
 
       {/* Unified Solo Games Auth & Public Leaderboard Modal */}
