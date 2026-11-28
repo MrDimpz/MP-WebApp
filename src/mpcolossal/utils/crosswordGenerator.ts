@@ -1,5 +1,4 @@
 import { SECTORS, VOCAB_BANK, VocabEntry, SectorInfo } from '../data/wordBank';
-import { COLOSSAL_EXTENDED_BANK } from '../data/colossalExtendedBank';
 
 export type Direction = 'across' | 'down';
 export type GridScale = 'colossal' | 'grand' | 'district';
@@ -60,11 +59,11 @@ export const SCALE_CONFIG: Record<GridScale, {
   badge: string;
 }> = {
   colossal: {
-    size: 250,
-    label: 'Colossal Atlas (250 × 250)',
-    sublabel: '62,500 Squares · 25 Sectors · 6,400+ Clues',
+    size: 200,
+    label: 'Colossal Atlas (200 × 200)',
+    sublabel: '40,000 Squares · 25 Sectors · 4,100+ Clues',
     sectorsPerSide: 5,
-    badge: '6.25X BIGGER THAN A 100×100 CROSSWORD'
+    badge: '4X BIGGER THAN A 100×100 CROSSWORD'
   },
   grand: {
     size: 120,
@@ -422,7 +421,7 @@ export function generateColossalCrossword(scale: GridScale): CrosswordPuzzle {
   const uniqueMap = new Map<string, VocabEntry>();
   const uniqueClueKeys = new Set<string>();
 
-  for (const item of [...VOCAB_BANK, ...COLOSSAL_EXTENDED_BANK]) {
+  for (const item of VOCAB_BANK) {
     const w = item.word.toUpperCase().replace(/[^A-Z]/g, '');
     if (w.length < 4 || w.length > 12 || uniqueMap.has(w)) continue;
     const cKey = normalizeClueKey(item.standardClue);
