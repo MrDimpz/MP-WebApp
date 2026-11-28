@@ -99,6 +99,7 @@ interface DynamicClueTextProps {
   maxPx?: number;
   minPx?: number;
   centered?: boolean;
+  tightLeading?: boolean;
 }
 
 const DynamicClueText: React.FC<DynamicClueTextProps> = ({
@@ -106,6 +107,7 @@ const DynamicClueText: React.FC<DynamicClueTextProps> = ({
   maxPx = 17,
   minPx = 9.5,
   centered = false,
+  tightLeading = false,
 }) => {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const textRef = useRef<HTMLParagraphElement | null>(null);
@@ -115,27 +117,53 @@ const DynamicClueText: React.FC<DynamicClueTextProps> = ({
     const box = boxRef.current;
     const p = textRef.current;
     if (!box || !p) return;
-    if (box.clientHeight <= 0 || box.clientWidth <= 0) return;
+    const maxW = box.clientWidth;
+    const maxH = box.clientHeight;
+    if (maxH <= 0 || maxW <= 0) return;
 
-    let size = maxPx;
-    p.style.fontSize = `${size}px`;
-    while (size > minPx && (p.scrollHeight > box.clientHeight || p.scrollWidth > box.clientWidth)) {
-      size -= 0.5;
-      p.style.fontSize = `${size}px`;
+    // Binary search for the largest font size that fits cleanly inside the container without clipping
+    let low = minPx;
+    let high = Math.max(minPx, Math.min(maxPx, Math.floor(maxH * 0.94)));
+    let best = minPx;
+
+    for (let i = 0; i < 12; i++) {
+      const mid = (low + high) / 2;
+      p.style.fontSize = `${mid}px`;
+      const fitsHeight = p.scrollHeight <= maxH + 1;
+      const fitsWidth = p.scrollWidth <= maxW + 1;
+      if (fitsHeight && fitsWidth) {
+        best = mid;
+        low = mid;
+      } else {
+        high = mid;
+      }
+      if (high - low < 0.25) break;
     }
-    setFontSize(size);
+
+    const finalSize = Math.max(minPx, Math.floor(best * 2) / 2);
+    p.style.fontSize = `${finalSize}px`;
+    setFontSize(finalSize);
   }, [maxPx, minPx]);
 
   useLayoutEffect(() => {
     fitText();
-  }, [text, centered, fitText]);
+  }, [text, centered, tightLeading, fitText]);
 
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
     const ro = new ResizeObserver(fitText);
     ro.observe(box);
-    return () => ro.disconnect();
+    let active = true;
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        if (active) fitText();
+      });
+    }
+    return () => {
+      active = false;
+      ro.disconnect();
+    };
   }, [fitText]);
 
   return (
@@ -146,7 +174,9 @@ const DynamicClueText: React.FC<DynamicClueTextProps> = ({
       <p
         ref={textRef}
         style={{ fontSize: `${fontSize}px` }}
-        className={`w-full font-semibold text-[#2B0938] dark:text-[#F5F3F7] leading-snug break-words ${
+        className={`w-full m-0 ${
+          tightLeading ? 'font-bold leading-[1.12] tracking-tight' : 'font-semibold leading-snug'
+        } text-[#2B0938] dark:text-[#F5F3F7] break-words ${
           centered ? 'text-center' : ''
         }`}
       >
@@ -1512,8 +1542,8 @@ export default function MPColossalApp() {
         {/* Left/Center Playfield Column */}
         <div className="flex-1 flex flex-col min-w-0 relative">
           {streamLayout ? (
-            /* STREAM LAYOUT TOP CLUE BANNER — expanded using reclaimed header space for high readability */
-            <div className="w-full bg-white/95 dark:bg-[#1a0624] border-b border-purple-200 dark:border-purple-900/60 flex justify-center shrink-0 z-20 px-2">
+            /* STREAM LAYOUT TOP CLUE BANNER — dynamically maximizes clue font size to fill available space */
+            <div className="w-full bg-white/95 dark:bg-[#1a0624] border-b border-purple-200 dark:border-purple-900/60 flex justify-center shrink-0 z-20 px-1.5">
               <button
                 type="button"
                 onClick={toggleActiveDirection}
@@ -1522,29 +1552,30 @@ export default function MPColossalApp() {
                   width: streamGridWidthPx > 0 ? `${streamGridWidthPx}px` : '100%',
                   maxWidth: '100%',
                 }}
-                className="px-3 py-2.5 sm:py-3 hover:bg-purple-50 dark:hover:bg-[#240938] flex flex-col items-center justify-center gap-1.5 text-center transition-colors cursor-pointer"
+                className="px-2 py-1.5 sm:py-2 hover:bg-purple-50 dark:hover:bg-[#240938] flex flex-col items-center justify-center gap-1 text-center transition-colors cursor-pointer"
               >
                 {activeWord ? (
                   <>
-                    <div className="flex items-center justify-center gap-2.5 text-xs sm:text-sm">
-                      <span className="font-mono-tabular text-xs sm:text-sm font-extrabold text-[#1D0830] bg-[#F6C915] px-2.5 py-0.5 rounded-md whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-2 text-[11px] sm:text-xs shrink-0">
+                      <span className="font-mono-tabular font-extrabold text-[#1D0830] bg-[#F6C915] px-2 py-0.5 rounded whitespace-nowrap">
                         {activeWord.number} {activeWord.direction === 'across' ? 'ACROSS' : 'DOWN'}
                       </span>
-                      <span className="text-xs sm:text-sm font-mono-tabular font-medium text-slate-600 dark:text-purple-200 whitespace-nowrap">
+                      <span className="font-mono-tabular font-medium text-slate-600 dark:text-purple-200 whitespace-nowrap">
                         {activeWord.category}
                       </span>
                     </div>
-                    <div className="w-full h-20 sm:h-24">
+                    <div className="w-full h-[15vh] min-h-[96px] max-h-[176px]">
                       <DynamicClueText
                         text={activeWord.clue}
                         centered
-                        maxPx={28}
-                        minPx={13}
+                        tightLeading
+                        maxPx={120}
+                        minPx={12}
                       />
                     </div>
                   </>
                 ) : (
-                  <div className="h-20 sm:h-24 flex items-center justify-center text-base sm:text-lg font-medium text-slate-500 dark:text-purple-300 text-center">
+                  <div className="h-[15vh] min-h-[96px] max-h-[176px] flex items-center justify-center text-base sm:text-lg font-medium text-slate-500 dark:text-purple-300 text-center">
                     Select any white square on the 12×12 grid to view its clue
                   </div>
                 )}
