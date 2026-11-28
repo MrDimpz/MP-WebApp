@@ -707,6 +707,28 @@ export const SEO_ROUTES: Record<string, RouteSeoMeta> = {
       { name: "WORDLOCK", path: "/solo-games/wordlock" },
     ],
   },
+  "/solo-games/crossjig": {
+    canonicalPath: "/solo-games/crossjig",
+    title: "CrossJig — Free Tactile 3×3 Crossword Jigsaw Puzzle",
+    description:
+      "Swap 3×3 crossword fragments to reconstruct a seamless grid where every horizontal and vertical word is valid. Play Daily, Mini (3×3), Classic (3×4), and Master (3×5) jigsaw crosswords.",
+    keywords:
+      "crossjig, crossword jigsaw, 3x3 crossword tile puzzle, daily crossword jigsaw, word jigsaw game, free browser crossword game",
+    ogImagePath: "/crossjig-website-thumbnail.svg",
+    ogImageAlt: "CrossJig tactile 3×3 crossword jigsaw puzzle",
+    robots: DEFAULT_ROBOTS,
+    heading: "CrossJig — Tactile 3×3 Crossword Jigsaw",
+    summary:
+      "Drag or tap to swap 3×3 crossword tiles until every word spanning across fragment seams forms a valid dictionary entry.",
+    gameGenre: "Word & Crossword Jigsaw Game",
+    isSolo: true,
+    inLanguages: ["en"],
+    breadcrumbs: [
+      { name: "Home", path: "/" },
+      { name: "Solo Word Games", path: "/solo-games" },
+      { name: "CrossJig", path: "/solo-games/crossjig" },
+    ],
+  },
 };
 
 const ALIAS_TO_CANONICAL: Record<string, string> = {
@@ -864,6 +886,7 @@ export function buildStructuredData(meta: RouteSeoMeta, origin = SITE_ORIGIN): R
           { "@type": "ListItem", position: 12, name: "Word Hunt", url: `${origin}/solo-games/wordhunt` },
           { "@type": "ListItem", position: 13, name: "Going Deep", url: `${origin}/solo-games/goingdeep` },
           { "@type": "ListItem", position: 14, name: "WORDLOCK", url: `${origin}/solo-games/wordlock` },
+          { "@type": "ListItem", position: 15, name: "CrossJig", url: `${origin}/solo-games/crossjig` },
         ],
       },
     });

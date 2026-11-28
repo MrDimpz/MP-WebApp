@@ -69,6 +69,7 @@ export type SoloGameId =
   | "wordhunt"
   | "goingdeep"
   | "wordlock"
+  | "crossjig"
   | "cruciverbalist"
   | "crossword";
 
@@ -162,6 +163,10 @@ export const SOLO_GAME_LABELS: Record<
   wordlock: {
     title: "WORDLOCK",
     metric: "3D Mechanical Vault Score",
+  },
+  crossjig: {
+    title: "CrossJig",
+    metric: "Tactile Crossword Jigsaw Score",
   },
   cruciverbalist: {
     title: "Cruciverbalist Crossword",
@@ -462,6 +467,7 @@ const KNOWN_GAME_SAVE_PREFIXES = [
   "goingdeep_stats_v1_",
   "wordlock_progress_v1_",
   "wordlock_stats_v1_",
+  "crossjig_stats_v1_",
 ];
 
 function getOrRecoverPersistentGuestId(): string {
@@ -2463,6 +2469,7 @@ export function subscribeToAllLeaderboards(
       wordhunt: [],
       goingdeep: [],
       wordlock: [],
+      crossjig: [],
       cruciverbalist: [],
       crossword: [],
     };

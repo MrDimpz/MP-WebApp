@@ -21,7 +21,7 @@
         "gameId": {
           "type": "string",
           "description": "Identifier of the solo game.",
-          "enum": ["crossword", "rebus", "squared", "thematix", "destack", "unolingo", "wikirec", "wikicon", "mpsearch", "mpdifference", "mpcolossal", "tekscodle", "wordhunt"]
+          "enum": ["crossword", "rebus", "squared", "thematix", "destack", "unolingo", "wikirec", "wikicon", "mpsearch", "mpdifference", "mpcolossal", "tekscodle", "wordhunt", "goingdeep", "wordlock", "crossjig"]
         },
         "puzzleId": {
           "type": "string",
@@ -353,7 +353,10 @@
             "mpdifference",
             "mpcolossal",
             "tekscodle",
-            "wordhunt"
+            "wordhunt",
+            "goingdeep",
+            "wordlock",
+            "crossjig"
           ]
         },
         "payload": {

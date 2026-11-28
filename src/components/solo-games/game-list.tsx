@@ -47,8 +47,8 @@ export function SoloGameList() {
           towers, the colossal 200×200 crossword atlas, 26-letter zero-clue crosswords, 8-connected
           Wikipedia word grids, redacted Wikipedia article discovery, daily 10×10 word searches,
           twin-plate spot-the-difference challenges, UK supermarket basket price-guessing in
-          TEKSCOdle, 4-in-1 layered word puzzles in Going Deep, and 3D mechanical vault cracking in
-          WORDLOCK.
+          TEKSCOdle, 4-in-1 layered word puzzles in Going Deep, 3D mechanical vault cracking in
+          WORDLOCK, and tactile 3×3 crossword jigsaw assembly in CrossJig.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <a
@@ -99,7 +99,7 @@ export function SoloGameList() {
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
                   Your Google / Email login is synced across Crossword, Missing Rebus, Squared,
                   Thematix, DeStack, MP Colossal, Unolingo, WiKirecTangled, WikiContexto, MP Search,
-                  MP Difference, TEKSCOdle, Word Hunt, Going Deep &amp; WORDLOCK.
+                  MP Difference, TEKSCOdle, Word Hunt, Going Deep, WORDLOCK &amp; CrossJig.
                 </p>
               </>
             ) : (
@@ -111,7 +111,7 @@ export function SoloGameList() {
                   Sign in with Google or Email &amp; Password
                 </div>
                 <p className="text-xs sm:text-sm text-[#D6CBE2] mt-0.5">
-                  Use a single account across all 14 solo games to record your high scores and
+                  Use a single account across all 15 solo games to record your high scores and
                   compete on the visitor leaderboards.
                 </p>
               </>
@@ -829,6 +829,49 @@ export function SoloGameList() {
             <button
               type="button"
               onClick={() => openModal('wordlock', 'leaderboards')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
+            >
+              <Trophy size={13} />
+              <span>Leaderboard</span>
+            </button>
+          </div>
+        </article>
+
+        <article className="game-card">
+          <div className="card-top">
+            <span className="category-label">
+              <span className="status-dot" /> NOW PLAYING
+            </span>
+            <span className="card-number">16 /</span>
+          </div>
+          <Link
+            to="/solo-games/crossjig"
+            className="game-art game-art-thumb"
+            aria-label="Open CrossJig Tactile 3x3 Crossword Jigsaw Puzzle"
+          >
+            <img
+              className="game-thumbnail"
+              src="/crossjig-website-thumbnail.svg"
+              alt="CrossJig — Tactile 3×3 Crossword Jigsaw website thumbnail"
+              referrerPolicy="no-referrer"
+            />
+          </Link>
+          <h3>CrossJig — Tactile Crossword Jigsaw</h3>
+          <p>
+            Swap 3×3 crossword fragments to fuse valid dictionary words across every horizontal and
+            vertical seam. Play Daily Challenges across a full 1-year (365-day) calendar archive or
+            endless puzzles in Mini (3×3), Classic (3×4), and Master (3×5) grids.
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-2">
+            <Link className="game-link flex-1" to="/solo-games/crossjig">
+              Play CrossJig{' '}
+              <span>
+                <ArrowUpRight size={22} />
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => openModal('crossjig', 'leaderboards')}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B0938] text-[#F6C915] hover:opacity-90 text-xs font-bold transition-opacity cursor-pointer mt-3"
             >
               <Trophy size={13} />

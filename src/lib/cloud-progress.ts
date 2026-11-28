@@ -48,7 +48,8 @@ export type ProgressBucketId =
   | "tekscodle"
   | "wordhunt"
   | "goingdeep"
-  | "wordlock";
+  | "wordlock"
+  | "crossjig";
 
 export const VALID_PROGRESS_BUCKETS: ReadonlySet<ProgressBucketId> = new Set([
   "daily_streaks",
@@ -66,6 +67,7 @@ export const VALID_PROGRESS_BUCKETS: ReadonlySet<ProgressBucketId> = new Set([
   "wordhunt",
   "goingdeep",
   "wordlock",
+  "crossjig",
 ]);
 
 export const CLOUD_HYDRATED_EVENT = "mp-cloud-progress-hydrated";
@@ -1120,6 +1122,86 @@ export function mergeCloudBucketPayloads(
             master: Math.max(Number(eWins.master || 0), Number(iWins.master || 0)),
           },
           lastWonDate: iStats.lastWonDate || eStats.lastWonDate || null,
+        },
+      };
+    }
+
+    case "crossjig": {
+      const eStats = isPlainObject(existing.stats) ? (existing.stats as Record<string, any>) : {};
+      const iStats = isPlainObject(incoming.stats) ? (incoming.stats as Record<string, any>) : {};
+      const eBest = isPlainObject(eStats.bestTimes) ? eStats.bestTimes : {};
+      const iBest = isPlainObject(iStats.bestTimes) ? iStats.bestTimes : {};
+      const bestTimes: Record<string, number> = {};
+      for (const m of ["daily", "mini", "classic", "master"]) {
+        const minVal = mergePositiveMin(eBest[m], iBest[m]);
+        if (minVal !== null) bestTimes[m] = minVal;
+      }
+      const eArch = isPlainObject(eStats.dailyArchive)
+        ? (eStats.dailyArchive as Record<string, any>)
+        : {};
+      const iArch = isPlainObject(iStats.dailyArchive)
+        ? (iStats.dailyArchive as Record<string, any>)
+        : {};
+      const dailyArchive: Record<string, any> = { ...eArch };
+      for (const [dk, iRec] of Object.entries(iArch)) {
+        if (!isPlainObject(iRec)) continue;
+        const eRec = isPlainObject(dailyArchive[dk]) ? dailyArchive[dk] : null;
+        if (!eRec) {
+          dailyArchive[dk] = iRec;
+        } else {
+          const solved = Boolean(eRec.solved || iRec.solved);
+          const bestSeconds = mergePositiveMin(eRec.bestSeconds, iRec.bestSeconds);
+          const bestMoves = mergePositiveMin(eRec.bestMoves, iRec.bestMoves);
+          const bestScore = Math.max(Number(eRec.bestScore || 0), Number(iRec.bestScore || 0));
+          dailyArchive[dk] = {
+            ...eRec,
+            ...iRec,
+            dateStr: dk,
+            solved,
+            ...(bestSeconds !== null ? { bestSeconds } : {}),
+            ...(bestMoves !== null ? { bestMoves } : {}),
+            ...(bestScore > 0 ? { bestScore } : {}),
+          };
+        }
+      }
+      const dailyCompletedDates = Array.from(
+        new Set([
+          ...(Array.isArray(eStats.dailyCompletedDates) ? eStats.dailyCompletedDates : []),
+          ...(Array.isArray(iStats.dailyCompletedDates) ? iStats.dailyCompletedDates : []),
+          ...Object.entries(dailyArchive)
+            .filter(([, r]) => r && r.solved)
+            .map(([k]) => k),
+        ]),
+      ).sort();
+      return {
+        stats: {
+          totalSolved: Math.max(
+            Number(eStats.totalSolved || 0),
+            Number(iStats.totalSolved || 0),
+          ),
+          dailyStreak: Math.max(
+            Number(eStats.dailyStreak || 0),
+            Number(iStats.dailyStreak || 0),
+          ),
+          bestStreak: Math.max(
+            Number(eStats.bestStreak || 0),
+            Number(iStats.bestStreak || 0),
+          ),
+          bestScore: Math.max(
+            Number(eStats.bestScore || 0),
+            Number(iStats.bestScore || 0),
+          ),
+          totalScore: Math.max(
+            Number(eStats.totalScore || 0),
+            Number(iStats.totalScore || 0),
+          ),
+          lastDailyDate:
+            String(iStats.lastDailyDate || "") >= String(eStats.lastDailyDate || "")
+              ? iStats.lastDailyDate || eStats.lastDailyDate || null
+              : eStats.lastDailyDate || null,
+          bestTimes,
+          dailyCompletedDates,
+          dailyArchive,
         },
       };
     }
@@ -2230,6 +2312,48 @@ function mergeBucketWithLocal(
         !cloudPayload ||
         Number(lStats?.played || 0) > Number(rStats?.played || 0) ||
         Object.keys(lProg || {}).length > Object.keys(rProg || {}).length;
+      return { merged: mergedPayload, shouldPushToCloud: localHadExtra };
+    }
+
+    case "crossjig": {
+      const statsKey = `crossjig_stats_v1_${userPrefix}`;
+      const lStats = readJsonLocal<Record<string, any>>(statsKey);
+      const rStats = isPlainObject(cloudPayload?.stats)
+        ? (cloudPayload!.stats as Record<string, any>)
+        : null;
+      let guestStats: Record<string, any> | null = null;
+      for (const gp of guestPrefixes) {
+        const g = readJsonLocal<Record<string, any>>(`crossjig_stats_v1_${gp}`);
+        if (g && isPlainObject(g)) {
+          guestStats = guestStats
+            ? (mergeCloudBucketPayloads("crossjig", { stats: guestStats }, { stats: g }).stats as Record<string, any>)
+            : g;
+        }
+      }
+      const legacyGlobal = readJsonLocal<Record<string, any>>("crossjig_stats_v1");
+      if (legacyGlobal && isPlainObject(legacyGlobal)) {
+        guestStats = guestStats
+          ? (mergeCloudBucketPayloads("crossjig", { stats: guestStats }, { stats: legacyGlobal }).stats as Record<string, any>)
+          : legacyGlobal;
+      }
+      const combinedLocal =
+        lStats && guestStats
+          ? (mergeCloudBucketPayloads("crossjig", { stats: guestStats }, { stats: lStats }).stats as Record<string, any>)
+          : lStats || guestStats;
+      if (!combinedLocal && !rStats) {
+        return { merged: null, shouldPushToCloud: false };
+      }
+      const mergedPayload = mergeCloudBucketPayloads(
+        "crossjig",
+        { stats: rStats || {} },
+        { stats: combinedLocal || {} },
+      );
+      if (isPlainObject(mergedPayload.stats)) {
+        writeJsonLocal(statsKey, mergedPayload.stats);
+      }
+      const localHadExtra =
+        !cloudPayload ||
+        Number(combinedLocal?.totalSolved || 0) > Number(rStats?.totalSolved || 0);
       return { merged: mergedPayload, shouldPushToCloud: localHadExtra };
     }
 

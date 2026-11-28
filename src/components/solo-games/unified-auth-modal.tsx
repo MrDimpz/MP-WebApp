@@ -148,6 +148,12 @@ const SOLO_GAME_META: Record<
     shortTitle: 'WORDLOCK',
     subtitle: 'Daily & Unlimited 5-Row and 7-Row Vault Cracker Scores',
   },
+  crossjig: {
+    number: '16',
+    title: 'CrossJig — Tactile Crossword Jigsaw',
+    shortTitle: 'CrossJig',
+    subtitle: 'Daily, Mini 3×3, Classic 3×4 & Master 3×5 Crossword Jigsaw Scores',
+  },
 };
 
 const ALLOWED_GAMES: SoloGameId[] = [
@@ -166,6 +172,7 @@ const ALLOWED_GAMES: SoloGameId[] = [
   'wordhunt',
   'goingdeep',
   'wordlock',
+  'crossjig',
 ];
 
 export function UnifiedLeaderboardPanel({
@@ -199,6 +206,7 @@ export function UnifiedLeaderboardPanel({
     wordhunt: [],
     goingdeep: [],
     wordlock: [],
+    crossjig: [],
     cruciverbalist: [],
     crossword: [],
   });

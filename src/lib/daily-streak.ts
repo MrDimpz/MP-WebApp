@@ -23,6 +23,7 @@ export type DailyStreakGameId =
   | 'wordhunt'
   | 'goingdeep'
   | 'wordlock'
+  | 'crossjig'
   | 'inkstream'
   | 'mpwh'
   | 'wbr'

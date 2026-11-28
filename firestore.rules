@@ -53,7 +53,7 @@ service cloud.firestore {
         && data.keys().hasOnly(keys)
         && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 64 && data.userId.matches('^[a-zA-Z0-9_-]+$')
         && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60
-        && data.gameId is string && data.gameId in ['crossword', 'rebus', 'squared', 'thematix', 'destack', 'unolingo', 'wikirec', 'wikicon', 'mpsearch', 'mpdifference', 'mpcolossal', 'tekscodle', 'wordhunt', 'goingdeep']
+        && data.gameId is string && data.gameId in ['crossword', 'rebus', 'squared', 'thematix', 'destack', 'unolingo', 'wikirec', 'wikicon', 'mpsearch', 'mpdifference', 'mpcolossal', 'tekscodle', 'wordhunt', 'goingdeep', 'wordlock', 'crossjig']
         && data.puzzleId is string && data.puzzleId.size() >= 1 && data.puzzleId.size() <= 64 && data.puzzleId.matches('^[a-zA-Z0-9_-]+$')
         && data.puzzleTitle is string && data.puzzleTitle.size() >= 1 && data.puzzleTitle.size() <= 100
         && data.score is int && data.score >= 0 && data.score <= 1000000
@@ -183,7 +183,9 @@ service cloud.firestore {
           'mpcolossal',
           'tekscodle',
           'wordhunt',
-          'goingdeep'
+          'goingdeep',
+          'wordlock',
+          'crossjig'
         ]
         && data.payload is map && data.payload.keys().size() <= 200
         && data.createdAt is timestamp

@@ -1,0 +1,49 @@
+.crossjig-root {
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  overscroll-behavior-y: none;
+}
+
+.crossjig-root .font-display {
+  font-family: "Fraunces", Georgia, serif;
+}
+
+.crossjig-root .font-mono-tabular {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes crossjig-tile-settle {
+  0% {
+    transform: scale(1.045);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.crossjig-root .animate-tile-settle {
+  animation: crossjig-tile-settle 170ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes crossjig-check-pulse {
+  0% {
+    transform: scale(0.97);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.crossjig-root .animate-check-pulse {
+  animation: crossjig-check-pulse 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crossjig-root .animate-tile-settle,
+  .crossjig-root .animate-check-pulse {
+    animation: none;
+  }
+}
