@@ -233,10 +233,15 @@ export default function MPColossalApp() {
     endCol: number;
   }>({ startRow: 0, endRow: 20, startCol: 0, endCol: 25 });
 
-  // Notification banner when a quest is completed
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const toastTimerRef = useRef<number | null>(null);
-  const prevSolvedQuestsRef = useRef<number>(0);
+  // Notification popup when a quest is completed (displays for 10 seconds)
+  const [questCompletePopup, setQuestCompletePopup] = useState<{
+    title: string;
+    subtitle: string;
+    completedCount: number;
+    totalCount: number;
+  } | null>(null);
+  const questPopupTimerRef = useRef<number | null>(null);
+  const prevCompletedQuestIdsRef = useRef<Set<number> | null>(null);
   const lastRecordedScoreRef = useRef<number>(0);
   const mobileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -268,6 +273,8 @@ export default function MPColossalApp() {
       setDirection(firstWord.direction);
       setPanTarget({ row: firstWord.row, col: firstWord.col, timestamp: Date.now() });
     }
+    prevCompletedQuestIdsRef.current = null;
+    setQuestCompletePopup(null);
   }, [scale, puzzle, syncSavedProgress]);
 
   useEffect(() => {
@@ -358,13 +365,15 @@ export default function MPColossalApp() {
     return locked;
   }, [puzzle.wordMap, revealedCells, solvedWordIds]);
 
-  const completedQuestsCount = useMemo(
+  const completedQuestList = useMemo(
     () =>
       puzzle.quests.filter(
         (q) => q.wordIds.length > 0 && q.wordIds.every((id) => solvedWordIds.has(id))
-      ).length,
+      ),
     [puzzle.quests, solvedWordIds]
   );
+
+  const completedQuestsCount = completedQuestList.length;
 
   // Atlas Score formula
   const atlasScore = useMemo(() => {
@@ -407,38 +416,63 @@ export default function MPColossalApp() {
       recordDailyPuzzleSolved('mpcolossal', todayKey, 1);
     }
 
-    if (completedQuestsCount > prevSolvedQuestsRef.current) {
+    const currentCompletedIds = new Set(completedQuestList.map((q) => q.id));
+
+    if (prevCompletedQuestIdsRef.current === null) {
+      prevCompletedQuestIdsRef.current = currentCompletedIds;
+      return;
+    }
+
+    const newlyCompleted = completedQuestList.filter(
+      (q) => !prevCompletedQuestIdsRef.current?.has(q.id)
+    );
+    prevCompletedQuestIdsRef.current = currentCompletedIds;
+
+    if (newlyCompleted.length > 0) {
+      const latestQuest = newlyCompleted[newlyCompleted.length - 1];
       sound.playQuestComplete();
       triggerVictoryConfetti();
       setSolvedTodayFlag(true);
       recordDailyPuzzleSolved('mpcolossal', todayKey, 1);
       syncLeaderboardProgress(true);
-      setToastMessage(
-        `Expedition Quest Completed! (${completedQuestsCount}/${puzzle.quests.length} Quests)`
-      );
-      if (toastTimerRef.current) {
-        window.clearTimeout(toastTimerRef.current);
+
+      setQuestCompletePopup({
+        title: latestQuest.title,
+        subtitle: latestQuest.subtitle,
+        completedCount: currentCompletedIds.size,
+        totalCount: puzzle.quests.length,
+      });
+
+      if (questPopupTimerRef.current !== null) {
+        window.clearTimeout(questPopupTimerRef.current);
       }
-      toastTimerRef.current = window.setTimeout(() => {
-        setToastMessage(null);
-        toastTimerRef.current = null;
+      questPopupTimerRef.current = window.setTimeout(() => {
+        setQuestCompletePopup(null);
+        questPopupTimerRef.current = null;
       }, 10000);
-      prevSolvedQuestsRef.current = completedQuestsCount;
+      return;
     }
-    prevSolvedQuestsRef.current = completedQuestsCount;
 
     if (solvedWordIds.size > 0 && solvedWordIds.size % 10 === 0) {
       syncLeaderboardProgress(false);
     }
   }, [
     solvedWordIds.size,
-    completedQuestsCount,
+    completedQuestList,
     puzzle.quests.length,
     gameState,
     solvedTodayFlag,
     todayKey,
     syncLeaderboardProgress,
   ]);
+
+  useEffect(() => {
+    return () => {
+      if (questPopupTimerRef.current !== null) {
+        window.clearTimeout(questPopupTimerRef.current);
+      }
+    };
+  }, []);
 
   // Trigger Victory when all words solved
   useEffect(() => {
@@ -988,6 +1022,8 @@ export default function MPColossalApp() {
       // Ignore storage error
     }
     setGameState('PLAYING');
+    prevCompletedQuestIdsRef.current = new Set();
+    setQuestCompletePopup(null);
   };
 
   const currentSector = useMemo(() => {
@@ -1002,6 +1038,7 @@ export default function MPColossalApp() {
       if (enabled) {
         setIsDesktopSidebarOpen(false);
         setIsMobileSidebarOpen(false);
+        setShowRadarPopup(true);
       }
       setPanTarget({
         row: selectedCell.row,
@@ -1477,22 +1514,45 @@ export default function MPColossalApp() {
               onSelectCell={handleSelectCell}
               onViewportChange={setViewportRect}
               onStreamWidthChange={setStreamGridWidthPx}
-              overlayNode={
+              overlayContent={
                 <>
-                  {/* Quest Completion Toast Notification (10 seconds) */}
-                  {toastMessage && (
-                    <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-[#2B0938]/95 border-2 border-[#F6C915] text-[#F5F3F7] px-4 py-2 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2 whitespace-nowrap max-w-[94%]">
-                      <Sparkles className="w-4 h-4 text-[#F6C915] shrink-0" />
-                      <span className="truncate">{toastMessage}</span>
+                  {/* 10-Second Quest Completion Pop-up */}
+                  {questCompletePopup && (
+                    <div
+                      onPointerDown={(e) => e.stopPropagation()}
+                      className="pointer-events-auto absolute top-4 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-sm bg-gradient-to-b from-[#2B0938]/98 via-[#21062C]/98 to-[#16041F]/98 border-2 border-[#F6C915] text-[#F5F3F7] px-4 py-3 rounded-2xl shadow-[0_14px_40px_rgba(0,0,0,0.75)] animate-in fade-in zoom-in-95 duration-200"
+                    >
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-[#F6C915]/20 border border-[#F6C915]/60 flex items-center justify-center shrink-0">
+                            <Trophy className="w-5 h-5 text-[#F6C915]" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 text-[10px] font-mono-tabular font-extrabold uppercase tracking-wider text-[#F6C915]">
+                              <Sparkles className="w-3 h-3 shrink-0" />
+                              <span>
+                                Quest Completed · {questCompletePopup.completedCount}/
+                                {questCompletePopup.totalCount}
+                              </span>
+                            </div>
+                            <h4 className="text-sm font-extrabold text-white truncate mt-0.5">
+                              {questCompletePopup.title}
+                            </h4>
+                            <p className="text-[11px] text-purple-200/85 truncate">
+                              {questCompletePopup.subtitle}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  {/* Pop-up Atlas Radar over bottom-right of the grid */}
+                  {/* Pop-up Atlas Radar over the bottom-right of the grid */}
                   {showRadarPopup && (
                     <div
                       onPointerDown={(e) => e.stopPropagation()}
                       onWheel={(e) => e.stopPropagation()}
-                      className="absolute bottom-2 right-2 z-30"
+                      className="absolute bottom-2.5 right-2.5 z-30"
                     >
                       <MiniMap
                         puzzle={puzzle}

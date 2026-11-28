@@ -17,7 +17,7 @@ interface CrosswordBoardProps {
   onSelectCell: (row: number, col: number, toggleDirectionIfSame?: boolean) => void;
   onViewportChange: (rect: { startRow: number; endRow: number; startCol: number; endCol: number }) => void;
   onStreamWidthChange?: (widthPx: number) => void;
-  overlayNode?: React.ReactNode;
+  overlayContent?: React.ReactNode;
 }
 
 export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
@@ -35,7 +35,7 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
   onSelectCell,
   onViewportChange,
   onStreamWidthChange,
-  overlayNode,
+  overlayContent,
 }) => {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -459,7 +459,8 @@ export const CrosswordBoard: React.FC<CrosswordBoardProps> = ({
           })}
         </div>
 
-        {overlayNode}
+        {/* Grid-anchored overlays (such as the Pop-up Atlas Radar in Stream View) */}
+        {overlayContent}
       </div>
     </div>
   );
