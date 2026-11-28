@@ -225,7 +225,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               <div className="flex items-center gap-2 text-xs text-[#F6C915] font-mono-tabular font-bold">
                 <span>Cartographic Atlas Edition</span>
                 <span aria-hidden="true">·</span>
-                <span>62,500 Squares</span>
+                <span>40,000 Squares</span>
                 <span aria-hidden="true">·</span>
                 <span>25 Sectors</span>
               </div>
@@ -300,12 +300,12 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                   fontStyle="italic"
                   fontFamily="Fraunces, Georgia, serif"
                 >
-                  250×250 Crossword
+                  200×200 Crossword
                 </text>
               </svg>
 
               <p className="text-sm text-slate-600 dark:text-purple-100/85 leading-relaxed max-w-lg">
-                A monumental interlocking word puzzle built on a 250×250 broadsheet canvas—6.25× the area of a 100×100 giant crossword, packed with Cinema, Pop Music, TV, Gaming, and World Lore.
+                A monumental interlocking word puzzle built on a 200×200 broadsheet canvas—4× the area of a 100×100 giant crossword, packed with Cinema, Pop Music, TV, Gaming, and World Lore.
               </p>
             </div>
 
