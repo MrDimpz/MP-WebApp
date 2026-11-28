@@ -44,7 +44,7 @@ export function SoloGameList() {
           Solo games to play on your own and weave into your creator content. Explore our daily
           20×20 &amp; 8×8 crosswords, alphabetical Word Hunt ladders, 733+ visual rebus challenges,
           tactile daily word grids, daily word association puzzles, 3D layered word unstacking
-          towers, the colossal 200×200 crossword atlas, 26-letter zero-clue crosswords, 8-connected
+          towers, the colossal 250×250 crossword atlas, 26-letter zero-clue crosswords, 8-connected
           Wikipedia word grids, redacted Wikipedia article discovery, daily 10×10 word searches,
           twin-plate spot-the-difference challenges, UK supermarket basket price-guessing in
           TEKSCOdle, 4-in-1 layered word puzzles in Going Deep, and 3D mechanical vault cracking in
@@ -393,7 +393,7 @@ export function SoloGameList() {
         <article className="game-card is-featured">
           <div className="card-top">
             <span className="category-label">
-              <span className="status-dot" /> CENTERPIECE · 200×200 CROSSWORD ATLAS
+              <span className="status-dot" /> CENTERPIECE · 250×250 CROSSWORD ATLAS
             </span>
             <span className="card-number">11 /</span>
           </div>
@@ -401,12 +401,12 @@ export function SoloGameList() {
             <Link
               to="/solo-games/mpcolossal"
               className="game-art game-art-thumb"
-              aria-label="Open MP Colossal 200×200 Giant Crossword Atlas"
+              aria-label="Open MP Colossal 250×250 Giant Crossword Atlas"
             >
               <img
                 className="game-thumbnail"
                 src="/mpcolossal-website-thumbnail.svg"
-                alt="MP Colossal — 200×200 Giant Crossword Atlas website thumbnail"
+                alt="MP Colossal — 250×250 Giant Crossword Atlas website thumbnail"
                 referrerPolicy="no-referrer"
               />
             </Link>
@@ -415,13 +415,13 @@ export function SoloGameList() {
                 MP <span className="text-[#F6C915]">Colossal</span> — Giant Atlas
               </h3>
               <p>
-                Navigate a seamless 40,000-square pan-and-zoom crossword atlas spanning 25 themed
-                knowledge sectors and over 4,100 clues. Choose Colossal (200×200), Grand (120×120),
+                Navigate a seamless 62,500-square pan-and-zoom crossword atlas spanning 25 themed
+                knowledge sectors and over 6,400 clues. Choose Colossal (250×250), Grand (120×120),
                 or District (60×60) scales, embark on Expedition Quests, jump instantly with the
                 Atlas Radar minimap, or switch on 12×12 Stream Layout.
               </p>
               <div className="featured-meta">
-                <span>40,000 Squares</span>
+                <span>62,500 Squares</span>
                 <span aria-hidden="true">·</span>
                 <span>25 Quest Sectors</span>
                 <span aria-hidden="true">·</span>

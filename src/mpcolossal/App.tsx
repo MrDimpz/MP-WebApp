@@ -235,6 +235,7 @@ export default function MPColossalApp() {
 
   // Notification banner when a quest is completed
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
   const prevSolvedQuestsRef = useRef<number>(0);
   const lastRecordedScoreRef = useRef<number>(0);
   const mobileInputRef = useRef<HTMLInputElement | null>(null);
@@ -415,9 +416,14 @@ export default function MPColossalApp() {
       setToastMessage(
         `Expedition Quest Completed! (${completedQuestsCount}/${puzzle.quests.length} Quests)`
       );
-      const t = window.setTimeout(() => setToastMessage(null), 4000);
+      if (toastTimerRef.current) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+      toastTimerRef.current = window.setTimeout(() => {
+        setToastMessage(null);
+        toastTimerRef.current = null;
+      }, 10000);
       prevSolvedQuestsRef.current = completedQuestsCount;
-      return () => window.clearTimeout(t);
     }
     prevSolvedQuestsRef.current = completedQuestsCount;
 
@@ -1471,29 +1477,36 @@ export default function MPColossalApp() {
               onSelectCell={handleSelectCell}
               onViewportChange={setViewportRect}
               onStreamWidthChange={setStreamGridWidthPx}
+              overlayNode={
+                <>
+                  {/* Quest Completion Toast Notification (10 seconds) */}
+                  {toastMessage && (
+                    <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-[#2B0938]/95 border-2 border-[#F6C915] text-[#F5F3F7] px-4 py-2 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2 whitespace-nowrap max-w-[94%]">
+                      <Sparkles className="w-4 h-4 text-[#F6C915] shrink-0" />
+                      <span className="truncate">{toastMessage}</span>
+                    </div>
+                  )}
+
+                  {/* Pop-up Atlas Radar over bottom-right of the grid */}
+                  {showRadarPopup && (
+                    <div
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onWheel={(e) => e.stopPropagation()}
+                      className="absolute bottom-2 right-2 z-30"
+                    >
+                      <MiniMap
+                        puzzle={puzzle}
+                        userGrid={userGrid}
+                        activeWord={activeWord}
+                        viewportRect={viewportRect}
+                        onCenterCell={handleCenterCell}
+                        onClose={() => setShowRadarPopup(false)}
+                      />
+                    </div>
+                  )}
+                </>
+              }
             />
-
-            {/* Quest Completion Toast Notification */}
-            {toastMessage && (
-              <div className="pointer-events-none absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-[#2B0938]/95 border-2 border-[#F6C915] text-[#F5F3F7] px-4 py-2 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#F6C915]" />
-                <span>{toastMessage}</span>
-              </div>
-            )}
-
-            {/* Pop-up Atlas Radar */}
-            {showRadarPopup && (
-              <div className="absolute bottom-3 right-3 z-30">
-                <MiniMap
-                  puzzle={puzzle}
-                  userGrid={userGrid}
-                  activeWord={activeWord}
-                  viewportRect={viewportRect}
-                  onCenterCell={handleCenterCell}
-                  onClose={() => setShowRadarPopup(false)}
-                />
-              </div>
-            )}
 
             {/* Right-edge pop-in tab when desktop Side Clue Bar is collapsed */}
             {!isDesktopSidebarOpen && (
