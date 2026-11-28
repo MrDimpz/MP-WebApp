@@ -13,6 +13,7 @@ import {
   useUnifiedAuth,
 } from '@/lib/unified-game-auth';
 import { ArchiveModal } from './components/ArchiveModal';
+import { CompletionModal } from './components/CompletionModal';
 import { CrosswordBoard } from './components/CrosswordBoard';
 import { Header } from './components/Header';
 import { HowToPlayModal } from './components/HowToPlayModal';
@@ -70,6 +71,7 @@ export default function CrossJigApp() {
   const [settledSlots, setSettledSlots] = useState<Set<number>>(() => new Set());
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
 
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'account' | 'leaderboards'>('leaderboards');
@@ -214,6 +216,7 @@ export default function CrossJigApp() {
       setCheckFeedback(new Map());
       setCheckSummary(null);
       setSettledSlots(new Set());
+      setShowCompletionModal(false);
     },
     [clearFeedbackTimers, todayDateKey]
   );
@@ -257,6 +260,7 @@ export default function CrossJigApp() {
     setCheckFeedback(new Map());
     setCheckSummary(null);
     setSettledSlots(new Set());
+    setShowCompletionModal(false);
     solveRecordedRef.current = false;
     soundFX.swap(prefs.soundEnabled);
   }, [clearFeedbackTimers, puzzle.initialOrder, prefs.soundEnabled]);
@@ -277,6 +281,7 @@ export default function CrossJigApp() {
   useEffect(() => {
     if (validation.isSolved && !isSolved) {
       setIsSolved(true);
+      setShowCompletionModal(true);
       setSelectedSlot(null);
       setCheckFeedback(new Map());
       setCheckSummary(null);
@@ -792,6 +797,33 @@ export default function CrossJigApp() {
           />
         </div>
       </main>
+
+      <CompletionModal
+        open={showCompletionModal}
+        darkMode={darkMode}
+        mode={mode}
+        dailyDate={puzzle.dailyDate}
+        todayDateKey={todayDateKey}
+        elapsedSeconds={elapsedSeconds}
+        movesCount={movesCount}
+        hintsUsed={hintsUsed}
+        wordCount={validation.totalExpectedWords}
+        lastScore={lastScore}
+        stats={stats}
+        onClose={() => setShowCompletionModal(false)}
+        onPlayRandom={() => {
+          setShowCompletionModal(false);
+          handleNewPuzzle();
+        }}
+        onOpenCalendar={() => {
+          setShowCompletionModal(false);
+          setShowArchive(true);
+        }}
+        onOpenLeaderboard={() => {
+          setShowCompletionModal(false);
+          openLeaderboardModal();
+        }}
+      />
 
       <ArchiveModal
         open={showArchive}

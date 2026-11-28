@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Lock, Pin, X } from 'lucide-react';
+import { Check, Pin, X } from 'lucide-react';
 import { PuzzleTile } from '../game/types';
 
 export type CheckFeedbackState = 'correct' | 'wrong' | null;
@@ -43,7 +43,7 @@ export const TileFragment: React.FC<TileFragmentProps> = React.memo(
             : checkState === 'wrong'
               ? 'border-2 border-[#E11D48]'
               : isLocked
-                ? 'border-[1.5px] border-[#10B981]/85'
+                ? 'border-2 border-[#10B981]'
                 : isPinned
                   ? 'border-[1.5px] border-[#F59E0B]'
                   : 'border-[1.5px] border-[#38104F] dark:border-[#D4A437]/55';
@@ -88,7 +88,7 @@ export const TileFragment: React.FC<TileFragmentProps> = React.memo(
                         : isSelected
                           ? 'bg-[#FFF8DB] text-[#1D0830]'
                           : isLocked
-                            ? 'bg-[#ECFDF5] text-[#064E3B]'
+                            ? 'bg-[#D1FAE5] text-[#064E3B]'
                             : checkState === 'correct'
                               ? 'bg-[#D1FAE5] text-[#064E3B]'
                               : checkState === 'wrong'
@@ -124,14 +124,6 @@ export const TileFragment: React.FC<TileFragmentProps> = React.memo(
                 aria-label="Misplaced tile"
               >
                 <X className="h-2.5 w-2.5 stroke-[3]" />
-              </span>
-            )}
-            {!checkState && isLocked && (
-              <span
-                className="pointer-events-none absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-[3px] bg-[#10B981] text-white shadow-xs"
-                aria-label="Locked in place"
-              >
-                <Lock className="h-2.5 w-2.5 stroke-[2.5]" />
               </span>
             )}
             {!checkState && !isLocked && isPinned && (

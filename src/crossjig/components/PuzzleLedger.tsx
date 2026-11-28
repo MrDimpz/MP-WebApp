@@ -8,6 +8,7 @@ import {
   Pin,
   PinOff,
   RotateCcw,
+  Shuffle,
   Sparkles,
   Trophy,
   Undo2,
@@ -305,34 +306,40 @@ export const PuzzleLedger: React.FC<PuzzleLedgerProps> = ({
             with <span className="font-mono-tabular font-bold">{movesCount}</span> moves
             {hintsUsed > 0 ? ` and ${hintsUsed} hint${hintsUsed === 1 ? '' : 's'}` : ''}.
           </p>
-          <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="mt-3.5 grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={mode === 'daily' ? onOpenArchive : onPlayAgain}
-              className="inline-flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-lg bg-[#F6C915] px-4 py-2 text-xs sm:text-sm font-extrabold text-[#1D0830] transition-colors hover:bg-[#FFE047] active:scale-[0.99] whitespace-nowrap cursor-pointer"
+              onClick={onPlayAgain}
+              className="inline-flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-lg bg-[#F6C915] px-3 py-2 text-xs sm:text-sm font-extrabold text-[#1D0830] transition-colors hover:bg-[#FFE047] active:scale-[0.99] whitespace-nowrap cursor-pointer"
             >
-              {mode === 'daily' ? (
-                <>
-                  <Calendar className="h-4 w-4 shrink-0" />
-                  <span>1-Year Archive</span>
-                </>
-              ) : (
-                <span>Play Again</span>
-              )}
+              <Shuffle className="h-4 w-4 shrink-0" />
+              <span>Random</span>
             </button>
             <button
               type="button"
-              onClick={onOpenLeaderboard}
+              onClick={onOpenArchive}
               className={`inline-flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs sm:text-sm font-bold transition-colors whitespace-nowrap cursor-pointer ${
                 darkMode
-                  ? 'border-[#D4A437]/50 bg-white/10 text-[#F6C915] hover:bg-white/15'
+                  ? 'border-[#F6C915] bg-[#2B0944] text-[#F6C915] hover:bg-[#380C59]'
                   : 'border-[#2B0938] bg-[#2B0938] text-[#F6C915] hover:bg-[#3B0D4E]'
               }`}
             >
-              <Trophy className="h-4 w-4 shrink-0" />
-              <span>Leaderboard</span>
+              <Calendar className="h-4 w-4 shrink-0" />
+              <span>Calendar</span>
             </button>
           </div>
+          <button
+            type="button"
+            onClick={onOpenLeaderboard}
+            className={`mt-2 inline-flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+              darkMode
+                ? 'border-[#D4A437]/45 bg-white/10 text-[#F6C915] hover:bg-white/15'
+                : 'border-[#D9C6EC] bg-white text-[#2B0938] hover:bg-[#F5EFFA]'
+            }`}
+          >
+            <Trophy className="h-3.5 w-3.5 shrink-0" />
+            <span>Leaderboard</span>
+          </button>
         </div>
       ) : (
         /* Primary Puzzle Controls (44px+ touch targets) */
